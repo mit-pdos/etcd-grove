@@ -220,11 +220,16 @@ func DialHTTPPath(network, address, path string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	io.WriteString(conn, "CONNECT "+path+" HTTP/1.0\n\n")
+	// MODEL: io.WriteString(conn, s) as conn.Write([]byte(s)), what io.WriteString does for a
+	// writer without a WriteString method, as the net package's *TCPConn (Perennial does not
+	// translate io.WriteString).
+	conn.Write([]byte("CONNECT " + path + " HTTP/1.0\n\n"))
 
 	// Require successful HTTP response
 	// before switching to RPC protocol.
-	resp, err := http.ReadResponse(bufio.NewReader(conn), &http.Request{Method: "CONNECT"})
+	// MODEL: the answer is read through connectReader (below), which drops any byte after a read
+	// error: Linux yields none, the net extension's semantics does not exclude it.
+	resp, err := http.ReadResponse(bufio.NewReader(&connectReader{r: conn}), &http.Request{Method: "CONNECT"})
 	if err == nil && resp.Status == connected {
 		return NewClient(conn), nil
 	}
@@ -238,6 +243,43 @@ func DialHTTPPath(network, address, path string) (*Client, error) {
 		Addr: nil,
 		Err:  err,
 	}
+}
+
+// MODEL: connectReader is the model's own (not in Go's net/rpc). DialHTTPPath reads the server's
+// CONNECT answer through a bufio.Reader of the connection, and http.ReadResponse reads on after a
+// read error: textproto's ReadLine returns a line cut by an error (EOF or another) without the
+// error, and bufio does not keep an error. Over Linux a connection's end yields no byte after a
+// read error (EOF, then EOF; a reset, then EOF: examples/net/semantics' TestReadEOFAfterFin,
+// TestResetCloseUnreadInput), so Go's later reads fail too; DialHTTPPath sets no deadline, so no
+// timeout. The net extension's semantics allows bytes after a read error (a broken connection's
+// surviving bytes), with which the answer's status line cut by an error and a later "\n" would
+// parse, leaving the answer's last byte unread on the connection the client then uses. So the
+// model drops them: after an error, a read reads the connection into a buffer of its own and
+// returns no byte, with the connection's error, or io.ErrUnexpectedEOF in place of bytes (a case
+// Linux does not have); an empty read returns (0, nil) at once (bufio.Reader asks none). Over Linux
+// the same behavior as Go's.
+type connectReader struct {
+	r      io.Reader
+	failed bool
+}
+
+func (c *connectReader) Read(p []byte) (int, error) {
+	if len(p) == 0 {
+		// (an empty read: none here, bufio.Reader asks none)
+		return 0, nil
+	}
+	if c.failed {
+		_, err := c.r.Read(make([]byte, len(p)))
+		if err == nil {
+			err = io.ErrUnexpectedEOF
+		}
+		return 0, err
+	}
+	n, err := c.r.Read(p)
+	if err != nil {
+		c.failed = true
+	}
+	return n, err
 }
 
 // Dial connects to an RPC server at the specified network address.

@@ -9,11 +9,15 @@ public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import Net.GeneratedProof.golang_org.x.net.http.httpguts
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.log
+public import Net.GeneratedProof.mime.multipart
 public import Net.GeneratedProof.net
+public import Net.GeneratedProof.net.http.internal.ascii
 public import Net.GeneratedProof.net.textproto
 public import GeneratedProof.net.url
 public import GeneratedProof.path
 public import Perennial.GeneratedProof.runtime
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
@@ -146,25 +150,6 @@ noncomputable instance ProtocolError_access_store_ErrorString (l : Loc) (v : net
 
 end def_
 end ProtocolError
-
-namespace Request
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance Request_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Request :=
-  sorry -- axiomatized type
-
-noncomputable instance Request_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Request net.http.Request.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Request
 
 namespace requestBodyReadError
 section def_
@@ -363,6 +348,7 @@ noncomputable instance connReader_typed_pointsto :
     "inRead" ∷ typedPointsto (structFieldRef net.http.connReader go!"inRead" l) v.inRead' dq ∗
     "aborted" ∷ typedPointsto (structFieldRef net.http.connReader go!"aborted" l) v.aborted' dq ∗
     "remain" ∷ typedPointsto (structFieldRef net.http.connReader go!"remain" l) v.remain' dq ∗
+    "failed" ∷ typedPointsto (structFieldRef net.http.connReader go!"failed" l) v.failed' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -513,6 +499,22 @@ noncomputable instance connReader_access_store_remain (l : Loc) (v : net.http.co
       (typedPointsto (structFieldRef net.http.connReader go!"remain" l) v.remain' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.connReader go!"remain" l) remain' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with remain' := remain' } : net.http.connReader) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance connReader_access_load_failed (l : Loc) (v : net.http.connReader) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.connReader go!"failed" l) v.failed' dq)
+      (typedPointsto (structFieldRef net.http.connReader go!"failed" l) v.failed' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance connReader_access_store_failed (l : Loc) (v : net.http.connReader) (failed' : Bool) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef net.http.connReader go!"failed" l) v.failed' (DFrac.own 1))
+      (typedPointsto (structFieldRef net.http.connReader go!"failed" l) failed' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with failed' := failed' } : net.http.connReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -911,25 +913,6 @@ noncomputable instance redirectHandler_access_store_code (l : Loc) (v : net.http
 
 end def_
 end redirectHandler
-
-namespace Server
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
-
-noncomputable instance Server_typed_pointsto :
-    TypedPointsto (GF := GF) net.http.Server :=
-  sorry -- axiomatized type
-
-noncomputable instance Server_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) net.http.Server net.http.Server.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Server
 
 namespace timeoutWriter
 section def_

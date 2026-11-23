@@ -1,0 +1,5 @@
+# Project models-net (etc/goose.py): `mime/multipart`, types only (net/http's `Request` names
+# `*multipart.Form` in its `MultipartForm` field; no translated body of the model reads it).
+translate = ["!*"]
+imports = ["!*", "net/textproto"]
+translate_types = true
