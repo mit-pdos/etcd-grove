@@ -148,34 +148,34 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.xiang90.paxos.examp
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h7, h12, h1, h14, h16, True.intro⟩
-  have h18 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h6, True.intro⟩
-  have h19 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
+  have h18 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, True.intro⟩
+  have h19 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h6, h0, h18, True.intro⟩
   have h20 : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h1, h19, h0, h13, True.intro⟩
+    exact ⟨h1, h18, h0, h13, True.intro⟩
   have h21 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h18, True.intro⟩
+    exact ⟨h19, True.intro⟩
   have h22 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h21, h6, h18, h0, True.intro⟩
+    exact ⟨h21, h6, h19, h0, True.intro⟩
   have h23 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h20, h6, h18, h22, h0, True.intro⟩
+    exact ⟨h13, h20, h6, h19, h22, h0, True.intro⟩
   have h24 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h0, h18, h23, h1, h13, h22, True.intro⟩
+    exact ⟨h7, h0, h19, h23, h1, h13, h22, True.intro⟩
   have h25 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

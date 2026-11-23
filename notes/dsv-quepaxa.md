@@ -130,7 +130,7 @@ named after the lab's specs, until each comes as one shared change. **All are in
   initialization, all twelve `PkgTable`s building (`0e2763910c`).
 - Configuration: `etc/dsv/quepaxa.py` (dsv-infra's per-kit file: goose project, gen-init lists and
   `special(g)`).
-- Build: `PERENNIAL_DIR=/shared/perennial-9c3b81f30 etc/goose.py --project dsv-quepaxa`, then
+- Build: `PERENNIAL_DIR=/shared/perennial-7b2259a12 etc/goose.py --project dsv-quepaxa`, then
   `PERENNIAL_DIR=... python3 etc/gen-init.py`, then `lake build
   Dsverify.Proof.raxos.examples.quepaxanet.cmd.orch.PkgTable` (and the other eleven).
 - Done (this session, 2026-11-23): **the kit model's proof** (`Model.wp_proof`, no sorry);
