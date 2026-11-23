@@ -35,6 +35,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **`IsAdminPermitted`'s verdict no older than the index `n`** in the mode `M` (persistent): the auth
 package's (`auth.adminVerdictFrom`, `IsAdminPermitted.specLb`'s; this definition's own body until the
 lease-src plan, 2026-11-02): in `on γa`, a passed check's principal an admin at a state recorded at an
@@ -47,6 +56,15 @@ instance adminVerdictFrom_persistent (M : auth.AuthMode) (n : Nat)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (err : GoInterface) :
     Persistent (adminVerdictFrom (GF := GF) M n info err) := by
   unfold adminVerdictFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 /-- **`permCheck2` no older than a lower bound**: `IsPutPermitted(authInfo, key)`'s verdict at states
 no older than `n`, for a caller with the reader resource `RD`. -/

@@ -527,7 +527,7 @@ theorem EtcdServer.LeaseRenew.wp_proof
       (⌜v = returnVal #()⌝ ∗ ∃ (ttl : w64) (err : GoInterface), «$res0_ptr» ↦ ttl ∗
         «$res1_ptr» ↦ err ∗ E.RD ∗ levelTok lease.lessorLvl ∗ levelTok v3rpc.ctxErrLvl ∗ srvLgReader s ∗
         srvReadReader s γr ∗
-        ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
+        ((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom (srvTLSId s) E tok n
             (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
          (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)))))
     with [«$res0» «$res1» s id ctx HRD Htok Hetok Hlgr Hrrd]

@@ -37,7 +37,7 @@ def clientHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (om 
     (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) : IProp GF :=
   histAu ρ.raft ρ.kv srvAuthSt0
     (fun hm => iprop(∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-      v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md) hm)) rq Q
+      v3rpc.hdrBoundT (srvTLSId s) E.authMode (auth.mdTokenOf md) hm)) rq Q
 
 instance clientHistAu_persistent (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc)
     (om : GrpcMd) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF) :
@@ -49,7 +49,7 @@ theorem clientHistAu_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn
     (om : GrpcMd) (md : GrpcMd) (rq : apply.IRRModel) (Q : List auth.AuthState → IProp GF)
     (hmd : clientAttemptMd conn om md) :
     clientHistAu (GF := GF) s E ρ conn om rq Q ⊢
-      v3rpc.authHistAuT s E ρ (auth.mdTokenOf md) rq Q := by
+      v3rpc.authHistAuT (srvTLSId s) E ρ (auth.mdTokenOf md) rq Q := by
   unfold clientHistAu v3rpc.authHistAuT
   apply histAu_mono
   intro hm

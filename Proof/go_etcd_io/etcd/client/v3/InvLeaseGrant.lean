@@ -294,6 +294,16 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 open Iris.ProofMode
 
+end specsLive
+
+section specsLiveHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **etcd's spec of `LeaseTimeToLive` at the lessor `γl` and the server `s`, in the revocable lease
 mode** (the lease-expiry plan's E3, 2026-11-05): the caller hands in a lower bound `m` of the
 lessor's history (`lessorLb`), and the reply, about the asked lease, carries, under the lease-TTL row
@@ -301,15 +311,32 @@ lessor's history (`lessorLb`), and the reply, about the asked lease, carries, un
 lease's TTL at an index `≥ m`, or that the lease is absent from `m` on (the server's
 `EtcdServer.leaseTimeToLive.spec`'s answer through `LeaseServer.LeaseTimeToLive`, whose TTL `-1`
 reply is the not-found arm). -/
-def etcdLeaseTTLSpecLive (γl : GName) (s : Loc) :
-    GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
+def etcdLeaseTTLSpecLiveW (γl : GName) (R : IProp GF) :
+    w64 × Bool → (LeaseTTLRespM → IProp GF) → IProp GF :=
   fun (req : w64 × Bool) (Φ : LeaseTTLRespM → IProp GF) =>
     iprop(∃ m : Nat, lease.lessorLb γl m ∗
       ∀ resp : LeaseTTLRespM, ⌜resp.id = req.1⌝ -∗
-        □ (leaseTTLRow s γl -∗
+        □ (R -∗
             (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i resp.id resp.grantedTtl) ∨
             lease.leaseAbsentFrom γl m resp.id) -∗
         Φ resp)
+
+end specsLiveHF
+
+section specsLive
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+
+/-- **`etcdLeaseTTLSpecLiveW` at the messages' models** (S2, heap-free vocabulary, 2026-11-23: the
+spec is `etcdLeaseTTLSpecLiveW`, over the models alone, what a service table holds; this is its form
+at the message types). -/
+def etcdLeaseTTLSpecLive (γl : GName) (R : IProp GF) :
+    GrpcSpec (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
+  etcdLeaseTTLSpecLiveW γl R
 
 end specsLive
 
@@ -387,11 +414,11 @@ theorem isGrpcRpc_mono_with {Req Rep : ProtoMsg GF} (addr name : GoString) (P : 
 with a lower bound of the lessor's history to hand in. -/
 theorem isGrpcRpc_leaseTTL_live_any (addr : GoString) (γl : GName) (s : Loc) (m : Nat) :
     lease.lessorLb (GF := GF) γl m ∗
-      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive γl s) ⊢
+      isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" (etcdLeaseTTLSpecLive γl (leaseTTLRow s γl)) ⊢
       isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" etcdLeaseTTLSpec := by
   apply isGrpcRpc_mono_with
   intro r Φ
-  unfold etcdLeaseTTLSpec etcdLeaseTTLSpecW etcdLeaseTTLSpecLive
+  unfold etcdLeaseTTLSpec etcdLeaseTTLSpecW etcdLeaseTTLSpecLive etcdLeaseTTLSpecLiveW
   iintro ⟨#Hm, H⟩
   iexists m
   iframe Hm
@@ -413,6 +440,33 @@ theorem isGrpcRpc_leaseLeases_live_any (addr : GoString) (γl : GName) (m : Nat)
   iintro %resp ⟨%j, -, #Hids⟩
   ihave %Hnd := lease.leaseIdsAt_nodup γl j resp.ids $$ Hids
   iapply H $$ %resp %Hnd
+
+section monoT
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [EM : EtcdModel GF]
+
+open Iris.ProofMode in
+/-- (O2, 2026-11-23) **`LeaseTimeToLive`'s live spec is monotone in the row fact**: a registration
+at the server's row `R1` (`leaseTTLRow s γl`) serves a caller at `R2` (a table's `⌜row = true⌝`)
+when `□ (R2 -∗ R1)`. -/
+theorem etcdLeaseTTLSpecLiveW_mono (γl : GName) (R1 R2 : IProp GF) (req : w64 × Bool)
+    (Φ : LeaseTTLRespM → IProp GF) :
+    iprop(□ (R2 -∗ R1)) ∗ etcdLeaseTTLSpecLiveW γl R2 req Φ ⊢ etcdLeaseTTLSpecLiveW γl R1 req Φ := by
+  unfold etcdLeaseTTLSpecLiveW
+  iintro ⟨#HR, %m, Hl, Hk⟩
+  iexists m
+  iframe Hl
+  iintro %r %h #Hrow
+  iapply Hk $$ %r %h
+  imodintro
+  iintro Hr2
+  iapply Hrow
+  iapply HR $$ Hr2
+
+end monoT
 
 end specsLive
 

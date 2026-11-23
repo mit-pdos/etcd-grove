@@ -140,7 +140,7 @@ theorem watchAuthed_on (tag : GName) (γa : auth.AuthNames) (s : Loc) (tok : Opt
     (n : Nat) (key rangeEnd : GoString) :
     ⊢ auth.modeTag (GF := GF) tag (.on γa) -∗ watchAuthed tag s tok n key rangeEnd -∗
       ∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (i : Nat) (st : auth.AuthState),
-        auth.authStateAt γa i st ∗ infoBoundT s (.on γa) tok info ∗
+        auth.authStateAt γa i st ∗ infoBoundT (srvTLSId s) (.on γa) tok info ∗
         ⌜n ≤ i ∧ auth.permitted st (auth.authInfoM info) (apply.watchKey key) rangeEnd .read ∧
           auth.reqShape (apply.watchKey key) rangeEnd⌝ := by
   iintro #Htag H
@@ -173,7 +173,7 @@ theorem ctrlWatcher_authorized (r : WRun GF) (tok : Option GoString) (γa : auth
       ∃ (i : RegInfo) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (j : Nat)
         (st : auth.AuthState),
         ⌜createRangeOk c m.watchId i.rg⌝ ∗ regIs r.γreg m.watchId i ∗
-        auth.authStateAt γa j st ∗ infoBoundT r.srv.s (.on γa) tok info ∗
+        auth.authStateAt γa j st ∗ infoBoundT (srvTLSId r.srv.s) (.on γa) tok info ∗
         ⌜c.bound ≤ j ∧ (st.enabled = false ∨
           ((auth.authInfoM info).rev ≠ 0 ∧
             ∃ u, st.users !! (auth.authInfoM info).user = some u ∧

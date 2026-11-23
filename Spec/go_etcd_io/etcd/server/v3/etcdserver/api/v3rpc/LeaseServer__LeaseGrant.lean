@@ -53,14 +53,14 @@ abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
       auth.authPubLbM E.authMode n ∗
       context.isContext ci cd ∗ grpcRunCtx ci ∗ □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ v3rpc.leaseGrantReqIs r m ∗
       v3rpc.leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
-      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode tok) m.1 Q }}
+      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT (srvTLSId s) E.authMode tok) m.1 Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
         structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
-        v3rpc.leaseGrantResT on s E ρ tok m.1 id Q ∗
-        leaseCheckFrom s E tok n (fun _ => iprop(True))) ∗
+        v3rpc.leaseGrantResT on (srvTLSId s) E ρ tok m.1 id Q ∗
+        leaseCheckFrom (srvTLSId s) E tok n (fun _ => iprop(True))) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec

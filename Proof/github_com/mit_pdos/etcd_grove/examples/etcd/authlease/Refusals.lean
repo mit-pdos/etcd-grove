@@ -86,7 +86,7 @@ theorem fixed_state (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryMod
 and v; the TLS fallback is off. -/
 theorem princ_who (s : Loc) (γa : auth.AuthNames) (who : GoString) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    principalBound (GF := GF) s (.on γa) tok (some info) ∗ akTokSeen γa who tok ∗
+    principalBound (GF := GF) (srvTLSId s) (.on γa) tok (some info) ∗ akTokSeen γa who tok ∗
       □ (srvTLSId s -∗ False) ⊢ ⌜info.Username' = who ∧ (who = go!"u" ∨ who = go!"v")⌝ := by
   iintro ⟨#Hb, #Ht, #Htls⟩
   unfold principalBound
@@ -107,7 +107,7 @@ theorem noAuth_refutes (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
     (hwho : who = go!"anon" ∨ who = go!"bad") :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ⊢
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF),
-          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K ={⊤}=∗ False) := by
+          akTokSeen γa who tok -∗ leaseCheckFrom (srvTLSId s) E tok n K ={⊤}=∗ False) := by
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
   iintro ⟨#Hf, #Htls⟩ !> %tok %K #Hs Hck
   iunfold leaseCheckFrom at Hck
@@ -136,7 +136,7 @@ theorem foreign_check_refuted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
     (hwho : (who = go!"u" ∧ ¬ inRangeK k) ∨ who = go!"v") :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ∗ akTokSeen γa who tok ∗
       □ (∀ info, K info -∗ leaseKeysVerdictFrom E.authMode n info γl m id .read) ∗
-      holdsFrom γc γl m id k ∗ leaseCheckFrom s E tok n K ∗
+      holdsFrom γc γl m id k ∗ leaseCheckFrom (srvTLSId s) E tok n K ∗
       monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False := by
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
   iintro ⟨#Hf, #Htls, #Hs, #HK, #Hh, Hck, Ham⟩
@@ -202,11 +202,11 @@ theorem foreign_reads_refuted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
     (hwho : (who = go!"u" ∧ ¬ inRangeK k) ∨ who = go!"v") :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ∗ holdsFrom γc γl m id k ⊢
       □ (∀ tok : Option GoString, akTokSeen γa who tok -∗
-          leaseCheckFrom s E tok n (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read) -∗
+          leaseCheckFrom (srvTLSId s) E tok n (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read) -∗
           monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False) ∗
       □ (∀ (tok : Option GoString) (i : Nat) (ids : List w64), ⌜m ≤ i⌝ -∗ akTokSeen γa who tok -∗
           lease.leaseIdsAt γl i ids -∗
-          leaseCheckFrom s E tok n (fun info => iprop([∗list] id' ∈ ids,
+          leaseCheckFrom (srvTLSId s) E tok n (fun info => iprop([∗list] id' ∈ ids,
             leaseKeysVerdictFrom E.authMode n info γl i id' .read)) -∗
           monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False) := by
   iintro ⟨#Hf, #Htls, #Hh⟩
@@ -237,7 +237,7 @@ theorem grantG_refuted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
       leaseGrantedM (setupSt r) I (apply.withHeader rq hm) →
         leaseOk (setupSt r) ⟨hm.username, hm.authRevision⟩ I L) :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ akTokSeen γa who tok ∗ □ (srvTLSId s -∗ False) ∗
-      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq Lset σ ={cellM}=∗ False := by
+      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT (srvTLSId s) E.authMode tok) rq Lset σ ={cellM}=∗ False := by
   iintro ⟨#Hf, #Hs, #Htls, Hw⟩
   imod (akGrantedL_of_writeGrantG s E γa ρ Lset n who tok rq σ cellM hγa authHistN_cellM) $$ [Hf Hs Htls] Hw
     with %Hg
@@ -247,11 +247,11 @@ theorem grantG_refuted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
 /-- **`op`'s grant checks the lease `L`**: at every token and state, `op`'s grant (`opGrantT`) is the
 write grant of a request whose lease check is of `L` (`refused_update`'s premise). -/
 def opChecksLease (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (op : KVOp) (L : w64) : Prop :=
-  ∀ tok L₀ σ, v3rpc.opGrantT (GF := GF) s E ρ tok op L₀ σ ⊢
+  ∀ tok L₀ σ, v3rpc.opGrantT (GF := GF) (srvTLSId s) E ρ tok op L₀ σ ⊢
     ∃ rq : apply.IRRModel, ⌜∀ r (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
         (hm : apply.HeaderModel), leaseGrantedM (setupSt r) I (apply.withHeader rq hm) →
           leaseOk (setupSt r) ⟨hm.username, hm.authRevision⟩ I L⌝ ∗
-      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq L₀ σ
+      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT (srvTLSId s) E.authMode tok) rq L₀ σ
 
 /-- A leased put's grant checks its lease. -/
 theorem opChecksLease_put (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (o : OpFull) :

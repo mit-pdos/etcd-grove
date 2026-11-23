@@ -546,7 +546,7 @@ theorem run.wp_proof
     ihave #H := cell_setupAu x0.2.ρ.rd.kv γc k hk $$ Hinv
     iexact H
   ihave #Hput : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Put"
-      (client.etcdPutSpecOn s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
+      (client.etcdPutSpecOn (srvTLSId s0) w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
   · iunfold akKVOn at HKV₁
     icases HKV₁ with ⟨#H, -, -, -⟩
     iexact H
@@ -704,7 +704,7 @@ theorem run.wp_proof
   iunfold etcdstart.etcdLeaseServedOn at HLS₁
   icases HLS₁ with ⟨#HLG₁, #HLR₁, #HLT₁, #HLL₁⟩
   ihave #Hput₁ : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Put"
-      (client.etcdPutSpecOn s0 w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
+      (client.etcdPutSpecOn (srvTLSId s0) w0.E { x0.2.ρ with wait := w0.γw } w0.cid w0.mid) $$ []
   · iunfold akKVOn at HKV₁
     icases HKV₁ with ⟨#H, -, -, -⟩
     iexact H
@@ -766,7 +766,7 @@ theorem run.wp_proof
   iunfold etcdstart.etcdLeaseServedOn at HLS₂
   icases HLS₂ with ⟨#HLG₂, #HLR₂, #HLT₂, #HLL₂⟩
   ihave #Hput₂ : isGrpcRpcMd xu.1.Client' go!"/etcdserverpb.KV/Put"
-      (client.etcdPutSpecOn su wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid) $$ []
+      (client.etcdPutSpecOn (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } wu.cid wu.mid) $$ []
   · iunfold akKVOn at HKV₂
     icases HKV₂ with ⟨#H, -, -, -⟩
     iexact H
@@ -853,7 +853,7 @@ theorem run.wp_proof
     iexact HLc₂
   obtain ⟨hro, htsz, htsh, htpl, htnz, htnest⟩ := leaseTxn_ok tK lu (by decide) (by decide)
   ihave #HTx₂ : isGrpcRpcMd xu.1.Client' go!"/etcdserverpb.KV/Txn"
-      (client.etcdTxnSpecOn su wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd wu.cid wu.mid) $$ []
+      (client.etcdTxnSpecOn (srvTLSId su) wu.E { xu.2.ρ with wait := wu.γw } xu.2.ρ.rd wu.cid wu.mid) $$ []
   · iunfold akKVOn at HKV₂
     icases HKV₂ with ⟨-, -, -, #H⟩
     iexact H
@@ -1159,7 +1159,7 @@ theorem run.wp_proof
   · iapply (committedAtLeast_of_rlog x0.2.ρ.rd (W64 0) Lc (by word))
     iexact HLc
   ihave #Hrng₁ : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Range"
-      (client.etcdRangeSpecOn s0 w0.E x0.2.ρ.rd w0.cid w0.mid) $$ []
+      (client.etcdRangeSpecOn (srvTLSId s0) w0.E x0.2.ρ.rd w0.cid w0.mid) $$ []
   · iunfold akKVOn at HKV₁
     icases HKV₁ with ⟨-, #H, -⟩
     iexact H

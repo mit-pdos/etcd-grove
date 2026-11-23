@@ -266,7 +266,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 /-- **A header bound to an attempt of `SetUp`'s calls has no user.** -/
 theorem setupHdr_anon (s conn : Loc) (ctx : GoInterface) (M : AuthMode) (hm : apply.HeaderModel)
     (md : GrpcMd) (hmd : clientAttemptMd conn none md) :
-    ⊢ setupCtx (GF := GF) s conn ctx -∗ v3rpc.hdrBoundT s M (auth.mdTokenOf md) hm -∗
+    ⊢ setupCtx (GF := GF) s conn ctx -∗ v3rpc.hdrBoundT (srvTLSId s) M (auth.mdTokenOf md) hm -∗
       ⌜hm.username = (zeroValDef : GoString)⌝ := by
   iintro #Hc #Hb
   iunfold setupCtx at Hc
@@ -551,7 +551,7 @@ theorem setup_reply (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (
     (hmd : clientAttemptMd conn none md) (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek)
     (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      v3rpc.adminReplied s E ρ (auth.mdTokenOf md) rq₀ (fun _ => effLb ρ.kv j) ={Ek}=∗
+      v3rpc.adminReplied (srvTLSId s) E ρ (auth.mdTokenOf md) rq₀ (fun _ => effLb ρ.kv j) ={Ek}=∗
       effLb ρ.kv j := by
   iintro #Hc #Hn #Hx #Hr
   iunfold v3rpc.adminReplied at Hr
@@ -591,7 +591,7 @@ theorem setup_reply_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
     (hc0 : uint.Z ρ.kv.c0 ≤ uint.Z ρ.raft.ai0) (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek)
     (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      v3rpc.adminReplied s E ρ (auth.mdTokenOf md) irrAuthEnable (setupDone ρ.raft ρ.kv γz)
+      v3rpc.adminReplied (srvTLSId s) E ρ (auth.mdTokenOf md) irrAuthEnable (setupDone ρ.raft ρ.kv γz)
       ={Ek}=∗
       ∃ (hs : List AuthState) (Lset : List EntryModel) (k : Nat) (r : Nat),
         authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
@@ -659,13 +659,13 @@ theorem setup_pre_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
     (hj : ∀ um : apply.UserAddModel, um.name = name → um.pwSure → setupReqAt j (irrUserAdd um))
     (hj7 : j < 7) (hlen : name.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn none (v3rpc.etcdUserAddSpec s E ρ) (⟨name, pw⟩ : UserAddW)
+      attemptPre conn none (v3rpc.etcdUserAddSpec (srvTLSId s) E ρ) (⟨name, pw⟩ : UserAddW)
         (setupReplied s E ρ conn ctx
-          (fun tok => v3rpc.userAddReplied s E ρ tok name (fun _ => effLb ρ.kv j))) := by
+          (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok name (fun _ => effLb ρ.kv j))) := by
   iintro #Hc #Hn #Hx
   iunfold attemptPre
   iintro %md %hmd
-  iunfold v3rpc.etcdUserAddSpec
+  iunfold v3rpc.etcdUserAddSpec, v3rpc.etcdUserAddSpecW
   isplitr
   · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
@@ -688,14 +688,14 @@ theorem setup_pre_userGrantRole (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
     (hj : setupReqAt j (irrUserGrantRole user role)) (hj7 : j < 7)
     (hlen : user.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn none (v3rpc.etcdUserGrantRoleSpec s E ρ) (user, role)
+      attemptPre conn none (v3rpc.etcdUserGrantRoleSpec (srvTLSId s) E ρ) (user, role)
         (setupReplied s E ρ conn ctx
-          (fun tok => v3rpc.adminReplied s E ρ tok (irrUserGrantRole user role)
+          (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrUserGrantRole user role)
             (fun _ => effLb ρ.kv j))) := by
   iintro #Hc #Hn #Hx
   iunfold attemptPre
   iintro %md %hmd
-  iunfold v3rpc.etcdUserGrantRoleSpec
+  iunfold v3rpc.etcdUserGrantRoleSpec, v3rpc.etcdUserGrantRoleSpecW
   isplitr
   · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
@@ -716,13 +716,13 @@ theorem setup_pre_roleAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
     (hj : setupReqAt j (irrRoleAdd name)) (hj7 : j < 7)
     (hlen : name.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn none (v3rpc.etcdRoleAddSpec s E ρ) name
+      attemptPre conn none (v3rpc.etcdRoleAddSpec (srvTLSId s) E ρ) name
         (setupReplied s E ρ conn ctx
-          (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleAdd name) (fun _ => effLb ρ.kv j))) := by
+          (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrRoleAdd name) (fun _ => effLb ρ.kv j))) := by
   iintro #Hc #Hn #Hx
   iunfold attemptPre
   iintro %md %hmd
-  iunfold v3rpc.etcdRoleAddSpec
+  iunfold v3rpc.etcdRoleAddSpec, v3rpc.etcdRoleAddSpecW
   isplitr
   · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
@@ -743,14 +743,14 @@ theorem setup_pre_roleGrantPermission (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     (hj : setupReqAt j (irrRoleGrantPermission name (some w))) (hj7 : j < 7)
     (hlen : name.length ≤ backend.maxKeySize) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      attemptPre conn none (v3rpc.etcdRoleGrantPermissionSpec s E ρ) (name, w)
+      attemptPre conn none (v3rpc.etcdRoleGrantPermissionSpec (srvTLSId s) E ρ) (name, w)
         (setupReplied s E ρ conn ctx
-          (fun tok => v3rpc.adminReplied s E ρ tok (irrRoleGrantPermission name (some w))
+          (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok (irrRoleGrantPermission name (some w))
             (fun _ => effLb ρ.kv j))) := by
   iintro #Hc #Hn #Hx
   iunfold attemptPre
   iintro %md %hmd
-  iunfold v3rpc.etcdRoleGrantPermissionSpec
+  iunfold v3rpc.etcdRoleGrantPermissionSpec, v3rpc.etcdRoleGrantPermissionSpecW
   isplitr
   · imodintro; iintro %_; itrivial
   iexists (fun _ => effLb ρ.kv j)
@@ -770,13 +770,13 @@ theorem setup_pre_authEnable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn
     (ctx : GoInterface) (γz : GName) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       (□ ∀ i, ⌜i < 7⌝ -∗ effLb ρ.kv i) -∗
-      attemptPre conn none (v3rpc.etcdAuthEnableSpec s E ρ) ()
+      attemptPre conn none (v3rpc.etcdAuthEnableSpec (srvTLSId s) E ρ) ()
         (setupReplied s E ρ conn ctx
-          (fun tok => v3rpc.adminReplied s E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz))) := by
+          (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz))) := by
   iintro #Hc #Hn #Hx #Hall
   iunfold attemptPre
   iintro %md %hmd
-  iunfold v3rpc.etcdAuthEnableSpec
+  iunfold v3rpc.etcdAuthEnableSpec, v3rpc.etcdAuthEnableSpecW
   isplitr
   · imodintro; iintro %_; itrivial
   iexists setupDone ρ.raft ρ.kv γz
@@ -794,7 +794,7 @@ theorem setup_post (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc) (c
     (γz : GName) (j : Nat) (rq₀ : apply.IRRModel) (hj : setupReqAt j rq₀) (Ek : CoPset)
     (h1 : (↑authHistN : CoPset) ⊆ Ek) (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      setupReplied s E ρ conn ctx (fun tok => v3rpc.adminReplied s E ρ tok rq₀
+      setupReplied s E ρ conn ctx (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok rq₀
         (fun _ => effLb ρ.kv j)) () ={Ek}=∗ effLb ρ.kv j := by
   iintro #Hc #Hn #Hx Hr
   iunfold setupReplied at Hr
@@ -807,7 +807,7 @@ theorem setup_post_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn :
     (hj : ∀ um : apply.UserAddModel, um.name = name → um.pwSure → setupReqAt j (irrUserAdd um))
     (Ek : CoPset) (h1 : (↑authHistN : CoPset) ⊆ Ek) (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
-      setupReplied s E ρ conn ctx (fun tok => v3rpc.userAddReplied s E ρ tok name
+      setupReplied s E ρ conn ctx (fun tok => v3rpc.userAddReplied (srvTLSId s) E ρ tok name
         (fun _ => effLb ρ.kv j)) () ={Ek}=∗ effLb ρ.kv j := by
   iintro #Hc #Hn #Hx Hr
   iunfold setupReplied at Hr
@@ -823,7 +823,7 @@ theorem setup_post_enable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : 
     (h2 : (↑setupN : CoPset) ⊆ Ek) :
     ⊢ authHistCell (GF := GF) ρ.kv γz -∗ setupInv γz -∗ setupCtx s conn ctx -∗
       setupReplied s E ρ conn ctx
-        (fun tok => v3rpc.adminReplied s E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz)) ()
+        (fun tok => v3rpc.adminReplied (srvTLSId s) E ρ tok irrAuthEnable (setupDone ρ.raft ρ.kv γz)) ()
       ={Ek}=∗
       ∃ (hs : List AuthState) (Lset : List EntryModel) (k : Nat) (r : Nat),
         authHistFrozen ρ.kv γz hs ∗ srvReqLogLb ρ.raft Lset ∗
