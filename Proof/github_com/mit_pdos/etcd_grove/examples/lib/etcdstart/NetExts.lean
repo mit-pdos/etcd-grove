@@ -1,30 +1,29 @@
 /- Lean-first (no Rocq counterpart).
 
-# The single-process etcd examples' extensions with the net extension (2026-11-23)
+# The etcd examples' extensions over the network: `[idIssueExt, fsExt, netExt]` (2026-11-23)
 
-Since the net swap (etcd-dist D2, 2026-11-22) `net` is the part `Net/`'s, over the net extension
-(`GooseLang/Ext/Net`): `net.Listen`'s body is the trusted `ExternalOp netExt.name "Listen"`, so a program
-that listens runs over a bundle with `netExt`. The single-process closed theorems restored after the swap
-(`etcd_safe_single_process`, `k8s_safe_single_process`, `etcd_leaseexpiryN_safe_single_process`;
-`notes/single-process-restore.md`) run over `etcdNetExts := [idIssueExt, fsExt, netExt]`: `FsExts.lean`'s
-`etcdFsExts` with the net extension, at its own semantics (every fault it allows) and ghost state.
+`etcdFsExts` (`FsExts.lean`: the request ids' issue record and the Linux file extension at `etcdFsSem`) with the
+net extension: the extensions of an etcd program on a machine of a distributed deployment (`putget_safe`,
+`notes/putget-dist-plan.md`; the plan's option (i) bundle, `notes/etcd-dist-plan.md` §9), and of a
+single-process etcd program that listens (`single-process-restore`). Each extension's semantics and ghost
+state is its own (the file extension's at `etcdFsSem`); the `HasExt` instances by computation; and the
+interpretations' conditions on the initial states, from the network's start and each machine's `FsInit`
+(`etcdNetExts_initP`: `etcdFsSem`, `Fs.fsSemWithS`, keeps `ExtSemantics`'s default `initLocal`, so `FsInit` is
+the statement's to give).
 
-* `etcdNetFs_start`: `FsExts.lean`'s `etcdFs_start` over this bundle (the file extension's start
-  resources);
-* `netAddrFrees_start`: the right to listen at each address of a list of distinct valid addresses
-  (`netAddrFree`, `Proof/net/InvNet.lean`), from the net extension's start resources (its listening tokens,
-  `netLisTok`, in `extsGlobalStart`) and program start's claims (`addrClaim`, `goose_adequacy_start`);
-* `addrOk_loopback`: a generated loopback address `127.0.0.1:<p>`, `1 ≤ p < 32768`, is valid
-  (`Net.addrOk`), what the extension's start holds tokens for.
-
-(The distributed `putget` draft, branch `putget-dist`, has the same bundle in its own namespace,
-`etcd_putget_dist.etcdNetExts`; it can use this one once both are on `lean`.)
+For a single-process program that listens (`notes/single-process-restore.md`): `etcdNetFs_start` (`FsExts.lean`'s
+`etcdFs_start` over this bundle), `netAddrFrees_start` (the right to listen at each address of a list of distinct
+valid addresses, `netAddrFree`, from the net extension's listening tokens in `extsGlobalStart` and program start's
+`addrClaim`), and `addrOk_loopback` (`127.0.0.1:<p>`, `1 ≤ p < 32768`, is valid: `Net.addrOk`).
 -/
 module
 
+public import Robustness.Statement
+public import Perennial.GooseLang.InitAdequacy
+public import GooseLang.Ext.Net.Ghost
+public import GooseLang.Ext.IdIssue.Specs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
-public import GooseLang.Ext.Net.Ghost
 public import GooseLang.Ext.Net.Proto
 public import Proof.net.InvNet
 
@@ -37,8 +36,10 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-/-- **The single-process etcd examples' extensions**: the request ids' issue record, the Linux file
-extension and the net extension (`net.Listen`, the listeners' and connections' operations). -/
+/-- **The etcd examples' extensions over the network**: the request ids' issue record (`idutil`'s generator: the member's),
+the Linux file extension (the member's WAL, backend and snapshots; every machine's `fileutil`
+initializer) and the net extension (the member's listener, the client's connection): the etcd
+examples' `etcdFsExts` with the net extension (`notes/etcd-dist-plan.md`, D2's `net` half, option (i)). -/
 @[reducible] def etcdNetExts : GooseExts := ⟨[idIssueExt, Fs.fsExt, Net.netExt]⟩
 
 attribute [local instance] etcdNetExts
@@ -75,6 +76,16 @@ set_option linter.defProp false in
   interp_eq := rfl
 
 attribute [local instance] etcdNetExts_hasIdIssue etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSemOk
+
+/-- **The interpretations' conditions on the machines' initial states**, for `etcdNetExts`: the network's
+from `Robust`'s `extsInitGlobal` (no connection), each machine's files from `FsInit` (the issue record's
+are `True`). -/
+theorem etcdNetExts_initP (g : GlobalState) (nodes : List (Expr × state))
+    (Hfs : ∀ m, m ∈ nodes → Fs.FsInit (extLocal Fs.fsExt m.2.world)) :
+    extsInitGlobal g → (∀ m, m ∈ nodes → extsInitLocal m.2 g) →
+      extsInitgP g.globalWorld ∧ ∀ m, m ∈ nodes → extsInitP m.2.world g.globalWorld :=
+  fun hg _ => ⟨⟨trivial, trivial, hg.2.2.1, trivial⟩, fun m hm => ⟨trivial, Hfs m hm, trivial, trivial⟩⟩
+
 
 section start
 variable [GoGlobalContext] {GF : BundledGFunctors}
