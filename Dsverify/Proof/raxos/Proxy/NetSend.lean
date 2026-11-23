@@ -31,7 +31,7 @@ variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
 
 /-- The answers `L` (fit, each one result with its `opAns`) and an allowed prefix are what a
 client's port allows. -/
-theorem clientIn_of_ans (γ : QNames) (c k : Nat) (cid : w64) (L : List Batch)
+theorem clientIn_of_ans (γ : QNames) (c k : Nat) (cid : Nat) (L : List Batch)
     (bs : List w8) (hk : k < 2 ^ 16) (hL : ∀ b ∈ L, batchFit b)
     (hp : bs <+: ansStream k L) :
     ([∗list] b ∈ L, ∃ r, ⌜b.cmds = [r]⌝ ∗ opAns (GF := GF) γ b.id r) ⊢
@@ -85,9 +85,8 @@ section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
- 
-  [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
-  [raxos.examples.quepaxanet.Assumptions]
+variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
+variable [_root_.Perennial.bufio.Assumptions] [pb : hyp.PbHyp GF]
 
 /-- The answer's frame, once encoded into `enc` (fit), sent on a healthy writer: the code
 byte, the length and the encoding, then the flush; the writer's slot is restored. -/
@@ -97,7 +96,7 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
   obtain ⟨hcode, hobj⟩ := Hrp
   ihave ⟨#Hf, #Hc, #Hch, #Hl, #Hn⟩ := proxyShared_net $$ Hsh
   iunfold sharedFacts at Hf
-  icases Hf with ⟨%Hk3, -, -, -, -, -, #Hcs, #Hko, -⟩
+  icases Hf with ⟨%Hk3, -⟩
   have hk : k < 2 ^ 16 := by have := Hk3.1.1; omega
   unfold sharedNet
   icases Hn with ⟨%rm, %wm, %bm, %cm, %rt, %rp1, %cb0, %BM, %γw, %CM, %RT, #Hsa, #Hrm, #Hninv,
@@ -133,7 +132,7 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
       · iapply ownSliceCap_nil
     rw [hobj]
     wp_auto
-    wp_apply marshal_buf l DFrac.discard (Batch.mk x (clientName cl) [r]) enc_ptr [] $$ [$Hrep $Hmb $Hcs $Hko]
+    wp_apply marshal_buf l DFrac.discard (Batch.mk x (clientName cl) [r]) enc_ptr [] $$ [$Hrep $Hmb]
       as %e0 ⟨-, %bs', Hmb, %Hm⟩
     rcases e0 with ei | _
     · wp_auto
@@ -151,15 +150,19 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
     wp_apply (lc := 1) sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HR⟩
     imod peerR_claim γ k (cOf peer) (γw peer) w $$ Hwinv Hlc1 HR with ⟨Hslot, Hback⟩
     iunfold wSlot at Hslot
-    icases Hslot with ⟨%cv, %cid, %sent, %pend, %err, #Hwok, Hown, Hst⟩
+    icases Hslot with ⟨%wi, %cid, %Ew, %sent, %pend, %err, Hown, Hst⟩
     simp only [hcode]
     rcases err with ei | _
-    · wp_apply wp_WriteByte_sticky w cv _ _ sent pend ei _ $$ [$Hwok $Hown] as Hown
+    · wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w wi _ _ Ew 4096 sent pend
+          (GoInterface.ok ei) (W8 1) $$ [Hown] as %e1 ⟨%sent1, %pend1, %Hwb, Hown⟩
+      · iframe Hown; iintro %h; cases h
+      obtain ⟨rfl, -, -⟩ := Hwb.2.2.2.1 (by intro h; cases h)
+      wp_auto
       wp_apply wp_map_lookup1 $$ HBM as -
       simp only [HBMp, Option.getD_some]
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hown Hback]
-      · iapply Hback; iunfold wSlot; iexists cv, cid, sent, pend, GoInterface.ok ei
-        iframe Hwok Hown; ileft; ipureintro; simp
+      · iapply Hback; iunfold wSlot; iexists wi, cid, Ew, sent1, pend1, GoInterface.ok ei
+        iframe Hown; ileft; ipureintro; simp
       wp_end
     icases Hst with (%Hne | ⟨%L, %HL, #HLs⟩)
     · exact (Hne rfl).elim
@@ -172,9 +175,11 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
       iexists r
       iframe Hans
       ipureintro; rfl
-    wp_apply bufio.wp_WriteByte w cv _ _ sent pend GoInterface.nil (W8 1) $$ [$Hwok $Hown]
-      as %e1 ⟨%sent1, %pend1, %Hwb, Hown⟩
-    · imodintro
+    wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w wi _ _ Ew 4096 sent pend GoInterface.nil
+        (W8 1) $$ [Hown] as %e1 ⟨%sent1, %pend1, %Hwb, Hown⟩
+    · iframe Hown
+      iintro %_
+      imodintro
       iapply clientIn_of_ans γ (cOf peer) k cid _ _ hk HL'
         (by rw [ansStream_snoc, ← HL.1]; simp [List.append_assoc])
       iexact HLs'
@@ -183,16 +188,18 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
       wp_apply wp_map_lookup1 $$ HBM as -
       simp only [HBMp, Option.getD_some]
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hown Hback]
-      · iapply Hback; iunfold wSlot; iexists cv, cid, sent1, pend1, GoInterface.ok ei
-        iframe Hwok Hown; ileft; ipureintro; simp
+      · iapply Hback; iunfold wSlot; iexists wi, cid, Ew, sent1, pend1, GoInterface.ok ei
+        iframe Hown; ileft; ipureintro; simp
       wp_end
     have H1 : sent1 ++ pend1 = sent ++ pend ++ [W8 1] := Hwb.2.1 rfl
     iunfold ownMB at Hmb
     icases Hmb with ⟨%s, Hm, Hs, -⟩
     wp_auto
-    wp_apply bufio.wp_Write w cv _ _ sent1 pend1 GoInterface.nil s (DFrac.own 1) _ $$ [$Hwok $Hown $Hs]
-      as %nn %e2 ⟨%k2, %sent2, %pend2, %Hk2, -, Hown⟩
-    · imodintro
+    wp_apply (EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w wi _ _ Ew 4096 sent1 pend1 GoInterface.nil s
+        (DFrac.own 1) _ $$ [Hown Hs] as %nn %e2 ⟨%k2, %sent2, %pend2, %Hk2, -, Hown⟩
+    · iframe Hown Hs
+      iintro %_
+      imodintro
       iapply clientIn_of_ans γ (cOf peer) k cid _ _ hk HL'
         (by rw [H1, ansStream_snoc, ← HL.1]; simp [List.append_assoc])
       iexact HLs'
@@ -201,14 +208,14 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
       wp_apply wp_map_lookup1 $$ HBM as -
       simp only [HBMp, Option.getD_some]
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hown Hback]
-      · iapply Hback; iunfold wSlot; iexists cv, cid, sent2, pend2, GoInterface.ok ei
-        iframe Hwok Hown; ileft; ipureintro; simp
+      · iapply Hback; iunfold wSlot; iexists wi, cid, Ew, sent2, pend2, GoInterface.ok ei
+        iframe Hown; ileft; ipureintro; simp
       wp_end
     have H2 : sent2 ++ pend2 = ansStream k (L ++ [(Batch.mk x (clientName cl) [r])]) := by
       rw [Hk2.2.2.1, (Hk2.2.2.2.2.1 rfl), List.take_length, H1, HL.1, ansStream_snoc]
     wp_auto
-    wp_apply bufio.wp_Flush w cv _ _ sent2 pend2 GoInterface.nil $$ [$Hwok $Hown]
-      as %e3 ⟨%k3, %Hf3, Hown⟩
+    wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof w wi _ _ Ew 4096 sent2 pend2 GoInterface.nil
+      $$ Hown as %e3 ⟨%k3, %Hf3, Hown⟩
     have H3 : sent2 ++ pend2.take k3 ++ pend2.drop k3 =
         ansStream k (L ++ [(Batch.mk x (clientName cl) [r])]) := by
       rw [List.append_assoc, List.take_append_drop, H2]
@@ -216,8 +223,8 @@ theorem internalSendMessage_proof : internalSendMessage.spec (GF := GF) (hG := h
       wp_apply wp_map_lookup1 $$ HBM as - <;> simp only [HBMp, Option.getD_some] <;>
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hown Hback] <;>
       first
-      | (iapply Hback; iunfold wSlot; iexists cv, cid, _, _, _
-         iframe Hwok Hown; iright; iexists L ++ [(Batch.mk x (clientName cl) [r])]
+      | (iapply Hback; iunfold wSlot; iexists wi, cid, Ew, _, _, _
+         iframe Hown; iright; iexists L ++ [(Batch.mk x (clientName cl) [r])]
          isplitr
          · ipureintro
            exact ⟨H3, HL'⟩
