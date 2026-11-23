@@ -320,7 +320,7 @@ theorem swift.Dep.Equals.wp_proofPerm : swift.Dep.Equals.specPerm (hG := hG) := 
 end proofs
 
 section ghost
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [π : NetProtoGS]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [SwiftNetPkgState netDistGF]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- **The dependencies of a `locDeps` have no duplicates** (round 54, 53-2: `Dep.Equals`' second

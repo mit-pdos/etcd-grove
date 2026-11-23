@@ -33,7 +33,7 @@ namespace client.cn
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [net.Assumptions] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [net.Assumptions] [SwiftNetPkgState netDistGF]
   [net.FieldAssumptions] [net.rpc.Assumptions]
 
 /-- One replica's end while connecting: none yet (a nil connection), or connected (the

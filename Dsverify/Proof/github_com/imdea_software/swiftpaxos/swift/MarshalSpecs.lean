@@ -30,7 +30,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- `putVarint(buf, x)` (see the file header). -/
 def swift.PutVarint.specH : Prop :=

@@ -208,7 +208,7 @@ end plumbing
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- The stopped epoch's token is at the run loop's view's `(ballot, cballot)` (both agree with
 the node state in `nodeInvD`). -/

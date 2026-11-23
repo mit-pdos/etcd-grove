@@ -113,7 +113,7 @@ theorem conf.dialPC_full (γ : SwiftNames netDistGF) (cid : Nat) (bs : List w8)
 end conf
 
 section msg
-variable [GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- What `awaitConf` hands to its caller over the channel (the future's contract): the
 decoded message `m` is a configuration `c` (with its fact) and its changes `cs` (`decode`'s

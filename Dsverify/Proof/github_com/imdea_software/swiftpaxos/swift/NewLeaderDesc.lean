@@ -121,7 +121,7 @@ theorem swift.ph_cases (ph : w64) (h : uint.nat ph ≤ 3) :
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- **No `MSync` at ballot 0** (`sync_ok`). -/

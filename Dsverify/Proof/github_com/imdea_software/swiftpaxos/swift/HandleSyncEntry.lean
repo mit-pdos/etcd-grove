@@ -49,7 +49,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions]
 
 /-- **The reply facts of a sync entry** (round 48; `descSt`'s `repPre` at `handleSyncEntry`): the

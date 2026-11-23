@@ -33,7 +33,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions]
 
 /-- `cntL`'s lock invariant with P2-B's reader bundles (`swift.cntLGhost`, CntL.lean); replaces

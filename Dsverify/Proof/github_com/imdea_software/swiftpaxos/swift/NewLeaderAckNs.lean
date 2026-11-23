@@ -76,7 +76,7 @@ theorem sp.recoverSync_len (N : Nat) (reps : List (Nat × sp.Report))
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions]
 
 instance swift.syncSent_persistent (ls : Loc) (me bl : w32) (M : sp.SyncMsg) :

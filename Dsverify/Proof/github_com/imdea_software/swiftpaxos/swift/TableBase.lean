@@ -34,7 +34,7 @@ namespace swift.tbl
 
 section generic
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- An entry's `newOk` from its `New`'s spec (fresh objects `P l`) and their `unmarshalOk`. -/
 theorem newOk_of (c : w8) (Rep : GoInterface → sp.Msg → IProp netDistGF) (ty : go.GoType)

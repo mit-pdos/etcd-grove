@@ -25,7 +25,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [examples.swiftnet.Assumptions]
 
 open examples.swiftnet sp

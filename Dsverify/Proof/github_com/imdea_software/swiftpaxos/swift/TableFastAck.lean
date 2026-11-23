@@ -93,7 +93,7 @@ theorem encCmdId_bytes (e0 e1 e2 e3 g0 g1 g2 g3 : w8) :
   rfl
 
 section slices
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- The buffer `b[:16]` as its prefix `b[:k]`, and back (any `k` bytes). -/
 theorem slice16_sub (p : Loc) (l : List w8) (k : Nat) (hk : k ≤ 16) :
@@ -131,7 +131,7 @@ end slices
 section proof
 open swift.rd (wp_store_Hacc data_one set_slot)
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 

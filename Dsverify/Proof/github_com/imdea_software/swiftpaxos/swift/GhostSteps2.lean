@@ -28,7 +28,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- `swift.ackObj` with its ballot `bl` exposed (`ghostReport` resolves `m.Ballot`). -/
 def swift.ackObjB (p : Loc) (bl : w32) (a : Nat × sp.Report) : IProp netDistGF :=

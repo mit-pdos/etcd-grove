@@ -29,7 +29,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section spec
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [examples.swiftnet.Assumptions]
 
 /-- `rpcDecodeAs_defs_BeTheLeaderArgs(data)` on its encoding. -/

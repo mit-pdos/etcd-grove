@@ -280,7 +280,7 @@ theorem swift.ackOk_of_fast (γ : sp.Names) (f : sp.FastAck) (h : f.dep ≠ [f.i
   iexists P
   iframe Hpath Hph
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
+omit [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem swift.ackRepr_of_fast (fa : swift.MFastAck) (f : sp.FastAck) :
     swift.fastAckRepr fa f ⊢
       swift.ackRepr (swift.Ack.mk fa.CmdId' fa.Dep' fa.Checksum' fa.Seqnum') (swift.ackOfFast f) := by
@@ -344,7 +344,7 @@ instance swift.sendCtxAt_persistent (γ : sp.Names) (γc γm : GName) (rp rr : L
     (me : w32) : Persistent (swift.sendCtxAt γ γc γm rp rr N me) := by
   unfold swift.sendCtxAt; infer_instance
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
+omit [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem swift.sendCtxN_at (γ : sp.Names) (γc γm : GName) (rp rr : Loc) (N : Nat) (me : w32) :
     swift.fld rp go!"Replica" ↦□ rr ∗ swift.sendCtxN γ γc γm rp N me ⊢
       swift.sendCtxAt γ γc γm rp rr N me := by
@@ -363,7 +363,7 @@ theorem swift.sendCtxN_at (γ : sp.Names) (γc γm : GName) (rp rr : Loc) (N : N
   ipureintro
   exact ⟨Hcodes, HNp.2.1, HNp.2.2.1, HNp.2.2.2⟩
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] in
+omit [SwiftHyps netDistGF] [replica.Assumptions] in
 theorem swift.sendCtxAt_agree (γ : sp.Names) (γc γm : GName) (rp rr : Loc) (N N' : Nat)
     (me me' : w32) :
     swift.sendCtxAt γ γc γm rp rr N me ∗ swift.sendCtxAt γ γc γm rp rr N' me' ⊢

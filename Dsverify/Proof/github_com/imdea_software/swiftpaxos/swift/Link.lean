@@ -127,7 +127,7 @@ end newLink
 
 section marshalLink
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [swift.Assumptions] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [swift.Assumptions] [SwiftNetPkgState netDistGF]
 
 /-! The swift messages' `Marshal` (Proof/swift/Marshal*.lean), linked: `MLightSlowAck`'s and
 `MNewLeader`'s directly; the four others with `putVarint`'s proved spec (fork change P1,

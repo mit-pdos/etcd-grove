@@ -70,7 +70,7 @@ def depNext (d : List w8) : Prop :=
 /-! ## The stream law -/
 
 section law
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 theorem streamLaw_mono (br : Loc) (rd : GoInterface) (I : List w8 → IProp netDistGF)
     (R : List w8) (L L' : List w8 → Prop) (h : ∀ d, L d → L' d) :

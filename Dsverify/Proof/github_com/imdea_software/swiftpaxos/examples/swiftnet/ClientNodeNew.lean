@@ -48,7 +48,7 @@ theorem changes_node (cf : Conf) (cs : List Change) (hv : cf.valid) (hcs : cf.ch
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- What `awaitConf` hands to client node `c`'s `newClient` over the channel (group C's
 `confMsg`, ServersDefs.lean): the configuration (its fact), the node's changes (`decode`'s

@@ -73,7 +73,7 @@ theorem swift.byte_or (m : Nat) (h : m < 2 ^ 64) :
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions]
 
 set_option goose.wp.extras true

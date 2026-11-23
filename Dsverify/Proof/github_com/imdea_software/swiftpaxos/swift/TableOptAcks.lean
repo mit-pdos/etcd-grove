@@ -25,7 +25,7 @@ namespace swift.tbl
 
 section specs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 
 /-- `(*MOptAcks).Unmarshal(br)`: without an error, the bytes read are the body of a
 well-formed `.optAcks r b al`, which `t` represents (`swift.msgRepM`'s shape). -/
@@ -48,7 +48,7 @@ end specs
 
 section proofs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
@@ -293,7 +293,7 @@ namespace swift.tbl
 
 section entries
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions]
 
