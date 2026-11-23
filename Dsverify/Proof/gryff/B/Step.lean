@@ -113,7 +113,7 @@ theorem critical_step_proof (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (
   iintro ⟨%Hs, #Hinv, #Hpreds, Ht, Hp, Hev, Hlc, Hpo⟩
   imod trace_runs γ.proto k t ⊤ (by simp) $$ [Ht] with ⟨Ht, %Hrun⟩
   · iframe; iframe #
-  imod replica_step γ.proto k p t e s' outs ⊤ (by simp) $$ [Ht Hp Hev Hlc] with
+  imod replica_step γ.proto k p t e s' outs ⊤ rfl $$ [Ht Hp Hev Hlc] with
     ⟨Ht, #Hlb, Hp, %Hstr, Hdone⟩
   · iframe; iframe #; ipureintro; exact Hs
   imodintro

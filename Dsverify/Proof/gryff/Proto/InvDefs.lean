@@ -270,11 +270,16 @@ variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [InvGS_gen .hasLC GF]
 /-- The client's half of the abstract register (`own_state`). -/
 def regHalf (γ : ProtoNames) (σ : w64) : IProp GF := ghostVar γ.reg (1 : Qp).half σ
 
-/-- The client's atomic update for an operation with input `i`, commit postcondition `Q`. -/
+/-- The client's update for an operation with input `i`, commit postcondition `Q`: a one-shot
+fancy update from the mask outside Gryff's invariant (where a replica's step fires it, the
+invariant open) that takes the register `σ` to `casApply σ i`. Port: the lab's was an Iris atomic
+update at `clientN` (its driver's); here it is remote's linearization point (`remote.lin` of the
+kit's store `casR`, whose `Eop` is `gryffN`, `Kit.lean`'s `lin_opAU`), which cannot abort (the
+proof never aborts it: `opAU_fire` commits once). -/
 def opAU (γ : ProtoNames) (i : RegInput w64) (Q : w64 → w64 → RegOutput w64 → IProp GF) :
     IProp GF :=
-  iprop(AU <{ ∃∃ σ, regHalf γ σ }> @ (↑clientN : CoPset), ∅
-    <{ ∀∀ σ' o, regHalf γ σ' ∗ ⌜(casRegister w64 (W64 0)).step σ i σ' o⌝, COMM Q σ σ' o }>)
+  iprop(|={⊤ \ ↑gryffN, ∅}=> ∃ σ, regHalf γ σ ∗
+    (regHalf γ (casApply σ i).1 ={∅, ⊤ \ ↑gryffN}=∗ Q σ (casApply σ i).1 (casApply σ i).2))
 
 /-- An operation's commit postcondition, saved (over `(σ, σ', o)`). -/
 def savedQ (γq : GName) (Q : w64 → w64 → RegOutput w64 → IProp GF) : IProp GF :=

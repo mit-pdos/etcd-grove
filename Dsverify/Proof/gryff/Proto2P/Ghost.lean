@@ -208,7 +208,7 @@ theorem evTok_consume (γ : ProtoNames) (S : Inv2St) (k : Fin 3) (e : Ev) :
 /-! ## Firing over the registrations -/
 
 theorem fire_all2 (γ : ProtoNames) (info : GMap OpId OpInfo) (lin lin' : List (OpId × RegOutput w64))
-    (E : CoPset) (hE : ↑clientN ⊆ E) :
+    (E : CoPset) (hE : E = ⊤ \ ↑gryffN) :
     ∀ (L : List (OpId × RegOutput w64)) (S : List OpId) (σ σ' : w64),
       Perennial.gryff.replayOk σ (entriesI info L) σ' →
       (∀ x ∈ L, (info.lookup x.1).isSome ∧ x ∈ lin' ∧ (∀ o, (x.1, o) ∉ lin) ∧ x.1 ∉ S) →
@@ -283,7 +283,7 @@ theorem fire_all2 (γ : ProtoNames) (info : GMap OpId OpInfo) (lin lin' : List (
 paid with two credits), fire the new entries' atomic updates from `σ` to `σ'`; every operation's
 resources are then valid for `lin ++ new`. -/
 theorem fire_new (γ : ProtoNames) (info : GMap OpId OpInfo) (lin new : List (OpId × RegOutput w64))
-    (σ σ' : w64) (E : CoPset) (hE : ↑clientN ⊆ E)
+    (σ σ' : w64) (E : CoPset) (hE : E = ⊤ \ ↑gryffN)
     (hr : Perennial.gryff.replayOk σ (entriesI info new) σ')
     (hreg : ∀ x ∈ new, (info.lookup x.1).isSome)
     (hnd : ((lin ++ new).map Prod.fst).Nodup) :

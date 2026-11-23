@@ -60,26 +60,21 @@ theorem clientN_sub_diff (E : CoPset) (hE : ↑clientN ⊆ E) :
   rw [Iris.Std.mem_diff]
   exact ⟨hE p hp, fun h => hd p ⟨hp, h⟩⟩
 
-/-- Fire `opAU γ i Q` at the abstract register `σ` (the invariant's half): the register becomes
-the step's state, and the commit's postcondition is produced. -/
+/-- Fire `opAU γ i Q` at the abstract register `σ` (the invariant's half), at the mask outside
+Gryff's invariant: the register becomes the step's state, and the commit's postcondition is
+produced. -/
 theorem opAU_fire (γ : ProtoNames) (i : RegInput w64) (Q : w64 → w64 → RegOutput w64 → IProp GF)
-    (σ : w64) (E : CoPset) (hE : ↑clientN ⊆ E) :
+    (σ : w64) (E : CoPset) (hE : E = ⊤ \ ↑gryffN) :
     opAU γ i Q ∗ ghostVar γ.reg (1 : Qp).half σ ⊢
       |={E}=> ghostVar γ.reg (1 : Qp).half (casApply σ i).1 ∗ Q σ (casApply σ i).1 (casApply σ i).2 := by
+  subst hE
   unfold opAU regHalf
   iintro ⟨HAU, Hreg⟩
-  ihave HAU := atomic_update_mask_weaken hE $$ HAU
   imod HAU with ⟨%σ0, Hα, Hclose⟩
-  rcases σ0 with ⟨σ0, ⟨⟩⟩
-  dsimp only [Tele.lam, Tele.app, Tele.bind, BI.tforall_cons, BI.tforall_nil, BIBase.wandM]
   ihave %e := ghostVar_agree γ.reg σ0 _ σ _ $$ Hα Hreg
   subst e
   imod ghostVar_update_halves (casApply σ0 i).1 γ.reg σ0 σ0 $$ Hα Hreg with ⟨Hα, Hreg⟩
-  icases Hclose with ⟨-, Hc⟩
-  imod Hc $$ %(casApply σ0 i).1 %(casApply σ0 i).2 [Hα] with HQ
-  · iframe Hα
-    ipureintro
-    exact (casRegister_step_iff _ _ _ _ _).2 rfl
+  imod Hclose $$ Hα with HQ
   imodintro
   iframe
 
@@ -176,7 +171,7 @@ theorem psiRes_congr (γ : ProtoNames) (lin lin' : List (OpId × RegOutput w64))
 /-- **Linearize a list of operations**: fire their atomic updates in order, from `σ` to `σ'`
 (their replay), each one's resources becoming linearized ones. -/
 theorem fire_all (γ : ProtoNames) (ops : GMap OpId OpMeta) (lin lin' : List (OpId × RegOutput w64))
-    (E : CoPset) (hE : ↑clientN ⊆ E) :
+    (E : CoPset) (hE : E = ⊤ \ ↑gryffN) :
     ∀ (L : List (OpId × RegOutput w64)) (S : List OpId) (σ σ' : w64),
       replayOk σ (entries ops L) σ' →
       (∀ x ∈ L, (ops.lookup x.1).isSome ∧ x ∈ lin' ∧ (∀ o, (x.1, o) ∉ lin) ∧ x.1 ∉ S) →

@@ -160,7 +160,7 @@ messages appended to `k`'s streams (to send in order: `peerStream_send`; to itse
 and the witness of each client reply's operation and output (to write to the client:
 `clientReplyOk_intro`). -/
 theorem replica_step (γ : ProtoNames) (k : Fin 3) (p : ProphId) (t : List Ev) (e : Ev)
-    (s' : RState) (outs : List Out) (E : CoPset) (hE : ↑gryffN ∪ ↑clientN ⊆ E) :
+    (s' : RState) (outs : List Out) (E : CoPset) (hE : E = ⊤) :
     ⌜stepR k (stOf k t) e = .ok (s', outs)⌝ ∗
         gryffInv2 γ ∗ predsSet γ ∗ traceHalf γ k t ∗ replicaProph γ k p t (evCodec.enc e) ∗
         evTok γ k e ∗ £ 2 ⊢
@@ -168,8 +168,8 @@ theorem replica_step (γ : ProtoNames) (k : Fin 3) (p : ProphId) (t : List Ev) (
         replicaProph γ k p (t ++ [e]) [] ∗
         ⌜∀ q : Fin 3, streamOf k q (t ++ [e]) = streamOf k q t ++ sentToR q outs⌝ ∗
         [∗list] x ∈ extsIn outs, opDone γ x.keyZ x.out := by
-  have hE1 : (↑gryffN : CoPset) ⊆ E := fun x hx => hE x (Iris.Std.mem_union.2 (Or.inl hx))
-  have hE2 : (↑clientN : CoPset) ⊆ E := fun x hx => hE x (Iris.Std.mem_union.2 (Or.inr hx))
+  subst hE
+  have hE1 : (↑gryffN : CoPset) ⊆ ⊤ := CoPset.subseteq_top
   iintro ⟨%hstep, #Hinv, #Hpreds, Htr, Hph, Htok, Hlc1, Hlc2⟩
   unfold predsSet
   icases Hpreds with ⟨%ws0, %ws1, %ws2, #Hp0, #Hp1, #Hp2⟩
@@ -206,8 +206,8 @@ theorem replica_step (γ : ProtoNames) (k : Fin 3) (p : ProphId) (t : List Ev) (
   have hl1' : S'.l1 = S.l1 ++ [(k, e)] := by rw [← hS']; rfl
   imod monoListAuthOwn_update_app (GF := GF) [(k, e)] $$ Hhist with ⟨Hhist, #Hhlb⟩
   imod monoListAuthOwn_update_app (GF := GF) new $$ Hlin with ⟨Hlin, #Hllb⟩
-  imod fire_new (GF := GF) γ S.info S.linL new S.σ S'.σ (E \ ↑gryffN)
-    (clientN_sub_diff E hE2) hrep hnewreg hnd $$ [Hreg Hres Hlc1 Hlc2] with ⟨Hreg, Hres⟩
+  imod fire_new (GF := GF) γ S.info S.linL new S.σ S'.σ (⊤ \ ↑gryffN)
+    rfl hrep hnewreg hnd $$ [Hreg Hres Hlc1 Hlc2] with ⟨Hreg, Hres⟩
   · iframe Hreg Hres Hlc1 Hlc2
   imod Hclose $$ [Hreg Htr3 Hhist HP HNP Hids HB Hlin Hops Hturns Hconns Hplacers HcR Hcur
     Hrx Hreqs Hres] with -

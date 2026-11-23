@@ -100,11 +100,10 @@ theorem nodeIdIs_agree (γ : ProtoNames) (k : Nat) (id1 id2 : w64) :
 every operation whose place the frontier passes is linearized (in place order), its client's
 atomic update fired. Two later credits pay for the invariant's and the updates' laters. -/
 theorem store_update (γ : ProtoNames) (k : Nat) (v v' : w64) (t t' : PTag) (E : CoPset)
-    (hE : ↑gryffN ∪ ↑clientN ⊆ E) (hlt : tagLt t t') :
+    (hE : E = ⊤) (hlt : tagLt t t') :
     gryffInvP γ ∗ storeIs γ k v t ∗ tagValIs γ t' v' ∗ £ 2 ⊢
       |={E}=> storeIs γ k v' t' ∗ storeLb γ k t' := by
-  have hE1 : (↑gryffN : CoPset) ⊆ E := fun x hx => hE x (Iris.Std.mem_union.2 (Or.inl hx))
-  have hE2 : (↑clientN : CoPset) ⊆ E := fun x hx => hE x (Iris.Std.mem_union.2 (Or.inr hx))
+  subst hE
   unfold gryffInvP storeIs tagValIs storeLb
   iintro ⟨#Hinv, Hs, #Hv, ⟨Hlc1, Hlc2⟩⟩
   iinv Hinv with Hi Hclose
@@ -124,7 +123,7 @@ theorem store_update (γ : ProtoNames) (k : Nat) (v v' : w64) (t t' : PTag) (E :
   ihave Hres : [∗map] k ↦ x ∈ ops, psiRes (GF := GF) γ lin (lin ++ new) [] k x $$ [Hres]
   · iapply (BigSepM.bigSepM_mono (fun {k x} _ => by
       unfold psiRes; rw [if_neg List.not_mem_nil])) $$ Hres
-  imod fire_all γ ops lin (lin ++ new) (E \ ↑gryffN) (clientN_sub_diff E hE2) new [] σ σ' h3
+  imod fire_all γ ops lin (lin ++ new) (⊤ \ ↑gryffN) rfl new [] σ σ' h3
     (fun x hx => ⟨(h1 x hx).1, List.mem_append_right _ hx, (h1 x hx).2, List.not_mem_nil⟩) h2
     $$ [Hreg Hres] with ⟨Hreg, Hres⟩
   · iframe
@@ -140,7 +139,7 @@ theorem store_update (γ : ProtoNames) (k : Nat) (v v' : w64) (t t' : PTag) (E :
         · exact ho
         · exact absurd (by simpa using List.mem_map_of_mem (f := Prod.fst) ho) hkn)) $$ Hres
   imod ghost_map_update (v', t') $$ Hst Hs with ⟨Hst, Hs⟩
-  imod lbs_add γ lbs (k, t') (E \ ↑gryffN) $$ [Hlbs Hcopy] with ⟨Hlbs, Hcopy, #Hlb⟩
+  imod lbs_add γ lbs (k, t') (⊤ \ ↑gryffN) $$ [Hlbs Hcopy] with ⟨Hlbs, Hcopy, #Hlb⟩
   · iframe
   imod monoListAuthOwn_update_app new $$ Hlin with ⟨Hlin, -⟩
   imod Hclose $$ [Hreg Hst Htv Hlbs Hops Hpl Hlin Hinsts Hexec Hpreds Hturns Hconns Hplacers
