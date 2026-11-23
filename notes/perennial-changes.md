@@ -42,6 +42,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** goose imports the package of every named type it emits, a constant's type
   included.
 - **Status.** Not proposed yet.
+### `atomic.Value.Store` into a non-empty cell may panic in the model: the feature gates' `Add` (2026-11-23, featuregate, claim #36)
+
+- **Limitation.** Perennial's trusted `Value.Store`/`Swap` (`TrustedCode/sync/atomic.lean`) may `Panic` (`ArbitraryInt`)
+  whenever the cell is non-empty, because the model cannot compare the stored and new values' dynamic types (Go panics
+  only when they differ); `Value.Store.spec` requires the cell to hold `nil`. Both feature gates store again into a
+  filled cell: etcd's `featureGate.Add` (`pkg/featuregate/feature_gate.go`, `f.known.Store(known)` after `New` stored
+  one) and Kubernetes' `AddVersioned`/`SetFromMap` (`component-base/featuregate`). So neither gate's registration
+  can be proved over the model.
+- **Who needs it.** `features.NewDefaultServerFeatureGate.wp_proof` (etcd), `k8s_io.apiserver.pkg.features.init_0_ok`
+  (k8s), and through the gate `addFeatureGateMetrics.wp_proof`.
+- **Work-around here.** None: the three stay trust-boundary axioms.
+- **Proposed (general).** Model the type check: `GoInterfaceOk` carries its dynamic type (`fi.ty`), so `Store`/`Swap`/
+  `CompareAndSwap` can compare the old and new values' types (panic only when they differ, as Go), and their specs
+  take `ownValue u 1 x` with `x = nil ∨ x.ty = v.ty` instead of `x = nil`. **Status.** Not started; needs a
+  Perennial branch (not this repository's call).
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
