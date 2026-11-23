@@ -32,7 +32,6 @@ axiom context.madeCancelCtx_of_isCancelCtx
 axiom encoding.json.MarshalConfigChangeContext.wp_proof
 axiom encoding.json.MarshalMember.wp_proof
 axiom envVerifyOffTok
-axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.CustomCodec.wp_proof
