@@ -92,6 +92,25 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (below, "Generic maps and slices iterators"); `init_0_ok`'s input map is built by `version.MustParse`
   (`regexp`) and `DefaultMutableFeatureGate_init` states nothing of the gate's state; `addFeatureGateMetrics`'s
   spec is unprovable as stated (ledger, 2026-11-23).
+  (2026-11-23, branch `maps-featuregate`) With `maps.Clone` now specified, `NewDefaultServerFeatureGate`
+  is blocked one step further: etcd's `featuregate.MutableFeatureGate` (what `New` returns and
+  `NewDefaultServerFeatureGate` calls `Add` on) names `*flag.FlagSet` in `AddFlag`, and no project
+  translates the standard library's `flag`, so goose leaves the interface's `underlying` opaque; the
+  conversion `*featureGate -> MutableFeatureGate` and the method call need `t ≤u InterfaceType ...`
+  (`InterfaceSemantics.method_interface_ok`). Translating `flag` names-only (tried: etcd project,
+  `flag=`, `Code/flag.toml`) brings its untranslated initializers (`ErrHelp`, `errParse`, `errRange`
+  via `errors.New`; `CommandLine = NewFlagSet(os.Args[0], ...)`; `Usage`, a func literal) and its
+  `init` function (`CommandLine.Usage = commandLineUsage`). The four variables can be `[[skip]]`ped as
+  pflag's are; the `init` function cannot, so it needs either a new trust-boundary axiom
+  `flag.initFuncsOk` (**for approval**) or `CommandLine`/`NewFlagSet`/`FlagSet`/`init` translated
+  with bodies and proved (`os.Args[0]` needs `os.Args` non-empty, a fact of `os`'s package). The rest
+  of the proof is unblocked: `New`/`Add`/`Enabled`/`defaultFeatures`/`specialFeatures` translate
+  (`featuregate.toml` translate list `New`, `featureGate.Add`, `featureGate.Enabled`,
+  `defaultFeatures`, `specialFeatures`, `setUnsetAlphaGates`, `setUnsetBetaGates`, `allAlphaGate`,
+  `allBetaGate`; imports `flag`, `fmt`, `maps`, `sync`, `sync/atomic`, `go.uber.org/zap`), the struct
+  `featureGate` is then translated, and what remains is a local spec of `maps.Copy` (translated in
+  Perennial, no spec), the facts of `featuregate`/`features` (`apply/Base.lean`/`BaseApply.lean`), and
+  the proofs.
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
