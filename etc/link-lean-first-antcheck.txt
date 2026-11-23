@@ -234,6 +234,6 @@ Checker__End:
 Checker__Next: State__ElectionSafety State__OneVotePerTerm State__GCDue State__GC State__Step =AntCheck.State.gc_within
 
 # pending (proofs in progress)
-State__Boot: ?
+State__Boot: State__clone setPre setMsgs setQueue setReads setStr Recovered State__Vote SubSeq Concat State__VoteOf setInt setLog setConfirmed factsMinus votesMinus Event__has Event__applied EntriesEqual ConfOf State__InitConf setConf LastConf SameConf
 State__Send: ?
 State__OnDisk: ?

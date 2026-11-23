@@ -79,6 +79,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__AllSwitched
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__ApplyEv
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__Bind
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__Boot
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__BootTerm
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__ConfEv
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__EffTerm
@@ -219,7 +220,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.chec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.votesUnion
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.Combined
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Within.GC
-public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__Boot
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__OnDisk
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State__Send
 
@@ -331,9 +331,189 @@ theorem AntCheck.State.wp_GC :
     AntCheck.State.GC.spec (GF := GF) (hG := hG) :=
   AntCheck.State.GC.wp_proof AntCheck.State.wp_Garbage AntCheck.State.wp_OldVotes AntCheck.State.wp_StaleLed AntCheck.State.wp_Over AntCheck.State.wp_clone AntCheck.wp_factsMinus AntCheck.wp_votesMinus AntCheck.TermLogs.wp_Without AntCheck.TermConfs.wp_Without AntCheck.TermInts.wp_Without
 
+theorem AntCheck.wp_setPre :
+    AntCheck.setPre.spec (GF := GF) (hG := hG) :=
+  AntCheck.setPre.wp_proof
+
+theorem AntCheck.wp_setMsgs :
+    AntCheck.setMsgs.spec (GF := GF) (hG := hG) :=
+  AntCheck.setMsgs.wp_proof
+
+theorem AntCheck.wp_setQueue :
+    AntCheck.setQueue.spec (GF := GF) (hG := hG) :=
+  AntCheck.setQueue.wp_proof
+
+theorem AntCheck.wp_setReads :
+    AntCheck.setReads.spec (GF := GF) (hG := hG) :=
+  AntCheck.setReads.wp_proof
+
+theorem AntCheck.wp_setStr :
+    AntCheck.setStr.spec (GF := GF) (hG := hG) :=
+  AntCheck.setStr.wp_proof
+
 theorem AntCheck.Event.wp_need :
     AntCheck.Event.need.spec (GF := GF) (hG := hG) :=
   AntCheck.Event.need.wp_proof
+
+theorem AntCheck.Event.wp_term :
+    AntCheck.Event.term.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.term.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.Event.wp_vote :
+    AntCheck.Event.vote.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.vote.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.Event.wp_commit :
+    AntCheck.Event.commit.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.commit.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.Event.wp_lastIndex :
+    AntCheck.Event.lastIndex.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.lastIndex.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.Event.wp_lastTerm :
+    AntCheck.Event.lastTerm.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.lastTerm.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.wp_TermAt :
+    AntCheck.TermAt.spec (GF := GF) (hG := hG) :=
+  AntCheck.TermAt.wp_proof
+
+theorem AntCheck.wp_Recovered :
+    AntCheck.Recovered.spec (GF := GF) (hG := hG) :=
+  AntCheck.Recovered.wp_proof AntCheck.Event.wp_term AntCheck.Event.wp_vote AntCheck.Event.wp_commit AntCheck.Event.wp_lastIndex AntCheck.Event.wp_lastTerm AntCheck.wp_TermAt
+
+theorem AntCheck.State.wp_BootTerm :
+    AntCheck.State.BootTerm.spec (GF := GF) (hG := hG) :=
+  AntCheck.State.BootTerm.wp_proof
+
+theorem AntCheck.State.wp_VoteOf :
+    AntCheck.State.VoteOf.spec (GF := GF) (hG := hG) :=
+  AntCheck.State.VoteOf.wp_proof AntCheck.State.wp_BootTerm
+
+theorem AntCheck.State.wp_Vote :
+    AntCheck.State.Vote.spec (GF := GF) (hG := hG) :=
+  AntCheck.State.Vote.wp_proof AntCheck.State.wp_VoteOf
+
+theorem AntCheck.wp_SubSeq :
+    AntCheck.SubSeq.spec (GF := GF) (hG := hG) :=
+  AntCheck.SubSeq.wp_proof
+
+theorem AntCheck.wp_Concat :
+    AntCheck.Concat.spec (GF := GF) (hG := hG) :=
+  AntCheck.Concat.wp_proof
+
+theorem AntCheck.wp_setInt :
+    AntCheck.setInt.spec (GF := GF) (hG := hG) :=
+  AntCheck.setInt.wp_proof
+
+theorem AntCheck.wp_setLog :
+    AntCheck.setLog.spec (GF := GF) (hG := hG) :=
+  AntCheck.setLog.wp_proof
+
+theorem AntCheck.wp_setConfirmed :
+    AntCheck.setConfirmed.spec (GF := GF) (hG := hG) :=
+  AntCheck.setConfirmed.wp_proof
+
+theorem AntCheck.Event.wp_has :
+    AntCheck.Event.has.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.has.wp_proof
+
+theorem AntCheck.Event.wp_applied :
+    AntCheck.Event.applied.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.applied.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.wp_stringsEqual :
+    AntCheck.stringsEqual.spec (GF := GF) (hG := hG) :=
+  AntCheck.stringsEqual.wp_proof
+
+theorem AntCheck.Value.wp_Equal :
+    AntCheck.Value.Equal.spec (GF := GF) (hG := hG) :=
+  AntCheck.Value.Equal.wp_proof AntCheck.wp_stringsEqual
+
+theorem AntCheck.Entry.wp_Equal :
+    AntCheck.Entry.Equal.spec (GF := GF) (hG := hG) :=
+  AntCheck.Entry.Equal.wp_proof AntCheck.Value.wp_Equal
+
+theorem AntCheck.wp_EntriesEqual :
+    AntCheck.EntriesEqual.spec (GF := GF) (hG := hG) :=
+  AntCheck.EntriesEqual.wp_proof AntCheck.Entry.wp_Equal
+
+theorem AntCheck.wp_IsConf :
+    AntCheck.IsConf.spec (GF := GF) (hG := hG) :=
+  AntCheck.IsConf.wp_proof
+
+theorem AntCheck.Value.wp_rec :
+    AntCheck.Value.rec.spec (GF := GF) (hG := hG) :=
+  AntCheck.Value.rec.wp_proof
+
+theorem AntCheck.wp_strLess :
+    AntCheck.strLess.spec (GF := GF) (hG := hG) :=
+  AntCheck.strLess.wp_proof
+
+theorem AntCheck.wp_SetAdd :
+    AntCheck.SetAdd.spec (GF := GF) (hG := hG) :=
+  AntCheck.SetAdd.wp_proof AntCheck.wp_strLess
+
+theorem AntCheck.wp_SetOf :
+    AntCheck.SetOf.spec (GF := GF) (hG := hG) :=
+  AntCheck.SetOf.wp_proof AntCheck.wp_SetAdd
+
+theorem AntCheck.Set.wp_Union :
+    AntCheck.Set.Union.spec (GF := GF) (hG := hG) :=
+  AntCheck.Set.Union.wp_proof AntCheck.wp_SetAdd
+
+theorem AntCheck.Set.wp_Has :
+    AntCheck.Set.Has.spec (GF := GF) (hG := hG) :=
+  AntCheck.Set.Has.wp_proof
+
+theorem AntCheck.Set.wp_Minus :
+    AntCheck.Set.Minus.spec (GF := GF) (hG := hG) :=
+  AntCheck.Set.Minus.wp_proof AntCheck.Set.wp_Has
+
+theorem AntCheck.wp_Target :
+    AntCheck.Target.spec (GF := GF) (hG := hG) :=
+  AntCheck.Target.wp_proof AntCheck.Value.wp_rec AntCheck.wp_SetOf AntCheck.Set.wp_Union AntCheck.Set.wp_Minus
+
+theorem AntCheck.wp_NextConf :
+    AntCheck.NextConf.spec (GF := GF) (hG := hG) :=
+  AntCheck.NextConf.wp_proof AntCheck.Value.wp_rec AntCheck.wp_Target
+
+theorem AntCheck.wp_ConfOf :
+    AntCheck.ConfOf.spec (GF := GF) (hG := hG) :=
+  AntCheck.ConfOf.wp_proof AntCheck.wp_At AntCheck.wp_IsConf AntCheck.wp_NextConf
+
+theorem AntCheck.State.wp_InitConf :
+    AntCheck.State.InitConf.spec (GF := GF) (hG := hG) :=
+  AntCheck.State.InitConf.wp_proof
+
+theorem AntCheck.wp_setConf :
+    AntCheck.setConf.spec (GF := GF) (hG := hG) :=
+  AntCheck.setConf.wp_proof
+
+theorem AntCheck.wp_LastConf :
+    AntCheck.LastConf.spec (GF := GF) (hG := hG) :=
+  AntCheck.LastConf.wp_proof AntCheck.wp_At AntCheck.wp_IsConf
+
+theorem AntCheck.Event.wp_voters :
+    AntCheck.Event.voters.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.voters.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.Event.wp_outgoing :
+    AntCheck.Event.outgoing.spec (GF := GF) (hG := hG) :=
+  AntCheck.Event.outgoing.wp_proof AntCheck.Event.wp_need
+
+theorem AntCheck.Set.wp_Equal :
+    AntCheck.Set.Equal.spec (GF := GF) (hG := hG) :=
+  AntCheck.Set.Equal.wp_proof
+
+theorem AntCheck.wp_SameConf :
+    AntCheck.SameConf.spec (GF := GF) (hG := hG) :=
+  AntCheck.SameConf.wp_proof AntCheck.Event.wp_has AntCheck.Event.wp_voters AntCheck.Event.wp_outgoing AntCheck.wp_SetOf AntCheck.Set.wp_Equal
+
+theorem AntCheck.State.wp_Boot :
+    AntCheck.State.Boot.spec (GF := GF) (hG := hG) :=
+  AntCheck.State.Boot.wp_proof AntCheck.State.wp_clone AntCheck.wp_setPre AntCheck.wp_setMsgs AntCheck.wp_setQueue AntCheck.wp_setReads AntCheck.wp_setStr AntCheck.wp_Recovered AntCheck.State.wp_Vote AntCheck.wp_SubSeq AntCheck.wp_Concat AntCheck.State.wp_VoteOf AntCheck.wp_setInt AntCheck.wp_setLog AntCheck.wp_setConfirmed AntCheck.wp_factsMinus AntCheck.wp_votesMinus AntCheck.Event.wp_has AntCheck.Event.wp_applied AntCheck.wp_EntriesEqual AntCheck.wp_ConfOf AntCheck.State.wp_InitConf AntCheck.wp_setConf AntCheck.wp_LastConf AntCheck.wp_SameConf
 
 theorem AntCheck.Event.wp_msg :
     AntCheck.Event.msg.spec (GF := GF) (hG := hG) :=
@@ -375,10 +555,6 @@ theorem AntCheck.TermLogs.wp_Get :
     AntCheck.TermLogs.Get.spec (GF := GF) (hG := hG) :=
   AntCheck.TermLogs.Get.wp_proof
 
-theorem AntCheck.wp_TermAt :
-    AntCheck.TermAt.spec (GF := GF) (hG := hG) :=
-  AntCheck.TermAt.wp_proof
-
 theorem AntCheck.wp_SnapOk :
     AntCheck.SnapOk.spec (GF := GF) (hG := hG) :=
   AntCheck.SnapOk.wp_proof AntCheck.Msg.wp_typ AntCheck.Msg.wp_term AntCheck.Msg.wp_index AntCheck.Msg.wp_logTerm AntCheck.TermLogs.wp_Has AntCheck.TermLogs.wp_Get AntCheck.wp_TermAt
@@ -386,10 +562,6 @@ theorem AntCheck.wp_SnapOk :
 theorem AntCheck.Msg.wp_from :
     AntCheck.Msg.from.spec (GF := GF) (hG := hG) :=
   AntCheck.Msg.from.wp_proof AntCheck.Msg.wp_need
-
-theorem AntCheck.wp_SubSeq :
-    AntCheck.SubSeq.spec (GF := GF) (hG := hG) :=
-  AntCheck.SubSeq.wp_proof
 
 theorem AntCheck.Msg.wp_entries :
     AntCheck.Msg.entries.spec (GF := GF) (hG := hG) :=
@@ -411,22 +583,6 @@ theorem AntCheck.wp_leadersHas :
     AntCheck.leadersHas.spec (GF := GF) (hG := hG) :=
   AntCheck.leadersHas.wp_proof
 
-theorem AntCheck.wp_stringsEqual :
-    AntCheck.stringsEqual.spec (GF := GF) (hG := hG) :=
-  AntCheck.stringsEqual.wp_proof
-
-theorem AntCheck.Value.wp_Equal :
-    AntCheck.Value.Equal.spec (GF := GF) (hG := hG) :=
-  AntCheck.Value.Equal.wp_proof AntCheck.wp_stringsEqual
-
-theorem AntCheck.Entry.wp_Equal :
-    AntCheck.Entry.Equal.spec (GF := GF) (hG := hG) :=
-  AntCheck.Entry.Equal.wp_proof AntCheck.Value.wp_Equal
-
-theorem AntCheck.wp_EntriesEqual :
-    AntCheck.EntriesEqual.spec (GF := GF) (hG := hG) :=
-  AntCheck.EntriesEqual.wp_proof AntCheck.Entry.wp_Equal
-
 theorem AntCheck.wp_RecordedIn :
     AntCheck.RecordedIn.spec (GF := GF) (hG := hG) :=
   AntCheck.RecordedIn.wp_proof AntCheck.wp_SubSeq AntCheck.wp_EntriesEqual
@@ -439,17 +595,9 @@ theorem AntCheck.State.wp_Sendable :
     AntCheck.State.Sendable.spec (GF := GF) (hG := hG) :=
   AntCheck.State.Sendable.wp_proof AntCheck.wp_SendableIn
 
-theorem AntCheck.wp_setMsgs :
-    AntCheck.setMsgs.spec (GF := GF) (hG := hG) :=
-  AntCheck.setMsgs.wp_proof
-
 theorem AntCheck.State.wp_Recv :
     AntCheck.State.Recv.spec (GF := GF) (hG := hG) :=
   AntCheck.State.Recv.wp_proof AntCheck.State.wp_clone AntCheck.Event.wp_msg AntCheck.Msg.wp_to AntCheck.Msg.wp_term AntCheck.wp_IsReq AntCheck.wp_SnapOk AntCheck.wp_ReqFactIn AntCheck.State.wp_Sendable AntCheck.wp_setMsgs
-
-theorem AntCheck.Event.wp_term :
-    AntCheck.Event.term.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.term.wp_proof AntCheck.Event.wp_need
 
 theorem AntCheck.inMem.wp_T :
     AntCheck.inMem.T.spec (GF := GF) (hG := hG) :=
@@ -466,10 +614,6 @@ theorem AntCheck.inMem.wp_leads :
 theorem AntCheck.inMem.wp_wins :
     AntCheck.inMem.wins.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.wins.wp_proof AntCheck.inMem.wp_leads
-
-theorem AntCheck.Event.wp_has :
-    AntCheck.Event.has.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.has.wp_proof
 
 theorem AntCheck.inMem.wp_snapsM :
     AntCheck.inMem.snapsM.spec (GF := GF) (hG := hG) :=
@@ -503,10 +647,6 @@ theorem AntCheck.inMem.wp_app :
     AntCheck.inMem.app.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.app.wp_proof AntCheck.inMem.wp_leads AntCheck.inMem.wp_es
 
-theorem AntCheck.wp_Concat :
-    AntCheck.Concat.spec (GF := GF) (hG := hG) :=
-  AntCheck.Concat.wp_proof
-
 theorem AntCheck.inMem.wp_ll2 :
     AntCheck.inMem.ll2.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.ll2.wp_proof AntCheck.inMem.wp_app AntCheck.inMem.wp_ll1 AntCheck.inMem.wp_T AntCheck.inMem.wp_es AntCheck.TermLogs.wp_Has AntCheck.TermLogs.wp_Get AntCheck.TermLogs.wp_With AntCheck.wp_Concat
@@ -514,10 +654,6 @@ theorem AntCheck.inMem.wp_ll2 :
 theorem AntCheck.inMem.wp_L :
     AntCheck.inMem.L.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.L.wp_proof AntCheck.inMem.wp_ll2 AntCheck.inMem.wp_T AntCheck.TermLogs.wp_Has AntCheck.TermLogs.wp_Get
-
-theorem AntCheck.Event.wp_commit :
-    AntCheck.Event.commit.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.commit.wp_proof AntCheck.Event.wp_need
 
 theorem AntCheck.inMem.wp_c :
     AntCheck.inMem.c.spec (GF := GF) (hG := hG) :=
@@ -559,14 +695,6 @@ theorem AntCheck.TermConfs.wp_Get :
     AntCheck.TermConfs.Get.spec (GF := GF) (hG := hG) :=
   AntCheck.TermConfs.Get.wp_proof
 
-theorem AntCheck.wp_strLess :
-    AntCheck.strLess.spec (GF := GF) (hG := hG) :=
-  AntCheck.strLess.wp_proof
-
-theorem AntCheck.wp_SetAdd :
-    AntCheck.SetAdd.spec (GF := GF) (hG := hG) :=
-  AntCheck.SetAdd.wp_proof AntCheck.wp_strLess
-
 theorem AntCheck.State.wp_Granted :
     AntCheck.State.Granted.spec (GF := GF) (hG := hG) :=
   AntCheck.State.Granted.wp_proof AntCheck.wp_factsHas AntCheck.wp_SetAdd AntCheck.wp_votesHas
@@ -574,10 +702,6 @@ theorem AntCheck.State.wp_Granted :
 theorem AntCheck.State.wp_Acked :
     AntCheck.State.Acked.spec (GF := GF) (hG := hG) :=
   AntCheck.State.Acked.wp_proof AntCheck.wp_SetAdd
-
-theorem AntCheck.wp_IsConf :
-    AntCheck.IsConf.spec (GF := GF) (hG := hG) :=
-  AntCheck.IsConf.wp_proof
 
 theorem AntCheck.wp_confsAfterCount :
     AntCheck.confsAfterCount.spec (GF := GF) (hG := hG) :=
@@ -591,10 +715,6 @@ theorem AntCheck.State.wp_AllSwitched :
     AntCheck.State.AllSwitched.spec (GF := GF) (hG := hG) :=
   AntCheck.State.AllSwitched.wp_proof AntCheck.wp_confsAfterCount
 
-theorem AntCheck.Set.wp_Has :
-    AntCheck.Set.Has.spec (GF := GF) (hG := hG) :=
-  AntCheck.Set.Has.wp_proof
-
 theorem AntCheck.wp_interCount :
     AntCheck.interCount.spec (GF := GF) (hG := hG) :=
   AntCheck.interCount.wp_proof AntCheck.Set.wp_Has
@@ -606,26 +726,6 @@ theorem AntCheck.wp_Majority :
 theorem AntCheck.wp_IsQuorum :
     AntCheck.IsQuorum.spec (GF := GF) (hG := hG) :=
   AntCheck.IsQuorum.wp_proof AntCheck.wp_Majority
-
-theorem AntCheck.Value.wp_rec :
-    AntCheck.Value.rec.spec (GF := GF) (hG := hG) :=
-  AntCheck.Value.rec.wp_proof
-
-theorem AntCheck.wp_SetOf :
-    AntCheck.SetOf.spec (GF := GF) (hG := hG) :=
-  AntCheck.SetOf.wp_proof AntCheck.wp_SetAdd
-
-theorem AntCheck.Set.wp_Union :
-    AntCheck.Set.Union.spec (GF := GF) (hG := hG) :=
-  AntCheck.Set.Union.wp_proof AntCheck.wp_SetAdd
-
-theorem AntCheck.Set.wp_Minus :
-    AntCheck.Set.Minus.spec (GF := GF) (hG := hG) :=
-  AntCheck.Set.Minus.wp_proof AntCheck.Set.wp_Has
-
-theorem AntCheck.wp_Target :
-    AntCheck.Target.spec (GF := GF) (hG := hG) :=
-  AntCheck.Target.wp_proof AntCheck.Value.wp_rec AntCheck.wp_SetOf AntCheck.Set.wp_Union AntCheck.Set.wp_Minus
 
 theorem AntCheck.wp_Legal :
     AntCheck.Legal.spec (GF := GF) (hG := hG) :=
@@ -650,34 +750,6 @@ theorem AntCheck.inMem.wp_ld1 :
 theorem AntCheck.inMem.wp_newC :
     AntCheck.inMem.newC.spec (GF := GF) (hG := hG) :=
   AntCheck.inMem.newC.wp_proof AntCheck.inMem.wp_L AntCheck.inMem.wp_c AntCheck.wp_SubSeq
-
-theorem AntCheck.wp_setStr :
-    AntCheck.setStr.spec (GF := GF) (hG := hG) :=
-  AntCheck.setStr.wp_proof
-
-theorem AntCheck.wp_setConf :
-    AntCheck.setConf.spec (GF := GF) (hG := hG) :=
-  AntCheck.setConf.wp_proof
-
-theorem AntCheck.wp_setInt :
-    AntCheck.setInt.spec (GF := GF) (hG := hG) :=
-  AntCheck.setInt.wp_proof
-
-theorem AntCheck.wp_NextConf :
-    AntCheck.NextConf.spec (GF := GF) (hG := hG) :=
-  AntCheck.NextConf.wp_proof AntCheck.Value.wp_rec AntCheck.wp_Target
-
-theorem AntCheck.wp_ConfOf :
-    AntCheck.ConfOf.spec (GF := GF) (hG := hG) :=
-  AntCheck.ConfOf.wp_proof AntCheck.wp_At AntCheck.wp_IsConf AntCheck.wp_NextConf
-
-theorem AntCheck.wp_LastConf :
-    AntCheck.LastConf.spec (GF := GF) (hG := hG) :=
-  AntCheck.LastConf.wp_proof AntCheck.wp_At AntCheck.wp_IsConf
-
-theorem AntCheck.State.wp_InitConf :
-    AntCheck.State.InitConf.spec (GF := GF) (hG := hG) :=
-  AntCheck.State.InitConf.wp_proof
 
 theorem AntCheck.TermInts.wp_With :
     AntCheck.TermInts.With.spec (GF := GF) (hG := hG) :=
@@ -707,21 +779,9 @@ theorem AntCheck.Event.wp_w :
     AntCheck.Event.w.spec (GF := GF) (hG := hG) :=
   AntCheck.Event.w.wp_proof AntCheck.Event.wp_need
 
-theorem AntCheck.wp_setQueue :
-    AntCheck.setQueue.spec (GF := GF) (hG := hG) :=
-  AntCheck.setQueue.wp_proof
-
 theorem AntCheck.State.wp_Mem :
     AntCheck.State.Mem.spec (GF := GF) (hG := hG) :=
   AntCheck.State.Mem.wp_proof AntCheck.State.inMemory_lengths AntCheck.State.wp_InMemory AntCheck.State.wp_clone AntCheck.State.wp_queued AntCheck.Event.wp_w AntCheck.wp_setQueue
-
-theorem AntCheck.Event.wp_vote :
-    AntCheck.Event.vote.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.vote.wp_proof AntCheck.Event.wp_need
-
-theorem AntCheck.wp_setPre :
-    AntCheck.setPre.spec (GF := GF) (hG := hG) :=
-  AntCheck.setPre.wp_proof
 
 theorem AntCheck.State.wp_Wrote :
     AntCheck.State.Wrote.spec (GF := GF) (hG := hG) :=
@@ -730,18 +790,6 @@ theorem AntCheck.State.wp_Wrote :
 theorem AntCheck.Event.wp_more :
     AntCheck.Event.more.spec (GF := GF) (hG := hG) :=
   AntCheck.Event.more.wp_proof AntCheck.Event.wp_need
-
-theorem AntCheck.State.wp_BootTerm :
-    AntCheck.State.BootTerm.spec (GF := GF) (hG := hG) :=
-  AntCheck.State.BootTerm.wp_proof
-
-theorem AntCheck.State.wp_VoteOf :
-    AntCheck.State.VoteOf.spec (GF := GF) (hG := hG) :=
-  AntCheck.State.VoteOf.wp_proof AntCheck.State.wp_BootTerm
-
-theorem AntCheck.State.wp_Vote :
-    AntCheck.State.Vote.spec (GF := GF) (hG := hG) :=
-  AntCheck.State.Vote.wp_proof AntCheck.State.wp_VoteOf
 
 theorem AntCheck.State.wp_Net :
     AntCheck.State.Net.spec (GF := GF) (hG := hG) :=
@@ -763,22 +811,6 @@ theorem AntCheck.Event.wp_index :
     AntCheck.Event.index.spec (GF := GF) (hG := hG) :=
   AntCheck.Event.index.wp_proof AntCheck.Event.wp_need
 
-theorem AntCheck.Event.wp_voters :
-    AntCheck.Event.voters.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.voters.wp_proof AntCheck.Event.wp_need
-
-theorem AntCheck.Event.wp_outgoing :
-    AntCheck.Event.outgoing.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.outgoing.wp_proof AntCheck.Event.wp_need
-
-theorem AntCheck.Set.wp_Equal :
-    AntCheck.Set.Equal.spec (GF := GF) (hG := hG) :=
-  AntCheck.Set.Equal.wp_proof
-
-theorem AntCheck.wp_SameConf :
-    AntCheck.SameConf.spec (GF := GF) (hG := hG) :=
-  AntCheck.SameConf.wp_proof AntCheck.Event.wp_has AntCheck.Event.wp_voters AntCheck.Event.wp_outgoing AntCheck.wp_SetOf AntCheck.Set.wp_Equal
-
 theorem AntCheck.State.wp_RestoreEv :
     AntCheck.State.RestoreEv.spec (GF := GF) (hG := hG) :=
   AntCheck.State.RestoreEv.wp_proof AntCheck.State.wp_clone AntCheck.Event.wp_index AntCheck.Event.wp_has AntCheck.wp_SubSeq AntCheck.wp_EntriesEqual AntCheck.wp_setInt AntCheck.wp_setPre AntCheck.State.wp_InitConf AntCheck.wp_ConfOf AntCheck.wp_SameConf
@@ -795,10 +827,6 @@ theorem AntCheck.Event.wp_ctx :
     AntCheck.Event.ctx.spec (GF := GF) (hG := hG) :=
   AntCheck.Event.ctx.wp_proof AntCheck.Event.wp_need
 
-theorem AntCheck.wp_setReads :
-    AntCheck.setReads.spec (GF := GF) (hG := hG) :=
-  AntCheck.setReads.wp_proof
-
 theorem AntCheck.State.wp_ReadAsked :
     AntCheck.State.ReadAsked.spec (GF := GF) (hG := hG) :=
   AntCheck.State.ReadAsked.wp_proof AntCheck.State.wp_clone AntCheck.Event.wp_ctx AntCheck.wp_setReads
@@ -811,21 +839,9 @@ theorem AntCheck.Conf.wp_Equal :
     AntCheck.Conf.Equal.spec (GF := GF) (hG := hG) :=
   AntCheck.Conf.Equal.wp_proof AntCheck.Set.wp_Equal
 
-theorem AntCheck.Event.wp_applied :
-    AntCheck.Event.applied.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.applied.wp_proof AntCheck.Event.wp_need
-
 theorem AntCheck.Event.wp_cause :
     AntCheck.Event.cause.spec (GF := GF) (hG := hG) :=
   AntCheck.Event.cause.wp_proof AntCheck.Event.wp_need
-
-theorem AntCheck.Event.wp_lastIndex :
-    AntCheck.Event.lastIndex.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.lastIndex.wp_proof AntCheck.Event.wp_need
-
-theorem AntCheck.Event.wp_lastTerm :
-    AntCheck.Event.lastTerm.spec (GF := GF) (hG := hG) :=
-  AntCheck.Event.lastTerm.wp_proof AntCheck.Event.wp_need
 
 theorem AntCheck.wp_Init0 :
     AntCheck.Init0.spec (GF := GF) (hG := hG) :=
@@ -850,10 +866,6 @@ theorem AntCheck.Msg.wp_reject :
 theorem AntCheck.wp_NewChecker :
     AntCheck.NewChecker.spec (GF := GF) (hG := hG) :=
   AntCheck.NewChecker.wp_proof AntCheck.wp_Init0
-
-theorem AntCheck.wp_Recovered :
-    AntCheck.Recovered.spec (GF := GF) (hG := hG) :=
-  AntCheck.Recovered.wp_proof AntCheck.Event.wp_term AntCheck.Event.wp_vote AntCheck.Event.wp_commit AntCheck.Event.wp_lastIndex AntCheck.Event.wp_lastTerm AntCheck.wp_TermAt
 
 theorem AntCheck.State.wp_HasFirst :
     AntCheck.State.HasFirst.spec (GF := GF) (hG := hG) :=
@@ -1031,14 +1043,6 @@ theorem AntCheck.onDisk.wp_voted :
     AntCheck.onDisk.voted.spec (GF := GF) (hG := hG) :=
   AntCheck.onDisk.voted.wp_proof AntCheck.onDisk.wp_w AntCheck.onDisk.wp_V1 AntCheck.Event.wp_vote
 
-theorem AntCheck.wp_setConfirmed :
-    AntCheck.setConfirmed.spec (GF := GF) (hG := hG) :=
-  AntCheck.setConfirmed.wp_proof
-
-theorem AntCheck.wp_setLog :
-    AntCheck.setLog.spec (GF := GF) (hG := hG) :=
-  AntCheck.setLog.wp_proof
-
 theorem AntCheck.wp_violated :
     AntCheck.violated.spec (GF := GF) (hG := hG) :=
   AntCheck.violated.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm
@@ -1061,10 +1065,9 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
-variable (h_State__Boot : AntCheck.State.Boot.spec (GF := GF) (hG := hG))
 variable (h_State__OnDisk : AntCheck.State.OnDisk.spec (GF := GF) (hG := hG))
 variable (h_State__Send : AntCheck.State.Send.spec (GF := GF) (hG := hG))
-include h_State__Boot h_State__OnDisk h_State__Send
+include h_State__OnDisk h_State__Send
 
 theorem AntCheck.State.wp_Ready :
     AntCheck.State.Ready.spec (GF := GF) (hG := hG) :=
@@ -1080,15 +1083,15 @@ theorem AntCheck.State.wp_Flush :
 
 theorem AntCheck.State.wp_Bind :
     AntCheck.State.Bind.spec (GF := GF) (hG := hG) :=
-  AntCheck.State.Bind.wp_proof h_State__Boot AntCheck.State.wp_Recv (AntCheck.State.wp_Ready h_State__Boot h_State__OnDisk h_State__Send) AntCheck.State.wp_Mem (AntCheck.State.wp_Write h_State__Boot h_State__OnDisk h_State__Send) AntCheck.State.wp_Wrote (AntCheck.State.wp_Flush h_State__Boot h_State__OnDisk h_State__Send) AntCheck.State.wp_Net AntCheck.State.wp_Made h_State__Send AntCheck.State.wp_ApplyEv AntCheck.State.wp_RestoreEv AntCheck.State.wp_ConfEv AntCheck.State.wp_SnapEv AntCheck.State.wp_ReadAsked AntCheck.State.wp_ReadGiven
+  AntCheck.State.Bind.wp_proof AntCheck.State.wp_Boot AntCheck.State.wp_Recv (AntCheck.State.wp_Ready h_State__OnDisk h_State__Send) AntCheck.State.wp_Mem (AntCheck.State.wp_Write h_State__OnDisk h_State__Send) AntCheck.State.wp_Wrote (AntCheck.State.wp_Flush h_State__OnDisk h_State__Send) AntCheck.State.wp_Net AntCheck.State.wp_Made h_State__Send AntCheck.State.wp_ApplyEv AntCheck.State.wp_RestoreEv AntCheck.State.wp_ConfEv AntCheck.State.wp_SnapEv AntCheck.State.wp_ReadAsked AntCheck.State.wp_ReadGiven
 
 theorem AntCheck.State.wp_Step :
     AntCheck.State.Step.spec (GF := GF) (hG := hG) :=
-  AntCheck.State.Step.wp_proof AntCheck.State.wp_idx (AntCheck.State.wp_Bind h_State__Boot h_State__OnDisk h_State__Send)
+  AntCheck.State.Step.wp_proof AntCheck.State.wp_idx (AntCheck.State.wp_Bind h_State__OnDisk h_State__Send)
 
 theorem AntCheck.Checker.wp_Next :
     AntCheck.Checker.Next.spec (GF := GF) (hG := hG) :=
-  AntCheck.Checker.Next.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm AntCheck.State.wp_GCDue AntCheck.State.wp_GC (AntCheck.State.wp_Step h_State__Boot h_State__OnDisk h_State__Send) AntCheck.State.gc_within
+  AntCheck.Checker.Next.wp_proof AntCheck.State.wp_ElectionSafety AntCheck.State.wp_OneVotePerTerm AntCheck.State.wp_GCDue AntCheck.State.wp_GC (AntCheck.State.wp_Step h_State__OnDisk h_State__Send) AntCheck.State.gc_within
 
 end links_pending
 
