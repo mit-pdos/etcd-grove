@@ -2,11 +2,15 @@
 # The QuePaxa kit on `examples/lib/remote` (notes/dsv-quepaxa.md): vocabulary and specs
 
 * **The store** `qB` (`Pure/QIn.lean`): linkv's pending-writes store of the key-value map `kvB` on
-  the inputs the kit makes, `QIn` (`qInOk`: `inputOk`, short). A put is a write, a get a read.
+  the inputs the kit makes, `QIn` (`qInOk`: `inputOk`, short), and the outputs its codec encodes,
+  `QOut` (`qOutOk`; remote's `Check` asks the codec to be injective on outputs within `2^63`
+  bytes, so the outputs are bounded: `kvB`'s answers clamped, `outB`, which changes nothing on the
+  short stores the kit's inputs make). A put is a write, a get a read.
 * **The far side's store** `qR γ` (`remote.RBase`): the map's state is QuePaxa's abstract state
   (`ownState γ`, half of the SMR invariant's puts), the mask of the update is `raxosN` (QuePaxa's
   invariants), the Go values are the kit's boxed `In`/`Out`, the bytes `Codec()`'s (`EncIn`,
-  `EncOut`). Its linearization point is QuePaxa's request update: `lin_opAU` (definitional).
+  `EncOut`). Its linearization point is QuePaxa's request update, its answer clamped: `lin_opAU`
+  (definitional).
 * **The start's shares** (`orchRes`, `clientRes`, `serverRes`, over `sharedRes`): what the
   orchestrator, client machine `c` and server machine `k` get of QuePaxa's ghost state.
 * **The specs** of the kit's functions (`kit.go`): `Codec`, `Gen` (remote's codec and generator),
@@ -44,6 +48,10 @@ instance QIn.countable : Pos.Countable QIn :=
   .ofInjective (fun x : QIn => Pos.Countable.encode x.1)
     (fun a b h => Subtype.ext (Pos.encode_inj h))
 
+instance QOut.countable : Pos.Countable QOut :=
+  .ofInjective (fun x : QOut => Pos.Countable.encode x.1)
+    (fun a b h => Subtype.ext (Pos.encode_inj h))
+
 /-- `QIn`'s `BEq` is its decidable equality's (the instance linkv's pending lists erase with). -/
 @[reducible] instance (priority := high) QIn.beq : BEq QIn := instBEqOfDecidableEq
 
@@ -71,7 +79,7 @@ variable [GooseExts] [GoGlobalContext]
 abbrev qiv (i : QIn) : GoInterface := inV (In.mk i.1.put i.1.k i.1.v)
 
 /-- An output as the kit's boxed `Out` (a known outcome). -/
-abbrev qov (o : KOut) : GoInterface := outV (Out.mk false o.found o.v)
+abbrev qov (o : QOut) : GoInterface := outV (Out.mk false o.1.found o.1.v)
 
 /-- The unknown output. -/
 abbrev qunk : GoInterface := outV (Out.mk true false [])
@@ -100,7 +108,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 /-- **The far side's store**: QuePaxa's key-value map on the kit's inputs (see the file header). -/
-def qR (γ : QNames) : RBase GF raxos.pure.Store QIn KOut where
+def qR (γ : QNames) : RBase GF raxos.pure.Store QIn QOut where
   B := qB
   sysState σ := ownState γ σ
   Eop := ↑raxosN
@@ -110,7 +118,7 @@ def qR (γ : QNames) : RBase GF raxos.pure.Store QIn KOut where
   encIn i := encInB i.1
   encOut := encOutV
   reads_stay i st h := by
-    simp only [qB, subB, kvB] at h ⊢
+    simp only [qB, outB, subB, kvB] at h ⊢
     rw [if_neg (by simpa using h)]
   encIn_len i := by
     have := i.2.2
@@ -123,9 +131,10 @@ instance qR_timeless (γ : QNames) (σ : raxos.pure.Store) : Timeless ((qR (GF :
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **The store's linearization point is QuePaxa's request update** (definitionally). -/
-theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : QNames) (i : QIn) (Φ : KOut → IProp GF) :
-    lin (Gg := Gg) (qR γ) i Φ ⊣⊢ opAU γ i.1 Φ := .rfl
+/-- **The store's linearization point is QuePaxa's request update** (definitionally), its answer
+clamped into `QOut` (`clampO`: the answer itself for every answer the codec encodes). -/
+theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : QNames) (i : QIn) (Φ : QOut → IProp GF) :
+    lin (Gg := Gg) (qR γ) i Φ ⊣⊢ opAU γ i.1 (fun o => Φ (clampO qOut0 o)) := .rfl
 
 end base
 

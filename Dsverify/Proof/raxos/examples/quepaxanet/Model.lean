@@ -263,20 +263,31 @@ def qDec (io : OpV) : Option (KIn × Ans KOut) :=
     some (kin (Classical.choose h), kans (Classical.choose (Classical.choose_spec h)))
   else none
 
+/-- The kit's `Out` as the store's answer on `QOut`, for an output that is one. -/
+def kansQ (o : Out) (h : qOutOk ⟨o.Found', o.V'⟩) : Ans QOut :=
+  if o.Unknown' then .err else .ok ⟨⟨o.Found', o.V'⟩, h⟩
+
+theorem ansVal_kansQ (o : Out) (h : qOutOk ⟨o.Found', o.V'⟩) : ansVal (kansQ o h) = kans o := by
+  unfold kansQ kans; split <;> rfl
+
 open Classical in
-/-- porcupine's operations as the kit's store's (remote's inputs `QIn`): `qDec`'s, if the input is
-one the kit makes (`qInOk`); anything else decodes to nothing. -/
-def qDecQ (io : OpV) : Option (QIn × Ans KOut) :=
+/-- porcupine's operations as the kit's store's (remote's inputs `QIn` and outputs `QOut`): `qDec`'s,
+if the input is one the kit makes (`qInOk`) and a known output is one its codec encodes
+(`qOutOk`); anything else decodes to nothing. -/
+def qDecQ (io : OpV) : Option (QIn × Ans QOut) :=
   match qDec io with
-  | some (i, a) => if h : qInOk i then some (⟨i, h⟩, a) else none
+  | some (i, .err) => if h : qInOk i then some (⟨i, h⟩, .err) else none
+  | some (i, .ok o) =>
+    if h : qInOk i then (if h' : qOutOk o then some (⟨i, h⟩, .ok ⟨o, h'⟩) else none) else none
   | none => none
 
 /-- **The store's porcupine model**, as the pending library's invariant sees it: `pSeq qB`
-(`kvB` on the kit's inputs) through `qDecQ`. -/
+(`kvB` on the kit's inputs and outputs) through `qDecQ`. -/
 def qS0 {GF : BundledGFunctors} : ModelSpec GF (PSet raxos.pure.Store QIn) where
   M := pM qB qDecQ
   rep _ _ _ := iprop(True)
-  ioOk i o := iprop(⌜(∃ x : In, i = inV x ∧ qInOk (kin x)) ∧ ∃ y : Out, o = outV y⌝)
+  ioOk i o := iprop(⌜(∃ x : In, i = inV x ∧ qInOk (kin x)) ∧
+    ∃ y : Out, o = outV y ∧ qOutOk ⟨y.Found', y.V'⟩⌝)
   ioOk_pers _ _ := by infer_instance
 
 end vals
@@ -354,12 +365,15 @@ theorem qDec_box (i : In) (o : Out) : qDec (inV i, outV o) = some (kin i, kans o
   generalize Classical.choose hx = i' at h1 ⊢
   rw [← inV_inj h1, ← outV_inj h2]
 
-/-- `qDecQ` on a boxed `In` the kit makes and a boxed `Out`. -/
-theorem qDecQ_box (i : In) (o : Out) (h : qInOk (kin i)) :
-    qDecQ (inV i, outV o) = some (⟨kin i, h⟩, kans o) := by
+/-- `qDecQ` on a boxed `In` the kit makes and a boxed `Out` its codec encodes. -/
+theorem qDecQ_box (i : In) (o : Out) (h : qInOk (kin i)) (h' : qOutOk ⟨o.Found', o.V'⟩) :
+    qDecQ (inV i, outV o) = some (⟨kin i, h⟩, kansQ o h') := by
   unfold qDecQ
   rw [qDec_box]
-  simp only [h, ↓reduceDIte]
+  unfold kans kansQ
+  by_cases hu : o.Unknown' = true
+  · simp only [hu, ↓reduceIte, h, ↓reduceDIte]
+  · simp only [hu, Bool.false_eq_true, ↓reduceIte, h, h', ↓reduceDIte]
 
 end dec
 
@@ -379,12 +393,14 @@ instance entRep_persistent (e : Entry) (p : KEnt) : Persistent (entRep (GF := GF
   unfold entRep; infer_instance
 
 /-- A model value: the boxed `State` `sl`, read-only, whose entries hold `E` (distinct keys,
-entries `Ok`); its set is `mSet (lk E)` on the kit's inputs (`pre`), which is not empty and whose
-pending inputs are the kit's (`AllP qInOk`); at most `k` entries and `k` pending values per
+entries `Ok`); its set is `mSet (lk E)` on the kit's inputs (`pre`), which is not empty, whose
+pending inputs are the kit's (`AllP qInOk`) and whose stores are short (`shortSt`: every output of
+`kvB` there is a `QOut`); at most `k` entries and `k` pending values per
 entry (a step adds at most one of each). -/
 def qRep (k : Nat) (v : GoInterface) (S : PSet raxos.pure.Store QIn) : IProp GF :=
   iprop(∃ (sl : State) (es : List Entry) (E : List KEnt),
-    ⌜v = stV sl ∧ S = pre (mSet (lk E)) ∧ AllP qInOk (mSet (lk E)) ∧ qOk E ∧
+    ⌜v = stV sl ∧ S = pre (mSet (lk E)) ∧ AllP qInOk (mSet (lk E)) ∧
+      raxos.pure.AllG shortSt (pre (p := qInOk) (mSet (lk E))) ∧ qOk E ∧
       (∃ c, mSet (lk E) c) ∧ E.length ≤ k ∧ allLe k E⌝ ∗
     sl ↦*□ es ∗ [∗list] e;p ∈ es;E, entRep e p)
 
