@@ -8,8 +8,8 @@
 * `BufWrite`: the frame (`frame`: the 4-byte little-endian length, the data) through a
   `*bufio.Writer` (`bufio.ownBufWriter bw wi J Q Ew sz sent pend err`, the lab's `ownWriter`);
   `WriteFlush`, `Command.MarshalWriteFlush`, `Msg.MarshalWriteFlush`: then `Flush`. The
-  underlying writer's contract `io.writerOk wi J Q Ew` (persistent) is a premise, as the lab's
-  `writerOk wr J Q` was: its `Q` is prefix-closed (`io.writerOk_prefixClosed`), which the frame's
+  underlying writer's contract `io.streamWriterOk wi J Q Ew` (persistent) is a premise, as the lab's
+  `writerOk wr J Q` was: its `Q` is prefix-closed (`io.streamWriterOk_prefixClosed`), which the frame's
   header's write needs.
 * `BufRead`: the next frame from a `*bufio.Reader` (`bufio.ownBufReader br ri connPre S E R`, the
   lab's `ownReader`, over a reader whose only condition on a read is a non-empty buffer, a
@@ -23,7 +23,7 @@ module
 
 public import Dsverify.Proof.rabia.internal.message.SpecPure
 public import Proof.bufio.Own
-public import Proof.io.WriterOk
+public import Proof.io.StreamWriterOk
 public import GooseLang.Ext.Net.Proto
 
 @[expose] public section
@@ -68,7 +68,7 @@ abbrev BufWrite.spec : Prop :=
     (sz : Nat) (sent pend : List w8) (err : GoInterface) (sl : GoSlice) (dq : DFrac)
     (bs : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ ⌜bs.length < 2 ^ 32⌝ ∗
-      EtcdGrove.io.writerOk wi J Q Ew ∗ EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
+      EtcdGrove.io.streamWriterOk wi J Q Ew ∗ EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
       □ Q (sent ++ pend ++ frame bs) ∗ sl ↦*{dq} bs }}
     (App (App (Val (@! BufWrite)) (Val #bw)) (Val #sl))
   {{ (e : GoInterface), RET #e; ∃ (k : Nat) (sent' pend' : List w8),
@@ -82,7 +82,7 @@ abbrev WriteFlush.spec : Prop :=
     (sz : Nat) (sent pend : List w8) (err : GoInterface) (sl : GoSlice) (dq : DFrac)
     (bs : List w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ ⌜bs.length < 2 ^ 32⌝ ∗
-      EtcdGrove.io.writerOk wi J Q Ew ∗ EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
+      EtcdGrove.io.streamWriterOk wi J Q Ew ∗ EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
       □ Q (sent ++ pend ++ frame bs) ∗ sl ↦*{dq} bs }}
     (App (App (Val (@! WriteFlush)) (Val #bw)) (Val #sl))
   {{ (e : GoInterface), RET #e; ∃ (sent' pend' : List w8),
@@ -98,7 +98,7 @@ abbrev Command.MarshalWriteFlush.spec : Prop :=
     (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF) (sz : Nat) (sent pend : List w8)
     (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ l ↦□ v ∗ cmdRep v c ∗
-      ⌜c.commands.length ≤ 1⌝ ∗ EtcdGrove.io.writerOk wi J Q Ew ∗
+      ⌜c.commands.length ≤ 1⌝ ∗ EtcdGrove.io.streamWriterOk wi J Q Ew ∗
       EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
       □ (⌜(encCmd c).length < 2 ^ 32⌝ -∗ Q (sent ++ pend ++ frame (encCmd c))) }}
     (App (Val (l @!! go.GoType.PointerType Command.ty @!! go!"MarshalWriteFlush")) (Val #bw))
@@ -115,7 +115,7 @@ abbrev Msg.MarshalWriteFlush.spec : Prop :=
     (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF) (sz : Nat) (sent pend : List w8)
     (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ l ↦□ v ∗ msgRep v m ∗
-      ⌜(encMsg m).length < 2 ^ 32⌝ ∗ EtcdGrove.io.writerOk wi J Q Ew ∗
+      ⌜(encMsg m).length < 2 ^ 32⌝ ∗ EtcdGrove.io.streamWriterOk wi J Q Ew ∗
       EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
       □ Q (sent ++ pend ++ frame (encMsg m)) }}
     (App (Val (l @!! go.GoType.PointerType Msg.ty @!! go!"MarshalWriteFlush")) (Val #bw))

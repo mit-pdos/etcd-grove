@@ -4,7 +4,7 @@
 
 `message.BufWrite`'s proof: the header (`PutUint32` of the length) and the data, two
 `(*bufio.Writer).Write`s; the header's write is allowed by `Q`'s prefix closure
-(`io.writerOk_prefixClosed`). `BufWrite.wp_tooLong`: data of `2^32` bytes or more (N8), the error
+(`io.streamWriterOk_prefixClosed`). `BufWrite.wp_tooLong`: data of `2^32` bytes or more (N8), the error
 `errFrameTooLong`, nothing written.
 -/
 module
@@ -62,7 +62,7 @@ theorem BufWrite.wp_of : BufWrite.spec (GF := GF) := by
   have hfr := u32Le_frame bs _ hn
   wp_apply encoding.binary.wp_LittleEndian_PutUint32 lb (List.replicate 4 (zero_val w8)) [] _ (by simp) $$ [Hlb] as Hlb
   · simp only [List.append_nil]; iexact Hlb
-  ihave #Hpc := EtcdGrove.io.writerOk_prefixClosed wi J Q Ew $$ Hwr
+  ihave #Hpc := EtcdGrove.io.streamWriterOk_prefixClosed wi J Q Ew $$ Hwr
   ihave #HQ1 := Q_of_prefix Q (sent ++ pend ++ u32Le (W32 (sint.Z sl.len))) _
     (by rw [← hfr, ← List.append_assoc]; exact List.prefix_append _ _) $$ Hpc HQ
   rw [List.append_nil]

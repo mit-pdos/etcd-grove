@@ -4,7 +4,7 @@
 
 Shared lemmas of `rabia/internal/tcp`'s proofs: a connection end's buffered reader and writer
 (`rdOwn`, `wrOwn`: the revised bufio's `ownBufReader`/`ownBufWriter` over the connection's
-contracts `net.conn_readerOk`/`net.conn_writerOk`, the lab's `ownReader`/`ownWriter` over
+contracts `net.conn_readerOk`/`net.conn_streamWriterOk`, the lab's `ownReader`/`ownWriter` over
 `readerOk_conn`/`writerOk_conn`), `GetReaderWriter` (the socket options through
 `sockopt_au`; `bufio.NewReaderSize`/`NewWriterSize`), and message's framing specs over them
 (`wp_cmdReadUnmarshal`, `wp_msgReadUnmarshal`, `wp_cmdMarshalWriteFlush`,
@@ -59,7 +59,7 @@ with its `writerOk`). -/
 def wrOwn (bw : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (W pend : List w8) (err : GoInterface) :
     IProp GF :=
   iprop(∃ (wi : GoInterfaceOk) (Ew : GoInterface → IProp GF) (sz : Nat),
-    EtcdGrove.io.writerOk wi (sendTok (Gg := hG.goose_globalGS) cn s P) (P cn) Ew ∗
+    EtcdGrove.io.streamWriterOk wi (sendTok (Gg := hG.goose_globalGS) cn s P) (P cn) Ew ∗
     EtcdGrove.bufio.ownBufWriter bw wi (sendTok (Gg := hG.goose_globalGS) cn s P) (P cn) Ew sz W
       pend err)
 
@@ -185,7 +185,7 @@ theorem wp_GetReaderWriter (cf : RCfg) (cl : Loc) (cv : GoInterface) (cn : Nat) 
     as %_ -
   · iframe Hca; iapply sockopt_true $$ Hconn
   ihave #Hrok := net.conn_readerOk net.Conn.Read.wp_proof t cn s a la ra eof ed Pin $$ [$Hio $Hca $Heof $Hed]
-  ihave #Hwok := net.conn_writerOk net.Conn.Write.wp_proof t cn s a la ra ed Pout hP $$ [$Hca $Hed]
+  ihave #Hwok := net.conn_streamWriterOk net.Conn.Write.wp_proof t cn s a la ra ed Pout hP $$ [$Hca $Hed]
   ihave HRL := recvTok_L cn s Pin R $$ HR
   ihave #Hpu := EtcdGrove.bufio.preUpTo_trivial (recvTokL (Gg := hG.goose_globalGS) cn s Pin)
     (max (sint.Z (W64 16384000)) 16).toNat

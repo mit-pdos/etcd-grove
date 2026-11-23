@@ -3,7 +3,7 @@
 `rabia-r1wake-1`, onto `GooseLang/Ext/Net/Proto.lean`.)
 
 Lemmas on the protocols of `Core/Proto.lean` and `Net`'s connection tokens, for tcp's proofs:
-the protocols' persistence and prefix closure (`ProtoPrefixClosed`, what `net.conn_writerOk`
+the protocols' persistence and prefix closure (`ProtoPrefixClosed`, what `net.conn_streamWriterOk`
 asks), the sent bytes' laws `sentLb_prefix`, `sentLb_agree` (from `Proto.lean`'s definitions:
 missing laws there, as the lab's were of its harness), `recvTokL_sentLb` and its reader form
 `rdOwn_sentLb` (what a connection's reader has returned was sent), the handshakes' injectivity.

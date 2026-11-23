@@ -73,7 +73,7 @@ theorem Command.MarshalWriteFlush.wp_of
       (err : GoInterface),
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗
         l ↦□ v ∗ cmdRep v c ∗
-        ⌜c.commands.length ≤ 1⌝ ∗ EtcdGrove.io.writerOk wi J Q Ew ∗
+        ⌜c.commands.length ≤ 1⌝ ∗ EtcdGrove.io.streamWriterOk wi J Q Ew ∗
         EtcdGrove.bufio.ownBufWriter bw wi J Q Ew sz sent pend err ∗
         □ (⌜(encCmd c).length < 2 ^ 32⌝ -∗ Q (sent ++ pend ++ frame (encCmd c))) }}
       (App (Val (l @!! go.GoType.PointerType Command.ty @!! go!"MarshalWriteFlush")) (Val #bw))
