@@ -7,12 +7,16 @@ features' specs `serverFeatureSpecs`.
 
 * `serverFeatures`: the features `features.NewDefaultServerFeatureGate` registers (the keys of
   `DefaultEtcdServerFeatureGates`, `server/features/etcd_features.go`).
-* `isFeatureGate fg`: `fg`'s `Enabled(f)` returns some boolean for every registered feature `f`.
-  (`featureGate.Enabled` panics on a feature not registered, `pkg/featuregate/feature_gate.go`:
+* `isFeatureGate fg`: `fg` has some registered features `K`, the server's among them, and its
+  `Enabled(f)` returns some boolean for every registered feature `f`, its `GetAll()` a fresh map of
+  `K`. (`featureGate.Enabled` panics on a feature not registered, `pkg/featuregate/feature_gate.go`:
   until 2026-10-18 the contract was stated for every `f`, which no Go feature gate meets;
-  `notes/STATUS.md`, "Item 9, point 7".) The server asks only for registered features
+  `notes/STATUS.md`, "Item 9, point 7".) The server asks `Enabled` of its own features
   (`StopGRPCServiceOnDefrag`, `TxnModeWriteWithSharedBuffer`, `LeaseCheckpoint`,
-  `LeaseCheckpointPersist`, `PriorityRequest` on the verified paths).
+  `LeaseCheckpointPersist`, `PriorityRequest` on the verified paths) and, in
+  `addFeatureGateMetrics`, of every feature `GetAll` returns (featuregate's own `AllAlpha` and
+  `AllBeta` too: featuregate-4, 2026-11-23, `notes/specs-only/ledger.md`), each name and `PreRelease`
+  valid UTF-8 (`featureLabelsOk`: the gauge vector's `With` panics otherwise).
 * `featureIs fg f b`: `fg`'s `Enabled(f)` returns `b` (audit B4a: `CompactHashCheck` off, for
   `EtcdServer.monitorCompactHash`).
 
@@ -25,6 +29,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.Golang.Theory
 public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Defs
 public import GeneratedProof.go_etcd_io.etcd.server.v3.features
+public import Proof.unicode.utf8.Valid
 
 @[expose] public section
 
@@ -68,6 +73,32 @@ instance featuresInit_persistent : Persistent (featuresInit (GF := GF)) := by
 
 end init
 
+/-- The registered features `K` make valid metric labels: each name and `PreRelease` is valid UTF-8
+(`addFeatureGateMetrics` passes both to a gauge vector's `With`). -/
+def featureLabelsOk [GooseExts] (K : GMap GoString go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec) : Prop :=
+  ∀ f s, K !! f = some s → utf8Valid f ∧ utf8Valid s.PreRelease'
+
+theorem featureLabelsOk_empty [GooseExts] : featureLabelsOk ∅ := by
+  intro f s h; simp at h
+
+theorem featureLabelsOk_insert [GooseExts] (K : GMap GoString go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec)
+    (k : GoString) (v : go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec)
+    (hk : utf8Valid k) (hv : utf8Valid v.PreRelease') (hK : featureLabelsOk K) :
+    featureLabelsOk (<[k := v]> K) := by
+  intro f s h
+  rw [GMap.lookup_insert_eq_iff] at h
+  by_cases hkf : k = f
+  · subst hkf; simp at h; subst h; exact ⟨hk, hv⟩
+  · simp only [hkf, ↓reduceIte] at h; exact hK f s h
+
+theorem featureLabelsOk_union [GooseExts] (A B : GMap GoString go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec)
+    (hA : featureLabelsOk A) (hB : featureLabelsOk B) : featureLabelsOk (A ∪ B) := by
+  intro f s h
+  rw [GMap.lookup_union] at h
+  cases hAf : A !! f with
+  | some a => rw [hAf] at h; simp at h; subst h; exact hA f a hAf
+  | none => rw [hAf] at h; simp at h; exact hB f s h
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -81,13 +112,19 @@ def serverFeatures : List GoString :=
    go!"SetMemberLocalAddr", go!"FastLeaseKeepAlive", go!"PriorityRequest",
    go!"NonBlockingDefrag"]
 
-/-- **The feature gate** `fg` (`featuregate.FeatureGate`, a contract): `Enabled(f)` of a registered
-feature returns some boolean. -/
+/-- **The feature gate** `fg` (`featuregate.FeatureGate`, a contract), with some registered features
+`K`, the server's among them, whose names and `PreRelease`s are valid UTF-8: `Enabled(f)` of a
+registered feature returns some boolean, and `GetAll()` returns a fresh map of `K` (featuregate-4,
+2026-11-23; until then only `Enabled`, of the server's features). -/
 def isFeatureGate (fg : GoInterface) : IProp GF :=
-  iprop(∃ fi : GoInterfaceOk, ⌜fg = GoInterface.ok fi⌝ ∗
+  iprop(∃ (fi : GoInterfaceOk) (K : GMap GoString go_etcd_io.etcd.pkg.v3.featuregate.FeatureSpec),
+    ⌜fg = GoInterface.ok fi⌝ ∗
+    ⌜(∀ f ∈ serverFeatures, (K !! f).isSome) ∧ featureLabelsOk K⌝ ∗
     □ (∀ f : GoString,
-      {{ ⌜f ∈ serverFeatures⌝ }} (App (Val #(methods fi.ty go!"Enabled" fi.v)) (Val #f))
-      {{ (b : Bool), RET #b; True }}))
+      {{ ⌜(K !! f).isSome⌝ }} (App (Val #(methods fi.ty go!"Enabled" fi.v)) (Val #f))
+      {{ (b : Bool), RET #b; True }}) ∗
+    □ ({{ True }} (App (Val #(methods fi.ty go!"GetAll" fi.v)) (Val #()))
+      {{ (m : Loc), RET #m; m ↦$ K }}))
 
 instance isFeatureGate_persistent (fg : GoInterface) : Persistent (isFeatureGate (GF := GF) fg) := by
   unfold isFeatureGate; infer_instance

@@ -570,11 +570,11 @@ theorem NewServer.wp_proofRG
   (try wp_auto)
   ihave #Hfg' := Hfg
   iunfold isFeatureGate at Hfg'
-  icases Hfg' with ⟨%fgi, %Hfgi, #Hen⟩
+  icases Hfg' with ⟨%fgi, %K, %Hfgi, ⟨%HKs, -⟩, #Hen, -⟩
   rw [Hfgi]
   (try wp_auto)
   wp_apply +noauto Hen $$ [] as %ckpp -
-  · ipureintro; simp [serverFeatures]
+  · ipureintro; exact HKs _ (by simp [serverFeatures])
   -- (prove-ps2-newlessor3) a time receipt, at the resolution of `srv.Cfg.ReqTimeout()`, for
   -- `NewLessor`'s second write-back token, of the write budget's stock (`wbSupply_of_stock`)
   wp_take_receipt as Hrk0
