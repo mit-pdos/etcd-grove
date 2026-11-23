@@ -10,7 +10,7 @@ for rel in sys.argv[1:]:
     s=re.sub(r"public import Quepaxa\.Proof\.", "public import Dsverify.Proof.raxos.", s)
     s=s.replace("open Dsv in\nattribute [local instance] netConnExts netConnExtsSemantics netConnExtsInterp netConnExts_has\nopen Dsv\n","")
     s=s.replace("open Perennial.dsverify_lab.harness\n","")
-    s=s.replace("open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode\n","open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net\n",1)
+    s=re.sub(r"\nopen Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode([^\n]*)\n", r"\nopen Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode\1 Net\n", s, count=1)
     s=re.sub(r"(\nvariable \{GF : BundledGFunctors\} \[G : GooseGlobalGS)", r"\nvariable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]\1", s)
     s=re.sub(r"\nvariable \[go_gctx : GoGlobalContext\]", r"\nvariable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]", s)
     s=s.replace("KvInput GoString GoString","KIn").replace("KvOutput GoString","KOut")
