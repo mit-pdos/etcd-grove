@@ -932,6 +932,34 @@ PROJECTS = [
         owned=[os.path.join("github_com", "xiang90")],
     ),
     Project(
+        name="dsv-vr",
+        # dsverify-lab's vr kit (notes/dsv-vr.md; notes/dsverify-net-port-plan.md, phase 6): the
+        # lab's vsr-bump-1 fork of tangledbytes/go-vsr (examples/vr/fork/go-vsr at lab master
+        # 915f964) with its kit ported onto examples/lib/remote, `examples/dsverify/vr` (a Go module
+        # of its own, module path the fork's). Into the part `Dsverify/`, with remote and `net` the
+        # part `Net/`'s, lintest and porcupine the main tree's; `encoding/json` (the model,
+        # `models/encoding/json`) and `log/slog` names-only into the part (`Dsverify/Code/{encoding/json,log/slog}.toml`):
+        # their specs are the proof's hypotheses until their models' Lean halves exist.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "dsverify", "vr"),
+        root="Dsverify",
+        lean_roots=["github.com/tangledbytes/go-vsr=Dsverify", "log/slog=Dsverify",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "encoding/json=Dsverify",
+                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
+        packages=["./pkg/assert", "./pkg/log", "./pkg/ipv4port", "./pkg/events", "./pkg/queue",
+                  "./pkg/time", "./pkg/network", "./pkg/client", "./pkg/replica",
+                  "./examples/vsrwire", "./examples/vsrkv", "./examples/vsrnet",
+                  "./examples/vsrnet/cmd/orch", "log/slog", "encoding/json"]
+                 + ["./examples/vsrnet/cmd/client%d" % c for c in range(6)]
+                 + ["./examples/vsrnet/cmd/server%d" % s for s in range(1, 6)],
+        owned=[os.path.join("github_com", "tangledbytes"), os.path.join("log", "slog"),
+               os.path.join("encoding", "json")],
+        std_models=["encoding/json"],
+    ),
+    Project(
         name="models-net",
         # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
         # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take
