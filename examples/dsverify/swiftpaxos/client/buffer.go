@@ -75,20 +75,14 @@ func (c *BufferClient) RegisterReply(val state.Value, seqnum int32) {
 }
 
 func (c *BufferClient) Write(key int64, val []byte) {
-	g := theGhost()                                              // GHOST (L2)
-	g.Invoke(uint8(state.PUT), c.ClientId, c.seqnum+1, key, val) // GHOST (L2)
 	c.SendWrite(key, val)
 	<-c.Reply
-	g.Accept(c.ClientId, c.seqnum, nil) // GHOST (L2)
 	return
 }
 
 func (c *BufferClient) Read(key int64) []byte {
-	g := theGhost()                                                      // GHOST (L2)
-	g.Invoke(uint8(state.GET), c.ClientId, c.seqnum+1, key, state.NIL()) // GHOST (L2)
 	c.SendRead(key)
 	r := <-c.Reply
-	g.Accept(c.ClientId, c.seqnum, r.Val) // GHOST (L2)
 	return r.Val
 }
 

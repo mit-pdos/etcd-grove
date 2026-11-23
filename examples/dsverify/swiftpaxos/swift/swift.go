@@ -451,7 +451,6 @@ func (r *Replica) handleProposal(propose *defs.GPropose) {
 		delete(r.pendingHashUpds, cmdId)
 		r.recordLeaderHash(cmdId, upd.seqnum, upd.hash)
 	}
-	ghostHandle(r.ballot, cmdId, propose.Command) // GHOST (L2)
 	// FIXME: leader can receive fastAck before Propose,
 	//        in this case desc is not seq
 	// SWB-11: the dependencies, hashes and number go with the proposal to
@@ -534,9 +533,6 @@ func (r *Replica) handlePropose(pm *proposeMsg, desc *commandDesc, cmdId Command
 
 	desc.propose = msg
 	desc.cmd = msg.Command
-	if desc.phase == COMMIT { // GHOST (L2): unreachable (nonissues/e1), the deferred commit
-		ghostCommit(r.ballot, cmdId)
-	}
 
 	if !r.FQ.Contains(r.Id) {
 		desc.afterPropagate.Recall()
@@ -545,7 +541,6 @@ func (r *Replica) handlePropose(pm *proposeMsg, desc *commandDesc, cmdId Command
 
 	desc.dep = desc.proposeDep
 	desc.phase = PRE_ACCEPT
-	ghostPreaccept(r.ballot, cmdId, desc.dep) // GHOST (L2)
 	// Verification workaround (P5, no reachable behaviour change): the fast ack's fields are
 	// read before Recall. Recall's stored closures change desc.dep only together with
 	// desc.slowPath = true (a follower adopting the leader's dependencies), and then the
@@ -647,7 +642,6 @@ func (r *Replica) fastAckFromLeader(msg *MFastAck, desc *commandDesc) {
 		defer r.markAccepted(msg.CmdId, desc.seq)
 
 		desc.phase = ACCEPT
-		ghostAccept(msg.Ballot, msg.CmdId) // GHOST (L2)
 		dep := Dep(msg.Dep)
 		hs := desc.hs
 		neq := !desc.dep.Equals(dep)
@@ -775,13 +769,6 @@ func getFastAndSlowAcksHandler(r *Replica, desc *commandDesc) replica.MsgSetHand
 		leaderFastAck := leaderMsg.(*MFastAck)
 
 		desc.phase = COMMIT
-		// GHOST (L2, D92): resolved only once the proposal is installed; otherwise
-		// handlePropose's deferred ghostCommit resolves it (unreachable in Go:
-		// nonissues/e1 in the Lean project). No behaviour change: only the ghost
-		// resolution is conditional.
-		if desc.propose != nil {
-			ghostCommit(leaderFastAck.Ballot, leaderFastAck.CmdId)
-		}
 
 		for _, depCmdId := range desc.dep {
 			depDesc := r.getCmdDesc(depCmdId, nil, nil)

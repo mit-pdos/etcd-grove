@@ -31,7 +31,6 @@ func (r *Replica) handleNewLeader(msg *MNewLeader) {
 	r.ballotL.Lock()
 	r.ballot = msg.Ballot
 	r.ballotL.Unlock()
-	ghostNewBallot(msg.Ballot) // GHOST (L2)
 	r.recStart = time.Now()
 
 	newLeaderAckN := &MNewLeaderAckN{
@@ -94,7 +93,6 @@ type recEntry struct {
 
 func (r *Replica) handleNewLeaderAckNs(_ interface{}, msgs []interface{}) {
 	sync := r.recoveredSync(msgs)
-	ghostComputeSync(r.ballot, msgs) // GHOST (L2)
 	r.sender.SendToAll(sync, r.cs.syncRPC)
 	r.handleSync(sync)
 }
@@ -538,7 +536,6 @@ func (r *Replica) fillNewLeaderAckN(newLeaderAckN *MNewLeaderAckN) {
 		newLeaderAckN.Cmds = append(newLeaderAckN.Cmds, cmd)
 		newLeaderAckN.Deps = append(newLeaderAckN.Deps, dep)
 	}
-	ghostReport(newLeaderAckN) // GHOST (L2)
 }
 
 // syncEntry gives a descriptor its command as an MSync has it; the
@@ -616,7 +613,6 @@ func (r *Replica) handleSync(msg *MSync) {
 	}
 	r.repchan = NewReplyChan(r)
 	r.historySize = 0
-	ghostTakeSync(msg.Ballot) // GHOST (L2)
 
 	// the new ballot's acceptances: the MSync's commands (N2)
 	r.acceptL.Lock()
@@ -715,7 +711,6 @@ func (r *Replica) handleSyncEntry(e *syncEntry, desc *commandDesc, cmdId Command
 	desc.dep = e.dep
 	desc.proposeDep = e.dep
 	desc.phase = COMMIT
-	ghostCommit(r.ballot, cmdId) // GHOST (L2)
 	for _, d := range e.dep {
 		depDesc := r.getCmdDesc(d, nil, nil)
 		if depDesc == nil {
