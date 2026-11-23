@@ -1,0 +1,13 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/raft/antithesis/check/Link.lean`
+# (the checker of Antithesis's model of raft, #33 S3b, notes/antithesis-check-design.md §10; all
+# Lean-first, no Rocq counterpart), read by `etc/gen-link.py --antcheck`: `<fn>: <callees in the
+# order of <fn>.wp_proof's hypotheses>`. Every function of the checker with a proof
+# (`check/<fn>.lean`); none takes the spec of another package's function as a hypothesis.
+At:
+EntriesEqual: Entry__Equal
+Entry__Equal: Value__Equal
+IsPrefix: SubSeq EntriesEqual
+SubSeq:
+TermAt:
+Value__Equal: stringsEqual
+stringsEqual:
