@@ -78,7 +78,6 @@ axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
 axiom etcdserverpb.AlarmType.String.wp_proof
-axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
 axiom fmt.SprintfSlice.wp_proof
