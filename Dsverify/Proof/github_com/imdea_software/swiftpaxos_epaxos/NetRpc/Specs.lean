@@ -46,7 +46,11 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-! ## The clients' calls -/
 
 /-- `cl.Call("Replica.BeTheLeader", &defs.BeTheLeaderArgs{}, btlReply)` (the master's `run`):
-a reply decodes into `btlReply`'s fields as they were (the method sends the zero reply). -/
+a reply decodes into `btlReply`'s fields as they were (the method sends the zero reply); on an
+error too, `btlReply` is as it was: Go's `Call` decodes into it only the server's reply, which is
+the zero reply's bytes, whose decoding succeeds (a failed decoding could leave a partial value;
+the master's `run` reads `btlReply.Leader` after a failed call and indexes `leader` with it, so a
+spec allowing any value there would let it panic). -/
 abbrev btlCall.spec : Prop :=
   ∀ (W : net.rpc.RpcWorld GF) (k : Nat) (cl la bl : Loc) (l0 nl0 : w32),
     k ∈ replicaNodes → W.SS (rpcAddrOf k) go!"Replica" = some replicaSvc →
@@ -58,7 +62,7 @@ abbrev btlCall.spec : Prop :=
       (Val #(ptrIface replica.defs.BeTheLeaderReply.ty bl)))
   {{ (err : GoInterface), RET #err;
       (⌜err = interface.nil⌝ ∗ bl ↦ replica.defs.BeTheLeaderReply.mk l0 nl0) ∨
-      (⌜err ≠ interface.nil⌝ ∗ ∃ v : replica.defs.BeTheLeaderReply, bl ↦ v) }}
+      (⌜err ≠ interface.nil⌝ ∗ bl ↦ replica.defs.BeTheLeaderReply.mk l0 nl0) }}
 
 /-- `cl.Call("Replica.Ping", &defs.PingArgs{}, &defs.PingReply{})` (the master's `run`). -/
 abbrev pingCall.spec : Prop :=

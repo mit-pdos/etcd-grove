@@ -150,7 +150,8 @@ abbrev dec_BtlReply.spec : Prop :=
     p ↦ replica.defs.BeTheLeaderReply.mk l0 nl0 ∗
       (∀ ok, (if ok then ∃ (l nl : w32), p ↦ replica.defs.BeTheLeaderReply.mk l nl ∗
           ⌜∀ l' nl', rep = encBtlReply l' nl' → l = mergeI32 l0 l' ∧ nl = mergeI32 nl0 nl'⌝
-        else ∃ v : replica.defs.BeTheLeaderReply, p ↦ v) -∗ Ψ ok) ⊢
+        else ∃ v : replica.defs.BeTheLeaderReply, p ↦ v ∗ ⌜∀ l' nl', rep ≠ encBtlReply l' nl'⌝) -∗
+        Ψ ok) ⊢
     epCodec.dec rep (ptrIface replica.defs.BeTheLeaderReply.ty p) Ψ
 
 abbrev dec_PingReply.spec : Prop :=
