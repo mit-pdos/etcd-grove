@@ -10,6 +10,7 @@ module
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.WaitPeers
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ServeConn
 public import Net.Proof.net.Dial
+public import Perennial.Proof.encoding.binary.Results
 public import Proof.bufio.Writer__WriteByte
 public import Proof.bufio.Writer__Flush
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.ConnectGhost
@@ -146,6 +147,7 @@ theorem replica.Replica.ConnectToPeers.spec_holds
   wp_if_destruct
   · -- dial peer `k < id`
     have hk : k < id := by omega
+    have hkL : k < L.length := by omega
     have hlk : (List.range L.length)[k]? = some k := by
       rw [List.getElem?_range (by omega)]
     icases BigSepL.bigSepL_lookup_acc_impl hlk $$ Hdc with ⟨Hck, Hdc⟩
@@ -164,7 +166,7 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     · -- a connection installed already: refuted by the dial token
       iexfalso
       unfold slotConn
-      icases Hsc with ⟨%sent, %pend, %err, %ws, -, #Hpc', -⟩
+      icases Hsc with ⟨%sent, %pend, %err, %ws, %t', %la', %ra', %ed', %eof', -, #Hpc', -⟩
       cases side
       · simp only [Bool.false_eq_true, ite_false]
         iapply dialTok_peerConn $$ Hdk Hpc'
@@ -179,7 +181,8 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     have hgl : L[k]? = some (L.getD k []) := by
       rw [List.getD_eq_getElem?_getD, List.getElem?_eq_getElem (by omega)]; rfl
     wp_for
-    rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.addrs.len by omega)]
+    try rw [hkz]
+    try rw [if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.addrs.len by omega)]
     wp_apply wp_load_slice_index p.addrs (k : Int) L DFrac.discard (L.getD k []) (by omega)
       $$ [HL0] as -
     · iframe #; ipureintro; simpa using hgl
@@ -211,9 +214,7 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     subst Hcv
     ihave #Hci : connIn (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c') cid false c' la ra ed eof
       $$ []
-    · unfold connIn; iframe #; isplitr
-      · ipureintro; rfl
-      iexists _; iexact Hca
+    · unfold connIn; iframe #; ipureintro; rfl
     wp_auto
     obtain ⟨hlp, hlr, hlw, hla, hle⟩ := Hlens
     rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.peers.len by omega)]
@@ -272,9 +273,9 @@ theorem replica.Replica.ConnectToPeers.spec_holds
     · -- the handshake is written: the peer is connected
       subst he
       have hres : res = none := by
-        by_contra h
-        have := Hre.2 h
-        unfold net.netErr at this; simp at this
+        cases hr : res with
+        | none => rfl
+        | some e => exact absurd rfl (net.netErr_ne_nil (Hre.2 (by simp [hr])))
       have hw := hnone hres
       subst hw
       iunfold writeP at Hsend
@@ -289,6 +290,7 @@ theorem replica.Replica.ConnectToPeers.spec_holds
         (repAccP γ (L.getD k [])) $$ [Hio Hca Heof Hed]
       · iframe #
       ihave HrL := recvTok_L cid false _ [] $$ Hrecv
+      rw [show interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c' = GoInterface.ok (net.connIface c') from rfl]
       wp_apply EtcdGrove.bufio.NewReader.wp_proofOk
         (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE) (net.connIface c')
         (fun _ m => 0 < m) (recvTokL (Gg := hG.goose_globalGS) cid false (repAccP γ (L.getD k [])))
@@ -319,7 +321,8 @@ theorem replica.Replica.ConnectToPeers.spec_holds
         · iPkgInit
         iframe Hwrok Hsend
         imodintro; iexact HQ
-      rw [hkz, if_pos (show 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.writers.len by omega)]
+      have hwk : 0 ≤ (k : Int) ∧ (k : Int) < sint.Z p.writers.len := ⟨Int.natCast_nonneg k, hlw ▸ Int.ofNat_lt.mpr hkL⟩
+      rw [hkz, if_pos hwk]
       wp_auto
       wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.any))))
         (Val (LiteralValueV _)))

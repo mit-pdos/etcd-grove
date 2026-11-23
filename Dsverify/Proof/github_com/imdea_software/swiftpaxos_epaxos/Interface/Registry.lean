@@ -145,7 +145,7 @@ def repFwStart (γ : EpNames) (i : Nat) : IProp GF :=
   iprop(([∗list] j ∈ List.range nRep,
       if j = i then iprop(True) else iprop(sentHalf γ i j [] ∗ delivFrom γ i j 0)) ∗
     ([∗list] j ∈ List.range (i + 1), dialTok γ i j) ∗
-    ghostMapAuth (γ.rep.cwriters i) 1 (∅ : GMap Loc w64) ∗
+    ghostMapAuth (γ.rep.cwriters i) 1 (∅ : GMap Loc Nat) ∗
     ghostMapAuth (γ.rep.replies i) 1 (∅ : GMap Loc Unit))
 
 /-- What replica `i` gets with its id at registration, besides `idTok γ i`: the framework's start
