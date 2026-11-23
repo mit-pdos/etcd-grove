@@ -536,6 +536,241 @@ theorem wp_equalPairs (a b : GoSlice) (A B : List Pair') :
       ipureintro; intro _; exact e
   · iapply HΦ; ipureintro; intro h; cases h
 
+/-- A pending put as the model's `Pair`. -/
+def pairK (x : KIn) : Pair' := Pair'.mk (inFields x.1).2.1 (inFields x.1).2.2
+
+/-- Every pending input is a put. -/
+def AllPut (Pend : List KIn) : Prop := ∀ x ∈ Pend, kvB.isWrite x = true
+
+theorem pairK_eq (x : KIn) (hx : kvB.isWrite x = true) (k w : GoString) :
+    pairK x = Pair'.mk k w ↔ x.1 = .put k w := by
+  rcases x with ⟨xi, hxi⟩
+  cases xi with
+  | get k0 => simp [kvB] at hx
+  | put k0 v0 => simp [pairK, inFields]
+
+theorem mem_pairK {Pend : List KIn} (hP : AllPut Pend) (k w : GoString) :
+    Pair'.mk k w ∈ Pend.map pairK ↔
+      (Pend.find? (fun x => decide (x.1 = .put k w))).isSome := by
+  rw [List.find?_isSome]
+  constructor
+  · intro h
+    obtain ⟨x, hx, e⟩ := List.mem_map.1 h
+    exact ⟨x, hx, by simpa using (pairK_eq x (hP x hx) k w).1 e⟩
+  · rintro ⟨x, hx, e⟩
+    exact List.mem_map.2 ⟨x, hx, (pairK_eq x (hP x hx) k w).2 (by simpa using e)⟩
+
+theorem erase_pairK {Pend : List KIn} (hP : AllPut Pend) {k w : GoString} {x : KIn}
+    (hf : Pend.find? (fun x => decide (x.1 = .put k w)) = some x) :
+    (Pend.map pairK).erase (Pair'.mk k w) = (Pend.erase x).map pairK := by
+  induction Pend with
+  | nil => cases hf
+  | cons y t ih =>
+    have hy := hP y List.mem_cons_self
+    have hP' : AllPut t := fun z hz => hP z (List.mem_cons_of_mem _ hz)
+    by_cases e : y.1 = .put k w
+    · have hyk : pairK y = Pair'.mk k w := (pairK_eq y hy k w).2 e
+      simp only [List.find?_cons, e, decide_true] at hf
+      cases hf
+      simp [hyk]
+    · simp only [List.find?_cons, e, decide_false] at hf
+      have hne : pairK y ≠ Pair'.mk k w := fun h => e ((pairK_eq y hy k w).1 h)
+      have hyx : y ≠ x := by
+        intro h; subst h; exact e (by simpa using List.find?_some hf)
+      simp only [List.map_cons, List.erase_cons, beq_iff_eq, hne, hyx, ↓reduceIte, ih hP' hf]
+
+/-- An answer's `Out` fields `(Unknown, Done, Found, V)`. -/
+def ansFields : Ans KOut → Bool × Bool × Bool × GoString
+  | .err => (true, false, false, [])
+  | .ok o => (false, (outFields o.1).1, (outFields o.1).2.1, (outFields o.1).2.2)
+
+theorem ansV_fields (a : Ans KOut) :
+    ansV a = outVal (ansFields a).1 (ansFields a).2.1 (ansFields a).2.2.1 (ansFields a).2.2.2 := by
+  cases a <;> rfl
+
+theorem wp_stepGo (cur pend : GoSlice) (Cur : List (GoString × GoString)) (Pend : List KIn)
+    (hc : Cur.length < 2 ^ 60) (hp : Pend.length < 2 ^ 60) (hP : AllPut Pend) (i : KIn) (a : Ans KOut) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ cur ↦*□ pairsOf Cur ∗ pend ↦*□ Pend.map pairK }}
+      (App (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.step))
+        (Val #(State.mk cur pend)))
+        (Val #(In.mk (inFields i.1).1 (inFields i.1).2.1 (inFields i.1).2.2)))
+        (Val #(Out.mk (ansFields a).1 (ansFields a).2.1 (ansFields a).2.2.1 (ansFields a).2.2.2)))
+    {{ (ok : Bool) (s' : State), RET (PairV #ok #s'); ∃ (cur' pend' : GoSlice),
+        ⌜ok = (stepG Cur Pend i a).1 ∧ s' = State.mk cur' pend'⌝ ∗
+        cur' ↦*□ pairsOf (stepG Cur Pend i a).2.1 ∗
+        pend' ↦*□ (stepG Cur Pend i a).2.2.map pairK }} := by
+  wp_start as ⟨#Hc, #Hp⟩
+  have hcm : (pairsOf Cur).length < 2 ^ 60 := by simpa [pairsOf] using hc
+  have hpm : (Pend.map pairK).length < 2 ^ 60 := by simpa using hp
+  obtain ⟨ii, hii⟩ := i
+  cases a with
+  | err =>
+    cases ii with
+    | put k v =>
+      simp only [ansFields, inFields]
+      wp_auto
+      wp_apply +noauto wp_push pend (Pend.map pairK) (Pair'.mk k v) hpm $$ [$Hp] as %q Hq
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hq with #Hq
+      imodintro
+      wp_auto
+      iapply HΦ
+      iexists cur, q
+      simp only [stepG, kvB, ↓reduceIte, List.map_append, List.map_cons, List.map_nil, pairK,
+        inFields]
+      iframe Hc Hq
+      ipureintro; simp
+    | get k =>
+      simp only [ansFields, inFields]
+      wp_auto
+      iapply HΦ
+      iexists cur, pend
+      simp only [stepG, kvB, Bool.false_eq_true, ↓reduceIte]
+      iframe Hc Hp
+      ipureintro; simp
+  | ok o =>
+    obtain ⟨oo, hoo⟩ := o
+    cases ii with
+    | put k v =>
+      cases oo with
+      | done =>
+        simp only [ansFields, inFields, outFields]
+        wp_auto
+        wp_apply +noauto wp_set cur (pairsOf Cur) k v hcm $$ [$Hc] as %q Hq
+        iapply fupd_wp
+        imod ownSlice_persist _ _ _ $$ Hq with #Hq
+        imodintro
+        wp_auto
+        iapply HΦ
+        iexists q, pend
+        rw [← pairsOf_setP]
+        simp only [stepG]
+        iframe Hq Hp
+        ipureintro; simp
+      | got w =>
+        cases w <;>
+        · simp only [ansFields, inFields, outFields]
+          wp_auto
+          iapply HΦ
+          iexists cur, pend
+          simp only [stepG]
+          iframe Hc Hp
+          ipureintro; simp
+    | get k =>
+      cases oo with
+      | done =>
+        simp only [ansFields, inFields, outFields]
+        wp_auto
+        iapply HΦ
+        iexists cur, pend
+        simp only [stepG]
+        iframe Hc Hp
+        ipureintro; simp
+      | got w =>
+        cases w with
+        | none =>
+          simp only [ansFields, inFields, outFields]
+          wp_auto
+          wp_apply wp_lookup cur (pairsOf Cur) k $$ [$Hc]
+          rw [lkP_pairsOf]
+          iapply HΦ
+          iexists cur, pend
+          simp only [stepG]
+          iframe Hc Hp
+          ipureintro
+          cases lk Cur k <;> simp
+        | some w =>
+          simp only [ansFields, inFields, outFields]
+          wp_auto
+          wp_apply wp_lookup cur (pairsOf Cur) k $$ [$Hc]
+          rw [lkP_pairsOf]
+          have hcase : (lk Cur k = some w) ∨ (lk Cur k ≠ some w) := Classical.em _
+          rcases hcase with hl | hl
+          · rw [hl]
+            simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
+            wp_auto
+            iapply HΦ
+            iexists cur, pend
+            simp only [stepG, hl, ↓reduceIte]
+            iframe Hc Hp
+            ipureintro; simp
+          · cases e : lk Cur k with
+            | none =>
+              simp only [Option.isSome_none, decide_false, Bool.false_eq_true, Option.getD_none]
+              wp_auto
+              wp_apply wp_has pend (Pend.map pairK) (Pair'.mk k w) $$ [$Hp]
+              have hst : lk Cur k = some w ↔ False := ⟨hl, False.elim⟩
+              cases hf : Pend.find? (fun x => decide (x.1 = .put k w)) with
+              | none =>
+                have hm : Pair'.mk k w ∉ Pend.map pairK := fun h => by
+                  have := (mem_pairK hP k w).1 h; rw [hf] at this; cases this
+                rw [decide_eq_false hm]
+                wp_auto
+                iapply HΦ
+                iexists cur, pend
+                simp only [stepG, hst, ↓reduceIte, hf]
+                iframe Hc Hp
+                ipureintro; simp
+              | some x =>
+                have hm : Pair'.mk k w ∈ Pend.map pairK := (mem_pairK hP k w).2 (by rw [hf]; rfl)
+                rw [decide_eq_true hm]
+                wp_auto
+                wp_apply +noauto wp_set cur (pairsOf Cur) k w hcm $$ [$Hc] as %r Hr
+                iapply fupd_wp
+                imod ownSlice_persist _ _ _ $$ Hr with #Hr
+                imodintro
+                wp_auto
+                wp_apply +noauto wp_erase pend (Pend.map pairK) (Pair'.mk k w) $$ [$Hp] as %q Hq
+                iapply fupd_wp
+                imod ownSlice_persist _ _ _ $$ Hq with #Hq
+                imodintro
+                wp_auto
+                iapply HΦ
+                iexists r, q
+                rw [← pairsOf_setP, erase_pairK hP hf]
+                simp only [stepG, hst, ↓reduceIte, hf]
+                iframe Hr Hq
+                ipureintro; simp
+            | some v =>
+              have hvw : v ≠ w := fun h => hl (by rw [e, h])
+              simp only [Option.isSome_some, _root_.decide_true, Option.getD_some]
+              wp_auto
+              rw [decide_eq_false hvw]
+              wp_auto
+              wp_apply wp_has pend (Pend.map pairK) (Pair'.mk k w) $$ [$Hp]
+              have hst : lk Cur k = some w ↔ False := ⟨hl, False.elim⟩
+              cases hf : Pend.find? (fun x => decide (x.1 = .put k w)) with
+              | none =>
+                have hm : Pair'.mk k w ∉ Pend.map pairK := fun h => by
+                  have := (mem_pairK hP k w).1 h; rw [hf] at this; cases this
+                rw [decide_eq_false hm]
+                wp_auto
+                iapply HΦ
+                iexists cur, pend
+                simp only [stepG, hst, ↓reduceIte, hf]
+                iframe Hc Hp
+                ipureintro; simp
+              | some x =>
+                have hm : Pair'.mk k w ∈ Pend.map pairK := (mem_pairK hP k w).2 (by rw [hf]; rfl)
+                rw [decide_eq_true hm]
+                wp_auto
+                wp_apply +noauto wp_set cur (pairsOf Cur) k w hcm $$ [$Hc] as %r Hr
+                iapply fupd_wp
+                imod ownSlice_persist _ _ _ $$ Hr with #Hr
+                imodintro
+                wp_auto
+                wp_apply +noauto wp_erase pend (Pend.map pairK) (Pair'.mk k w) $$ [$Hp] as %q Hq
+                iapply fupd_wp
+                imod ownSlice_persist _ _ _ $$ Hq with #Hq
+                imodintro
+                wp_auto
+                iapply HΦ
+                iexists r, q
+                rw [← pairsOf_setP, erase_pairK hP hf]
+                simp only [stepG, hst, ↓reduceIte, hf]
+                iframe Hr Hq
+                ipureintro; simp
+
 end proof
 
 end github_com.tangledbytes.go_vsr.examples.vsrnet
