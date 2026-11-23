@@ -217,7 +217,8 @@ abbrev Orch.spec : Prop :=
       ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (qR γ) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := QIn) ∗
       pendCtx (Gg := hG.goose_globalGS) (qR γ) (qS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (qS0 (GF := GF)) γp (qS0 (GF := GF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (qS0 (GF := GF)) γp (qS0 (GF := GF)).M.init ∗
+      [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 60 }}
     (App (Val (@! raxos.examples.quepaxanet.Orch)) (Val #()))
   {{ RET #(); True }}
 
