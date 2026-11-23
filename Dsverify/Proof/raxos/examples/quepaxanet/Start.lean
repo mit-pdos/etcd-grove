@@ -1,8 +1,8 @@
 /-
 **The kit's start** (the lab's `Kit/Start.lean`, re-based; notes/dsv-quepaxa.md, step 5b): from
-the deployment's start resources as `robust_of_distProtoLisRB` gives them (`DistBridgeLis.lean`:
-the protocol library's registry, the listed addresses `kitAddrs` unset, the wildcards `kitLis`
-unset), allocate QuePaxa's ghost names (`StartGhost.lean`), the gRPC world's registry, the two
+the deployment's start resources as `robust_of_distProtoLisRB` gives them (dsv-epaxos's
+`epaxosnet/Bridge.lean`: the protocol library's registry, the listed addresses `kitAddrs` unset,
+the wildcards `kitLis` unset), allocate QuePaxa's ghost names (`StartGhost.lean`), the gRPC world's registry, the two
 invariants, the slot map and the pending library of remote, and set every address's protocols
 (`netProtos`, remote's on `clientAddrs`); give the orchestrator, each client machine and each
 server machine its share: exactly the preconditions of `Orch.spec`, `Client.spec` and

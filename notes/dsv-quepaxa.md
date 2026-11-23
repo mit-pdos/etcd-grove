@@ -31,7 +31,7 @@ change each.
 | the protocol's proof | `Dsverify/Proof/raxos/` (the lab's `Quepaxa/Proof/` layout), all building: `Pure/Conf.lean`, `Pure/Consensus.lean` (verbatim), `Pure/Smr.lean` (edited: the kit's `KIn`/`KOut`, linkv's `kvB`, `execCmd_step`; the lab's `Harness.Models` `kvAbs` moved here, recursive, `kvAbs_put` by `rfl`), `Pure/ModelSet.lean` (new: `mSet`, `step_mSet`, `mSet_empty`, `stepE_ok`); `Msg.lean` (the lab's; its `pbCodec` instance dropped: `marshalPre`/`unmarshalPre` are the shapes the protobuf hypotheses will take), `Ghost.lean` (edited, below), `Cons/{Lemmas,Laws}.lean` (the lab's; connections numbered by the net extension), `Smr/{OpId,SumId,Exec}.lean` (Exec edited: `kvAbs_mem`, `cmdPut_cmdOf`/`goodVal_of_put` over `KIn`) |
 | the kit's model | `.../raxos/examples/quepaxanet/Model.lean` (the spec `qS`: the Go state as a list `E` of keys and `Ent`s, `qRep`, `qDec`/`qDec_box`, `stepL`/`stepL_pSeq`, bounds; `Model.spec`) and `ModelProof.lean` (`Model.wp_proof`: `Model()` meets `isModel qS`; helpers `push`/`has`/`erase` (paxos's proofs), `cat`, `lookup`, `set`, `stepE`, `step`, `equalS`/`equalE`/`equal`) |
 | hypotheses | `Dsverify/Proof/raxos/Hyp.lean` (protobuf `PbHyp`, math/rand `RandHyp`, gRPC `GrpcVocab`/`GrpcHyp`/`GrpcWorldHyp` and the instance class `QpVocab`, `sync.Map` `MapVocab`/`MapHyp`; below) |
-| the kit | `.../raxos/examples/quepaxanet/`: `Kit.lean` (the store `qR γ`, the shares, the specs `Codec`, `Gens`, `Orch`, `Client`, `Server`), `Kit*.lean` (their proofs; `KitClient` the client machine's), `StartAddr`/`StartGhost`/`Start.lean` (`kitAddrs`, `kitLis`, `kit_start`), `DistBridgeLis.lean` (`robust_of_distProtoLisRB`: `Net/`'s bridge with wildcard listeners), `Linked.lean` (`wp_Codec`, `wp_Gens`, `wp_Orch`, `wp_Server`, `wp_Client`), `Mains.lean` (the twelve commands' `wp_main`) |
+| the kit | `.../raxos/examples/quepaxanet/`: `Kit.lean` (the store `qR γ`, the shares, the specs `Codec`, `Gens`, `Orch`, `Client`, `Server`), `Kit*.lean` (their proofs; `KitClient` the client machine's), `StartAddr`/`StartGhost`/`Start.lean` (`kitAddrs`, `kitLis`, `kit_start`), the bridge with wildcard listeners is dsv-epaxos's (`robust_of_distProtoLisRB` of `.../swiftpaxos_epaxos/examples/epaxosnet/Bridge.lean`; the kit's own copy `DistBridgeLis.lean` deleted 2026-11-23, review #24 finding 4), `Linked.lean` (`wp_Codec`, `wp_Gens`, `wp_Orch`, `wp_Server`, `wp_Client`), `Mains.lean` (the twelve commands' `wp_main`) |
 | the statement | `Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean`: `quepaxa_remote_robust.spec` (`DistDeploy quepaxaKitAddrs (system σ) g → Robust [] (system σ) g threads (2^63)` under the premises below); definitions in `Proof/raxos/examples/quepaxanet/TopLevelDefs.lean` (`boot`, `system`, `quepaxaKitAddrs := kitAddrs`); proof `Proof/raxos/examples/quepaxanet/TopLevelRobustness.lean` |
 | trust base | `etc/tcb-collections/dsv-quepaxa.txt` (roots `^Dsverify/Proof/raxos/`, empty baseline; the two trusted descriptor-table inits and their justification) |
 
@@ -313,8 +313,8 @@ Build: `PERENNIAL_DIR=/shared/perennial-71de6f043 etc/goose.py --project dsv-que
   remote's `op` may overlap (retried reads): the lock invariant holds `s.next` with the counter's
   half; `tok sys` can be pure (kit fork 5).
 - **Wildcard listeners**: the replicas listen at `0.0.0.0:port`; `Net/`'s bridge
-  (`robust_of_distProtoRB`) only knows listed addresses, so `DistBridgeLis.lean` adds the
-  wildcards (`addrs_lis_start`, `lis_set_proto`; pairwise disjoint, none taking a listed address).
+  (`robust_of_distProtoRB`) only knows listed addresses, so dsv-epaxos's `epaxosnet/Bridge.lean`
+  (formerly the kit's own `DistBridgeLis.lean`) adds the wildcards (`addrs_lis_start`, `lis_set_proto`; pairwise disjoint, none taking a listed address).
   A candidate for `Net/Statement/` (it is a copy with listeners).
 - **Hypotheses over the global ghost state**: a hypothesis used at the start (before any machine's
   heap exists) must be a class over `GooseGlobalGS`, not `HeapGS` (`GrpcWorldHyp`).
@@ -330,8 +330,8 @@ Build: `PERENNIAL_DIR=/shared/perennial-71de6f043 etc/goose.py --project dsv-que
   `models/protobuf/pbgen.py`), gRPC's unary path (the Lean half of `models/grpc`, phase 7 S2),
   `sort.Ints` (Perennial's translation + the lab's proof over `slices.wp_Sort`), `time.Time.UTC`,
   `fmt.Println`, math/rand, `sync.Map` (Perennial's `HashTrieMap` instances), the `InitHyp`s.
-- `DistBridgeLis.lean` into `Net/Statement/` if other kits need wildcards; it duplicates
-  dsv-epaxos's `Bridge.lean` (review #24, finding 4).
+- epaxos's `Bridge.lean` (`robust_of_distProtoLisRB`, which QuePaxa now uses) into `Net/Statement/`,
+  since two kits need wildcards.
 - One go-redis version for QuePaxa and rabia (the State's "go-redis").
 - The per-function spec/proof layout and generated Links, as paxos's follow-ups.
 
@@ -422,7 +422,12 @@ Verdict "not ready": `GrpcHyp.handlerOk` was false of grpc-go v1.84.
 - **Finding 4 (low).** `origin/lean` (b6ad6a8f54) has no `robust_of_distProtoLisRB` (dsv-epaxos has
   not landed), so `DistBridgeLis.lean` stays: a copy, apart from namespace and doc, of the first two
   theorems of dsv-epaxos's `epaxosnet/Bridge.lean`. Whichever lands second replaces its copy by
-  the first's (or both move to `Net/Statement/`).
+  the first's (or both move to `Net/Statement/`). **Done (2026-11-23, after merging lean
+  `d1c432a3ca`, which has dsv-epaxos):** the statements of `robust_of_distBootLisRB` and
+  `robust_of_distProtoLisRB` in the two files were identical (binders, hypotheses, conclusion), so
+  `DistBridgeLis.lean` is deleted and `TopLevelRobustness.lean` imports epaxos's `Bridge` and applies
+  `github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRB`
+  (a defs-tier module importing only `Net.Statement.DistBridge`; tier-check unchanged).
 - **Landing lessons (coordinator, 2026-11-23).** Duplicate declarations: every declaration of the
   files this branch adds was compared with every declaration of the repository's `.lean` files
   (namespaces resolved by a script); the only shared names are the names-only grpc translation
@@ -933,3 +938,15 @@ verified there in 671 s (`verify-final.log`).
   `raxos/replica/src` is in every node's `PkgTable` and `go list -deps` links it into every command
   (orch, client0..5, server1..5). No fact relies on a package the program does not link. (The lab's
   `registerProto` codec hook is gone: protobuf is the hypothesis `PbHyp`, not a package fact.)
+- **Merge of lean `d1c432a3ca` (2026-11-23)**: dsv-epaxos, the namespace hard-check, Perennial pin
+  `70706ce5e` (worktree `/shared/perennial-70706ce5e`, `.lake/package-overrides.json` repointed).
+  `gen-init` (twice) changed nothing; `etc/goose.py`, `etc/gen-init.py` equal lean's. Finding 4
+  closed (above). Checks: `proof_roots.namespace()` = `Perennial.EtcdGrove.`; `gen-init --check`,
+  `goose --check` (all projects), `copy-part --check`, `tier-check --check` (227 known, baseline
+  equal to lean's, none quepaxa's) pass; `errorf-wrap` `init_errors() == []`. Duplicates: the
+  coordinator's `dups.py` over the Dsverify roots (2706 modules) finds 4 names, all false positives
+  (comment lines starting `instance`/`structure`/`lemma`, and Perennial's `go.inductive`), none
+  QuePaxa's; a scratch file importing rabia's, epaxos's and QuePaxa's `TopLevelRobustness` together
+  checks with `lake env lean` without "environment already contains". `lake build` of QuePaxa's
+  `TopLevelRobustness` (statement and proof) green; `#print axioms quepaxa_remote_robust`:
+  `propext`, `Classical.choice`, `Quot.sound`.

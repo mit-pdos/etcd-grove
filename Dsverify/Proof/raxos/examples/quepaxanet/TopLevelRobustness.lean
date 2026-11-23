@@ -2,7 +2,8 @@
 The QuePaxa kit's top-level result (`Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean`),
 proved (as paxos's): from the deployment's start (the protocol library's registry, the listed
 addresses and the servers' wildcard listeners unset: `robust_of_distProtoLisRB`,
-`DistBridgeLis.lean`), the kit's start (`kit_start`, `Start.lean`: QuePaxa's ghost state, the gRPC
+dsv-epaxos's `epaxosnet/Bridge.lean`, shared), the kit's start (`kit_start`, `Start.lean`:
+QuePaxa's ghost state, the gRPC
 world's registry from `GrpcWorldHyp`, every address's protocols, remote's map of operations and
 pending library, and the machines' shares), and each machine's boot program from its share, with the
 statement's per-heap hypotheses made instances on that machine's heap.
@@ -13,7 +14,7 @@ public import Dsverify.Spec.raxos.examples.quepaxanet.TopLevelRobustness
 public import Dsverify.Proof.raxos.examples.quepaxanet.Linked
 public import Dsverify.Proof.raxos.examples.quepaxanet.Mains
 public import Dsverify.Proof.raxos.examples.quepaxanet.Start
-public import Dsverify.Proof.raxos.examples.quepaxanet.DistBridgeLis
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
 public import Dsverify.Proof.raxos.examples.quepaxanet.cmd.orch.PkgTable
 public import Dsverify.Proof.raxos.examples.quepaxanet.cmd.client0.PkgTable
 public import Dsverify.Proof.raxos.examples.quepaxanet.cmd.client1.PkgTable
@@ -95,7 +96,8 @@ end boot
 theorem quepaxa_remote_robust : quepaxa_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 fsem bvi
     hyi hri hii hgi hgri hgci hmi qv hpb hrand hutc hsort hpr hgrpc hworld hmap σ g threads
-  refine robust_of_distProtoLisRB (GF := remoteGF) quepaxaKitAddrs kitLis (system σ) g threads
+  refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRB
+    (GF := remoteGF) quepaxaKitAddrs kitLis (system σ) g threads
     (2 ^ 63) kitLis_pairwise kitLis_disj ?_
   intro G π hrb
   haveI : hyp.grpc.GrpcWorldHyp (Gg := G) qv.grpc := hworld G

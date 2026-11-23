@@ -6,7 +6,8 @@ makes its QuePaxa client, which connects to the five replicas' proxies, then `re
 and five server machines (each a QuePaxa replica: its proxy, its recorder served over gRPC, its
 proposers; QuePaxa over TCP) -- deployed at `quepaxaKitAddrs` (`DistDeploy`: the listed addresses
 distinct and valid, no connection, no listener; the servers' wildcard listeners `0.0.0.0:port` are
-the proof's business, `DistBridgeLis.lean`). In every execution of fewer than `2^63` steps, with
+the proof's business, dsv-epaxos's
+`epaxosnet/Bridge.lean`). In every execution of fewer than `2^63` steps, with
 any number of threads, no thread of any machine is stuck and none has a top-level panic (`Robust`,
 `Robustness/Statement.lean`). Since the orchestrator panics unless porcupine accepts the history,
 this says porcupine accepts every history, under every fault the net extension allows.

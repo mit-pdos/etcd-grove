@@ -3,8 +3,8 @@ The deployment's addresses (the kit's start, notes/dsv-quepaxa.md): the listed a
 `kitAddrs` (every address a machine listens at or dials but the proxies' and the recorders',
 `DistDeploy`'s), the wildcard listeners `kitLis` (the proxies' `proxyLis k` and the recorders'
 `recLis r`, `0.0.0.0:7607..7611` and `0.0.0.0:7627..7631`), and the side conditions of
-`robust_of_distProtoLisRB` (`DistBridgeLis.lean`): the listed addresses distinct and valid, no two
-wildcards taking an address in common, no wildcard taking a listed address.
+`robust_of_distProtoLisRB` (dsv-epaxos's `epaxosnet/Bridge.lean`): the listed addresses distinct
+and valid, no two wildcards taking an address in common, no wildcard taking a listed address.
 -/
 module
 
