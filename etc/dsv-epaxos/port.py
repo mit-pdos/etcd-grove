@@ -139,7 +139,7 @@ def generic_conv(t):
     # `have h := thm γ …` (no expected type): nothing determines the theorem's `GF`
     t = re.sub(r'(have \w+ := )(?!outOkB_of_toks)([a-zA-Z][\w.]*) γ ', r'\1\2 (GF := GF) γ ', t)
     # a spec taken as a hypothesis: its `GF` is not determined by anything else
-    t = re.sub(r'\) : ([\w.]+\.spec) := by', r') : \1 (GF := GF) := by', t)
+    t = re.sub(r'\) : ([\w.]+\.spec\w*) := by', r') : \1 (GF := GF) := by', t)
     t = re.sub(r'\((h\w* : [\w.]+\.spec)\)', r'(\1 (GF := GF))', t)
     t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
                r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',
@@ -367,6 +367,40 @@ def fixup(p, s):
         s = s.replace(old, new, 1)
     return s
 
+def writer_conv(t):
+    # a peer writer's write of a message (replica/SendMsg's shape, there by hand): dsv-bufio's
+    # `Writer.WriteByte`/`Flush` proofs and the kit's `marshalTriple` on `connWr` writers
+    t = t.replace('icases Hconn with ⟨%sent, %pend, %err, %wsm, #Hci, #Hpc, #Hrole, Hw, %Hpure, Hfr⟩',
+                  'icases Hconn with ⟨%sent, %pend, %err, %wsm, %tc, %la, %ra, %ed, %eof, #Hci, #Hpc, #Hrole, Hw,\n      %Hpure, Hfr⟩')
+    t = t.replace('ihave ⟨Hw, %Hnn⟩ := ownWriter_not_null $$ Hw', 'ihave ⟨Hw, %Hnn⟩ := hNN _ _ _ _ _ _ _ _ _ $$ Hw')
+    t = re.sub(r'(?m)^(\s*)ihave #Hpcl := peerPX_prefixClosed γ id L t side cid\n\s*ihave #Hwok := bufio\.writerOk_conn .*\n\s*\$\$ \[Hci Hpcl\]\n\s*· iframe #; iPkgInit\n',
+               r'\1have hppc := peerPX_ppc (GF := GF) γ id L t side\n', t)
+    t = re.sub(r'wp_apply bufio\.wp_WriteByte\' (\(ws\.getD t null\)) \(cs\.getD t interface\.nil\) _ _ sent pend err (\S+|\([^)]*\))\n(\s*)\$\$ \[\$Hwok \$Hw\]',
+               r'wp_apply EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof\n\3\1 _ _ _ _ _ sent pend err \2\n\3$$ [$Hw]', t)
+    t = re.sub(r'(?m)^(\s*)have h1 := hst He\n\s*unfold dialerOf at (hfull\w*)\n\s*rw \[h1\]\n\s*ihave #Hpcl\' := peerPX_prefixClosed γ id L t side cid\n\s*iunfold bufio\.prefixClosed at Hpcl\'\n\s*imodintro\n\s*iapply Hpcl\'\n\s*rw \[← hfull\w*\]\n\s*iexact (HQ\w*)',
+               lambda m: '\n'.join(m.group(1) + x for x in ['have h1 := hst He', 'rw [h1]', 'simp only [connWr]',
+                   'have hd : (if side = true then t else id) = dialerOf id t side := rfl', 'rw [hd]',
+                   'iapply hppc.pre cid _ _ (prefix_of_eq ' + m.group(2) + ') $$ ' + m.group(3)]), t)
+    t = t.replace('specI_holds hPrintf hM γ', 'specI_holds hPrintf hM hNN γ')
+    if 'Proof.bufio.Writer__WriteByte' not in t:
+        t = t.replace('public import', 'public import Proof.bufio.Writer__WriteByte\npublic import Proof.bufio.Writer__Flush\npublic import', 1)
+    t = re.sub(r'(\(hM [^\n]*?\(ws\.getD t null\)) _ _ _ (sent1 pend1 e1\))\n(\s*)\$\$ \[\$Hwok \$Hw ([^\]]*)\]((?:\n.*)?)\n(\s*)· iframe\n',
+               r'\1\n\3(connWr tc cid side la ra ed (peerPX γ id L t side) hppc 4096) \2\n\3$$ [Hw \4]\5\n\6· simp only [connWr]\n\6  iframe\n', t)
+    t = t.replace('obtain ⟨_, h1a, _, h1c⟩ := Hw1', 'obtain ⟨_, h1a, _, h1c, _⟩ := Hw1')
+    t = t.replace('exact absurd (h1c h ▸ He) h', 'exact absurd ((h1c h).1 ▸ He) h')
+    t = re.sub(r'wp_apply bufio\.wp_Flush\' (\(ws\.getD t null\)) \(cs\.getD t interface\.nil\) _ _ sent2 pend2 e2\n(\s*)\$\$ \[\$Hwok \$Hw\]',
+               r'wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof \1 _ _ _ _ _ sent2 pend2 e2\n\2$$ [$Hw]', t)
+    t = t.replace(' hst Hw1 Hw2 Hk3', ' hst ⟨Hw1.1, Hw1.2.1, Hw1.2.2.1, fun h => (Hw1.2.2.2.1 h).1⟩ Hw2 Hk3')
+    t = re.sub(r'(?m)^(\s*)(iexists sent2 \+\+ pend2\.take k, pend2\.drop k, e3, [^\n]*)\n\s*iframe; iframe #',
+               r'\1\2, tc, la, ra, ed, eof\n\1simp only [wrOwn, connWr]\n\1iframe; iframe #', t)
+    # theorems that use the not-null hypothesis take it
+    out = []
+    for blk in re.split(r'(?m)^(?=theorem )', t):
+        if 'hNN _ _' in blk or ' hNN γ' in blk:
+            blk = re.sub(r'\) : ([\w.]+\.spec\w*) \(GF := GF\) := by', r') (hNN : BufWriterNotNull (GF := GF)) :\n    \1 (GF := GF) := by', blk, count=1)
+        out.append(blk)
+    return ''.join(out)
+
 BUFIO = '--bufio' in sys.argv
 _texts = []
 for root, _, fs in os.walk(PROOF):
@@ -381,6 +415,7 @@ for p in [a for a in sys.argv[1:] if a != '--bufio']:
     s = gf_annotate(s, gf_preds(_texts + [s]))
     # sealed definitions' unseal equations (`@X = @XDef`; more instance arguments here)
     s = re.sub(r'(_unseal : )@(\w+)(?: \(GF := GF\))? = @(\w+)', r'\1\2 (GF := GF) = \3', s)
+    if 'bufio.writerOk_conn' in s: s = writer_conv(s)
     s = fixup(p, s)
     # the lab harness's `net.rpc.connIface c cn s` is `connIf` (Interface/ConnBuf.lean)
     s = s.replace('net.rpc.connIface', 'connIf')

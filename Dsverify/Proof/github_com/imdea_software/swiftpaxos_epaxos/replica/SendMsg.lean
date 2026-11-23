@@ -90,6 +90,9 @@ theorem protoMsgs_snoc' (ws : List Msg) (m : Msg) :
     protoMsgs (ws ++ [m]) = protoMsgs ws ++ (if m.isProto then [m] else []) := by
   unfold protoMsgs; rw [List.filter_append]; cases h : m.isProto <;> simp [List.filter, h]
 
+/-- What a write's prefix-closure step needs (`ProtoPrefixClosed.pre`). -/
+theorem prefix_of_eq {A B c : List w8} (h : A = B ++ c) : B <+: A := h ▸ List.prefix_append B c
+
 /-- The stream after `SendMsg`'s three writes: whole messages again when the writer is healthy. -/
 theorem send_stream_eq (hdr old : List w8) (code : w8) (body : List w8)
     (sent pend sent1 pend1 sent2 pend2 : List w8) (err e1 e2 e3 : GoInterface) (k : Nat)
