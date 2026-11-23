@@ -197,6 +197,29 @@ Read with the eleventh session's state below (accurate where this does not say o
    swB.init`. Then `#print axioms`, `etc/theorem-loc.py`, `etc/tcb-collections/dsv-swiftpaxos.txt`.
 4. Delete the boot-material lab files once the boot is done.
 
+**Boot groundwork (done later this session).**
+- `etc/dsv/swiftpaxos.py` `PROGRAMS`: the 13 commands' generated `cmd/<n>/PkgTable.lean` (all
+  build). Each imports the command's **hand-written** `cmd/<n>/Init.lean` (for now a re-export of
+  its `Base.lean`; the machine's first-run boot theorem goes there, as gryff's `Boot.lean`).
+- `math.rand` is no longer in `HYP_INITS` (no generated file changed): with `HYP_IMPORTS = 'none'`
+  the tables gave it no imports, but its `GetIsPkgInitWf` (main tree's) names `sync`; `'known'`/
+  `'all'` instead break net/rpc's and net/http's (their `Init.lean`'s `GetIsPkgInitWf` names no
+  import) and pull instances the kit does not import. A finding for gen-init: `HYP_IMPORTS` per
+  package. The boot uses `math.rand.InitHyp` by hand (a statement premise).
+- `lib/RpcBoot.lean`: `rpcBootRes` and the premise class `RpcFirstInit` (net/rpc's first run, with
+  net/http not yet initialized either, returns `rpcBootRes`; per heap). Not yet agreed with the
+  coordinator.
+- **Where net/rpc first runs** (the kit's closure): `swiftnet`'s initializer runs, innermost first,
+  `errors`, `remote`, `swift` (whose closure runs `client`'s, which imports net/rpc: the first run
+  of net/rpc and net/http is inside `client`'s first run, inside `swift`'s), then `defs`,
+  `master`, `dlog`, `config`, `client` (already done), primitive, porcupine, time, sync, strings,
+  net/rpc, net/http, net, math/rand, log, io, fmt. So `init_client_first` must return
+  `client.ghostFresh` (on every node now: each client and replica node keeps its own ghost; the
+  lab's `freshAt`'s non-replica branch kept it in an invariant) and `rpcBootRes` (from
+  `RpcFirstInit`), `init_swift_first` those and `swift.mutGlobals`, `init_cmap_first` `SHARD_COUNT`
+  (inside `swift`'s), and `swiftnet`'s and the command's first runs thread them out (gryff's
+  `wp_package_init_gen` with `R`; `InitFirst.lean`'s `wp_package_init_first` is the same).
+
 ## State (2026-11-23, eleventh session; superseded where the twelfth says so)
 
 Read with the tenth session's state below (accurate where this does not say otherwise).

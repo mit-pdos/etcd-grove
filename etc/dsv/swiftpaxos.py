@@ -55,6 +55,12 @@ GOOSE = dict(
 # the lab's hand-written first-run proofs (`examples/swiftnet/InitFirst.lean`; notes/dsv-swiftpaxos.md).
 SWIFT = 'github_com.imdea_software.swiftpaxos'
 SWIFT_NODES = ['orch'] + [f'client{c}' for c in range(6)] + [f'server{s}' for s in range(1, 7)]
+# the 13 commands' package tables (`PkgTable.lean`: the `GetIsPkgInitProp` facts their boots use;
+# notes/dsv-swiftpaxos.md, "State (twelfth session)", the boot); each imports the command's
+# hand-written `Init.lean`
+PROGRAMS = {f'{SWIFT}.examples.swiftnet.cmd.{n}':
+            f'Proof/github_com/imdea_software/swiftpaxos/examples/swiftnet/cmd/{n}/PkgTable.lean'
+            for n in SWIFT_NODES}
 PKGS = [f'github_com.emirpasic.gods.{p}' for p in
         ['utils', 'containers', 'maps', 'trees', 'trees.redblacktree', 'maps.treemap']] + \
     [f'{SWIFT}.{p}' for p in ['rpc', 'dlog', 'config', 'state', 'hook', 'replica.defs', 'replica',
@@ -65,9 +71,14 @@ MAIN = ['bufio', 'encoding.hex', 'path', 'internal.bytealg', 'net.url', 'crypto.
 MAIN_GEN = ['bufio', 'encoding.hex']
 # initializers that are hypotheses of the part's proofs (the `InitHyp` class of their hand-written
 # `Init.lean`; notes/dsv-swiftpaxos.md, "Hypotheses"): net/rpc's and net/http's (`Net/`'s models,
-# as dsv-epaxos), the part's names-only encoding/json (dsv-vr's), os/signal and math/rand
-# (dsv-rabia's), and the names-only encoding/gob, github.com/google/uuid
-HYP_INITS = ['encoding.json', 'net.rpc', 'net.http', 'os.signal', 'math.rand', 'encoding.gob',
+# as dsv-epaxos), the part's names-only encoding/json (dsv-vr's), os/signal (dsv-rabia's), and the
+# names-only encoding/gob, github.com/google/uuid. Not math/rand: with `HYP_IMPORTS = 'none'` the
+# programs' tables would give it no imports, where its `GetIsPkgInitWf` (the main tree's
+# `Proof/math/rand/Base.lean`) names `sync` (no generated file of the kit initializes it; the boot
+# uses `Dsverify/Proof/math/rand/Init.lean`'s `InitHyp`, a premise of the statement, by hand).
+# ('known'/'all' do not do either: they list net/rpc's and net/http's imports, which their
+# `GetIsPkgInitWf` (`True` beyond the fact) does not name.)
+HYP_INITS = ['encoding.json', 'net.rpc', 'net.http', 'os.signal', 'encoding.gob',
              'github_com.google.uuid']
 HYP_IMPORTS = 'none'
 
