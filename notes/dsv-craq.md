@@ -5,7 +5,7 @@ client's proofs). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
 Source: dsverify-lab `master` `915f964`, `examples/craq/` (run **`craq-bump-1`**: proof `d9f172f` tag
 `final`, fork `a0238ac`, Perennial `3afd77e35`; read only, nothing in the lab changed).
 
-**State in one line (2026-11-23, fifth agent: see P7, P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
+**State in one line (2026-11-23, fifth agent: `craq_remote_robust` proved over its premises, see P8, P7, P6, then P5; the line below is the first agent's):** the Go and its translation are done and tested;
 the lab's protocol proof is ported and built (`Store`, `Kv/`, `Protocol/`, `Wire`, `Methods`,
 `Iface`, `Codec`, `Specs`, `Netrpc/`, `Node/`, `Coord/`: `lake build` of the leaves `Coord.All`,
 `Node.Svc`, `Netrpc.New`, `Kv.New`, `Protocol.All` green); what remains is the kit (the lab's `Kit/`,
@@ -440,6 +440,28 @@ P4 (d)); when they are, recheck that their tables list these packages.
   c95e92207, `/shared/perennial-c95e92207`); this branch may stay on models-rpc-server 36728bd8ed
   for now; when merging lean, repoint `.lake/package-overrides.json` and `PERENNIAL_DIR`, rerun
   gen-init.
+- **P8. State at the fifth agent's end (cc9472f5aa)**: **`craq_remote_robust` is proved**
+  (`examples/craqnet/TopLevelRobustness.lean`, `lake build` green, 2863 jobs; `#print axioms`:
+  `propext`, `Classical.choice`, `Quot.sound`), over the statement's premises (P7's list). The
+  proof: `wp_bootR` (a boot from `ownGoState ∅` whose initializer returns a resource `R` for
+  `main`), `init_of_gen` (the orchestrator: the generated `wp_initialize'` with `R = True`),
+  `rpcPkg_cliEnv` (net/rpc's fact is `cliEnv`); the allocation as P7 planned. No `sorry`, no axiom
+  under `Dsverify/` (craq). `etc/theorem-loc.py --file …/TopLevelRobustness.lean
+  craq_remote_robust`: tcb 687 lines, all premises; `--list-tcb` lists both `InitHyp`s,
+  `LogHyp`, `RpcHttpAddr`/`Dial`/`Serve`, `rpcAlloc`, `RpcBoot`/`rpcBootRes`,
+  `removeNodeOk.spec`, `errOk`/`nodeSpec` (so it counts the premises). `etc/tcb-collections/
+  dsv-craq.txt` (roots `^Dsverify/Proof/github_com/despreston/go_craq/`); `etc/tcb-report.py
+  --check` needs a full build (not run: the rules forbid a full `lake build`). Tier check: no
+  craqnet violations; the older `Craq/Hyps`, `Craq/Protocol/*` ones remain (restructure at
+  landing). `etc/goose.py`/`etc/gen-init.py` equal origin/lean's; `gen-init --check` clean.
+  **Caveats for the reader**: (a) **F3's premise is false of Net's current `errOk`** (every
+  non-empty message), so the statement is vacuous until Net restricts `errOk` to the server's own
+  messages (Upamanyu: will land on models-rpc-server/-http); then the premise is provable for
+  `nodeSpec` (its Read's `notFoundMsg` is not a server message) and should become a lemma. (b) F1
+  (`removeNodeOk.spec`) becomes provable with `Client.Call`'s `∃ msg, errMsg err msg`. (c) F2:
+  `RpcBoot` is in the shape Net will give (a per-machine boot resource). (d) H4: the client side
+  awaits models-rpc-http on lean (the adaptation patch, P6); the server side and `rpcAlloc` await
+  Net's next piece. (e) Not merged: lean c4e044df92 (Perennial c95e92207).
 - **P3. Order of the port** (done up to the kit) (each file through `Craq/wip/port.py`, then `etc/lean-check.py`): `Kv/` (the
   rest: `Commit`, `ReadVersion`, `AllItems`, `AllNewerDirty`, `AllNewerCommitted`, `New`; first errors
   are the drift above), `Protocol/` (with P1), `Iface`/`Specs` (over `Net/Proof/net/rpc`'s `RpcWorld`,
