@@ -17,6 +17,7 @@ public import Dsverify.Proof.rabia.internal.tcp.NetTCP__RecvHandler
 public import Dsverify.Proof.rabia.internal.tcp.NetTCP__SendHandler
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.AtAddr
 public import Net.Proof.net.Conn__Close
 
 @[expose] public section
@@ -387,7 +388,7 @@ theorem wp_NetTCP_accepting (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (
   wp_if_destruct
   · obtain ⟨hi0, hi3, hrl, hll, hcnt⟩ := Hi
     have hj3 : sint.Z i < cf.n := by word
-    wp_apply net.Listener.Accept.wp_proof tl lid x (netAddr k)
+    wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) tl lid x (netAddr k)
         (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) lid (netAddr k) true)
         (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) lid (netAddr k) true ∗
           connEnd (Gg := hG.goose_globalGS) cn true noneP (netP γ k) [] [] ∗
