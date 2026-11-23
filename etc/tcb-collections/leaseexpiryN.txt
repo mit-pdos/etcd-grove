@@ -23,6 +23,7 @@ axiom Perennial.encoding.json.initFuncsOk
 axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
 axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
+axiom Perennial.github_com.prometheus.client_model.go.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
@@ -150,11 +151,9 @@ axiom lease.Lease.expired.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.String.wp_proof
-axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
-axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom msgEncC_ok
