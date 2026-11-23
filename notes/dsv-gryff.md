@@ -189,6 +189,49 @@ shapes are `Listen.spec_addrOk`/`Listener.Accept.spec_addrOk` (`Net/Proof/net/At
 them, not a hypothesis. A wildcard on port `p` covers `p` on every machine: the kit's ports are all
 distinct (7501..7504, 8502..8504, 7511..7516), as it needs.
 
+## Package initializers (done 2026-11-23)
+
+`etc/dsv/gryff.py` configures gen-init (`PKGS`: the 16 fork packages, `gryffnet`, the eleven
+commands; `PROGRAMS`: their `PkgTable.lean`s; `MAIN`/`MAIN_GEN` as EPaxos's; `HYP_INITS =
+['net.rpc', 'net.http', 'math.rand']`, `HYP_IMPORTS = 'none'`; `special`: `dlog`'s `DLOG`, `gryff`'s
+seventeen variables, `stack`'s `make3`, `deferMap`'s `make1`, `init()`'s `NewProph`). The packages'
+facts are all `True`, hand-written `Dsverify/Proof/gryff/{src/*,examples/gryffnet{,/cmd/*}}/Base.lean`
+(written by a scratch script from each package's `PkgInfo` imports; the lab's `GryffNetPkgState`
+class instances, `Slots.lean`, are gone). `math/rand`'s `Base` is now names-only like net/rpc's
+(`HYP_IMPORTS = 'none'` cuts its `sync` import from the tables). Every `Init.lean`, `PkgTable.lean`
+builds (`lake build` of the eleven `PkgTable`s, 2636 jobs).
+
+**The replica's owned init (the prophecy's design).** `gryff`'s initializer makes owned resources:
+its mutable variables (`gryffGlobals`: `stack`, `cpMarker`, counters, message buffers, `deferMap`,
+`bf_PT`) and the trace prophecy (`traceProph ↦ p ∗ proph p pvs`, `bootProph`). A package fact is a
+persistent `isPkgInit`, so the generated `wp_initialize'` drops them (it is what the master's, the
+clients' and the orchestrator's boots use). A replica node gets them from **its own boot**:
+`Dsverify/Proof/gryff/examples/gryffnet/cmd/server{2,3,4}/Boot.lean`, `wp_initialize'_own`:
+
+    {{ ownGoState ∅ }} cmd.serverK.initialize' #()
+    {{ RET #(); ownInitializing getIsPkgInit ∗ isPkgInit cmd.serverK ∗ gryffGlobals ∗ bootProph }}
+
+(the deployment's `wp_boot` starts every machine from `ownGoState ∅`; its replica instances will
+take this in place of the generated `wp_initialize'` and hand `gryffGlobals ∗ bootProph` to
+`main`). The proof is the lab's (`GryffProof/B/Init.lean`): every package before `gryff` runs with
+`gNo g` (`g` but `False` at `gryff`, `gryffnet` and the commands, `Boot/Defs.lean`'s `noPkgs`), so
+`gryff`'s, `gryffnet`'s and the command's `package.init` take their first branch
+(`wp_package_init_gen`, returning the extra resources). The facts `GetIsPkgInitProp q (gNo g)` and
+`(q g)` are the program table's, package by package (`wfNo_<q>`, `wf_<q>`, no tree unfolding).
+`Boot.lean` is **generated** by `etc/dsv/_gryff_boot.py` (run after `etc/gen-init.py`; `--check`)
+from the `PkgTable.lean` and the generated `wp_initialize'_lb` bodies' import steps; the shared
+lemmas and `gryffGlobals`/`bootProph` are hand-written in `Boot/Defs.lean`. Nothing is persistent:
+no invariant, no ghost name is needed at init time.
+
+## PENDING for the user: the prophecy ghost code is in the fork
+
+Interim decision (coordinator, 2026-11-23; the user's final choice is pending): the fork's Go is kept
+exactly as the lab's, **ghost prophecy code included** (`src/gryff/proph.go`, the `Replica.proph`
+field, the 27 `resolve<Event>` calls), **against this repository's rule that prophecies are
+patches** (`etc/proph-patches/`, `notes/decisions.md` "Prophecies as patches of the Go code"). The
+translation options (1) (extend prophcheck, below) and (3) (a recorded deviation) produce is the
+same, so the proofs over it hold under either; option (2) (local prophecies) is not pursued.
+
 ## The trace prophecy as a prophecy patch: blocked by prophcheck's grammar
 
 Coordinator's decision (2026-11-23): move the fork's ghost prophecy code into

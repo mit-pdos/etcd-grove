@@ -6,7 +6,7 @@ Its fact is `True`. Its initializer initializes its imports, allocates its varia
 `stack` (`make([]*Instance, 0, 100)`), `cpcounter` (0) and `deferMap` (`make(map[uint64]uint64)`), and
 runs its `init()` (`proph.go`: the trace prophecy, `traceProph = primitive.NewProph()`; ghost code,
 notes/dsv-gryff.md). The variables and the prophecy are dropped here: a replica node keeps them
-from its own boot (`Dsverify/Proof/gryff/Boot/Init.lean`, notes/dsv-gryff.md, "Package
+from its own boot (`Dsverify/Proof/gryff/Boot/Defs.lean`, `cmd/server{2,3,4}/Boot.lean`; notes/dsv-gryff.md, "Package
 initializers").
 -/
 module
