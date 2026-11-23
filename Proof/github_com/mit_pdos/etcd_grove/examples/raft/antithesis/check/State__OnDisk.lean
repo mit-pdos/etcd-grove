@@ -403,6 +403,60 @@ theorem State.OnDisk.wp_proof
       odskip (by rw [← hc, hXro]; simp only [show (t1 != X.T0) = true by simpa using he,
         show (ro[sint.nat n]! == leader) = false by simpa using hl, Bool.and_false])
   odafter c
+  -- `x.elect() && !(x.T1() == x.T0()+1 && w.vote() == me)`
+  obtain ⟨c, hc, Ho⟩ := bind_ok Ho
+  obtain ⟨el, hel, helt, helf⟩ := andM_ok hc
+  odguard c
+  · odm elect
+    wp_apply wp_elect _ X el $$ [Hx]
+    · iframe Hx; ipureintro; exact hel
+    cases el
+    · odskip (helf rfl)
+    have h2 := helt rfl
+    unfold notM at h2
+    obtain ⟨a2, ha2, h2⟩ := bind_ok h2
+    simp only [pure_ok, Except.ok.injEq] at h2
+    subst h2
+    obtain ⟨e1, he1, he1t, he1f⟩ := andM_ok ha2
+    obtain ⟨t1', ht1', he1⟩ := bind_ok he1
+    rw [ht1] at ht1'; cases ht1'
+    simp only [pure_ok, Except.ok.injEq] at he1
+    subst he1
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    odm T0
+    wp_apply wp_T0 _ X $$ [Hx] as %u0 %Hu0
+    · iexact Hx
+    try wp_auto
+    have hadd : sint.Z (u0 + W64 1) = X.T0 + 1 := by
+      rw [sint_add_one (by unfold bigOk at hT0b; omega), Hu0]
+    rw [decide_w64_eq, hadd, Hu1]
+    by_cases he : t1 = X.T0 + 1
+    case neg =>
+      rw [decide_eq_false he]
+      have : (t1 == X.T0 + 1) = false := by simpa using he
+      rw [this] at he1f
+      rw [he1f rfl]
+      odretc rfl
+    rw [decide_eq_true he]
+    have : (t1 == X.T0 + 1) = true := by simpa using he
+    rw [this] at he1t
+    have hv := he1t rfl
+    obtain ⟨vt, hvt, hvr⟩ := fieldEq_ok hv
+    try wp_auto
+    wp_apply wp_Event_vote pw X.w vt $$ [Hw]
+    · iframe Hw; ipureintro; exact hvt
+    try wp_auto
+    subst hvr
+    by_cases hvm : vt = s.cfg.server[sint.nat n]!
+    · rw [decide_eq_true hvm]
+      odskip (by simp [hvm])
+    · rw [decide_eq_false hvm]
+      odretc (by simpa using hvm)
+  odafter c
   done
 
 end proof
