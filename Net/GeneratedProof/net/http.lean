@@ -9,6 +9,8 @@ public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import Net.GeneratedProof.golang_org.x.net.http.httpguts
 public import Perennial.GeneratedProof.io
+public import Perennial.GeneratedProof.log
+public import Net.GeneratedProof.mime.multipart
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.textproto
 public import GeneratedProof.net.url
@@ -29,6 +31,7 @@ public import Net.GeneratedProof.net.http.chunk5
 public import Net.GeneratedProof.net.http.chunk6
 public import Net.GeneratedProof.net.http.chunk7
 public import Net.GeneratedProof.net.http.chunk8
+public import Net.GeneratedProof.net.http.chunk9
 
 @[expose] public section
 

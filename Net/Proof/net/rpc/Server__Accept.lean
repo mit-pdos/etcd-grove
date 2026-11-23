@@ -49,7 +49,8 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
   subst Hlis
   ihave #Haddr' := Haddr
   iunfold rpcAddr at Haddr'
-  icases Haddr' with ⟨#Hap, #Hreg⟩
+  iunfold rpcAddrP at Haddr'
+  icases Haddr' with ⟨#Hap, #Hreg, ⟨%Hhs, %HhsA⟩⟩
   wp_auto
   ihave HI : (True : IProp GF) $$ []
   · itrivial
@@ -77,7 +78,7 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
       · isplitr
         · ipureintro; exact Hb
         isplitr [Htok]
-        · iunfold rpcAccepted; iframe Hsend Hrecv Hfr
+        · iunfold rpcAccepted; rw [Hhs, HhsA]; iframe Hsend Hrecv Hfr
         iexact Htok
       iframe Htok
       ipureintro; exact isPanic_intoVal ()

@@ -6,6 +6,7 @@ public import Code.crypto.tls
 public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.io
+public import Perennial.Code.log
 public import Code.net.url
 public import Perennial.Code.strings
 public import Perennial.Code.sync
@@ -13,6 +14,7 @@ public import Perennial.Code.sync.atomic
 public import Perennial.Code.time
 public import Net.Code.golang_org.x.net.http.httpguts
 public import Net.Code.net
+public import Net.Code.mime.multipart
 public import Net.Code.net.textproto
 public import Perennial.Code.strconv
 public import Code.path
@@ -768,10 +770,6 @@ opaque http2ResponseWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 opaque http2RoundTripper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque http2ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque timeoutWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -5913,7 +5911,7 @@ noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.net.http where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.crypto.tls, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.url, pkg_id.strings, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.vendor.golang_org.x.net.http.httpguts, pkg_id.net, pkg_id.net.textproto, pkg_id.strconv, pkg_id.path, pkg_id.bufio, pkg_id.runtime]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.crypto.tls, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.net.url, pkg_id.strings, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.vendor.golang_org.x.net.http.httpguts, pkg_id.net, pkg_id.mime.multipart, pkg_id.net.textproto, pkg_id.strconv, pkg_id.path, pkg_id.bufio, pkg_id.runtime]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -5921,6 +5919,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.net.http)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6311,6 +6311,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
+  (App (Val _root_.Perennial.log.initialize') (Val #()))))))
+  (App (Val doExecute)
   (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
@@ -6324,6 +6326,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.vendor.golang_org.x.net.http.httpguts.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.mime.multipart.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.textproto.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -7247,11 +7251,75 @@ noncomputable instance equals_unfold_ProtocolError [GooseExts] [GoGlobalContext]
 @[reducible] noncomputable def ProtocolError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ProtocolError.fields)
 
-opaque Request.nonempty_type : NonemptyType.{0}
-def Request : Type := Request.nonempty_type.type
-instance Request.nonempty : Nonempty Request := Request.nonempty_type.property
-opaque Request.zero_val : ZeroVal Request := ⟨Classical.ofNonempty⟩
-attribute [instance] Request.zero_val
+structure Request [GooseExts] where
+  mk ::
+  Method' : GoString
+  URL' : Loc
+  Proto' : GoString
+  ProtoMajor' : w64
+  ProtoMinor' : w64
+  Header' : Header
+  Body' : _root_.Perennial.io.ReadCloser
+  GetBody' : GoFunc
+  ContentLength' : w64
+  TransferEncoding' : GoSlice
+  Close' : Bool
+  Host' : GoString
+  Form' : _root_.Perennial.net.url.Values
+  PostForm' : _root_.Perennial.net.url.Values
+  MultipartForm' : Loc
+  Trailer' : Header
+  RemoteAddr' : GoString
+  RequestURI' : GoString
+  TLS' : Loc
+  Cancel' : GoChan
+  Response' : Loc
+  Pattern' : GoString
+  ctx' : _root_.Perennial.context.Context
+  pat' : Loc
+  matches' : GoSlice
+  otherValues' : GoMap
+
+noncomputable instance Request.zero_val [GooseExts] : ZeroVal Request :=
+  ⟨Request.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Request.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Method" go.string),
+(go.field_decl.FieldDecl go!"URL" (go.GoType.PointerType _root_.Perennial.net.url.URL.ty)),
+(go.field_decl.FieldDecl go!"Proto" go.string),
+(go.field_decl.FieldDecl go!"ProtoMajor" go.int),
+(go.field_decl.FieldDecl go!"ProtoMinor" go.int),
+(go.field_decl.FieldDecl go!"Header" Header.ty),
+(go.field_decl.FieldDecl go!"Body" _root_.Perennial.io.ReadCloser.ty),
+(go.field_decl.FieldDecl go!"GetBody" (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.io.ReadCloser.ty, go.error]))),
+(go.field_decl.FieldDecl go!"ContentLength" go.int64),
+(go.field_decl.FieldDecl go!"TransferEncoding" (go.GoType.SliceType go.string)),
+(go.field_decl.FieldDecl go!"Close" go.bool),
+(go.field_decl.FieldDecl go!"Host" go.string),
+(go.field_decl.FieldDecl go!"Form" _root_.Perennial.net.url.Values.ty),
+(go.field_decl.FieldDecl go!"PostForm" _root_.Perennial.net.url.Values.ty),
+(go.field_decl.FieldDecl go!"MultipartForm" (go.GoType.PointerType _root_.Perennial.mime.multipart.Form.ty)),
+(go.field_decl.FieldDecl go!"Trailer" Header.ty),
+(go.field_decl.FieldDecl go!"RemoteAddr" go.string),
+(go.field_decl.FieldDecl go!"RequestURI" go.string),
+(go.field_decl.FieldDecl go!"TLS" (go.GoType.PointerType _root_.Perennial.crypto.tls.ConnectionState.ty)),
+(go.field_decl.FieldDecl go!"Cancel" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"Response" (go.GoType.PointerType Response.ty)),
+(go.field_decl.FieldDecl go!"Pattern" go.string),
+(go.field_decl.FieldDecl go!"ctx" _root_.Perennial.context.Context.ty),
+(go.field_decl.FieldDecl go!"pat" (go.GoType.PointerType pattern.ty)),
+(go.field_decl.FieldDecl go!"matches" (go.GoType.SliceType go.string)),
+(go.field_decl.FieldDecl go!"otherValues" (go.GoType.MapType go.string go.string))]
+
+@[irreducible] noncomputable def Request.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Request.fieldsUnsealed
+
+noncomputable instance equals_unfold_Request [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Request.fields Request.fieldsUnsealed :=
+  ⟨by unfold Request.fields; rfl⟩
+
+@[reducible] noncomputable def Request.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Request.fields)
 
 structure requestBodyReadError [GooseExts] where
   mk ::
@@ -7866,11 +7934,85 @@ noncomputable instance equals_unfold_redirectHandler [GooseExts] [GoGlobalContex
 @[reducible] noncomputable def redirectHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType redirectHandler.fields)
 
-opaque Server.nonempty_type : NonemptyType.{0}
-def Server : Type := Server.nonempty_type.type
-instance Server.nonempty : Nonempty Server := Server.nonempty_type.property
-opaque Server.zero_val : ZeroVal Server := ⟨Classical.ofNonempty⟩
-attribute [instance] Server.zero_val
+structure Server [GooseExts] where
+  mk ::
+  Addr' : GoString
+  Handler' : Handler
+  DisableGeneralOptionsHandler' : Bool
+  TLSConfig' : Loc
+  ReadTimeout' : _root_.Perennial.time.Duration
+  ReadHeaderTimeout' : _root_.Perennial.time.Duration
+  WriteTimeout' : _root_.Perennial.time.Duration
+  IdleTimeout' : _root_.Perennial.time.Duration
+  MaxHeaderBytes' : w64
+  MaxHeaderValueCount' : w64
+  TLSNextProto' : GoMap
+  ConnState' : GoFunc
+  ErrorLog' : Loc
+  BaseContext' : GoFunc
+  ConnContext' : GoFunc
+  HTTP2' : Loc
+  Protocols' : Loc
+  DisableClientPriority' : Bool
+  inShutdown' : _root_.Perennial.sync.atomic.Bool'
+  disableKeepAlives' : _root_.Perennial.sync.atomic.Bool'
+  nextProtoOnce' : _root_.Perennial.sync.Once
+  nextProtoErr' : GoError
+  mu' : _root_.Perennial.sync.Mutex
+  listeners' : GoMap
+  activeConn' : GoMap
+  onShutdown' : GoSlice
+  h2' : Loc
+  h2Config' : http2ExternalServerConfig
+  h2IdleTimeout' : _root_.Perennial.time.Duration
+  h3' : Loc
+  listenerGroup' : _root_.Perennial.sync.WaitGroup
+
+noncomputable instance Server.zero_val [GooseExts] : ZeroVal Server :=
+  ⟨Server.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Server.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Addr" go.string),
+(go.field_decl.FieldDecl go!"Handler" Handler.ty),
+(go.field_decl.FieldDecl go!"DisableGeneralOptionsHandler" go.bool),
+(go.field_decl.FieldDecl go!"TLSConfig" (go.GoType.PointerType _root_.Perennial.crypto.tls.Config.ty)),
+(go.field_decl.FieldDecl go!"ReadTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"ReadHeaderTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"WriteTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"IdleTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"MaxHeaderBytes" go.int),
+(go.field_decl.FieldDecl go!"MaxHeaderValueCount" go.int),
+(go.field_decl.FieldDecl go!"TLSNextProto" (go.GoType.MapType go.string (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Server.ty), (go.GoType.PointerType _root_.Perennial.crypto.tls.Conn.ty), Handler.ty] false [])))),
+(go.field_decl.FieldDecl go!"ConnState" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.net.Conn.ty, ConnState.ty] false []))),
+(go.field_decl.FieldDecl go!"ErrorLog" (go.GoType.PointerType _root_.Perennial.log.Logger.ty)),
+(go.field_decl.FieldDecl go!"BaseContext" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.net.Listener.ty] false [_root_.Perennial.context.Context.ty]))),
+(go.field_decl.FieldDecl go!"ConnContext" (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.net.Conn.ty] false [_root_.Perennial.context.Context.ty]))),
+(go.field_decl.FieldDecl go!"HTTP2" (go.GoType.PointerType HTTP2Config.ty)),
+(go.field_decl.FieldDecl go!"Protocols" (go.GoType.PointerType Protocols.ty)),
+(go.field_decl.FieldDecl go!"DisableClientPriority" go.bool),
+(go.field_decl.FieldDecl go!"inShutdown" _root_.Perennial.sync.atomic.Bool'.ty),
+(go.field_decl.FieldDecl go!"disableKeepAlives" _root_.Perennial.sync.atomic.Bool'.ty),
+(go.field_decl.FieldDecl go!"nextProtoOnce" _root_.Perennial.sync.Once.ty),
+(go.field_decl.FieldDecl go!"nextProtoErr" go.error),
+(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"listeners" (go.GoType.MapType (go.GoType.PointerType _root_.Perennial.net.Listener.ty) (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"activeConn" (go.GoType.MapType (go.GoType.PointerType conn.ty) (go.GoType.StructType []))),
+(go.field_decl.FieldDecl go!"onShutdown" (go.GoType.SliceType (go.GoType.FunctionType (go.signature.Signature [] false [])))),
+(go.field_decl.FieldDecl go!"h2" (go.GoType.PointerType http2Server.ty)),
+(go.field_decl.FieldDecl go!"h2Config" http2ExternalServerConfig.ty),
+(go.field_decl.FieldDecl go!"h2IdleTimeout" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"h3" (go.GoType.PointerType http3ServerHandler.ty)),
+(go.field_decl.FieldDecl go!"listenerGroup" _root_.Perennial.sync.WaitGroup.ty)]
+
+@[irreducible] noncomputable def Server.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Server.fieldsUnsealed
+
+noncomputable instance equals_unfold_Server [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Server.fields Server.fieldsUnsealed :=
+  ⟨by unfold Server.fields; rfl⟩
+
+@[reducible] noncomputable def Server.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Server.fields)
 
 abbrev ConnState [GooseExts] : Type := w64
 

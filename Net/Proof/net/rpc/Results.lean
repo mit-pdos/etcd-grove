@@ -28,7 +28,10 @@ reached by these).
   `readRequest`, `ServeCodec` (Perennial's thread-token join for its runs), `ServeConn`, `Accept`
   (`log.Println`'s spec, `Net/Spec/log/Println.lean`).
 
-Not yet proved (the plan note, phase 5.2, lists what remains): the HTTP path.
+Linked over a hypothesis (`section http`): `DialHTTPPath` and `DialHTTP`, over
+`http.ReadResponse.spec` (not proved yet); `connectReader.Read` (the model's reader of the CONNECT
+answer) fully. Not yet proved (the plan note, phase 5.2, lists what remains): `ReadResponse`, and
+the server's HTTP path (`ServeHTTP`, `HandleHTTP`, net/http's server).
 -/
 module
 
@@ -58,6 +61,10 @@ public import Net.Proof.net.rpc.NewClient
 public import Net.Proof.net.rpc.Dial
 public import Net.Proof.net.Dial
 public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.rpc.connectReader__Read
+public import Net.Proof.net.rpc.DialHTTPPath
+public import Net.Proof.net.rpc.DialHTTP
+public import Proof.bufio.NewReader
 public import Net.Proof.net.Conn__Read
 public import Perennial.Proof.sync.Link
 public import Net.Proof.net.rpc.serverCodec__ReadRequestHeader
@@ -265,6 +272,34 @@ theorem Server.Accept.wp [errors.Assumptions] [log.Assumptions] :
 
 end server
 
+section http
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [net.rpc.Assumptions]
+variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
+variable [sync.Assumptions] [NetProtoGS]
+
+/-! The HTTP path (`DialHTTPPath`, `DialHTTP`): linked over `http.ReadResponse.spec`, not proved
+yet (`Net/Spec/net/http/ReadResponse.lean`), which they take as a hypothesis. -/
+
+theorem connectReader.Read.wp : connectReader.Read.spec (GF := GF) (hG := hG) :=
+  connectReader.Read.wp_proof net.Conn.Read.wp_proof
+
+theorem DialHTTPPath.wp_of_ReadResponse [errors.Assumptions] [_root_.Perennial.bufio.Assumptions]
+    (wp_ReadResponse : net.http.ReadResponse.spec (GF := GF) (hG := hG)) :
+    DialHTTPPath.spec (GF := GF) (hG := hG) :=
+  DialHTTPPath.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
+    EtcdGrove.bufio.NewReader.wp_proof connectReader.Read.wp wp_ReadResponse NewClient.wp
+
+theorem DialHTTP.wp_of_ReadResponse [errors.Assumptions] [_root_.Perennial.bufio.Assumptions]
+    (wp_ReadResponse : net.http.ReadResponse.spec (GF := GF) (hG := hG)) :
+    DialHTTP.spec (GF := GF) (hG := hG) :=
+  DialHTTP.wp_proof (DialHTTPPath.wp_of_ReadResponse wp_ReadResponse)
+
+end http
+
+
 section results'
 
 end results'
@@ -316,3 +351,6 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.ServeCodec.wp
 #print axioms Perennial.net.rpc.Server.ServeConn.wp
 #print axioms Perennial.net.rpc.Server.Accept.wp
+#print axioms Perennial.net.rpc.connectReader.Read.wp
+#print axioms Perennial.net.rpc.DialHTTPPath.wp_of_ReadResponse
+#print axioms Perennial.net.rpc.DialHTTP.wp_of_ReadResponse

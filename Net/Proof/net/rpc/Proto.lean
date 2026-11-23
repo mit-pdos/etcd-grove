@@ -39,6 +39,17 @@ for each its index, `"Service.Method"`, message and reply), each with its persis
 Readers parse frames from a stream that may end mid-frame, so the protocols speak of prefixes; they
 also bound each payload's length (below `2 ^ 63`, as a Go slice's), so a frame's length prefix
 determines it.
+
+**The handshake** (`RpcWorld.hs`, `RpcWorld.hsAns`, per address; `rpcAddrP W a hs hsAns`): before
+its requests a dialer writes `W.hs a`, and before its answers an acceptor writes `W.hsAns a`, so
+each direction is the handshake followed by the frames. Raw net/rpc (`Dial`, `Server.Accept`) has
+none (`rpcAddr W a := rpcAddrP W a [] []`); over HTTP (`DialHTTPPath`, `Server.ServeHTTP`) the
+dialer's is its `CONNECT` request and the acceptor's the `200` answer. A dialer writes nothing after
+its handshake until it has read the answer (`reqProto`: beyond `W.hs a` only with `sentLb` of
+`W.hsAns a`), so a server that reads ahead (net/http's buffered reader) sees no request byte before
+it has answered; an acceptor writes nothing before the dialer's handshake is written (`respProto`:
+`sentLb` of `W.hs a`), so a dialer that reads an answer has written its whole handshake (its own
+write's error notwithstanding: `DialHTTPPath` ignores it).
 -/
 module
 
@@ -68,6 +79,20 @@ def lastDotIdx (s : GoString) : Option Nat :=
 /-- `"Service.Method"` split at its last dot (`Server.readRequestHeader`). -/
 def splitSM (sm : GoString) : Option (GoString × GoString) :=
   (lastDotIdx sm).map fun i => (sm.take i, sm.drop (i + 1))
+
+/-! ## The HTTP handshake -/
+
+/-- `DefaultRPCPath`, where `HandleHTTP` registers the server and `DialHTTP` connects. -/
+def defaultRPCPath : GoString := go!"/_goRPC_"
+
+/-- The `CONNECT` request a dialer of the path `path` writes first (`DialHTTPPath`). -/
+def connectReq (path : GoString) : List w8 := go!"CONNECT " ++ path ++ go!" HTTP/1.0\n\n"
+
+/-- The server's answer to it (`ServeHTTP`'s `"HTTP/1.0 " + connected + "\n\n"`). -/
+def connectAns : List w8 := go!"HTTP/1.0 200 Connected to Go RPC\n\n"
+
+/-- The status `DialHTTPPath` requires (net/rpc's `connected`). -/
+def connectedStatus : GoString := go!"200 Connected to Go RPC"
 
 /-! ## Requests and answers -/
 
@@ -134,6 +159,12 @@ address `a`, if it offers it) and the name of the registry of connections. -/
 structure RpcWorld (GF : BundledGFunctors) where
   SS : GoString → GoString → Option (MethodSpec GF)
   reg : GName
+  /-- The handshake a dialer of an address writes before its requests (`[]` for raw net/rpc,
+  `connectReq path` over HTTP). -/
+  hs : GoString → List w8 := fun _ => []
+  /-- The handshake's answer an acceptor writes before its answers (`[]` for raw net/rpc,
+  `connectAns` over HTTP). -/
+  hsAns : GoString → List w8 := fun _ => []
 
 def rpcN : Namespace := nroot.@"net.rpc"
 def regN' : Namespace := rpcN.@"reg"
@@ -303,22 +334,32 @@ def connInv (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) : IP
 def isRpcConn (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) : IProp GF :=
   iprop(regElem W cn γ ∗ inv connN (connInv W a cn γ))
 
-/-- What a dialer of `a` writes: a prefix of the wire of requests of the connection (persistent
-lower bound), fewer than `2 ^ 64`, each fitting its frames. -/
+/-- What a dialer of `a` writes: a prefix of the handshake `W.hs a` followed by the wire of
+requests of the connection (persistent lower bound), fewer than `2 ^ 64`, each fitting its frames;
+and nothing beyond the handshake before the acceptor has written its answer `W.hsAns a` (the
+dialer waits for it: `DialHTTPPath`). -/
 def reqProto (W : RpcWorld GF) (a : GoString) : Proto GF := fun cn bs =>
   iprop(∃ (γ : RpcConnNames) (L : List RpcReq), isRpcConn W a cn γ ∗ monoListLbOwn γ.reqs L ∗
-    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ 2 ^ 64 ∧ bs <+: reqsWire L⌝)
+    ⌜(∀ r ∈ L, reqOk r) ∧ L.length ≤ 2 ^ 64 ∧ bs <+: W.hs a ++ reqsWire L⌝ ∗
+    (⌜bs <+: W.hs a⌝ ∨ sentLb (Gg := Gg) cn true (W.hsAns a)))
 
-/-- What an acceptor at `a` writes: a prefix of the wire of answers of the connection, each with
-its persistent answer and fitting its frames. -/
+/-- What an acceptor at `a` writes: a prefix of the handshake's answer `W.hsAns a` followed by the
+wire of answers of the connection, each with its persistent answer and fitting its frames; and
+nothing before the dialer has written its handshake `W.hs a` (the acceptor answers it). -/
 def respProto (W : RpcWorld GF) (a : GoString) : Proto GF := fun cn bs =>
   iprop(∃ (γ : RpcConnNames) (Rs : List Ans), isRpcConn W a cn γ ∗
     ([∗list] x ∈ Rs, ghostMapElem γ.ans x.idx .discard (some (x.msg, x.reply))) ∗
-    ⌜(∀ x ∈ Rs, ansOk x) ∧ bs <+: respsWire Rs⌝)
+    ⌜(∀ x ∈ Rs, ansOk x) ∧ bs <+: W.hsAns a ++ respsWire Rs⌝ ∗
+    (⌜bs = []⌝ ∨ sentLb (Gg := Gg) cn false (W.hs a)))
 
-/-- Address `a` serves rpc in world `W`: its protocols, and the registry (persistent). -/
-def rpcAddr (W : RpcWorld GF) (a : GoString) : IProp GF :=
-  iprop(addrProto (Gg := Gg) a (reqProto W a) (respProto W a) ∗ inv regN' (regInv W))
+/-- Address `a` serves rpc in world `W` after the handshake `hs` (the dialer's) and `hsAns` (the
+acceptor's answer): its protocols, and the registry (persistent). -/
+def rpcAddrP (W : RpcWorld GF) (a : GoString) (hs hsAns : List w8) : IProp GF :=
+  iprop(addrProto (Gg := Gg) a (reqProto W a) (respProto W a) ∗ inv regN' (regInv W) ∗
+    ⌜W.hs a = hs ∧ W.hsAns a = hsAns⌝)
+
+/-- Address `a` serves raw net/rpc in world `W` (no handshake: `Server.Accept`, `Dial`). -/
+def rpcAddr (W : RpcWorld GF) (a : GoString) : IProp GF := rpcAddrP W a [] []
 
 instance regElem_persistent (W : RpcWorld GF) (cn : Nat) (γ : RpcConnNames) :
     Persistent (regElem (GF := GF) W cn γ) := by
@@ -327,6 +368,24 @@ instance regElem_persistent (W : RpcWorld GF) (cn : Nat) (γ : RpcConnNames) :
 instance isRpcConn_persistent (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) :
     Persistent (isRpcConn (Gg := Gg) W a cn γ) := by
   unfold isRpcConn; infer_instance
+
+/-- A reader keeps its token and learns that what it read was written (`recvTok_sentLb`). -/
+theorem recvTok_keep_sentLb (cn : Nat) (s s' : Bool) (hs : s' = !s) (P : Proto GF) (R : List w8) :
+    recvTok (Gg := Gg) cn s P R ⊢ recvTok cn s P R ∗ sentLb cn s' R := by
+  subst hs
+  unfold recvTok recvCore sentLb connH
+  iintro ⟨⟨%γ, %Pd, %Pa, ⟨#He, #Hreg, #Hai, #Hm⟩, %hP, Hr, #Hlb⟩, #Hpp⟩
+  isplitl [Hr]
+  · iframe Hpp
+    iexists γ, Pd, Pa
+    iframe He Hreg Hai Hm Hr Hlb
+    ipureintro; exact hP
+  · iexists γ
+    iframe He Hlb
+
+instance rpcAddrP_persistent (W : RpcWorld GF) (a : GoString) (hs hsAns : List w8) :
+    Persistent (rpcAddrP (Gg := Gg) W a hs hsAns) := by
+  unfold rpcAddrP; infer_instance
 
 instance rpcAddr_persistent (W : RpcWorld GF) (a : GoString) :
     Persistent (rpcAddr (Gg := Gg) W a) := by

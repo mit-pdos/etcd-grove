@@ -3955,3 +3955,12 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   every spec built on it (bufio's constructors' `size` premise-free statements among them) inherits the
   gap: a Perennial-wide question about `make`'s model, not one for the bufio specs.
 - **Status.** Unchecked; recorded for Perennial's `make` model.
+
+## 2026-11-23: `io.WriteString` is not translated (net/rpc model, HTTP path)
+
+Perennial's `io` translates `WriteString` as a name only, so a translated body that calls it is stuck. net/rpc's
+`DialHTTPPath` and `ServeHTTP` write their handshake with `io.WriteString(conn, s)`. Worked around in the model
+(`models/net/rpc/{client,server}.go`, MODEL): `conn.Write([]byte(s))`, what `io.WriteString` does for a writer without a
+`WriteString` method (net's `*TCPConn`). The general fix: translate `io.WriteString` (its body: a type assertion to
+`io.StringWriter`, else `Write` of the string's bytes) with a spec over the writer's `Write` and `WriteString`
+contracts.
