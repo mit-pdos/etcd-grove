@@ -6,7 +6,7 @@ the specs of the calls they make (hypotheses) and `SegLogOps.lean`'s.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogOps
-public import Proof.os.File__Truncate
+public import Spec.os.File__Truncate
 public import Proof.golang_org.x.sys.unix.FileOps
 public import Spec.os.File__Fd
 public import Spec.os.File__Close
@@ -320,7 +320,8 @@ theorem wp_Segment (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
 
 /-- `ZeroToEnd(f)`, the offset 8, the file of inode `i` (no mapping, `segSize` bytes) whole: on
 success its first 8 bytes kept and its size at least 8; the offset stays some offset. -/
-theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
+theorem wp_ZeroToEnd (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
+    (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (i : Ino) (m : OsMeta)
     (bs : List ByteG) (hfd0 : 0 ≤ fd.toInt) (hmaps : m.maps = ∅) (hsz : m.size = 0x10000)
     (hbl : bs.length = 0x10000) :
@@ -360,7 +361,7 @@ theorem wp_ZeroToEnd (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
   have hmax8 : max m.size (W64 8).toNat = 0x10000 := by rw [hsz]; decide
   ihave Hc8 : mcellsAny (GF := GF) m.maps (min m.size (W64 8).toNat) (rsHi true m.size (W64 8).toNat) $$ []
   · unfold mcellsAny; rw [hmaps]; iapply BigSepM.bigSepM_empty.2; iempintro
-  wp_apply os.File.Truncate.wp_proof f fd name dqf (W64 8) dq ⟨i, true, true, none, none⟩ m (bs.drop 8)
+  wp_apply wp_Truncate f fd name dqf (W64 8) dq ⟨i, true, true, none, none⟩ m (bs.drop 8)
       hfd0 rfl (by decide) (by simp [hbl, hsz])
     $$ [Hos Hf Hfd Hm Hbr Hc8] as %err ⟨Hf, Hfd, Hr, -⟩
   · iframe; iframe #; rw [hmin]; iexact Hbr
@@ -579,6 +580,7 @@ theorem wp_Reread (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
 /-- `Run(dir)`, `dir` the root of inode `j`, with the whole claim on `seg.log` (and, if it names a
 directory, that directory's whole claim): it does not panic (nor is it stuck). -/
 theorem wp_Run (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (wp_Truncate : os.File.Truncate.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
@@ -721,7 +723,7 @@ theorem wp_Run (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
       (by decide) (by decide) $$ [Hf Ho] as ⟨Hf, Ho⟩
     · iframe
     (try wp_auto)
-    wp_apply wp_ZeroToEnd wp_Fd f fd (child dir logB) (DFrac.own 1) (DFrac.own 1) k m bs hfd0 hmaps
+    wp_apply wp_ZeroToEnd wp_Truncate wp_Fd f fd (child dir logB) (DFrac.own 1) (DFrac.own 1) k m bs hfd0 hmaps
       hsz hbl $$ [Hos Hf Ho Hfd Hm Hb] as %err ⟨Hf, Hfd, -, Hr⟩
     · iframe; iexact Hos
     icases Hr with (⟨%herr, %m', %hm', Hm, Hb⟩ | %herr)

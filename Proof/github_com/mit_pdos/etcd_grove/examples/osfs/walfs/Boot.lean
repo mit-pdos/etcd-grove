@@ -485,7 +485,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Assum
 variable [os.Assumptions] [os.file.FieldAssumptions]
 
 /-- `commit(d)`, `d` the root of `j`, nothing at `seg.tmp` or `seg` now: it does not panic. -/
-theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+theorem wp_commit (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
+    (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
@@ -588,7 +589,7 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   (try wp_auto)
   -- the directory's sync
   imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
-  wp_apply DS.wp_syncDir R d (DFrac.own 1) j 1 $$ [Hp Hperm] as %ok ⟨Hp, Hperm⟩
+  wp_apply DS.wp_syncDir wp_SyncDirS R d (DFrac.own 1) j 1 $$ [Hp Hperm] as %ok ⟨Hp, Hperm⟩
   · iframe; iframe #
   cases ok with
   | false =>
@@ -609,7 +610,8 @@ theorem wp_commit (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
 
 /-- `Boot(d)`, `d` the root of `j`, with the program's half of the claim (history `h0`, key `ko0`)
 and of the key's file: it does not panic. -/
-theorem wp_Boot (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+theorem wp_Boot (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
+    (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
@@ -751,7 +753,7 @@ theorem wp_Boot (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
           cases hc : h0.cur !! tmpB with
           | none => rfl
           | some x => exact absurd ((hmem tmpB bN_tmp).1 (by rw [hc]; rfl)) ht
-      wp_apply wp_commit wp_ReadAt wp_Close wp_WriteAt wp_Fd wp_Fdatasync R d j hrj γ ko0 h hn
+      wp_apply wp_commit wp_SyncDirS wp_ReadAt wp_Close wp_WriteAt wp_Fd wp_Fdatasync R d j hrj γ ko0 h hn
           (hseg.trans hs0) $$ [Hperm Hh]
       · iframe; iframe #
       (try wp_auto)

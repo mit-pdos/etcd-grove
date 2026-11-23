@@ -28,6 +28,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Boot
 public import Proof.os.File__ReadAt
+public import Proof.os.File__SyncS
 public import Proof.os.File__WriteAt
 public import Proof.os.File__Fd
 public import Proof.os.File__Close
@@ -160,7 +161,7 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
       unfold boot
       wp_apply Hinit_wp $$ Hgs
       wp_pures
-      wp_apply wp_Boot os.File.ReadAt.wp_proof os.File.Close.wp_proof os.File.WriteAt.wp_proof
+      wp_apply wp_Boot os.File.Sync.wp_proofDirS os.File.ReadAt.wp_proof os.File.Close.wp_proof os.File.WriteAt.wp_proof
           os.File.Fd.wp_proof syscall.Fdatasync.wp_proof R dir j hrj γ ko _ $$ [Hperm Hh Hs]
       · iframe; iframe #
       ipureintro; rfl

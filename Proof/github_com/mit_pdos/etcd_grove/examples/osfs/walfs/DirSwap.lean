@@ -5,7 +5,7 @@ the specs of `Create`, `checkDir` and `BootDir`.
 The crash invariant (`dsInv`, `DSClaims.lean`) holds half of the claim on `wal` (and, once `wal` can
 name a directory, of its `seg`); the program holds the other half (`dsHalf`), the whole claim on
 `wal.tmp`, and what lies below `wal.tmp` (`tmpRes`). `Create` removes `wal.tmp/seg` and `wal.tmp`
-(`wp_rmAny`, `wp_rmNoDir`), makes `wal.tmp` (`wp_mkAny`), creates its `seg` (`specCreateS` with the
+(`wp_rmAny`, `wp_rmNoDir`), makes `wal.tmp` (`wp_mkAny`), creates its `seg` (`specCreateS`, a hypothesis, with the
 trivial update), writes and syncs the data, deposits the file under the key (`ds_deposit`), merges
 the claims on `wal` and `wal.tmp` (`ds_merge`) and renames `wal.tmp` onto `wal` (`wp_osRenameWal`).
 The spine to `wal.tmp`'s directory is built from half the claim on `wal.tmp` (`osPathS_child`), and
@@ -14,7 +14,7 @@ The spine to `wal.tmp`'s directory is built from half the claim on `wal.tmp` (`o
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DSRename
-public import Proof.os.OpenFileS
+public import Spec.os.OpenFileS
 public import Proof.os.WriteFileLemmas
 public import Proof.os.MkdirAllParts
 public import Spec.os.File__Sync
@@ -261,7 +261,9 @@ theorem wp_rmTmpSeg (R : Roots) (d : GoString) (j : Ino) (ht : NamesH) :
 
 /-- `Create(dir)`, `dir` the root of `j`, `wal` absent, with the program's half of the invariant's
 claims, the whole claim on `wal.tmp` and what lies below it: it does not panic. -/
-theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
+theorem wp_Create (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
+    (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (j : Ino) (hrj : (dir, j) ∈ R) (γ : GName)
@@ -319,7 +321,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   ihave Hau := os.osAU_triv (A := Option (Nat × Nat × Ino))
     (osNames (GF := GF) T (.only [segB]) (DFrac.own (1 : Qp).half) hs0)
     (crOut T segB hs0 (DFrac.own (1 : Qp).half)) $$ Hsr
-  wp_apply os.OpenFile.wp_proofCreateS (child dir wtB) segB (W64 66) (W32 438) R T _ hs0
+  wp_apply wp_CreateS (child dir wtB) segB (W64 66) (W32 438) R T _ hs0
     (1 : Qp).half (1 : Qp).half 1 (crOut T segB hs0 (DFrac.own (1 : Qp).half)) hfl hcr htr segB_ok
     (fun J h => by rw [hs0n] at h; cases h) (Qp.half_add_half 1)
     $$ [$Hos $Hsi $Hpc $Hperm $Hs $Hau]
@@ -446,7 +448,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   | nil =>
   (try wp_auto)
   -- the directory's sync
-  wp_apply wp_syncDir R dir _ j 1 $$ [Hp Hperm] as %ok -
+  wp_apply wp_syncDir wp_SyncDirS R dir _ j 1 $$ [Hp Hperm] as %ok -
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
@@ -529,7 +531,9 @@ theorem wp_checkDir (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
 invariant's key `ko`: with what `ds_start` hands out (the program's half of the invariant's claims,
 the claim on `wal.tmp`, the claims of `wal.tmp`'s directory and of its `seg`'s) and the program's
 half of the key's file (`segRes`), it does not panic. -/
-theorem wp_BootDir (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
+theorem wp_BootDir (wp_CreateS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
+    (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (wp_Sync : os.File.Sync.spec (GF := GF) (hG := hG))
@@ -633,7 +637,7 @@ theorem wp_BootDir (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     ihave Htmp := tmpRes_init (L := hG.goose_localGS) m j $$ [HT HK]
     · iframe
     (try wp_auto)
-    wp_apply wp_Create wp_Close wp_WriteAt wp_Sync R dir j hrj γ ko (NamesH.init m j wO) _
+    wp_apply wp_Create wp_CreateS wp_SyncDirS wp_Close wp_WriteAt wp_Sync R dir j hrj γ ko (NamesH.init m j wO) _
         (hwc.trans hWn) $$ [Hperm Hv Hw Hcl Ht Htmp]
     · iframe; iframe #
       unfold dsHalf; iframe

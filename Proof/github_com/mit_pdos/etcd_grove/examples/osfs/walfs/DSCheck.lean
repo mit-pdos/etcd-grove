@@ -3,7 +3,8 @@ What `examples/osfs/walfs`'s `dirswap.go` proof takes of the segment's data (ove
 extension's shared view): the program's half of the segment's file (`segRes`; the invariant's,
 `keyRes`, and what a crash must leave, `DataGood`, are in `DSClaims.lean`), how a generation's start
 splits into them, and the specs of `dataOk`, `check(w)` (`w` any directory, a fraction of a claim on
-its `seg`) and `syncDir(d)` (`d` any directory). Copied from the segdir proof's `Boot.lean` (not
+its `seg`) and `syncDir(d)` (`d` any directory; over `os.File.Sync.specDirS`, a
+hypothesis). Copied from the segdir proof's `Boot.lean` (not
 imported: its names would clash), `check` generalized from a root to any directory.
 -/
 module
@@ -11,7 +12,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DSBase
 public import Spec.os.File__ReadAt
 public import Spec.os.File__Close
-public import Proof.os.File__SyncS
+public import Spec.os.File__SyncS
 
 @[expose] public section
 
@@ -265,7 +266,8 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
 
 /-- `syncDir(d)`, `d` the directory `j` (a spine to it), with a fraction of the call permission:
 any result. -/
-theorem wp_syncDir (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) (qc : Qp) :
+theorem wp_syncDir (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
+    (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) (qc : Qp) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.syncDir)) (Val #d))
     {{ (ok : Bool), RET #ok; osPathS R d dq j ∗ osCallPerm (callKey R d) qc }} := by
@@ -285,7 +287,7 @@ theorem wp_syncDir (R : Roots) (d : GoString) (dq : DFrac) (j : Ino) (qc : Qp) :
   subst herr
   (try wp_auto)
   imod osLogLb_0 with #Hlb
-  wp_apply os.File.Sync.wp_proofDirS f fd d (DFrac.own 1) R j .idle 0 $$ [Hinv Hsi Hf Hfd]
+  wp_apply wp_SyncDirS f fd d (DFrac.own 1) R j .idle 0 $$ [Hinv Hsi Hf Hfd]
     as %err ⟨Hf, Hfd, -⟩
   · iframe; iframe #
   (try wp_auto)

@@ -15,8 +15,8 @@
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DSOps
-public import Proof.os.Remove
-public import Proof.os.Mkdir
+public import Spec.os.Remove
+public import Spec.os.Mkdir
 public import Proof.os.RemoveAllExt
 
 @[expose] public section

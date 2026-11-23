@@ -9,7 +9,7 @@ invariant (`wp_dsRename`); once it took effect, a retry finds `wal.tmp` gone and
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DSRemove
-public import Proof.os.RenameS
+public import Spec.os.RenameS
 
 @[expose] public section
 
