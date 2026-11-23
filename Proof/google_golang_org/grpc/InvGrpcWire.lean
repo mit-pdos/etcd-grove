@@ -3,7 +3,7 @@
 signatures", §1.2, as amended in §0a): what the grpc model (`models/grpc`) writes on a connection,
 as Lean functions of its Go code's bytes, and the protocols (`Net.Proto`) of a connection to an
 address that serves a table of unary methods `Svc`, with the unary call's deposit in the
-connection's slot (`GooseLang/Ext/Net/Slot.lean`). Definitions and their laws; no axiom.
+connection's slot (`GooseLang/Ext/Net/Slot.lean`). Definitions and their laws; no axiom (two opaques, `grpcCliPI`/`grpcSrvPI`, below).
 
 **The model's bytes** (`models/grpc/model_wire.go`; one stream per connection). A frame is a kind
 byte and a body. `be32 n` is `binary.BigEndian.AppendUint32(nil, uint32(n))`; `headerBlock kind fs`
@@ -38,8 +38,14 @@ preface, or its preface and whole frames, each meeting `srvFrameOk`: a data fram
 `.err`, unless the connection's head is no unary method of `Svc` (`streamConn`); a `REFUSED_STREAM`
 reset (code 7) says the server refused the connection (`connRefused`).
 
-**Addresses.** `grpcAddrAt a Svc` (persistent): `a`'s protocols are grpc's for `Svc`, and the slot
-map exists; set once from `addrUnset a` (`grpc_addr_set`). `grpcSvcAt a name Wq Wp Spec`
+**Addresses.** `grpcAddrAt a Svc` (persistent): `a`'s protocols are grpc's for `Svc` as the S2
+interface states them, the **opaque** `grpcCliPI Svc`/`grpcSrvPI Svc` (trusted text with no law,
+`notes/audit.md`; their intended reading is `grpcCliP Svc`/`grpcSrvP Svc`, which take their place
+once S2 proves `ClientConn.Invoke` and `Server.Serve` over the model: over the defined protocols,
+a raw Go program could dial or listen on a grpc address and write or read the model's frames, a
+head with no data frame or a reader expecting `settingsBytes` of real HTTP/2, so an axiom over
+`grpcAddrAt` would be unsound), and the slot map exists; until then `grpcCliP`/`grpcSrvP` and the
+parse laws below are a library no address uses; set once from `addrUnset a` (`grpc_addr_set`). `grpcSvcAt a name Wq Wp Spec`
 (persistent, heap-free): the table `a` serves has an entry for `name` at the wire parts `Wq`, `Wp`,
 and a caller of `Spec` meets it after an update (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`).
 
@@ -486,6 +492,17 @@ def grpcSlotCont (e : GrpcEntry GF) (Φ : e.Wp.M → IProp GF) (Ψe : GoString �
   | .ok bs => iprop(∃ m', ⌜e.Wp.enc m' = bs⌝ ∗ Φ m')
   | .err d => iprop(⌜d ∈ handlerDescs⌝ -∗ Ψe d)
 
+/-- **What a dialer writes on a connection to an address serving `Svc`, as the S2 interface states
+it** (opaque until S2 proves `ClientConn.Invoke` and `Server.Serve` over the model; then `grpcCliP
+Svc` takes its place): the bytes grpc's own transport writes. Opaque so that no program but grpc's
+transport writes or learns anything of such a connection. Trusted text, with no law
+(`notes/audit.md`, beside `grpcRepliesFit`). -/
+opaque grpcCliPI (Svc : GrpcSvc GF) : Net.Proto GF := fun _ _ => iprop(True)
+
+/-- **What an acceptor writes** (opaque, as `grpcCliPI`; intended reading `grpcSrvP Svc`). Trusted
+text, with no law. -/
+opaque grpcSrvPI (Svc : GrpcSvc GF) : Net.Proto GF := fun _ _ => iprop(True)
+
 end svc
 
 /-! ## The protocols -/
@@ -548,11 +565,12 @@ def grpcSrvP (Svc : GrpcSvc GF) : Proto GF := fun cn W =>
     ∃ frames : List SrvFrame, ⌜W = settingsBytes ++ (frames.map srvFrameBytes).flatten⌝ ∗
       [∗list] f ∈ frames, □ srvFrameOk (Gg := Gg) Svc cn f)
 
-/-- **The address `a` serves `Svc`** (persistent): its protocols are grpc's for `Svc`, and the slot
-map exists. -/
+/-- **The address `a` serves `Svc`** (persistent): its protocols are grpc's for `Svc`, as the S2
+interface states them (the opaque `grpcCliPI`/`grpcSrvPI`, so that a program other than grpc's
+transport cannot use the address's protocols: a raw dialer writing a head and no data frame, a raw
+reader expecting `settingsBytes` of real HTTP/2), and the slot map exists. -/
 def grpcAddrAt (a : GoString) (Svc : GrpcSvc GF) : IProp GF :=
-  iprop(addrProto (Gg := Gg) a (grpcCliP (Gg := Gg) Svc) (grpcSrvP (Gg := Gg) Svc) ∗
-    depSlotsCtx (Gg := Gg))
+  iprop(addrProto (Gg := Gg) a (grpcCliPI Svc) (grpcSrvPI Svc) ∗ depSlotsCtx (Gg := Gg))
 
 /-- **The method `name` at `a` meets `Spec`** (persistent, no heap): the table `a` serves has an
 entry for `name` at the wire parts `Wq`, `Wp`, and a caller of `Spec` meets that entry's spec after an
@@ -600,7 +618,7 @@ theorem grpc_addr_set (E : CoPset) (a : GoString) (Svc : GrpcSvc GF) :
     ⊢ regCtx (Gg := Gg) -∗ depSlotsCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗
       grpcAddrAt (Gg := Gg) a Svc := by
   iintro #Hreg #Hs Hu
-  imod addr_set_proto E a (grpcCliP (Gg := Gg) Svc) (grpcSrvP (Gg := Gg) Svc) $$ Hreg Hu with #Hp
+  imod addr_set_proto E a (grpcCliPI Svc) (grpcSrvPI Svc) $$ Hreg Hu with #Hp
   imodintro
   unfold grpcAddrAt
   iframe Hp Hs
