@@ -8,8 +8,9 @@ operation validates (`Replay.Validate`, B4), and every watch that ran is accepte
 
 The premises are what `Check` has at the call: `RunLin2`'s `Ok` post (the history `ops` with its operations'
 `ioOk` facts, linearized by its own order for the driver's model `pM (kSpec g0) decOp`, `HistOk`), `failureFree`'s
-answer (`okOut` of every operation), the seeded configuration's facts (`RunOk g0`, what B2/B4 need of it), and a
-history short enough that the revisions do not wrap (`2^63`).
+answer (`okOut` of every operation), the seeded configuration's facts (`RunOk g0`, what B2/B4 need of it), a
+history short enough that the revisions do not wrap (`2^63`), and a seeded store of fewer than `2^60` items (`Model`'s
+premise: the checker's models stay below `2^62` items, `slices.Sorted`'s bound).
 -/
 module
 
@@ -44,7 +45,7 @@ abbrev realCheck.spec : Prop :=
     (github_com.anishathalye.porcupine.histOf lops) (List.range lops.length) →
   github_com.anishathalye.porcupine.HistOk lops →
   (∀ o ∈ lops, ∀ x y, o.Input' = boxIn x → o.Output' = boxOut y → okOut x y = true) →
-  RunOk g0 → uint.nat g0.st.rv + lops.length < 2 ^ 63 →
+  RunOk g0 → uint.nat g0.st.rv + lops.length < 2 ^ 63 → g0.st.items.length < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       context.isClosedchanInit ∗ storeOwn s0 g0.st ∗ sl ↦* lops ∗
       github_com.anishathalye.porcupine.opsIoOk (k8setcd3S g0) lops }}

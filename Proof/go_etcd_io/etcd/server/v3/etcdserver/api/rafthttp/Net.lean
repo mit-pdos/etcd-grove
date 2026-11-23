@@ -108,6 +108,15 @@ structure NetNames (GF : BundledGFunctors) [GooseExts] where
   dir : w64 → List GoString
   reg : GName
 
+end defs
+
+section defsG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **Member `id`'s slot** (exclusive): held by the transport started for `id`
 (`Transport.Start`), so that one transport receives what is sent to `id`. -/
 def netSlot (γn : NetNames GF) (id : w64) : IProp GF :=
@@ -115,6 +124,15 @@ def netSlot (γn : NetNames GF) (id : w64) : IProp GF :=
 
 -- (2026-11-12, trace-check B4) `wireEq`, a received copy's agreement with the message sent, is in
 -- raft's `PbMessage.lean` (imported above), beside the wire model that proves it.
+
+end defsG1
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 /-- **A message handed to `Send`**, with its bundle: read-only for good (the transport's writer
 goroutines marshal it after `Send` returns), its persistent part and its one-shot part; (D22 S-i)
@@ -503,6 +521,15 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+end lemmas
+
+section lemmasG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A network's names, allocated** for the members `S` (the closed theorem's, once per
 cluster): its payload and directory chosen, a slot per member, the streams' registry (empty;
 stage 6a). -/
@@ -523,6 +550,15 @@ theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GM
   · ipureintro; exact ⟨rfl, rfl⟩
   unfold netSlot
   iexact Hs
+
+end lemmasG1
+
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
 
 /-- **A member's snapshot directory, at names allocated before** (2026-10-26, D22 J2, R-loc: the
 names are raft's `RaftNames.reSnapLoc`, fixed before the member starts): from the directory's right

@@ -51,9 +51,9 @@ def opPre (x : Input) (out : RResp) : Prop :=
   (isWriteL x = false → x.Kind' ≠ W64 4 → objOrNilD out.obj)
 
 /-- **`Model.Step`'s premises** (`Model__Step.lean`) for the operation `(x, out)` at the state `m`:
-the operation's, the state's items fit, and the model's own response is not `RErr.other`. -/
+the state has fewer than `2^62` items, the operation's, the state's items fit, and the model's own response is not `RErr.other`. -/
 def stepPre (x : Input) (m : RM) (out : RResp) : Prop :=
-  itemsFitL m ∧ (rexecL x m).1.err ≠ .other ∧ opPre x out
+  GMap.size m.items < 2 ^ 62 ∧ itemsFitL m ∧ (rexecL x m).1.err ≠ .other ∧ opPre x out
 
 /-- **`Model.Step`'s premises along `NewReplay`'s loop**: each operation's, at the state the replay
 of the operations before it reached. -/

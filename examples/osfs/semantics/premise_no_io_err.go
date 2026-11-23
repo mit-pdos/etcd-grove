@@ -3,6 +3,7 @@
 package semantics
 
 import (
+	"errors"
 	"os"
 	"syscall"
 
@@ -158,6 +159,26 @@ import (
 // the success clause speaks of it; the semantics, which bounds no length,
 // gives it a short path's outcomes, failures with any errno included.
 //
+// The errno of a failing open of an absent name (2026-11-23, the user's
+// approval for claim #34, wal.Exist): an open without O_CREAT of a covered path
+// with no entry whose parent is a directory, from a state with a free fd,
+// fails with ENOENT (open(2): the last component's lookup finds nothing), not
+// any errno. Lean: PathErrno's "Open" case (Premises.lean); NoIoErr.lean:
+// noIoErr_good keeps the step (the semantics' failure arm allows ENOENT exactly
+// where the path does not resolve, Impl.lean's "Open"); NoMapLockErr.lean:
+// noIoErr_noMapLockErr_keeps (with no free fd NoMapLockErr's EINTR, so the
+// clause asks for a free fd; Linux takes the fd first, EMFILE). Still allowed:
+// an open with O_CREAT that cannot succeed, an absent name under a missing
+// parent (ENOENT on Linux too, but not asked), under a file (ENOTDIR), any
+// errno with no free fd. Why: wal.Exist(dir) runs fileutil.ReadDir(dir), an
+// os.Open of dir, and answers false only when errors.Is(err, os.ErrNotExist),
+// true on any other error; with any errno allowed, Exist of an absent WAL
+// directory could answer true and bootstrap would take a fresh member for a
+// restart. Evidence: measured on C as support (premise_no_io_err_test.go,
+// TestNoIoErrOpenAbsent, with its contrasts: ENOTDIR under a file, an O_CREAT
+// open's success, EMFILE at RLIMIT_NOFILE); the further assumptions are the
+// premise's (the permissions above: a search denied on the walk is EACCES).
+//
 // Why the locks and the reads (2026-11-19): wal.Create locks its first segment
 // (fileutil.LockFile: F_OFD_SETLKW) and reads its fresh temporary directory
 // (fileutil.CreateDirAll: ReadDir), WAL.cut locks its new tail; with those
@@ -234,4 +255,22 @@ func NoIoErrPathErrno(dir string) {
 		// under the premise: excluded (the path is gone)
 		panic(err)
 	}
+}
+
+// NoIoErrOpenAbsent: wal.Exist of an absent WAL directory, under the premise
+// (dir's paths covered).
+func NoIoErrOpenAbsent(dir string) {
+	d, err := os.Open(dir + "/member/wal")
+	if err == nil {
+		// excluded by the semantics (the path does not resolve)
+		panic("opened")
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		// the semantics: reachable (open of the absent path may fail with any
+		// nonzero errno: wal.Exist would answer true)
+		// under the premise, with dir/member a directory: excluded
+		// (PathErrno: ENOENT)
+		panic(err)
+	}
+	_ = d
 }

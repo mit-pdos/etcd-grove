@@ -13,7 +13,7 @@ public import Perennial.Proof.strings.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Dsverify.Proof.bufio.Init
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.config.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.dlog.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init

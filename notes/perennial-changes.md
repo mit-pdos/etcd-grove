@@ -153,6 +153,16 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `featureGate` is then translated, and what remains is a local spec of `maps.Copy` (translated in
   Perennial, no spec), the facts of `featuregate`/`features` (`apply/Base.lean`/`BaseApply.lean`), and
   the proofs.
+  (2026-11-23, branch `featuregate-3`) **Done, without a Perennial change and without an axiom:**
+  `features.NewDefaultServerFeatureGate.wp_proof` is a theorem. go1.27's `flag.init` handles an empty
+  `os.Args` itself (`if len(os.Args) == 0 { CommandLine = NewFlagSet("", ExitOnError) }`), so no
+  non-empty fact of `os.Args` is needed: `os`'s fact only records `Args`' slice read-only. `flag` is
+  translated here (project etcd, `flag=`, `Code/flag.toml`), as `os` is, because a Perennial `flag`
+  would import Perennial's `os`, which must never meet this repository's. `maps.Copy`'s spec is proved
+  here (`Spec/maps/Copy.lean`, generic, over Perennial's translation), and the same spec is in
+  Perennial `6965e6194` (`maps` below). `featureGate.Add`'s `Store` into the filled `known` uses
+  `71de6f043`'s `sameTypeOrNil` (same map type). Still open from this entry: `init_0_ok`,
+  `DefaultMutableFeatureGate_init` (k8s `component-base/featuregate`, `regexp`), `addFeatureGateMetrics`.
 
 ### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
 
@@ -490,6 +500,14 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `SetFromMap`/`GetAll`/`DeepCopy` (`maps.Copy`): `features.NewDefaultServerFeatureGate.wp_proof` stays an
   axiom until `Clone` has a spec at that type (the local `maps.Clone.spec_strBool` is at `map[string]bool`
   only; a second local instance would be a new trust-boundary axiom, for approval).
+  (2026-11-23, `featuregate-3`) Perennial's `maps` (`70706ce5e`) specifies `Clone` and `Equal`
+  generically; `Copy` is translated with no spec. This repository proves one (`Spec/maps/Copy.lean`,
+  `maps.Copy.spec`, at any `M1 M2 ↓u map[Kt]Vt` with safe keys: `dst ↦$ D ∗ src ↦${dq} S` to
+  `dst ↦$ (S ∪ D)`, by `wp_map_for_range`; its loop state `maps.copyPrefix`, `Proof/maps/CopyPrefix.lean`).
+  **Landed in Perennial** `6965e6194` (2026-11-23, the same spec and proof: `Perennial/Spec/maps/Copy.lean`,
+  `maps.wp_Copy`, `maps.copyPrefix` in `Proof/maps/Base.lean`), not yet in the pin; this repository's
+  copy (`Spec/maps/Copy.lean`, `Proof/maps/{Copy,CopyPrefix}.lean`) goes at the pin bump that brings it
+  (requested on #9).
 - **Workaround here.** Four trust-boundary specs at the checker's types only
   (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
   iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
@@ -516,6 +534,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   theorems from them (trust base -2). Still open: iterator specs (`Keys`, `slices.Sorted`/`Collect`,
   item 3's protocol), so `maps.Keys.wp_proof_objMap` stays an axiom; and a spec of `maps.Copy`
   (translated, no spec), which `featuregate.Add` needs.
+- **Status (2026-11-23, maps-keys).** The iterator specs are in Perennial `ccfeb3895` (in the pin):
+  `maps.wp_Sorted_Keys_string`. `maps.Keys.wp_proof_objMap` is a theorem from it (trust base -1), with
+  its premise `GMap.size M ≤ 2^62` added to `spec_objMap` (ledger, 2026-11-23) and supplied by the
+  k8s checker's model invariant (`itemsRO`).
 
 
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
@@ -4244,3 +4266,22 @@ execution. Also local, for Perennial: `Exts.globalStart`'s projection at an exte
   Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
   (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
   beside `Printf`'s. Not filed yet.
+
+## 2026-11-23: `runtime.Version` has no name (etcdserver's `init.0`, claim #39, branch `etcd-small-3`)
+
+- **Limitation.** Perennial's `runtime.toml` translates nothing but `Gosched` (trusted), so `runtime.Version`
+  has no Lean name: goose emits `FuncResolve _root_.Perennial.runtime.Version` for a call to it, which does
+  not elaborate. etcdserver's first `init` (`metrics.go:167`, etcd `edc800c6f262`) ends with
+  `currentGoVersion.With(prometheus.Labels{"server_go_version": goruntime.Version()}).Set(1)`, so it cannot
+  be translated, and its metric registrations stay under the trust-boundary axiom `initFuncsOk` (narrowed
+  on this branch to `init.«0»`: `init.«1»`/`init.«2»`, the `expvar.Publish`es, are trusted no-op models).
+- **Proposed.** In Perennial: `runtime.Version` trusted, as a GooseLang model reading `buildVersion` (a
+  package variable the linker sets: the toolchain's version, e.g. `go1.27.3`, or `devel ...`), with a spec
+  returning an ASCII string (what `GaugeVec.With`'s `labelMapOk` premise needs: valid UTF-8). The value is
+  fixed by the build, so the model can read a variable whose initial value is any ASCII string.
+- **Then here.** Translate `init.0` (`etcdserver.toml`) and prove it in `etc/gen-init.py` over
+  `MustRegister`'s spec with the metric-name rights (`register(SPECIAL[etcdserver], ...)`, etcdserver joins
+  `PRE_RES`; the coordinator approved adding its 19 names to the closed theorems' `namesUnclaimed`, claim #39),
+  plus `GaugeVec.With`/`Set` for the two version gauges (`version.Version` from api/version's fact). After
+  `prom-registry` (#15) lands, on its `reg_steps`.
+- **Status.** Not filed.

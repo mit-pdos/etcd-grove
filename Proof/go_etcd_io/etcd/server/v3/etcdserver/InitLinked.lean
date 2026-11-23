@@ -28,7 +28,7 @@ public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.InitLinked
 public import Proof.go_etcd_io.etcd.client.pkg.v3.logutil.Init
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.contention.Init
-public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.Init
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.InitLinked
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.notify.Init
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.Init
@@ -51,7 +51,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Init
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.version.InitLinked
-public import Proof.go_etcd_io.etcd.server.v3.features.Init
+public import Proof.go_etcd_io.etcd.server.v3.features.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.lease.InitLinked
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Init
 public import Proof.go_etcd_io.etcd.server.v3.storage.InitLinked
@@ -485,8 +485,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   wp_apply EtcdGrove.go_humanize.Bytes.wp_proof $$ Hd13 as %sRMR -
   try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
-  wp_apply (initFuncsOk init.«1» (by mem_tac))
-  wp_apply (initFuncsOk init.«2» (by mem_tac))
+  -- the translated init.«1»
+  wp_func_call
+  wp_call
+  try wp_auto
+  -- the translated init.«2»
+  wp_func_call
+  wp_call
+  try wp_auto
   -- translated initializer of _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.ConnWriteTimeout))
   ipersist HserverFeatureEnabled
   ipersist HserverID

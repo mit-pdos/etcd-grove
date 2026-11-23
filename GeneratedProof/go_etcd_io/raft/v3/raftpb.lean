@@ -59,7 +59,7 @@ noncomputable instance Entry_access_load_state (l : Loc) (v : go_etcd_io.raft.v3
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Entry_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Entry) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Entry go!"state" l) state' (DFrac.own 1))
@@ -200,7 +200,7 @@ noncomputable instance SnapshotMetadata_access_load_state (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance SnapshotMetadata_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.SnapshotMetadata) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance SnapshotMetadata_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.SnapshotMetadata) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.SnapshotMetadata go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.SnapshotMetadata go!"state" l) state' (DFrac.own 1))
@@ -324,7 +324,7 @@ noncomputable instance Snapshot_access_load_state (l : Loc) (v : go_etcd_io.raft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Snapshot_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Snapshot) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Snapshot_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Snapshot) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Snapshot go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Snapshot go!"state" l) state' (DFrac.own 1))
@@ -444,7 +444,7 @@ noncomputable instance Message_access_load_state (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Message) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance Message_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.Message) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.Message go!"state" l) state' (DFrac.own 1))
@@ -745,7 +745,7 @@ noncomputable instance HardState_access_load_state (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance HardState_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.HardState) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance HardState_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.HardState) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.HardState go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.HardState go!"state" l) state' (DFrac.own 1))
@@ -872,7 +872,7 @@ noncomputable instance ConfState_access_load_state (l : Loc) (v : go_etcd_io.raf
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfState_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfState) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ConfState_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfState) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfState go!"state" l) state' (DFrac.own 1))
@@ -1030,7 +1030,7 @@ noncomputable instance ConfChange_access_load_state (l : Loc) (v : go_etcd_io.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfChange_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ConfChange_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChange) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChange go!"state" l) state' (DFrac.own 1))
@@ -1170,7 +1170,7 @@ noncomputable instance ConfChangeSingle_access_load_state (l : Loc) (v : go_etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfChangeSingle_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ConfChangeSingle_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeSingle) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeSingle go!"state" l) state' (DFrac.own 1))
@@ -1279,7 +1279,7 @@ noncomputable instance ConfChangeV2_access_load_state (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConfChangeV2_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeV2) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ConfChangeV2_access_store_state (l : Loc) (v : go_etcd_io.raft.v3.raftpb.ConfChangeV2) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeV2 go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftpb.ConfChangeV2 go!"state" l) state' (DFrac.own 1))

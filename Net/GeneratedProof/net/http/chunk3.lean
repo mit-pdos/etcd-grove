@@ -73,7 +73,7 @@ noncomputable instance body_access_load_src (l : Loc) (v : net.http.body) (dq : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance body_access_store_src (l : Loc) (v : net.http.body) (src' : io.Reader) :
+noncomputable instance body_access_store_src (l : Loc) (v : net.http.body) (src' : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.body go!"src" l) v.src' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.body go!"src" l) src' (DFrac.own 1))
@@ -169,7 +169,7 @@ noncomputable instance body_access_load_mu (l : Loc) (v : net.http.body) (dq : D
  by
   solve_pointsto_access_struct
 
-noncomputable instance body_access_store_mu (l : Loc) (v : net.http.body) (mu' : sync.Mutex) :
+noncomputable instance body_access_store_mu (l : Loc) (v : net.http.body) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.body go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.body go!"mu" l) mu' (DFrac.own 1))
@@ -369,7 +369,7 @@ noncomputable instance bufioFlushWriter_access_load_w (l : Loc) (v : net.http.bu
  by
   solve_pointsto_access_struct
 
-noncomputable instance bufioFlushWriter_access_store_w (l : Loc) (v : net.http.bufioFlushWriter) (w' : io.Writer) :
+noncomputable instance bufioFlushWriter_access_store_w (l : Loc) (v : net.http.bufioFlushWriter) (w' : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.bufioFlushWriter go!"w" l) v.w' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.bufioFlushWriter go!"w" l) w' (DFrac.own 1))
@@ -523,7 +523,7 @@ noncomputable instance readTrackingBody_access_load_ReadCloser (l : Loc) (v : ne
  by
   solve_pointsto_access_struct
 
-noncomputable instance readTrackingBody_access_store_ReadCloser (l : Loc) (v : net.http.readTrackingBody) (ReadCloser' : io.ReadCloser) :
+noncomputable instance readTrackingBody_access_store_ReadCloser (l : Loc) (v : net.http.readTrackingBody) (ReadCloser' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readTrackingBody go!"ReadCloser" l) v.ReadCloser' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readTrackingBody go!"ReadCloser" l) ReadCloser' (DFrac.own 1))
@@ -555,7 +555,7 @@ noncomputable instance readTrackingBody_access_load_didClose (l : Loc) (v : net.
  by
   solve_pointsto_access_struct
 
-noncomputable instance readTrackingBody_access_store_didClose (l : Loc) (v : net.http.readTrackingBody) (didClose' : sync.atomic.Bool') :
+noncomputable instance readTrackingBody_access_store_didClose (l : Loc) (v : net.http.readTrackingBody) (didClose' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readTrackingBody go!"didClose" l) v.didClose' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readTrackingBody go!"didClose" l) didClose' (DFrac.own 1))
@@ -760,7 +760,7 @@ noncomputable instance connOrError_access_load_idleAt (l : Loc) (v : net.http.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance connOrError_access_store_idleAt (l : Loc) (v : net.http.connOrError) (idleAt' : time.Time) :
+noncomputable instance connOrError_access_store_idleAt (l : Loc) (v : net.http.connOrError) (idleAt' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.connOrError go!"idleAt" l) v.idleAt' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.connOrError go!"idleAt" l) idleAt' (DFrac.own 1))
@@ -1022,7 +1022,7 @@ noncomputable instance bodyEOFSignal_access_load_body (l : Loc) (v : net.http.bo
  by
   solve_pointsto_access_struct
 
-noncomputable instance bodyEOFSignal_access_store_body (l : Loc) (v : net.http.bodyEOFSignal) (body' : io.ReadCloser) :
+noncomputable instance bodyEOFSignal_access_store_body (l : Loc) (v : net.http.bodyEOFSignal) (body' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.bodyEOFSignal go!"body" l) v.body' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.bodyEOFSignal go!"body" l) body' (DFrac.own 1))
@@ -1038,7 +1038,7 @@ noncomputable instance bodyEOFSignal_access_load_mu (l : Loc) (v : net.http.body
  by
   solve_pointsto_access_struct
 
-noncomputable instance bodyEOFSignal_access_store_mu (l : Loc) (v : net.http.bodyEOFSignal) (mu' : sync.Mutex) :
+noncomputable instance bodyEOFSignal_access_store_mu (l : Loc) (v : net.http.bodyEOFSignal) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.bodyEOFSignal go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.bodyEOFSignal go!"mu" l) mu' (DFrac.own 1))

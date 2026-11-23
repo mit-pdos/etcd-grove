@@ -358,6 +358,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+end srv
+
+section srvG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The proposals' mint** (persistent; the cluster's since stage M4, 2026-10-19, allocated once,
 `srvPropMint_alloc`): the authority of raft's fresh-data tokens `F`, each token's data decoding to a
 request claimed under its id (in the cluster's claims, D21e (A): every member's proposals mint
@@ -370,6 +380,16 @@ def srvPropMint (γ : ServerRaftNames) (γi : IdNames) : IProp GF :=
 instance srvPropMint_persistent (γ : ServerRaftNames) (γi : IdNames) :
     Persistent (srvPropMint (GF := GF) γ γi) := by
   unfold srvPropMint; infer_instance
+
+end srvG1
+
+section srv
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **The mint** (see the file header): the authority of raft's fresh-data tokens `F`, each
 token's data decoding to a request claimed under its id; and (2026-10-16, stage R7b) the read

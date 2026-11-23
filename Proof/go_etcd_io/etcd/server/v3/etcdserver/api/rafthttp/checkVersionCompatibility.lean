@@ -30,19 +30,19 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
 
-/-- A version (not `nil`), as an `fmt` argument: its `String()` returns (`fmt.argOk`). -/
+/-- A version (read-only), as an `fmt` argument: its `String()` returns (`fmt.argOk`). -/
 theorem semver_stringMethodSpec (hString : semver.Version.String.spec (GF := GF) (hG := hG))
-    (v : Loc) (hv : v ≠ null) :
-    isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 ⊢
+    (v : Loc) (x : github_com.Masterminds.semver.v3.Version) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 ∗ v ↦□ x ⊢
       fmt.stringMethodSpec ⟨go.GoType.PointerType github_com.Masterminds.semver.v3.Version.ty, #v⟩
         go!"String" := by
-  iintro #Hp
+  iintro ⟨#Hp, #Hv⟩
   rw [fmt.stringMethodSpec_unfold]
   iintro !> %Φ HΦ
-  iapply hString v $$ []
-  · iframe #; ipureintro; exact hv
+  iapply hString v DFrac.discard x $$ []
+  · iframe #
   inext
-  iintro %s -
+  iintro -
   iapply HΦ
 
 theorem rafthttp.checkVersionCompatibility.wp_proof
@@ -94,11 +94,11 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
         exact .cons_string _ _ .nil
       isplitr
       · fmt_arg_method; iright; iright; isplitr
-        · iapply semver_stringMethodSpec hString server Hs $$ Hsp
+        · iapply semver_stringMethodSpec hString server xs; iframe #
         · ipureintro; fmt_method_facts
       isplitr
       · fmt_arg_method; iright; iright; isplitr
-        · iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+        · iapply semver_stringMethodSpec hString ls xls; iframe #
         · ipureintro; fmt_method_facts
       itrivial
     (try wp_auto)
@@ -126,11 +126,11 @@ theorem rafthttp.checkVersionCompatibility.wp_proof
         exact .cons_string _ _ .nil
       isplitr
       · fmt_arg_method; iright; iright; isplitr
-        · iapply semver_stringMethodSpec hString server Hs $$ Hsp
+        · iapply semver_stringMethodSpec hString server xs; iframe #
         · ipureintro; fmt_method_facts
       isplitr
       · fmt_arg_method; iright; iright; isplitr
-        · iapply semver_stringMethodSpec hString ls Hlsnn $$ Hsp
+        · iapply semver_stringMethodSpec hString ls xls; iframe #
         · ipureintro; fmt_method_facts
       itrivial
     (try wp_auto)

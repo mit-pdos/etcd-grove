@@ -32,14 +32,14 @@ theorem semver.New.wp_proof (hString : semver.Version.String.spec (GF := GF) (hG
   iapply wp_fupd
   wp_auto
   icases typedPointsto_not_null_dup _ _ _ $$ v with ⟨v, %Hnn⟩
-  wp_apply hString v_ptr $$ [] as %s -
-  · iframe #; ipureintro; exact Hnn
+  wp_apply hString v_ptr (DFrac.own 1) _ $$ [v] as v
+  · iframe #; iframe v
   ipersist v
   imodintro
   iapply HΦ
   isplitr
   · ipureintro; exact Hnn
-  iexists s
+  iexists _
   iexact v
 
 end proof

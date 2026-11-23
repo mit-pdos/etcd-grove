@@ -112,17 +112,33 @@ theorem toEntries_data_mem {boot : List LogEntry} {base : Nat} {e : EntryM}
 
 end boot
 
-section bootHeap79
+section bootG
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
-/-- **A new cluster of client decisions with a bootstrap log**, of the voters `vs` (`InvNodeRule`'s
+/-- (etcd-dist D7, 2026-11-23) **`nodeBootU` but `proto.Marshal`'s contract** (`bootMarshal`, a WP at the
+holder's heap): what a deployment's start, which has no heap, allocates for each voter; the voter's own
+`bootMarshal` makes it `nodeBootU` (`nodeBootU_of_G`). -/
+def nodeBootUG (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id : w64) :
+    IProp GF :=
+  iprop(isClusterU γ N ∗
+    ⌜id ∈ ps ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧
+      γ.raft.reCfg = GMap.listToSet ps ∧
+      (∃ g, ModeDec γ (Membership.simple (GMap.listToSet ps)) g) ∧ BootLogOk ps γ.raft.reBoot⌝ ∗
+    isCommitted γ.raft γ.raft.reBoot ∗
+    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1))
+
+instance nodeBootUG_persistent (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (id : w64) : Persistent (nodeBootUG (GF := GF) γ N ps ctxs id) := by
+  unfold nodeBootUG; infer_instance
+
+/-- (etcd-dist D7, 2026-11-23) **`cluster_alloc_boot_impl_tr` over the global ghost state**: without
+`proto.Marshal`'s contract, each voter's `nodeBootUG` (`nodeBootU` but `bootMarshal`, a WP at the holder's
+heap). **A new cluster of client decisions with a bootstrap log**, of the voters `vs` (`InvNodeRule`'s
 `cluster_alloc` at a non-empty `boot`), (2026-11-11, trace-check S7 part 2) of the trace mode `tr`
 (`cluster_alloc_traced`; `cluster_alloc_boot_impl` is this at `none`). -/
-theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+theorem cluster_alloc_boot_implG_tr (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (tr : Option GName) (E : CoPset)
     -- (raft-entsize §2) the bound on proposed data (`RaftNames.maxData`): at most `2^31`, and met
     -- by the bootstrap log's entries
@@ -133,17 +149,17 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
     (ns : Bool) (Hns0 : ns = true → boot ≠ []) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     BootLog vs ctxs boot →
-    ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
+    ⊢ |={E}=> ∃ γ,
         ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length ∧
-          γ.raft.reTrace = tr ∧ γ.raft.maxData = mxd ∧ γ.raft.reNoSnap = ns⌝ ∗
+          γ.raft.reTrace = tr ∧ γ.raft.maxData = mxd ∧ γ.raft.reNoSnap = ns ∧
+          γ.raft.reBoot = LogEntry.toEntries boot 0⌝ ∗
           ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         isCommittedLogLb γ boot ∗
-        [∗list] id ∈ vs, nodeBootU γ N vs ctxs id ∗ raftStateU γ id RaftState.init ∗
+        [∗list] id ∈ vs, nodeBootUG γ N vs ctxs id ∗ raftStateU γ id RaftState.init ∗
           nodeVacantU γ id := by
   intro Hrb Hne Hnd Hnz Hlen HB
-  iintro #Hm
   imod budget_alloc_boot (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Loc) (V := CfgNames) with ⟨%tab, Htab⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (w64 × List w8)) with ⟨%g, Hreg, -⟩
@@ -224,7 +240,7 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
   iexists γ
   iframe Hops Hctx Hdc Hblb
   isplitr
-  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL, toEntries_length], Htr0, Hmxd', Hns⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL, toEntries_length], Htr0, Hmxd', Hns, HbootL⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd
@@ -258,13 +274,77 @@ theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List 
   have Hin : id ∈ vs := by
     rw [← GMap.elem_of_list_to_set]
     exact (GMap.elem_of_gset _ _).2 (by cases u; exact Hid)
-  unfold nodeBootU raftStateU nodeVacantU
+  unfold nodeBootUG raftStateU nodeVacantU
   rw [HbootL, Hγb, show RaftState.init.term = W64 0 from rfl]
-  iframe Hdc Hg Hc0 Hm Hbinv Htlb Ht Htlb0
+  iframe Hdc Hg Hc0 Hbinv Htlb Ht Htlb0
   ipureintro
   exact ⟨Hin, Hnd, Hnz, Hlen, Hcfg, ⟨gd, Hmr⟩, Hok⟩
 
 
+
+end bootG
+
+section bootHeap79
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- (etcd-dist D7) **`nodeBootU` is `nodeBootUG` with the bootstrap log's `bootMarshal`.** -/
+theorem nodeBootU_of_G (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id : w64) :
+    nodeBootUG (GF := GF) γ N ps ctxs id ∗ bootMarshal ps ctxs γ.raft.reBoot ⊣⊢
+      nodeBootU (GF := GF) γ N ps ctxs id := by
+  unfold nodeBootUG nodeBootU
+  constructor
+  · iintro ⟨⟨#Hc, %Hp, #Hi, #Hb, #Ht⟩, #Hm⟩
+    iframe Hc Hi Hb Ht Hm
+    ipureintro; exact Hp
+  · iintro ⟨#Hc, %Hp, #Hm, #Hi, #Hb, #Ht⟩
+    iframe Hc Hi Hb Ht Hm
+    ipureintro; exact Hp
+
+/-- **A new cluster of client decisions with a bootstrap log**, of the voters `vs` (`InvNodeRule`'s
+`cluster_alloc` at a non-empty `boot`), (2026-11-11, trace-check S7 part 2) of the trace mode `tr`
+(`cluster_alloc_traced`; `cluster_alloc_boot_impl` is this at `none`). -/
+theorem cluster_alloc_boot_impl_tr (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (tr : Option GName) (E : CoPset)
+    -- (raft-entsize §2) the bound on proposed data (`RaftNames.maxData`): at most `2^31`, and met
+    -- by the bootstrap log's entries
+    (mxd : Option Nat) (Hmxd : ∀ b, mxd = some b → b ≤ 2 ^ 31)
+    (HmxdB : ∀ b, mxd = some b → ∀ e ∈ boot, e.data.length ≤ b)
+    -- (auth-lease S4, 2026-11-16, L-r6) the no-snapshot mode (`RaftNames.reNoSnap`), the caller's
+    -- choice, only with a bootstrap log
+    (ns : Bool) (Hns0 : ns = true → boot ≠ []) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    BootLog vs ctxs boot →
+    ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗ ∃ γ,
+        ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = boot.length ∧
+          γ.raft.reTrace = tr ∧ γ.raft.maxData = mxd ∧ γ.raft.reNoSnap = ns⌝ ∗
+          ownCommittedOps (GF := GF) γ boot ∗
+        ownReadCtxs γ ∅ ∗ isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
+        confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
+        isCommittedLogLb γ boot ∗
+        [∗list] id ∈ vs, nodeBootU γ N vs ctxs id ∗ raftStateU γ id RaftState.init ∗
+          nodeVacantU γ id := by
+  intro Hrb Hne Hnd Hnz Hlen HB
+  iintro #Hm
+  imod cluster_alloc_boot_implG_tr (GF := GF) N vs ctxs boot dup sl tr E mxd Hmxd HmxdB ns Hns0 Hrb Hne
+    Hnd Hnz Hlen HB with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := Hd
+  imodintro
+  iexists γ
+  iframe Hops Hctx Hcl Hdec Hca Hsm Hlb
+  isplitr
+  · ipureintro; exact ⟨h1, h2, h3, h4, h5, h6⟩
+  iapply BigSepL.bigSepL_impl $$ Hbs
+  imodintro
+  iintro %k %id %_ ⟨Hg, Hr⟩
+  iframe Hr
+  iapply (nodeBootU_of_G γ N vs ctxs id).1
+  rw [h7]
+  iframe Hg
+  iexact Hm
 
 end bootHeap79
 

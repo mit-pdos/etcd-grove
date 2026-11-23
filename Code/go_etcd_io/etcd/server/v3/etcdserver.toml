@@ -96,6 +96,9 @@ translate = ["!*",
   "NewServer", "bootstrappedServer", "bootstrappedStorage", "bootstrappedBackend",
   "bootstrappedCluster", "bootstrappedWAL", "AccessController",
   "EtcdServer.restoreAlarms", "EtcdServer.NewUberApplier",
+  # (featuregate-4, 2026-11-23) the feature gauges `NewServer` sets, over featuregate's `GetAll`
+  # and `Enabled` and prometheus's `GaugeVec.With`; until then names-only, a trusted triple
+  "addFeatureGateMetrics",
   # (R-D1, 2026-11-04) the record's close on `NewServer`'s error paths (bootstrap.go): until then
   # a trusted triple of `bootOk` (`#Hclose`), false (a second `Close` panics)
   "bootstrappedServer.Close", "bootstrappedStorage.Close", "bootstrappedBackend.Close",
@@ -201,3 +204,8 @@ imports = ["!*", "context", "io", "errors", "encoding/json", "fmt", "net/http", 
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# (etcd-small-3, 2026-11-23, etcd-grove#39) the two `init`s that publish `expvar` variables (`raft.go`,
+# `server.go`) trusted: models that do nothing (TrustedCode/go_etcd_io/etcd/server/v3/etcdserver.lean;
+# until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.1", "init.2"]

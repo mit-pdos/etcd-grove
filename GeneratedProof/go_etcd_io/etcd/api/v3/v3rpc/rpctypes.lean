@@ -48,7 +48,7 @@ noncomputable instance EtcdError_access_load_code (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance EtcdError_access_store_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (code' : google_golang_org.grpc.codes.Code) :
+noncomputable instance EtcdError_access_store_code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (code' : _root_.Perennial.google_golang_org.grpc.codes.Code) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) code' (DFrac.own 1))

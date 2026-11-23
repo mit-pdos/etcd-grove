@@ -69,7 +69,7 @@ noncomputable instance Message_access_load_ReadCloser (l : Loc) (v : go_etcd_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Message_access_store_ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (ReadCloser' : io.ReadCloser) :
+noncomputable instance Message_access_store_ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (ReadCloser' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) ReadCloser' (DFrac.own 1))
