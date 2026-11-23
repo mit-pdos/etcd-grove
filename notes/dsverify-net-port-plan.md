@@ -1040,6 +1040,35 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `context.WithCancel` (Perennial spec), `time.Now`, the read limit (`setReadLimit`, translated), the
    request-body type switch (`readTransfer` on a request: its spec is the response's), and the response's
    allocation (`newBufioWriterSize(&w.cw, 2048)`, now proved).
+   **The request line and URI (2026-11-23, same branch).** *Translation*: httpguts' `ValidHeaderFieldName` and
+   its table `isTokenTable` (the array literal, so its initializer is translated: `isTokenTable.init` is gone),
+   net/http's `isToken`, `Server.maxHeaderValueCount`, `DefaultMaxHeaderValueCount`; regenerated (`KvNet/`'s
+   copies, `gen-init --check` clean). *`url.ParseRequestURI`, not over its body*: Go's `parse(raw, true)` calls
+   `strings.ToLower` (always) and `strings.Cut(rest, "?")` (Perennial: names only; `Cut`/`Index` reach
+   `bytealg.IndexByteString`, untranslated), `setPath`'s `escape` reads `net/url`'s `table` (a `[[skip]]`
+   variable), and `net/url` is the main tree's names-only translation (bodies would rebuild `zap`, `rafthttp`,
+   `types`): `notes/perennial-changes.md`, 2026-11-23. *Model change* (MODEL, pending the user's review;
+   `models/net/http/textproto_model.go`): `readRequestLimit` calls `modelParseRequestURI`, which on a URI `/`
+   followed by bytes `modelPathByte` accepts (letters, digits, `-_.~$&+,/:;=@`) returns `&url.URL{Path: raw}`
+   (Go's result: no scheme, query, authority, escape or `RawPath`) and otherwise calls Go's function; evidence
+   `internal/httpdifftest`'s `TestReadRequestURI` (every byte after `/`, inside a path, after `//`; 2000 random
+   paths; every `URL` field; golden from the real build), `run.sh` passes. *Proved and linked*
+   (`Results.lean`, Lean's three axioms): `modelParseRequestURI` on a `reqPath` (`RequestDefs.lean`; over
+   `modelPathBytes`, `modelPathByte`), `parseRequestLine` (`parseReqLine`, two `modelCutByte`s), `validMethod`
+   over `isToken` over httpguts' `ValidHeaderFieldName` (`!v.isEmpty && v.all fieldByte`, reading
+   `isTokenTable` through `tokenTable`, `Net/Proof/vendor/.../httpguts/Defs.lean`: the table's value as its
+   initializer sets it, a premise until httpguts' initialization is proved, as `httpEnv`).
+   *Left, in order*: `readRequestLimit` on `CONNECT path HTTP/1.0` + `"\n\n"` (its pieces now all proved:
+   `modelReadLine`, `parseRequestLine`, `validMethod`, `ParseHTTPVersion`, `strings.HasPrefix` (Perennial),
+   `modelParseRequestURI`, `modelReadMIMEHeader`, `Header.get`, `fixPragmaCacheControl`, `shouldClose`; still
+   needed: `readTransfer`'s spec for a `*Request` (it is stated for a `*Response`), `isH2Upgrade`, the deferred
+   `io.EOF` to `io.ErrUnexpectedEOF`; its spec as `ReadResponse.spec`'s over `crHead_stream`/`crHead_prefix`,
+   the failure case any error); `Server.maxHeaderValueCount`, then `conn.readRequest` (`time.Now`,
+   `setReadLimit`/`hitReadLimit`, `http1ServerSupportsRequest`, the `Host` checks on an empty header,
+   `context.WithCancel`, the body type switch on `NoBody`, the response's allocation); the decided 400 change
+   (`respProto` also allows prefixes of `badReqAns`, `ReadResponse.spec` over them, `DialHTTPPath`'s error on
+   it: ledger 2026-11-23, accepted, not applied); then `conn.serve`, `Serve`/`ListenAndServe`, the mux,
+   `HandleHTTP`.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

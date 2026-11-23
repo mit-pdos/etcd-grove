@@ -58,8 +58,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   its body), and `DialHTTPPath` returns its `*OpError` on it (it does already: the status is not
   `connected`). `conn.serve`'s spec states the premise (the acceptor's protocol allows the 400 answer) until
   then.
-- **Decision.** (1) applied (branch `models-rpc-http`, 2026-11-23). (2) pending: a change of `respProto`, the
-  rpc world's client-visible protocol, for the user's review.
+- **Decision.** (1) applied (branch `models-rpc-http`, 2026-11-23). (2) accepted by the user (2026-11-23: `respProto`
+  also allows prefixes of Go's 400 answer, `ReadResponse` accepts that head, `DialHTTPPath` errors on it); not yet
+  applied (`notes/dsverify-net-port-plan.md`, phase 5.2, "The request line and URI", *Left*).
 
 ## 2026-11-23: `http.ReadResponse.spec` over a reader that makes progress; `httpEnv` widened; `connectReader.Read.spec` makes progress; `ReadByte.specNE`; the model's `modelCutByte`/`modelTrimLeftByte` and `connReader.failed` (net/http model, `ReadResponse`'s proof)
 
