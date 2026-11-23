@@ -3,7 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.io
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.github_com.mit_pdos.etcd_grove.third_party.bridge

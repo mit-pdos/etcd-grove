@@ -211,6 +211,16 @@ def lessorGhost (lp : Loc) (γga γcl : GName) (γr : LessorRdNames) (L : List w
 def leaseFrag (γl : GName) (q : Qp) (L : List w64) : IProp GF :=
   ghostMapElem γl true (DFrac.own q) (Sum.inr L : LessorGV)
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- The lessor of `γl` is at `lp`, its grant guard named `γga`, its closers' map `γcl` and its
 reader-side names `γr` (persistent: the ghost map's element `false`, discarded). -/
 def lessorPinAll (γl : GName) (lp : Loc) (γga γcl : GName) (γr : LessorRdNames) : IProp GF :=
@@ -236,6 +246,16 @@ def lessorPinR (γl : GName) (γr : LessorRdNames) : IProp GF :=
 instance lessorPinR_persistent (γl : GName) (γr : LessorRdNames) :
     Persistent (lessorPinR (GF := GF) γl γr) := by
   unfold lessorPinR; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- The lessor of `γl` is at `lp` (persistent). -/
 def lessorPin (γl : GName) (lp : Loc) : IProp GF :=
@@ -630,6 +650,16 @@ def lessorRdInv (γl : GName) : IProp GF :=
 instance lessorRdInv_persistent (γl : GName) : Persistent (lessorRdInv (GF := GF) γl) := by
   unfold lessorRdInv; infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The index `i` of the lessor `γl`'s history is the snapshot `σ`** (persistent). -/
 def lessorAt (γl : GName) (i : Nat) (σ : LSnap) : IProp GF :=
   iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ monoListIdxOwn γr.1 i σ)
@@ -637,6 +667,16 @@ def lessorAt (γl : GName) (i : Nat) (σ : LSnap) : IProp GF :=
 instance lessorAt_persistent (γl : GName) (i : Nat) (σ : LSnap) :
     Persistent (lessorAt (GF := GF) γl i σ) := by
   unfold lessorAt; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- **The owner's witness at the window `w`** (auth-lease S4 item 7b F1, 2026-11-17): in a window `(s, T)`, an index
 `j ≥ s` of the history whose snapshot has the item map `I` (`True` with no window). The owner gives it (`win_wit`) at
@@ -658,6 +698,16 @@ holds, with every id of the history in `U` (`histIn`). `NewLessor` gives it at `
 its id, `Recover` its records' ids; `Revoke`, `Attach` and `Detach` leave it. -/
 def leaseEver (γl : GName) (U : List w64) : IProp GF :=
   iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ dghostVar γr.2.2.2.1 (DFrac.own (1 : Qp).half) U)
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The lease `id` was requested at the TTL `r`** (the lease-expiry plan's S2–S4, Q-S8,
 2026-11-05; persistent): the discarded element of the lessor's requested TTLs' map, which
@@ -681,6 +731,16 @@ def lessorLb (γl : GName) (m : Nat) : IProp GF :=
 instance lessorLb_persistent (γl : GName) (m : Nat) : Persistent (lessorLb (GF := GF) γl m) := by
   unfold lessorLb; infer_instance
 
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
+
 /-- **A snapshot of the history is a lower bound of it** (the lease-expiry plan's E2 revision 5,
 C3): its index. -/
 theorem lessorAt_lb (γl : GName) (i : Nat) (σ : LSnap) :
@@ -689,6 +749,16 @@ theorem lessorAt_lb (γl : GName) (i : Nat) (σ : LSnap) :
   iintro ⟨%γr, #Hp, %hs, %Hhs, #Hlb⟩
   iexists γr, hs; iframe Hp Hlb; ipureintro
   exact (List.getElem?_eq_some_iff.1 Hhs).1
+
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **`l` is the lease of `id` at an index no earlier than `m`** (persistent). -/
 def leaseLiveFrom (γl : GName) (m : Nat) (id : w64) (l : Loc) : IProp GF :=
@@ -727,6 +797,16 @@ def leaseKeysFrom (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoStri
 instance leaseKeysFrom_persistent (γl : GName) (m : Nat) (id : w64) (l : Loc) (ks : List GoString) :
     Persistent (leaseKeysFrom (GF := GF) γl m id l ks) := by
   unfold leaseKeysFrom; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- A smaller lower bound. -/
 theorem lessorLb_le (γl : GName) {m : Nat} (m' : Nat) (h : m' ≤ m) :
@@ -853,6 +933,16 @@ theorem ttlTie_insert (M : GMap w64 Loc) (I I' : GMap LeaseItem w64) (T : GMap w
     rintro rfl; have : M.lookup id = some x := hx; rw [hid] at this; cases this
   rw [GMap.lookup_insert_ne _ _ hne]; exact ht'
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **`ls` is the lease map at the index `i`** (persistent; the lease-read plan, 2026-10-31): its
 pairs `(l, id)` are the map's there, each id once. What `Leases()` returns, in some order. -/
 def leaseMapAt (γl : GName) (i : Nat) (ls : List (Loc × w64)) : IProp GF :=
@@ -897,6 +987,16 @@ def leaseGrantedAt (γl : GName) (i : Nat) (id : w64) : IProp GF :=
 instance leaseGrantedAt_persistent (γl : GName) (i : Nat) (id : w64) :
     Persistent (leaseGrantedAt (GF := GF) γl i id) := by
   unfold leaseGrantedAt; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
+
 
 /-- A granted lease's index is a lower bound of the history (what a reader's `Leases()` takes). -/
 theorem leaseGrantedAt_lb (γl : GName) (i : Nat) (id : w64) :

@@ -1,6 +1,8 @@
 /-
-The trust boundary: `hashStorage.Store` (`hash.go` is names-only: its crc32 hasher has no
-Perennial model; the hash never enters the model).
+The trust boundary: `hashStorage.Store` (names-only; the hash never enters the model). Not because
+of crc32 (`Store` calls none; `hash/crc32` is translated and proved since etcd-grove#14): `Store`
+sorts its hashes with `sort.Slice`, which Perennial leaves names-only (`reflectlite.Swapper` has no
+model; `notes/perennial-changes.md`, "`sort.Slice` is names-only").
 -/
 module
 

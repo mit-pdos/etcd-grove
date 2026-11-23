@@ -1,16 +1,10 @@
 /-
 `reflect.Kind` values compare as `uint`s (Go: `type Kind uint`, `reflect/type.go`): `==` on two
-`Kind`s is the equality of their numbers. Perennial's `reflect` axiomatizes the type `Kind` (its
-underlying type is an axiom), so `v.Kind() != reflect.Slice` (`store.GetList`, `store.go:780`;
-`reflect.Value.Kind.spec` returns `#(W64 23)`) has no semantics without it.
-
-Faithful: Go declares `type Kind uint` (`reflect/type.go`), so `==` on `Kind`s is `uint` equality,
-always defined, and the 64-bit `uint` of the pinned `amd64` toolchain is a `w64`; the translation
-compares with `GoOp GoEquals reflect.Kind.ty` against `#(W64 23)`
-(`examples/k8s7e2attack/attack_test.go` `TestKindIsUint`). The trust boundary: an axiom,
-`Proof/reflect/KindCompare.lean` (decided by etcd-grove-81 after the review of 2026-11-10, where it was
-a pending premise; the general fix, a Perennial translation of `Kind`, is proposed in
-`notes/perennial-changes.md`, "`reflect.Kind` is an axiomatized type"). Lean-first.
+`Kind`s is the equality of their numbers, so that `v.Kind() != reflect.Slice` (`store.GetList`,
+`store.go:780`; `reflect.Value.Kind.spec` returns `#(W64 23)`) compares words. Perennial translates
+`Kind` (`Kind := w64`, `Kind.underlying := go.uint`, reducible; Perennial `3eae9cd1f`), so this is
+`uint`'s comparison, proved from `go.Semantics` (`Proof/reflect/KindCompare.lean`; until 2026-11-23
+an axiom, when Perennial axiomatized `Kind`). Lean-first.
 -/
 module
 

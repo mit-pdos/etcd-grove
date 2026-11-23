@@ -1,31 +1,31 @@
 /-
 **The network's addresses, for a server's listener** (item 4, the server start; Lean-first, no
-Rocq counterpart). Perennial has no network model; these two axiomatized predicates are the
-vocabulary of `net.Listen`'s trust-boundary spec (`Spec/net/Listen.lean`) and of grpc's server
-start (`Proof/google_golang_org/grpc/InvGrpcServer.lean`).
+Rocq counterpart). Since the net swap (etcd-dist D2, 2026-11-22, `notes/etcd-dist-plan.md` §9, "D2's `net`
+half"; design D, the user's decision) `net` is the part `Net/`'s translation over the net extension
+`netExt` (`GooseLang/Ext/Net`), and these are definitions over its ghost state, with one axiomatized
+token left:
 
-* `netAddrFree addr` (exclusive): no listener of this program or of any other process is, or
-  will be (other than through this token), bound at the address `addr`, and (2026-11-14, the
-  network fault review; reworded after the independent review) no other process connects to it,
-  and the program's own connections to it carry requests of its verified or trust-boundary
-  clients, or etcd's names-only peer requests that need no protocol knowledge
-  (`addrsUnclaimed`'s parts (a) and (b), `Proof/runtime/Start.lean`, which program start turns
-  into this token). The closed-world
-  assumption of the gRPC boundary (`InvGrpc.lean`: the facts `grpcServes addr ...` say what the
-  server at `addr` runs, forever): the program's addresses are its own. Nothing here produces
-  it: a program's adequacy statement takes the free addresses of its initial world, one token
-  each (item 9). `net.Listen(addr)` consumes it and never gives it back, so an address is
-  listened on at most once in a run (Go would let a program listen again after closing the
-  listener, or after grpc's `Serve` returned and closed it; such a program has no spec here).
-* `netListenerAt l addr` (exclusive): the `net.Listener` `l` is bound at `addr` and accepts the
-  connections dialed to `addr` by the program (no other process dials it, `netAddrFree`); nothing has
-  accepted on it yet (grpc's `Serve` takes it,
-  `grpc.start`).
+* `addrClaim addr` (exclusive, axiomatized): the program's closed-world claim on `addr`'s requests: the
+  program's own connections to `addr` carry requests of its verified or trust-boundary clients (until
+  2026-11-22 part (b) of `addrsUnclaimed`, `Proof/runtime/Start.lean`, which program start turned into
+  `netAddrFree`). The grpc and net/http transport axioms (`grpc.start`, `http.register`) rest on it
+  until phase 7 (S2, S5) proves the transport over the net extension. Program start
+  (`goose_adequacy_start`, `Proof/runtime/Start.lean`) hands it out for the addresses `As` of a
+  single-process closed theorem (removed at the net swap, restored 2026-11-23,
+  `notes/single-process-restore.md`); nothing else produces it; `etcd_safe`'s deployment premise is to
+  give it. The same for `httpProtoFree` below (whose docstring predates the restoration: program start
+  gives it again, with `addrClaim`, for the addresses `As`). Consumed by `net.Listen` (into `netListenerAt`),
+  so an address is listened on at most once in a run (`grpcAddrIs_agree`).
+* `netAddrFree addr` := `addrClaim addr ∗ netLisTok addr ∗ ⌜addrOk addr⌝`: the claim, the net
+  extension's right to listen at `addr` (`netLisTok`, from its start resources) and `addr` a valid
+  address (`addrOk`, `GooseLang/Ext/Net/Impl.lean`).
+* `netListenerAt l addr` := the claim and the extension's open listener at `addr` (`netLis`, `netLisAt`),
+  `l` a `*TCPListener` (what Net's `Listen` returns, `Net/Spec/net/Listen.lean`).
 -/
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.net
+public import Net.Proof.net.Base
 
 @[expose] public section
 
@@ -34,22 +34,38 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Net
 
-/-- **The address `addr` is the program's, unbound, dialed only by the program** (exclusive; see
-the file header: `addrsUnclaimed`'s parts (a) and (b)). -/
-axiom netAddrFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
+/-- **The program's closed-world claim on the address `addr`** (exclusive; see the file header). -/
+axiom addrClaim {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 /-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,
-rafthttp stage 6a): program start gives it once per address, with `netAddrFree addr`;
-`http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's protocol before
-its listener exists (a raft member sends to its peers before they listen). Purely ghost: no Go
-operation consumes or needs it. -/
+rafthttp stage 6a): `http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's
+protocol before its listener exists (a raft member sends to its peers before they listen). Purely ghost:
+no Go operation consumes or needs it. Until the net swap (2026-11-22) program start gave it once per
+address, with `netAddrFree`; now nothing does (net/http's S5, or `etcd_safe`'s deployment, is to). -/
 axiom httpProtoFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
-/-- **The listener `l` is bound at `addr`, unused** (exclusive; see the file header). -/
-axiom netListenerAt {GF : BundledGFunctors} [GooseExts] (l : GoInterface) (addr : GoString) :
-  IProp GF
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+
+/-- **The right to listen at `addr`, with the claim on its requests** (see the file header). The
+program has the net extension (`HasExt netExt`, a proposition: inside the predicate, so that its users
+need no instance of it). -/
+def netAddrFree (addr : GoString) : IProp GF :=
+  iprop(addrClaim addr ∗ ∃ _ : HasExt netExt,
+    netLisTok (extGlobalGS netExt (G := hG.goose_globalGS)) addr ∗ ⌜addrOk addr = true⌝)
+
+/-- **The listener `l` is open at `addr`, unused, with the claim on its requests** (see the file
+header). -/
+def netListenerAt (l : GoInterface) (addr : GoString) : IProp GF :=
+  iprop(addrClaim addr ∗ ∃ (_ : HasExt netExt) (t : Loc) (lv : w64),
+    ⌜l = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #t⌝ ∗
+    netLis (extLocalGS netExt (L := hG.goose_localGS)) lv addr true ∗
+    netLisAt (extLocalGS netExt (L := hG.goose_localGS)) lv addr)
+
+end defs
 
 /-! ### Numeric address literals (sweep repairs 1, W5) -/
 

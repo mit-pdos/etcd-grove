@@ -7,7 +7,7 @@ user's decisions of 2026-11-20), restated, with the trust base of each printed i
   sched1, k2, sched2)` does not panic: the two drivers' `MainPartition` triples side by side
   (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/all/Main.lean`), under the named hypothesis of
   `clock.RealClock.After`.
-* **`k8s_safe`** (`Adequacy.lean`'s `k8s_adequate`): the closed theorem. Every real execution of `n`
+* **`k8s_safe_single_process`** (`Adequacy.lean`'s `k8s_adequate`): the closed theorem. Every real execution of `n`
   steps of the package's initialization followed by `Main` with the two schedules built as slice
   literals, from a fresh state with one thread, for every `1 ≤ k₁ ≤ 1000` store members, every
   `1 ≤ k₂ ≤ 600` compactor members (`notes/k8s-compactor-n-plan.md`) and every two schedules: no
@@ -23,6 +23,11 @@ user's decisions of 2026-11-20), restated, with the trust base of each printed i
 These replace the two drivers' five closed theorems (`k8s_etcd3_safe`, `k8s_etcd3_cluster_safe`,
 `k8s_etcd3_partition_safe`, `k8s_compactor_safe`, `k8s_compactor_partition_safe`), retired on
 2026-11-20 (the user's decision D3); the drivers' function triples stay in their `Results.lean`.
+
+(2026-11-23, etcd-grove#28, `notes/single-process-restore.md`: retired at the net swap, tag
+`single-process-final`, and restored over the net extension, `etcdNetExts`, under the `_single_process`
+name; against the tag the statement gains the instance argument `[net.FieldAssumptions]` and the
+network's initial state `Hg : extsInitGlobal g`, the semantics the net extension.)
 -/
 module
 
@@ -53,7 +58,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumpti
 variable [NaInvG GF]
 
 /-- **`Main` does not panic** (`MainLinked.lean`'s `k8s_all.wp_Main`). -/
-theorem k8s_all_Main [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem k8s_all_Main [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [ContextReadErrs (GF := GF) (hG := hG)]
     (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG)) :
     k8s_all.Main.spec (GF := GF) (hG := hG) :=
@@ -62,8 +67,8 @@ theorem k8s_all_Main [go_etcd_io.etcd.cache.v3.Assumptions]
 end results
 
 section adequacy
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 variable [go_gctx : GoGlobalContext]
 
 /-- **The one closed Kubernetes theorem** (`k8s_adequate`, see the file header and `Adequacy.lean`):
@@ -71,13 +76,13 @@ the Kubernetes etcd3 store's partitioned workload on `k₁` members and Kubernet
 partitions on `k₂` more members, at once in one process, for every `1 ≤ k₁ ≤ 1000`, `1 ≤ k₂ ≤ 600` and
 every two schedules: in every real execution of `n` steps from a fresh state with one thread, no thread is
 stuck, none has ended in a panic, and the main thread's result, if any, is `#()`. -/
-theorem k8s_safe [lctx : GoLocalContext] [sem : go.Semantics]
+theorem k8s_safe_single_process [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions] [k8s_io.apimachinery.pkg.runtime.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,
@@ -111,7 +116,7 @@ theorem k8s_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₁ n ids ps ctxs boot)
     (Hprem₂ : ∀ hG : HeapGS .hasLC k8sGF,
       ⊢ k8s_compactorN.premises (GF := k8sGF) (hG := k8sHeapAt hG lctx) k₂ n ids' ps' ctxs' boot')
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (σ : state) (g : GlobalState) (Hg : extsInitGlobal g) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8sDirs k₁ k₂))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
@@ -124,14 +129,14 @@ theorem k8s_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_adequate Hctx Hcec Hafter k₁ hk₁1 hk₁ ids ps ctxs boot Hlen Hbf k₂ hk₂1 (by omega) ids' ps'
     ctxs' boot' Hlen' Hbf' Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps₁ steps₂ Hsteps₁
-    Hsteps₂ HNs HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hsteps₂ HNs HAs HDs HEnv n Hprem₁ Hprem₂ σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 
 #print axioms k8s_all_Main
 #print axioms k8s_adequate
 #print axioms k8s_adequate_below
-#print axioms k8s_safe
+#print axioms k8s_safe_single_process
 
 end EtcdGrove
 end Perennial

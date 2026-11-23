@@ -1,6 +1,0 @@
-# The standard library's `maps` (Perennial does not translate it), names only (project
-# k8s-apiserver; k8s 7g): `Keys`, `Clone`, `Equal`, which the driver's copy of Kubernetes' checker
-# calls; their specs at the checker's types are local trust-boundary axioms until Perennial
-# translates the package (notes/k8s-7g-scope.md §1.2, Q8; notes/perennial-changes.md).
-translate = ["!*"]
-imports = ["!*"]

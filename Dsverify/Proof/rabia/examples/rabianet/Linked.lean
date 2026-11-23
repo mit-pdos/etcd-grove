@@ -16,7 +16,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.ServerProof
 public import Dsverify.Proof.rabia.examples.rabianet.OrchProof
 public import Dsverify.Proof.rabia.examples.rabianet.ModelProof
 public import Dsverify.Proof.rabia.internal.config.CalcConstants
-public import Dsverify.Proof.log.Println
+public import Net.Proof.log.Println
 public import Dsverify.Proof.rabia.roles.server.Link
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Net.Proof.net.Listen
@@ -67,7 +67,7 @@ theorem wp_newClient : newClient.spec (GF := GF) :=
     ProxyAddrs.wp_proof EtcdGrove.dsvrabia.wp_ClientTcpInit EtcdGrove.dsvrabia.wp_ClientTCP_Connect
 
 -- the machines
-theorem wp_Server [github_com.rs.zerolog.Hyps GF] [os.signal.NoSignals GF] :
+theorem wp_Server [github_com.rs.zerolog.Hyps GF] [os.signal.NoSignals os.signal.quietSigs GF] :
     Server.spec (GF := GF) :=
   Server.wp_proof EtcdGrove.dsvrabia.wp_ServerInit EtcdGrove.dsvrabia.wp_Prologue
     EtcdGrove.dsvrabia.wp_ServerMain wp_configure_linked ProxyAddrs.wp_proof NetAddrs.wp_proof

@@ -35,7 +35,7 @@ theorem Report.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I
     (wp_hang : hang.spec (GF := GF) (hG := hG)) :
     Report.spec (GF := GF) (hG := hG) (I := I) (O := O) := by
   intro S a i Φo cd d
-  wp_start as ⟨#Hm, #Ha, #Hcd, HL⟩
+  wp_start as ⟨#Hm, #Ha, #Hcd, HL, Hu⟩
   iunfold wireOk at Hcd
   icases Hcd with ⟨#HEncIn, -, -, #HDecOut⟩
   wp_auto
@@ -49,8 +49,8 @@ theorem Report.wp_proof (wp_attempt : attempt.spec (GF := GF) (hG := hG) (I := I
     have h1 := Hrl.1
     have : sint.nat req.len = uint.nat req.len := by word
     simp only [maxLen]; word
-  wp_apply wp_attempt S a i Φo req (DFrac.own 1) d Hlen $$ [Hreq HL] as %rep %ok ⟨-, Hres⟩
-  · iframe Hm Ha Hreq HL
+  wp_apply wp_attempt S a i Φo req (DFrac.own 1) d Hlen $$ [Hreq HL Hu] as %rep %ok ⟨-, Hres⟩
+  · iframe Hm Ha Hreq HL Hu
   icases Hres with (%Hf | ⟨%v, %Hok, Hrep, Hv⟩)
   · subst Hf
     wp_auto

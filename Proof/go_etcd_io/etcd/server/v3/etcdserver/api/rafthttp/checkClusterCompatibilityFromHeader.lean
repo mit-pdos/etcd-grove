@@ -41,7 +41,7 @@ set_option hygiene false in
 local macro "zap_log" : tactic => `(tactic| (
   repeat' (first_callee
     | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
-    | "String" => (wp_apply hString _ $$ [] as %_ -; (iframe #; ipureintro; assumption))
+    | "String" => (wp_apply hString _ DFrac.discard _ $$ [] as -; iframe #)
     | "zap.String" => (wp_apply hZString as %_ -)
     | "zap.Error" => (wp_apply hZError as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
@@ -96,8 +96,8 @@ theorem rafthttp.checkClusterCompatibilityFromHeader.wp_proof
   (try wp_auto)
   rw [_root_.decide_eq_false Hrsnn]
   (try wp_auto)
-  wp_apply hString rs $$ [] as %rss -
-  · iframe #; ipureintro; exact Hrsnn
+  wp_apply hString rs DFrac.discard _ $$ [] as -
+  · iframe #
   (try wp_auto)
   -- the peer's minimum cluster version, or a panic
   wp_apply hMinCluster hm hs $$ [] as %rmv Hrmv
@@ -111,21 +111,21 @@ theorem rafthttp.checkClusterCompatibilityFromHeader.wp_proof
   (try wp_auto)
   rw [_root_.decide_eq_false Hrmnn]
   (try wp_auto)
-  wp_apply hString rm $$ [] as %rms -
-  · iframe #; ipureintro; exact Hrmnn
+  wp_apply hString rm DFrac.discard _ $$ [] as -
+  · iframe #
   (try wp_auto)
   wp_apply hCheckVC _ rs rm xrs xrm Hrsnn Hrmnn $$ [] as %ls %lm %verr ⟨⟨%Hlsnn, %Hlmnn⟩, ⟨%xls, #Hxls⟩, ⟨%xlm, #Hxlm⟩⟩
   · iframe #
   (try wp_auto)
   rw [_root_.decide_eq_false Hlsnn]
   (try wp_auto)
-  wp_apply hString ls $$ [] as %lss -
-  · iframe #; ipureintro; exact Hlsnn
+  wp_apply hString ls DFrac.discard _ $$ [] as -
+  · iframe #
   (try wp_auto)
   rw [_root_.decide_eq_false Hlmnn]
   (try wp_auto)
-  wp_apply hString lm $$ [] as %lms -
-  · iframe #; ipureintro; exact Hlmnn
+  wp_apply hString lm DFrac.discard _ $$ [] as -
+  · iframe #
   (try wp_auto)
   cases verr with
   | ok ve =>

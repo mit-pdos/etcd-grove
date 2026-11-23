@@ -18,12 +18,16 @@ translate = ["*",
 # looks the value up in `MessageType_name` (protoc-gen-go generates the table and the descriptor
 # whose names `EnumStringOf` returns from the same enum of raft.proto), else `strconv.Itoa`, as
 # `EnumStringOf` (TrustedCode/go_etcd_io/raft/v3/raftpb.lean); the traced send and receive hooks
-# name a message's type by it. The other enums' `String`s stay names-only.
+# name a message's type by it.
+# (#25, 2026-11-23) `ConfChangeType.String` and `ConfChangeTransition.String` are trusted the same way
+# (lookups in `ConfChangeType_name`/`ConfChangeTransition_name`, else `strconv.Itoa`): `DescribeConfChange`
+# formats both with `%v`. Trusted models approved by the coordinator under the user's delegation
+# (2026-11-23); review requested on #25. `EntryType.String` stays names-only.
 # (2026-11-22, the WAL's `WalHsOwn.reset`, the user's approval) `(*HardState).Reset` is trusted: its
 # model stores the zero value, the message-state store left out (the model's docstring says why that is
 # faithful), as walpb's `Record.Reset`. The other messages' `Reset`s stay names-only.
 trusted = ["file_raft_proto_enumTypes", "file_raft_proto_msgTypes", "init.0", "MessageType.String",
-  "HardState.Reset"]
+  "HardState.Reset", "ConfChangeType.String", "ConfChangeTransition.String"]
 
 # confstate.go calls into fmt, slices and proto (Clone, Equal); confchange.go into fmt,
 # strconv, strings and proto (Marshal); raft.pb.go into the protobuf runtime (names only,

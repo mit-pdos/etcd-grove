@@ -47,7 +47,7 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_kvS, pendLib_kvS]
-  wp_start as ⟨Hcore, #Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨Hcore, #Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -77,9 +77,9 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
   try wp_auto
   wp_apply wp_Check (kvR γ) kvS γp m addrs _ cd g _ d pendN_rabia lintestN_rabia
     (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide)
-    (by decide) (by rw [hlen']; decide) $$ [Hlib]
+    (by decide) (by rw [hlen']; decide) 24 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     simp only [kvR]
     iexact Hg
   iapply HΦ

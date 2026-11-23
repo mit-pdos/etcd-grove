@@ -93,6 +93,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+end model
+
+section modelHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 
 theorem kvRaftOfOn_extends (c₀ : w64) (ch : apply.Chain) (B : List EntryModel) :
     ∀ st : OnState, st.2.1 <+: (kvRaftOfOn c₀ ch st B).2.1 := by
@@ -440,6 +452,17 @@ theorem etcdModelOfServer_etcdRevToken (E : apply.AEnv GF) (γr : ReadNames) (on
     (etcdModelOfServer E γr on).etcdRevToken = revTok E := rfl
 theorem etcdModelOfServer_EtcdStep (E : apply.AEnv GF) (γr : ReadNames) (on : Bool) :
     (etcdModelOfServer E γr on).EtcdStep = srvStep γr on := rfl
+
+end modelHF
+
+section model
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-! ## What the server's answers give the clients' model -/
 

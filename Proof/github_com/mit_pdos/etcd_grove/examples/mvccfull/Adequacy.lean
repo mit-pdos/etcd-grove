@@ -386,8 +386,8 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   refine goose_adequacy_start (GF := mvccfullGF) (n + 1) T (mvccfullProgram r) σ g
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
     ⟨trivial, Hfs, trivial⟩ github_com.mit_pdos.etcd_grove.examples.mvccfull.initNames [] []
-    (by decide +kernel) List.nodup_nil
-    List.nodup_nil (fun _ h => absurd h List.not_mem_nil) HNs
+    (by decide +kernel) List.nodup_nil List.nodup_nil
+    (fun _ h => absurd h List.not_mem_nil) HNs
     (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
     HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
   intro hG HN HT HL

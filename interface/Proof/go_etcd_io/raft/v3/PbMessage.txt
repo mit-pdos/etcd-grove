@@ -2,12 +2,24 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def MsgDec.wire (m : MsgDec) : MsgWire :=
+  {
+    msg :=
+      { Type' := m.type, To' := m.to, From' := m.frm, Term' := m.term, LogTerm' := m.logTerm, Index' := m.index,
+        Commit' := m.commit, Vote' := m.vote, Reject' := m.reject, RejectHint' := m.rejectHint },
+    ents :=
+      List.map (fun x => { Term' := x.fst, Index' := x.snd.fst, Type' := x.snd.snd.fst, Data' := x.snd.snd.snd }) m.ents,
+    snap := Option.map SnapDec.model m.snap, ctx := m.ctx }
+
 def pbMessage : PbType GF :=
   { ty := raftpb.Message.ty, M := MsgSt, ro := fun l st => msgOwn l DFrac.discard st, ro_persistent := ⋯,
     marshals := MsgMarshals, wire := MsgWireOk,
     eqv := fun st st' => wireOf st = wireOf st' ∧ (st.resps = [] → st'.resps = []),
     blank := fun l => typedPointsto l (zero_val raftpb.Message) (DFrac.own 1),
     dec := fun l st => msgPtsC l (DFrac.own 1) (DFrac.own 1) true st }
+
+def MetaDec.model (m : MetaDec) : SnapshotMetadataM :=
+  { ConfState' := m.cs.model, Index' := m.index, Term' := m.term }
 
 def MsgWireOk (st : MsgSt) (bs : List w8) : Prop :=
   MsgMarshals st ∧ msgDecode bs = some (wireOf st)
@@ -23,7 +35,8 @@ def MsgDecOk (st : MsgSt) (bs : List w8) : Prop :=
 theorem pbMessage_dec (l : Loc) (st : MsgSt) : pbMessage.dec l st = msgPtsC l (DFrac.own 1)
     (DFrac.own 1) true st
 
-def (sealed) msgDecode (bs : List w8) : Option MsgWire
+def msgDecode (bs : List w8) : Option MsgWire :=
+  Option.map MsgDec.wire (msgDecodeRaw bs)
 
 theorem pbMessage_marshals : pbMessage.marshals = MsgMarshals
 
@@ -40,8 +53,15 @@ theorem pbMessage_M : pbMessage.M = MsgSt
 theorem pbMessage_blank (l : Loc) : pbMessage.blank l = typedPointsto l (zero_val raftpb.Message)
     (DFrac.own 1)
 
+def CSDec.model (c : CSDec) : ConfStateM :=
+  { Voters' := c.voters, Learners' := c.learners, VotersOutgoing' := c.votersOutgoing, LearnersNext' := c.learnersNext,
+    AutoLeave' := c.autoLeave }
+
 def wireOf (st : MsgSt) : MsgWire :=
   { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx }
+
+def SnapDec.model (s : SnapDec) : SnapshotM :=
+  { Data' := s.data, Metadata' := s.md.model }
 
 def MsgMarshals (st : MsgSt) : Prop :=
   st.resps = []

@@ -74,6 +74,24 @@ noncomputable def BEPutUint64 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def BEAppendUint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/byteorder.BEAppendUint64"
 
+/-- go: byteorder.go:27:6 -/
+noncomputable def LEUint32.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "b"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 3)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoOr go.uint32))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint32))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint32))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint32))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 0)))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint32))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint32))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 1)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(8 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint32))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint32))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 2)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(16 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint32))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint32))) (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (Val #(W64 3)))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(24 : Int)))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))
+  (App (Val (GoInstruction (GoLoad go.uint32))) (Var "$res0")))))
+
 /-- go: byteorder.go:103:6 -/
 noncomputable def BEPutUint32.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
@@ -159,10 +177,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  LEUint32_unfold : FuncUnfold LEUint32 [] LEUint32.impl
   BEPutUint32_unfold : FuncUnfold BEPutUint32 [] BEPutUint32.impl
   BEPutUint64_unfold : FuncUnfold BEPutUint64 [] BEPutUint64.impl
 
-attribute [instance] Assumptions.BEPutUint32_unfold
+attribute [instance] Assumptions.LEUint32_unfold
+  Assumptions.BEPutUint32_unfold
   Assumptions.BEPutUint64_unfold
 
 end internal.byteorder

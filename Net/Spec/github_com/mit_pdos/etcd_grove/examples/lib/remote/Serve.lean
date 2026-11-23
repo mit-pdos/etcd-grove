@@ -1,6 +1,7 @@
 /-
 `Serve(addr, sys, op, codec, d)`: the node at `addr` (`svcAddr`) that serves calls of the service
-`S` with `op` over `sys` (`svcOp`, its resource `tok sys`: a store's `opMaybe`, `opMaybe_svcOp`; a
+`S` with `op` over `sys` (`svcOp`, its resource `tok sys`; each call comes with one of `a`'s call units,
+`budUnit a`: a store's `opMaybe`, `opMaybe_svcOp`; a
 report's loop, `reportOp_svcOp`): it listens (`listen`) and serves the connections
 one at a time (`serveConn`). It never returns. Proved in `Net/Proof/.../lib/remote/Serve.lean`.
 -/
@@ -31,7 +32,7 @@ variable {I O : Type} [Pos.Countable I] [Pos.Countable O]
 abbrev Serve.spec : Prop :=
   ∀ (S : RSvc GF I O) (a : GoString) (sys : GoInterface) (op : GoFunc) (cd : remote.Codec)
     (d : w64) (tok : GoInterface → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ svcAddr (Gg := hG.goose_globalGS) S a ∗ wireOk S cd ∗ svcOp S tok op ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote ∗ svcAddr (Gg := hG.goose_globalGS) S a ∗ wireOk S cd ∗ svcOp S a tok op ∗
       tok sys }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.remote.Serve)) (Val #a)) (Val #sys)) (Val #op)) (Val #cd))
       (Val #d))

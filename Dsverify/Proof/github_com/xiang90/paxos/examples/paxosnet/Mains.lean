@@ -44,16 +44,17 @@ theorem wp_main (wp_Orch : paxosnet.Orch.spec (GF := GF) (hG := hG)) (Γ : Names
         ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (woR Γ) a) ∗
         mapCtx (Gg := hG.goose_globalGS) (I := BStr) ∗
         pendCtx (Gg := hG.goose_globalGS) (woR Γ) (woS0 (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (woS0 (GF := GF)) γp (woS0 (GF := GF)).M.init }}
+        pendLib (Gg := hG.goose_globalGS) (woS0 (GF := GF)) γp (woS0 (GF := GF)).M.init ∗
+        [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 3 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Has, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.xiang90.paxos.examples.paxosnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Orch Γ γp hrb $$ [Hlib]
+  wp_apply wp_Orch Γ γp hrb $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
   iapply HΦ
   itrivial
 

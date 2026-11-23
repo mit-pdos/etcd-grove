@@ -32,7 +32,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.UpdateCRC.wp_proof
   iunfold ownDecoder at Hd
   icases Hd with ⟨%sl, %fbrs, %h, %rs, #Hmu, Hbrs, #Hsl, Hoff, Hcrc, Hcont, -, Hfbrs, %Hinv⟩
   iunfold walCrcTable at Htab
-  icases Htab with ⟨%tab, #Hg, #Ht⟩
+  icases Htab with ⟨%tab, #Hg, #Ht, #Hc32⟩
   wp_auto
   wp_apply HNew as %l Hl
   iapply HΦ
@@ -44,7 +44,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.UpdateCRC.wp_proof
   · iunfold ownDecCrc
     iexists l, tab
     iframe
-    iframe Ht
+    iframe Ht Hc32
     ipureintro; rfl
   · ipureintro
     exact Hinv
