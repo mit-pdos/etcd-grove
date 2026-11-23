@@ -1,26 +1,16 @@
 # dsv-gryff: dsverify-lab's gryff kit on the net extension (phase 6)
 
-> **LANDING DEPENDENCIES (2026-11-23, landing prep, session 8). Do not land this branch before both
-> have landed on `lean`:**
-> 1. **`models-rpc-http`** (NOT landed; its trusted-model changes await the human's review). This
->    branch merges `origin/models-rpc-http` at `7a40f81699`/`1a4d9546c9` (net/http's Request and
->    Server translated with `mime/multipart`; `DialHTTPPath`/`DialHTTP` specs and proofs over
->    `http.ReadResponse.spec`; `RpcWorld`'s `hs`/`hsAns` handshake fields). Landing gryff first would
->    land those unreviewed trusted-model changes. Its trace here: `etc/goose.py` differs from lean's
->    by exactly models-rpc-http's `mime/multipart` hunk of project `models-net` (an older state of
->    that branch's hunk); `RpcHttpHyp`'s `rpcLisP*`, the statement's premise `net.rpc.DialHTTP.spec`
->    and the server's use of `hs`/`hsAns` all come from it (section "Session 8", below).
->    **Found at the landing prep:** with models-rpc-http merged at `1a4d9546c9`, lean's dsv-epaxos does
->    not build on this branch (`examples/epaxosnet/Start.lean:251`: `RpcWorld.mk` has 4 fields, `hs`,
->    `hsAns` new) and Net's `DialHTTPPath` proof does not compile (`Net/Proof/net/rpc/DialHTTPPath.lean:157`,
->    `irename: unknown hypothesis`; known, hence `DialHTTP.spec` is a premise). gryff's closure needs
->    neither. models-rpc-http must adapt epaxos's start (dsv-gryff's `Start.lean` shows how:
->    `hs := connectReq …, hsAns := connectAns`) before it lands, and gryff then re-merges it.
-> 2. **`dsv-hyp-imports`** (`f7f9c1d190`, off lean `d1c432a3ca`, pushed, not landed): `etc/gen-init.py`'s
->    `HYP_IMPORTS` may be a dict (per hypothesis package). gryff needs it since lean's shared
->    `Dsverify/Proof/math/rand/Init.lean` (dsv-rabia's, over the main tree's `Proof/math/rand/Base`)
->    constrains math/rand's import `sync`, while net/rpc's and net/http's (dsv-epaxos's) constrain
->    none. Merged here; `etc/gen-init.py` equals lean's plus that commit.
+> **LANDING DEPENDENCY (2026-11-23, session 9, pre-adaptation): land this branch only after
+> `models-rpc-http` has landed on `lean`.** This branch merges `origin/lean` `76c00a8d81` and
+> `origin/models-rpc-http` `fda1e58c0a` (not landed: its trusted-model changes await review); landing
+> gryff first would land them. What gryff depends on from it: `RpcWorld`'s `hs`/`hsAns` handshake
+> fields and `rpcAddrP`/`connectReq`/`connectAns` (the server's protocol behind the HTTP CONNECT),
+> and the proved client over HTTP, `net.rpc.DialHTTP.wp` (`Net/Proof/net/rpc/Results.lean`:
+> `DialHTTPPath` over net/http's `ReadResponse`), which replaced the statement's `DialHTTP.spec`
+> premise; `etc/goose.py` differs from lean's by exactly models-rpc-http's `mime/multipart` hunk.
+> After it lands: merge `origin/lean`, rerun `etc/gen-init.py` (PERENNIAL_DIR at the pin) and
+> `etc/dsv/_gryff_boot.py`, rebuild on fk-lean1, `#print axioms`. See "Session 9" below.
+> (`dsv-hyp-imports` has landed; gryff no longer needs it: `HYP_IMPORTS` is the default.)
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:

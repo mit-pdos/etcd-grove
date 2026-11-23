@@ -27,6 +27,7 @@ public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.runtime.Base
+public import Perennial.Proof.slices.Base
 
 @[expose] public section
 
