@@ -933,7 +933,36 @@ tests kept as differential tests against the real library, a "not modelled" pani
    pending the user's review): `connReader.failed` (`models/net/http/server.go`), after a read error no byte (Read and
    `backgroundRead`), Go over Linux; the model's claim excludes served connections with read deadlines (`ReadTimeout`,
    `ReadHeaderTimeout`, `IdleTimeout`, a handler's `SetReadDeadline`). Difftests pass.
-   *Left*: the server's HTTP path (`ServeHTTP`, `HandleHTTP`, net/http's server, item 3 of the session's list);
+   **The server's handler (2026-11-23, same branch; ledger 2026-11-23, "rpc protocols of a listener's
+   addresses").** *Wildcard listeners*: the rpc protocols are per address (`reqProto W a`), and `lis_set_proto`
+   gives a listener's addresses one pair; `lisProtoD la P Q` (`GooseLang/Ext/Net/Proto.lean`) gives each address
+   `a` the listener takes its own `P a`, `Q a` (`lis_set_protoD`, `lisProtoD_addr`, `listen_lisD_au`,
+   `accept_addrs_shared_au`, proved), and `rpcLisP W la hs hsAns` (`Proto.lean`) is that with `reqProto W`/`respProto
+   W` and the registry, every address `la` takes with the handshake `hs`/`hsAns`: `rpcLisP_addr` (each address's
+   `rpcAddrP`), `rpcLisP_addrOk`, `rpcLisP_lis` (`Listen.spec`'s update), `rpcLisP_ok`, `rpcLisP_set` (from
+   `lisUnset la`; premises `listenOk la` and the world's handshake at the addresses). `Server.Accept.spec` takes
+   `netLisOn l la` and `□ ∀ a, ⌜addrOk a ∧ lisAccepts la a⌝ → rpcAddr W a ∗ srvServes γs C W a`: each connection is
+   served at the address it was dialed to (`isRpcConn W a`); the exact-address shape is `Server.Accept.specAddr`,
+   derived (`AcceptAddr.lean`; `Server.Accept.wp_addr`). *A cut handshake answer*: `ServeHTTP` writes `connectAns`
+   with one `Write` and ignores its error, so `rpcAccepted` now has a prefix of `W.hsAns a` written, `srvSendInv`
+   allows that before the first answer, and `ansPend` holds `sentLb cn true (W.hsAns a)` (`hsAns_of_read`: a reader
+   past the dialer's handshake knows the whole answer was written), which `sendResponse` uses for the first answer.
+   *`Server.ServeHTTP` proved and linked*: on a `CONNECT` request (`reqHead`, `Net/Proof/net/http/ServerDefs.lean`)
+   with the head `W.hs a` (not empty) read and `hijackOk rp cn a (reqProto W a) (respProto W a) (W.hs a)` (the right
+   to call `Hijack()` on the `*response`, stated as its weakest precondition: the acceptor's end, the head read exactly,
+   nothing written, its fresh token), it hijacks, writes the answer (`hsAns_proto`) and runs `ServeConn`. The 405 path
+   is outside the spec: net/http's server gives the handler only rpc dialers' `CONNECT`s (`reqProto`).
+   *Left, net/http's server and `HandleHTTP`*: `hijackOk` is what `conn.serve` must give a handler; `HandleHTTP` and
+   `Serve` need `ServeMux.Handle`/`ServeHTTP` (Go 1.22 patterns: `parsePattern`, the routing tree and index, not
+   translated with bodies), `conn.serve` (`context.WithValue`/`WithCancel`, the deferred `recover`, `newBufioReader`'s
+   `sync.Pool`, `setState`, the shutdown flag), `readRequest` (Go's request parse on the model's head parser,
+   `url.ParseRequestURI`, the `Host` checks) and `Hijack` (`abortPendingRead` with the background read's deadline and
+   `sync.Cond`): their translation (`Net/Code/net/http.toml`) and specs first. The shapes to state, as the kits'
+   hypotheses (kaashoek's `RpcHttpHyps.lean`, dsv-swiftpaxos): `handlerOk W A path h` (for every `a` of `A`, `h`'s
+   `ServeHTTP` on a `CONNECT` with `hijackOk` and `reqHead`: `Server.ServeHTTP.spec` makes it for `*Server`),
+   `muxHas W A path` (`DefaultServeMux` routes `path` to such a handler), `Serve` over `rpcLisP W la (connectReq path)
+   connectAns`, `muxHas W (lisAccepts la) path`, `netLisOn`, `lisInv`.
+   *Left*: net/http's server and `HandleHTTP` (above);
    `ServeRequest`; `register`'s logging
    premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
    not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
