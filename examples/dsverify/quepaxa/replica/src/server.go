@@ -100,7 +100,7 @@ func (s *Server) Run() {
 }
 
 /*
-	start the set of gRPC connections and initiate the set of Proposers
+    start the set of gRPC connections and initiate the set of Proposers
 */
 func (s *Server) StartProposers() {
 	// create M number of the Proposers. each have a pointer to the gRPC connections

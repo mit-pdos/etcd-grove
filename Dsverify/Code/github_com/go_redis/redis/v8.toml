@@ -1,0 +1,5 @@
+# Names only: the replica's benchmark mode 1 (`Init`, `redisExecute`) calls go-redis; the kit runs
+# mode 0 (the resident store) and never reaches it (the lab replaced go-redis by a cut-down model,
+# not brought over: notes/dsv-quepaxa.md).
+translate = ["!*"]
+imports = ["!*"]

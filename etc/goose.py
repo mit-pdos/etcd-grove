@@ -932,6 +932,40 @@ PROJECTS = [
         owned=[os.path.join("github_com", "xiang90")],
     ),
     Project(
+        name="dsv-quepaxa",
+        # dsverify-lab's QuePaxa kit (notes/dsv-quepaxa.md; notes/dsverify-net-port-plan.md, phase 6):
+        # the lab's fork of QuePaxa (examples/quepaxa/fork/quepaxa at lab master 915f964, run
+        # quepaxa-bump-1, fork 77b5258) with its kit ported onto examples/lib/remote,
+        # `examples/dsverify/quepaxa` (a Go module of its own, module path the fork's, `raxos`). Into
+        # the part `Dsverify/` (modules `Dsverify.*`), with remote and `net` the part `Net/`'s;
+        # protobuf, lintest, porcupine, bufio and os the main tree's; grpc (from its model,
+        # models/grpc), grpc/codes, grpc/status types and names only into the part (the main tree's
+        # grpc imports the main tree's `net`); yaml.v2, go-redis, io/ioutil and encoding/gob names
+        # only into the part (the lab's cut-down model of go-redis is not brought over).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "dsverify", "quepaxa"),
+        root="Dsverify",
+        module_models={"google.golang.org/grpc": "models/grpc"},
+        lean_roots=["raxos=Dsverify", "gopkg.in/yaml.v2=Dsverify",
+                    "github.com/go-redis/redis/v8=Dsverify", "io/ioutil=Dsverify",
+                    "encoding/gob=Dsverify", "google.golang.org/grpc=Dsverify",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "google.golang.org=", "bufio=",
+                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall="],
+        packages=["gopkg.in/yaml.v2", "github.com/go-redis/redis/v8", "io/ioutil", "encoding/gob",
+                  "google.golang.org/grpc", "google.golang.org/grpc/codes",
+                  "google.golang.org/grpc/status",
+                  "./common", "./configuration", "./proto", "./proto/client", "./replica/src",
+                  "./examples/quepaxanet", "./examples/quepaxanet/cmd/orch"]
+                 + ["./examples/quepaxanet/cmd/client%d" % c for c in range(6)]
+                 + ["./examples/quepaxanet/cmd/server%d" % s for s in range(1, 6)],
+        owned=["raxos", os.path.join("gopkg_in", "yaml_v2"),
+               os.path.join("github_com", "go_redis"), os.path.join("io", "ioutil"),
+               os.path.join("encoding", "gob"), os.path.join("google_golang_org", "grpc")],
+    ),
+    Project(
         name="models-net",
         # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
         # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take

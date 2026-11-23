@@ -1,0 +1,5 @@
+go 1.27
+
+// For etc/goose.py: a project with module_models (models/grpc) is translated through a workspace
+// (its GOWORK copy gets the replace); its -modfile route fails under goose (notes/dsv-quepaxa.md).
+use .

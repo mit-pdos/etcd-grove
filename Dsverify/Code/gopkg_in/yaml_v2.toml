@@ -1,0 +1,5 @@
+# Names only (the lab's goose.sh's config): configuration's `NewInstanceConfig` calls
+# `yaml.UnmarshalStrict`; the kit makes its configuration in code and never reaches it.
+translate = ["!*"]
+imports = ["!*"]
+trusted = ["init.0", "_", "mapItemType", "durationType", "defaultMapType", "ifaceType", "timeType", "ptrTimeType", "base60float", "default_tag_directives", "resolveTable", "resolveMap", "yamlStyleFloat", "allowedTimestampFormats", "structMap", "eventStrings"]
