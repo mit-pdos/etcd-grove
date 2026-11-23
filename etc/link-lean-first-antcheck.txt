@@ -155,6 +155,15 @@ State__ConfEv: State__clone Event__index SubSeq EntriesEqual At IsConf Legal Rec
 State__Net: State__clone setPre Event__term Event__vote Event__commit Event__entries Event__first State__Vote SubSeq EntriesEqual
 
 # W3 (InMemory)
+inMem__T: Event__term
+inMem__c: Event__commit
+inMem__snapsM: Event__has
+inMem__leads: Event__role
+inMem__role1: Event__role
+inMem__es: Event__has Event__entries
+inMem__known: inMem__T TermInts__Has TermInts__Get
+inMem__wins: inMem__leads
+inMem__app: inMem__leads inMem__es
 
 # W4a (onDisk's methods)
 onDisk__w:

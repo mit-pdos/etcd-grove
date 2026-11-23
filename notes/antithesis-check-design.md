@@ -578,3 +578,6 @@ Go loop follows (induction on the fuel); its intermediate states stay within bud
   copies of `StateLaws.lean`'s budget `mono` laws without that file's section instances: there the
   pure laws carry `[GooseExts]` .. `Assumptions` arguments they do not use, which a pure budget law
   cannot supply; a cleanup of `StateLaws.lean` for its owner).
+- **W3 in progress:** 9 of `inMem`'s 17 methods proved (`T`, `c`, `snapsM`, `leads`, `role1`, `es`,
+  `known`, `wins`, `app`). Left: `ld1`, `ll1`, `lc1`, `ll2`, `L`, `cmt`, `newC`, `ok`, `State.InMemory`
+  and `inMemory_within`. Then W4b, W5, W6, W7.
