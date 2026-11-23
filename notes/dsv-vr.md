@@ -122,6 +122,24 @@ After, Add, Merge proved). Changed against the lab: connections are `net.isConn 
 `events.initialize'.spec` dropped (generated Init); the lab's theorem `codec_ok` is the hypothesis
 statement `vsrnet.codecOk : Prop` (finding 2); `vsrnet.jsonCodec` a local instance. Left of log:
 `Proof/log/{Json,Results}` (need Marshal/Unmarshal hypotheses).
+**Done after the hubs:** `Proof/{events,vsrwire}/*` (`1415bd3b4b`; Results on Lean's three axioms over
+the hypotheses in `Proof/events/LibHyps.lean`: `encoding.json.Unmarshal.spec`, `NewEncoder.spec` (over a
+new data class `encoding.json.EncoderRep GF`, `encOk enc w`, mirroring `DecoderRep`: no instance), and
+`Encoder.Encode_conn.spec` (the lab's `jsonstream.wp_Encode_conn`, stated over `net.isConn`/`sendTok`
+at the kit's codec rather than a generic writer contract: a generic one needs `errOrNil` of the
+writer's errors and no `OpError.Error` spec exists), plus the hubs' `vsrnet.codecOk` and
+`events.Decoder.Decode_frame.spec`); `Proof/client/*` (Results on Lean's three axioms over
+`network.TCP.Send.spec`, `∀ jc, events.Event.ToWriter.spec`, `log.slog.Logger.{Error,Debug}.spec`;
+`client.addrs_eq : VsrWire.addrs = ipv4port.addrs := rfl`; `sort.wp_Sort` at `portLt`). The slog
+vocabulary `log.slog.argOk` (ArgWf ∨ errAny ∨ NoFmtArg) and the `Logger.*` specs live in
+`Proof/replica/LibHyps.lean` (canonical; client and network import it; move to `Spec/sloglib.lean`
+later). **Open (events' package facts):** `pkg/events/Base.lean`/`examples/vsrwire/Base.lean` still
+have the weak facts; the hub specs take `hookKnownFull`/`frameDecoderSet` as preconditions. To make
+them package facts: move `frameDecOk`, `rstream`, `hookLockInvFull`, `hookKnownFull`,
+`frameDecoderSet` out of `Spec/events.lean` into a module importing no package `Base` (now a cycle),
+and vsrwire's initialization needs `Decode_frame.spec` (an `InitHyp`-style hypothesis in
+`etc/dsv/vr.py`) and events' init must allocate the hook's flag. Until then the kit gets
+`frameDecoderSet` from a direct `init0` call.
 **Now in progress (helper agents, parallel):** `Proof/replica/*`, `Proof/client/*`, `Proof/network/*`,
 `Proof/{events,vsrwire}/*`, each ending with `Results.lean` over hypotheses for library specs
 (`Proof/<p>/LibHyps.lean`).
