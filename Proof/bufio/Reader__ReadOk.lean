@@ -24,13 +24,13 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG := hG) := by
-  intro br ri Pre S E R p ps hpre
-  wp_start as ⟨Hown, Hp⟩
-  iunfold bufio.ownBufReader at Hown
+theorem bufio.Reader.Read.wp_proofE : bufio.Reader.Read.specE (GF := GF) (hG := hG) := by
+  intro br ri Pre S E Eb szOk R p ps
+  wp_start as ⟨%hpre, #HEb, Hown, Hp⟩
+  iunfold bufio.ownBufReaderE at Hown
   icases Hown with ⟨#Hpkg, #Hrd, %pend, %perr, HI, Hrep⟩
   iunfold bufio.readerRep at Hrep
-  icases Hrep with ⟨%buf, %r, %w, %lb, %lrs, %pre, %post, Hb, Hbuf, %Hrw, #Herr⟩
+  icases Hrep with ⟨%buf, %r, %w, %lb, %lrs, %pre, %post, Hb, Hbuf, %Hrw, #Hpu, #Herr⟩
   obtain ⟨Hr, Hw, Hpos, Hpre, Hty⟩ := Hrw
   ihave %Hplen := ownSlice_len _ _ _ $$ Hp
   ihave %Hlen := ownSlice_len _ _ _ $$ Hbuf
@@ -58,12 +58,12 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
       isplitr
       · ipureintro; exact ⟨rfl, Nat.le_refl _⟩
       isplitl
-      · iunfold bufio.ownBufReader, bufio.readerRep
+      · iunfold bufio.ownBufReaderE, bufio.readerRep
         iframe Hpkg Hrd
         iexists pend, perr
         iframe HI
         iexists buf, r, w, lb, lrs, pre, post
-        iframe Hb Hbuf Herr
+        iframe Hb Hbuf Hpu Herr
         ipureintro; exact ⟨Hr, Hw, Hpos, Hpre, Hty⟩
       isplitl
       · iapply bufio.errAt_nil'
@@ -82,13 +82,13 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
       isplitr
       · ipureintro; exact ⟨rfl, Nat.le_refl _⟩
       isplitl
-      · iunfold bufio.ownBufReader, bufio.readerRep
+      · iunfold bufio.ownBufReaderE, bufio.readerRep
         iframe Hpkg Hrd
         iexists [], interface.nil
         simp only [List.append_nil]
         iframe HI
         iexists buf, r, w, lb, lrs, pre, post
-        iframe Hb Hbuf
+        iframe Hb Hbuf Hpu
         isplitr
         · ipureintro
           exact ⟨Hr, by simpa using Hw, by simpa using Hpos, by simpa using Hpre,
@@ -106,7 +106,7 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
   have hp : pend = [] := List.eq_nil_of_length_eq_zero (by omega)
   subst hp
   simp only [List.append_nil] at Hpos Hpre Hw
-  isimp only [List.append_nil] at HI Herr Hbuf
+  isimp only [List.append_nil] at HI Herr Hbuf Hpu
   rcases perr with ep | _
   · -- a pending error: return it
     wp_auto
@@ -118,13 +118,13 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
     isplitr
     · ipureintro; exact ⟨rfl, Nat.zero_le _⟩
     isplitl
-    · iunfold bufio.ownBufReader, bufio.readerRep
+    · iunfold bufio.ownBufReaderE, bufio.readerRep
       iframe Hpkg Hrd
       iexists [], interface.nil
       simp only [List.append_nil]
       iframe HI
       iexists buf, r, r, lb, lrs, pre, post
-      iframe Hb Hbuf
+      iframe Hb Hbuf Hpu
       isplitr
       · ipureintro; exact ⟨Hr, Hr, Hpos, Hpre, _root_.Perennial.io.ptrTyped_nil⟩
       iapply bufio.errAt_nil'
@@ -132,12 +132,12 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
   wp_auto
   wp_if_destruct
   · -- a large read: straight into `p`
-    wp_apply _root_.Perennial.io.wp_reader_Read ri Pre S E R p ps (hpre R hpsl) $$ [$Hrd $HI $Hp]
+    wp_apply _root_.Perennial.io.wp_reader_Read ri Pre S E R p ps (hpre hpsl) $$ [$Hrd $HI $Hp]
       as %n %err ⟨%data, %Hd, Hp, HI, #Herr2, %Hty2⟩
     obtain ⟨hn, Hd⟩ := Hd
     have hn' := bufio.w64_of_sintZ hn
     subst hn'
-    ihave #Herr2' := bufio.errAt_errE E (R ++ data) err $$ Herr2
+    ihave #Herr2' := bufio.errAt_weaken E Eb (R ++ data) err $$ HEb Herr2
     isimp at Hb
     have hdl : data.length < 2 ^ 63 := by omega
     have hZ : sint.Z (W64 data.length) = data.length := bufio.sint_Z_W64_length hdl
@@ -166,13 +166,13 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
       isplitr
       · ipureintro; exact ⟨hZ, Hd⟩
       isplitl
-      · iunfold bufio.ownBufReader, bufio.readerRep
+      · iunfold bufio.ownBufReaderE, bufio.readerRep
         iframe Hpkg Hrd
         iexists [], interface.nil
         simp only [List.append_nil]
         iframe HI
         iexists buf, r, r, _, _, pre, post
-        iframe Hb Hbuf
+        iframe Hb Hbuf Hpu
         isplitr
         · ipureintro; exact ⟨Hr, Hr, Hpos, Hpre, _root_.Perennial.io.ptrTyped_nil⟩
         iapply bufio.errAt_nil'
@@ -184,25 +184,26 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
       isplitr
       · ipureintro; exact ⟨hZ, Hd⟩
       isplitl
-      · iunfold bufio.ownBufReader, bufio.readerRep
+      · iunfold bufio.ownBufReaderE, bufio.readerRep
         iframe Hpkg Hrd
         iexists [], interface.nil
         simp only [List.append_nil]
         iframe HI
         iexists buf, r, r, _, _, pre, post
-        iframe Hb Hbuf
+        iframe Hb Hbuf Hpu
         isplitr
         · ipureintro; exact ⟨Hr, Hr, Hpos, Hpre, _root_.Perennial.io.ptrTyped_nil⟩
         iapply bufio.errAt_nil'
       ipureintro; exact Hty2
   -- one read into the buffer, then copy
+  ihave ⟨HI, %hPre⟩ := bufio.preUpTo_at S Pre _ R $$ Hpu HI
   wp_apply _root_.Perennial.io.wp_reader_Read ri Pre S E R buf (pre ++ post)
-    (Hpre R _ (by simp at Hpos ⊢; omega) (by simp)) $$ [$Hrd $HI $Hbuf]
+    (hPre _ (by simp at Hpos ⊢; omega) (by simp)) $$ [$Hrd $HI $Hbuf]
     as %n %err ⟨%data, %Hd, Hbuf, HI, #Herr2, %Hty2⟩
   obtain ⟨hn, Hd⟩ := Hd
   have hn' := bufio.w64_of_sintZ hn
   subst hn'
-  ihave #Herr2' := bufio.errAt_errE E (R ++ data) err $$ Herr2
+  ihave #Herr2' := bufio.errAt_weaken E Eb (R ++ data) err $$ HEb Herr2
   isimp at Hb
   simp only [List.length_append] at Hd hl
   have hdl : data.length < 2 ^ 63 := by omega
@@ -223,14 +224,14 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
     isplitr
     · ipureintro; exact ⟨rfl, Nat.zero_le _⟩
     isplitl
-    · iunfold bufio.ownBufReader, bufio.readerRep
+    · iunfold bufio.ownBufReaderE, bufio.readerRep
       iframe Hpkg Hrd
       iexists [], interface.nil
       simp only [List.append_nil]
       iframe HI
       iexists buf, _, _, _, _, [], pre ++ post
       simp only [List.nil_append]
-      iframe Hb Hbuf
+      iframe Hb Hbuf Hpu
       isplitr
       · ipureintro
         refine ⟨rfl, rfl, by simp at Hpos ⊢; omega, ?_, _root_.Perennial.io.ptrTyped_nil⟩
@@ -247,16 +248,20 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
       "Hb" ∷ br ↦ _root_.Perennial.bufio.Reader.mk buf (interface.ok ri) r w perr lb lrs ∗
       "Hbuf" ∷ buf ↦* (pre ++ pend ++ post) ∗
       "%Hrw" ∷ ⌜sint.Z r = pre.length ∧ sint.Z w = pre.length + pend.length ∧
-        0 < (pre ++ pend ++ post).length ∧ bufio.preUpTo Pre (pre ++ pend ++ post).length ∧
+        0 < (pre ++ pend ++ post).length ∧ szOk (pre ++ pend ++ post).length ∧
         _root_.Perennial.io.ptrTyped perr ∧ pend ≠ [] ∧ r = r0 ∧ w = w0⌝ ∗
-      "#Herr" ∷ _root_.Perennial.io.errAt (bufio.errE E) (R ++ pend) perr : IProp GF)
+      "#Hpu" ∷ bufio.preUpTo S Pre (pre ++ pend ++ post).length ∗
+      "#Herr" ∷ _root_.Perennial.io.errAt Eb (R ++ pend) perr : IProp GF)
     $$ [HI Hb Hbuf]
   · iexists data, err, r0, w0, [], (pre ++ post).drop data.length
     simp only [List.nil_append]
-    iframe HI Hb Hbuf Herr2'
-    ipureintro
     have hlen' : (data ++ List.drop data.length (pre ++ post)).length = (pre ++ post).length := by
       simp only [List.length_append, List.length_drop] at Hd ⊢; omega
+    iframe HI Hb Hbuf Herr2'
+    isplitl []
+    rotate_left
+    · iapply bufio.preUpTo_eq hlen'.symm $$ Hpu
+    ipureintro
     refine ⟨?_, ?_, ?_, ?_, Hty2, hne, ?_⟩
     · subst hr0; rfl
     · subst hw0; simpa using hZ
@@ -264,7 +269,7 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
     · rw [hlen']; simpa using Hpre
     · simp
   clear Hif Hd hZ hdl hl hne hw0 hr0 Hr Hw Hpos Hpre Hpre' Hty
-  icases Hst with ⟨%pend, %perr, %r, %w, %pre, %post, HI, Hb, Hbuf, %Hrw, #Herr⟩
+  icases Hst with ⟨%pend, %perr, %r, %w, %pre, %post, HI, Hb, Hbuf, %Hrw, #Hpu, #Herr⟩
   obtain ⟨h1, h2, h3, h3', h3'', h4, h5, h6⟩ := Hrw
   subst r0 w0
   have Hr := h1
@@ -328,7 +333,7 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
       refine ⟨?_, by omega⟩
       rw [hk, hdl]
     isplitl
-    · iunfold bufio.ownBufReader, bufio.readerRep
+    · iunfold bufio.ownBufReaderE, bufio.readerRep
       iframe Hpkg Hrd
       iexists pend.drop ps.length, perr
       rw [List.append_assoc R, List.take_append_drop]
@@ -336,7 +341,7 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
       iexists buf, r + n, w, _, _, pre ++ pend.take ps.length, post
       rw [show pre ++ pend.take ps.length ++ pend.drop ps.length ++ post = pre ++ pend ++ post by
         rw [List.append_assoc pre, List.take_append_drop]]
-      iframe Hb Hbuf Herr
+      iframe Hb Hbuf Hpu Herr
       ipureintro
       refine ⟨?_, ?_, Hpos, Hpre, Hty⟩
       · simp only [List.length_append, hdl]; word
@@ -345,6 +350,18 @@ theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG :
     isplitl
     · iapply bufio.errAt_nil'
     ipureintro; exact _root_.Perennial.io.ptrTyped_nil
+
+/-- The instance of `wp_proofE` at `bufio.errE E` (`bufio.ownBufReader`). -/
+theorem bufio.Reader.Read.wp_proofOk : bufio.Reader.Read.specOk (GF := GF) (hG := hG) := by
+  intro br ri Pre S E R p xs
+  unfold bufio.ownBufReader
+  iintro %Φ ⟨%hpre, Hown, Hp⟩ HΦ
+  iapply bufio.Reader.Read.wp_proofE br ri Pre S E (bufio.errE E) (fun _ => True) R p xs
+    $$ [Hown Hp] HΦ
+  iframe Hown Hp
+  isplitl []
+  · ipureintro; exact hpre
+  iapply bufio.errE_weaken
 
 end proof
 

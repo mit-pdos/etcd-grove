@@ -28,13 +28,13 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 /-- See the file header. -/
 abbrev bufio.Writer.Flush.spec : Prop :=
   ∀ (bw : Loc) (wi : GoInterfaceOk) (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF)
-    (sent pend : List w8) (err : GoInterface),
-  {{ bufio.ownBufWriter bw wi J Q Ew sent pend err }}
+    (sz : Nat) (sent pend : List w8) (err : GoInterface),
+  {{ bufio.ownBufWriter bw wi J Q Ew sz sent pend err }}
     (App (Val (bw @!! go.GoType.PointerType _root_.Perennial.bufio.Writer.ty @!! go!"Flush")) (Val #()))
   {{ (e : GoInterface), RET #e; ∃ k : Nat,
       ⌜k ≤ pend.length ∧ (e = interface.nil → k = pend.length) ∧
         (err ≠ interface.nil → e = err ∧ k = 0)⌝ ∗
-      bufio.ownBufWriter bw wi J Q Ew (sent ++ pend.take k) (pend.drop k) e }}
+      bufio.ownBufWriter bw wi J Q Ew sz (sent ++ pend.take k) (pend.drop k) e }}
 
 end spec
 

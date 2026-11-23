@@ -21,9 +21,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.bufio.Assumptions]
 
-theorem bufio.NewReaderSize.wp_proof : bufio.NewReaderSize.spec (GF := GF) (hG := hG) := by
-  intro ri Pre S E R size hty hpre
-  wp_start as ⟨#Hrd, HS⟩
+theorem bufio.NewReaderSize.wp_proofE : bufio.NewReaderSize.specE (GF := GF) (hG := hG) := by
+  intro ri Pre S E Eb szOk R size
+  wp_start as ⟨%hty, %hsz, #Hpkg, #Hrd, #Hpu, HS⟩
   try wp_auto
   simp only [ite_eq_right_of_eq_false _ _ (eq_false hty), decide_eq_false hty]
   try wp_auto
@@ -38,7 +38,7 @@ theorem bufio.NewReaderSize.wp_proof : bufio.NewReaderSize.spec (GF := GF) (hG :
   wp_apply bufio.wp_reset $$ [$«$r0»] as Hr
   try wp_auto
   iapply HΦ
-  unfold bufio.ownBufReader bufio.readerRep
+  unfold bufio.ownBufReaderE bufio.readerRep
   iframe Hpkg Hrd
   iexists [], interface.nil
   rw [List.append_nil]
@@ -46,14 +46,26 @@ theorem bufio.NewReaderSize.wp_proof : bufio.NewReaderSize.spec (GF := GF) (hG :
   iexists sl, 0, 0, W64 (-1), W64 (-1), [], List.replicate (sint.nat m) (zero_val w8)
   simp only [List.nil_append, List.length_nil, List.append_nil, List.length_replicate]
   iframe Hr Hsl
+  have hmn : sint.nat m = (max (sint.Z size) 16).toNat := by
+    show (sint.Z m).toNat = _; rw [hmZ]
+  rw [hmn]
+  iframe Hpu
   isplitr
   · ipureintro
-    refine ⟨rfl, rfl, ?_, ?_, _root_.Perennial.io.ptrTyped_nil⟩
-    · show 0 < (sint.Z m).toNat; omega
-    · show bufio.preUpTo Pre (sint.Z m).toNat
-      rw [hmZ]; exact hpre
+    refine ⟨rfl, rfl, ?_, hsz, _root_.Perennial.io.ptrTyped_nil⟩
+    omega
   unfold _root_.Perennial.io.errAt
   ileft; ipureintro; rfl
+
+/-- The instance of `wp_proofE` at `bufio.errE E` (`bufio.ownBufReader`). -/
+theorem bufio.NewReaderSize.wp_proof : bufio.NewReaderSize.spec (GF := GF) (hG := hG) := by
+  intro ri Pre S E R size
+  unfold bufio.ownBufReader
+  iintro %Φ ⟨%hty, Hpkg, Hrd, Hpu, HS⟩ HΦ
+  iapply bufio.NewReaderSize.wp_proofE ri Pre S E (bufio.errE E) (fun _ => True) R size
+    $$ [Hpkg Hrd Hpu HS] HΦ
+  iframe Hpkg Hrd Hpu HS
+  ipureintro; exact hty
 
 end proof
 

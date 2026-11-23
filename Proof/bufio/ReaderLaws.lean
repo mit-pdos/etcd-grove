@@ -30,12 +30,16 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 def bufio.readerIface (br : Loc) : GoInterfaceOk :=
   ⟨go.GoType.PointerType _root_.Perennial.bufio.Reader.ty, #br⟩
 
-/-- See the file header. Each read must meet `Pre` at any point of the underlying stream. -/
+/-- See the file header. A read of `m > 0` bytes after the reader returned `R` meets `Pre R m`
+(review R1: only where the reader may read `p` directly, at `R`; its buffer's reads meet `Pre`
+by `bufio.preUpTo`). The condition is vacuous at `m = 0`, so Perennial's `io.ReadFull` and
+`io.ReadAtLeast` apply through the reader as stated (their premise asks it at every
+`ys.length ≤ len(buf)`, `m = 0` included). -/
 theorem bufio.ownBufReader_readerOk
     (wp_Read : bufio.Reader.Read.specOk (GF := GF) (hG := hG))
     (br : Loc) (ri : GoInterfaceOk) (Pre : List w8 → Nat → Prop) (S : List w8 → IProp GF)
     (E : List w8 → GoInterface → IProp GF) :
-    ⊢ _root_.Perennial.io.readerOk (bufio.readerIface br) (fun _ m => ∀ r, 0 < m → Pre r m)
+    ⊢ _root_.Perennial.io.readerOk (bufio.readerIface br) (fun R m => 0 < m → Pre R m)
         (bufio.ownBufReader br ri Pre S E) (bufio.errE E) := by
   unfold _root_.Perennial.io.readerOk bufio.readerIface
   imodintro
@@ -43,8 +47,9 @@ theorem bufio.ownBufReader_readerOk
   imodintro
   iintro %Φ ⟨%hpre, HS, Hp⟩ HΦ
   dsimp only
-  iapply wp_Read br ri Pre S E R p xs hpre $$ [HS Hp] HΦ
+  iapply wp_Read br ri Pre S E R p xs $$ [HS Hp] HΦ
   iframe HS Hp
+  ipureintro; exact hpre
 
 end laws
 

@@ -36,16 +36,18 @@ local macro "writebyte_tail" sent0:term:max pend0:term:max rest0:term:max buf0:t
   iexists $sent0, $pend0 ++ [c]
   isplitr
   · ipureintro
-    exact ⟨Hpre, fun _ => by rw [← List.append_assoc, Heq], fun h => absurd rfl h, by simp⟩
+    exact ⟨Hpre, fun _ => by rw [← List.append_assoc, Heq], fun h => absurd rfl h, by simp,
+      fun hf => ⟨rfl, hfitS hf.2⟩⟩
   iunfold bufio.ownBufWriter, bufio.writerRep
   rw [show $sent0 ++ ($pend0 ++ [c]) = sent ++ pend ++ [c] by rw [← List.append_assoc, Heq]]
   iframe Hpkg Hwr HJ HQc
   iexists $buf0, _, ($rest0).tail
   iframe Hb Hbuf Herr
   ipureintro
-  constructor
+  refine ⟨?_, ?_, ?_⟩
   · simp only [List.length_append, List.length_singleton]; word
-  · simp; omega))
+  · simp; omega
+  · simp only [List.length_append, List.length_singleton, List.length_tail] at Hsz0 ⊢; omega))
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -59,8 +61,9 @@ set_option goose.wp.extras true
 theorem bufio.Writer.WriteByte.wp_proof
     (wp_Flush : bufio.Writer.Flush.spec (GF := GF) (hG := hG)) :
     bufio.Writer.WriteByte.spec (GF := GF) (hG := hG) := by
-  intro bw wi J Q Ew sent pend err c
-  wp_start as ⟨Hown, #HQc⟩
+  intro bw wi J Q Ew sz sent pend err c
+  wp_start as ⟨Hown, HQw⟩
+  ihave #HQall := bufio.wand_pure_persistent _ _ $$ HQw
   iunfold bufio.ownBufWriter at Hown
   icases Hown with ⟨#Hpkg, #Hwr, HJ, #HQ, Hrep⟩
   iunfold bufio.writerRep at Hrep
@@ -82,6 +85,7 @@ theorem bufio.Writer.WriteByte.wp_proof
     iexists buf, n, rest
     iframe Hb Hbuf Herr
     ipureintro; exact Hn
+  ihave #HQc := HQall $$ %rfl
   wp_auto
   wp_apply bufio.wp_Writer_Available $$ Hb as Hb
   have hW0 : sint.Z (W64 0) = 0 := rfl
@@ -90,7 +94,7 @@ theorem bufio.Writer.WriteByte.wp_proof
   · -- the buffer is full: flush it
     have hr : rest = [] := List.eq_nil_of_length_eq_zero (by omega)
     subst hr
-    wp_apply wp_Flush bw wi J Q Ew sent pend interface.nil $$ [HJ Hb Hbuf]
+    wp_apply wp_Flush bw wi J Q Ew sz sent pend interface.nil $$ [HJ Hb Hbuf]
       as %e' ⟨%k, %Hk, Hown⟩
     · iunfold bufio.ownBufWriter, bufio.writerRep
       iframe Hpkg Hwr HJ HQ
@@ -106,8 +110,9 @@ theorem bufio.Writer.WriteByte.wp_proof
       iexists sent ++ pend.take k, pend.drop k
       isplitr
       · ipureintro
-        refine ⟨⟨_, rfl⟩, by simp, fun _ => ?_, by simp⟩
-        simp
+        refine ⟨⟨_, rfl⟩, by simp, fun _ => ?_, by simp, fun hf => ?_⟩
+        · simp
+        · simp only [List.append_nil] at Hn; omega
       iunfold bufio.ownBufWriter, bufio.writerRep
       iframe Hpkg Hwr HJ HQ'
       iexists buf', n', rest'
@@ -125,21 +130,27 @@ theorem bufio.Writer.WriteByte.wp_proof
         "Hb" ∷ bw ↦ _root_.Perennial.bufio.Writer.mk interface.nil buf n0 (interface.ok wi) ∗
         "Hbuf" ∷ buf ↦* (pend0 ++ rest0) ∗
         "%Hst" ∷ ⌜sint.Z n0 = pend0.length ∧ rest0 ≠ [] ∧ sent <+: sent0 ∧
-          sent0 ++ pend0 = sent ++ pend⌝ : IProp GF) $$ [HJ Hb Hbuf]
+          sent0 ++ pend0 = sent ++ pend ∧ (pend0 ++ rest0).length = sz⌝ : IProp GF)
+      $$ [HJ Hb Hbuf]
     · iexists sent ++ pend, [], rest', buf', n'
       simp only [List.append_nil, List.nil_append]
       iframe HJ HQ' Hb Hbuf
       ipureintro
-      refine ⟨Hn'.1, ?_, ⟨_, rfl⟩, ?_⟩
+      refine ⟨Hn'.1, ?_, ⟨_, rfl⟩, ?_, ?_⟩
       · intro h; subst h; simp at Hn'
       · simp
+      · simpa using Hn'.2.2
     icases Hst with ⟨%sent0, %pend0, %rest0, %buf0, %n0, HJ, #HQ, Hb, Hbuf, %Hst⟩
-    obtain ⟨Hn0, Hr0, Hpre, Heq⟩ := Hst
+    obtain ⟨Hn0, Hr0, Hpre, Heq, Hsz0⟩ := Hst
+    have hfitS : pend.length + 1 ≤ sz → sent0 = sent := fun h => by
+      simp only [List.append_nil] at Hn; omega
     writebyte_tail sent0 pend0 rest0 buf0 n0
   have Hr0 : rest ≠ [] := List.ne_nil_of_length_pos (by omega)
   have Hpre : sent <+: sent := List.prefix_refl _
   have Heq : sent ++ pend = sent ++ pend := rfl
   have Hn0 := Hn.1
+  have Hsz0 := Hn.2.2
+  have hfitS : pend.length + 1 ≤ sz → sent = sent := fun _ => rfl
   writebyte_tail sent pend rest buf n
 
 end proof

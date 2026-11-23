@@ -667,6 +667,15 @@ theorem recvTok_L (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
   inext
   iexact Hp
 
+/-- What a reader has read meets its protocol, up to extension, one step later (`recvTokL`'s
+protocol fact is under a later; dsv-bufio, review C2 on #24: with `bufio.ownBufReader_fact`, the
+protocol fact of what a `*bufio.Reader` over a connection has returned, `net.connReader_proto`). -/
+theorem recvTokL_proto (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
+    recvTokL (Gg := Gg) cn s P R ⊢ recvTokL cn s P R ∗ ▷ protoPrefix P cn R := by
+  unfold recvTokL
+  iintro ⟨H, #Hp⟩
+  iframe H Hp
+
 /-- `recvTokL` is `recvTok` one step later: a program step makes it `recvTok`. -/
 theorem recvTokL_later (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8) :
     recvTokL (Gg := Gg) cn s P R ⊢ ▷ recvTok cn s P R := by

@@ -27,10 +27,13 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.NewFileBufReader.wp_proof
     (HNew : bufio.NewReader.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.client.pkg.v3.fileutil.NewFileBufReader.spec (GF := GF) (hG := hG) := by
   intro ri S E r Q hty
-  wp_start as ⟨HS, HFI⟩
+  wp_start as ⟨#Hrs, #Hbd, HS, HFI⟩
   wp_auto
   wp_apply HNew ri S E r hty $$ [HS] as %b Hb
   · iframe
+    isplitr
+    · iexact Hrs
+    iexact Hbd
   ihave ⟨%q, HS, Hcl⟩ := bufio.ownReader_open b ri S E r $$ Hb
   wp_apply HFI $$ %(r ++ q) HS as %fi %err ⟨HS, HQ⟩
   ihave Hb := Hcl $$ HS

@@ -25,12 +25,17 @@ variable [package_sem : _root_.Perennial.bufio.Assumptions]
 theorem bufio.NewWriter.wp_proof
     (wp_NewWriterSize : bufio.NewWriterSize.spec (GF := GF) (hG := hG)) :
     bufio.NewWriter.spec (GF := GF) (hG := hG) := by
-  intro wi J Q Ew W hty
-  wp_start as ⟨#Hwr, HJ, #HQ⟩
+  intro wi J Q Ew W
+  wp_start as ⟨%hty, #Hpkg, #Hwr, HJ, #HQ⟩
   try wp_auto
-  wp_apply wp_NewWriterSize wi J Q Ew W _ hty $$ [$Hpkg $Hwr $HJ $HQ] as %bw Hbw
+  wp_apply wp_NewWriterSize wi J Q Ew W (W64 4096) $$ [$Hpkg $Hwr $HJ $HQ] as %bw Hbw
+  · ipureintro; exact hty
   try wp_auto
-  iapply HΦ $$ Hbw
+  have h4 : bufio.writerSize (W64 4096) = 4096 := by
+    unfold bufio.writerSize; rfl
+  rw [h4] at *
+  iapply HΦ
+  iexact Hbw
 
 end proof
 
