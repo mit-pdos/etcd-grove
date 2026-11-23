@@ -4,7 +4,6 @@ The proofs of the fix-up's helpers: `nodeColor`, `sibling`, `uncle`, `grandparen
 module
 
 public import Dsverify.Spec.github_com.emirpasic.gods.trees.redblacktree.Specs
-public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Iter
 
 @[expose] public section
 

@@ -894,4 +894,27 @@ theorem isTree_of (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB 
 
 end iris
 
+/-! ## Go's boolean conditions -/
+
+section helpers
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+
+include hG sem in
+theorem not_of_not_decide_val {P : Prop} [Decidable P] (h : (#(!decide P) : val) = #true) : ¬P := by
+  haveI : go.BasicIntoValInj := inferInstance
+  intro hp
+  simp only [hp, _root_.decide_true, Bool.not_true] at h
+  exact Bool.false_ne_true (go.intoVal_inj h)
+
+include hG sem in
+theorem of_not_not_decide_val {P : Prop} [Decidable P] (h : ¬ (#(!decide P) : val) = #true) : P := by
+  revert h; by_cases hp : P <;> simp [hp]
+
+include hG sem in
+theorem not_decide_val_false {P : Prop} [Decidable P] (hp : P) : (#(!decide P) : val) = #false := by
+  simp [hp]
+
+end helpers
+
 end Perennial.github_com.emirpasic.gods.trees.redblacktree

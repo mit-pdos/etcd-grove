@@ -4,7 +4,6 @@ The proofs of gods' red-black tree `lookup` and `Get` (`Specs.lean`).
 module
 
 public import Dsverify.Spec.github_com.emirpasic.gods.trees.redblacktree.Specs
-public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Iter
 
 @[expose] public section
 

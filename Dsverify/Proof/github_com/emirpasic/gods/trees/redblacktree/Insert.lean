@@ -6,7 +6,6 @@ representation, and the root's color (black), which the fix-up's safety needs.
 module
 
 public import Dsverify.Spec.github_com.emirpasic.gods.trees.redblacktree.Specs
-public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Iter
 
 @[expose] public section
 
