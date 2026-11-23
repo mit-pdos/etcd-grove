@@ -28,8 +28,8 @@ variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG)) :
     clientCodec.ReadResponseBody.spec (GF := GF) (hG := hG) := by
-  intro c t cn s a la ra body C D Θ P eof ueof ed ef
-  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hacc⟩
+  intro c t cn s a la ra body C D G Θ P eof ueof ed ef
+  wp_start as ⟨#Hrwc, #Hc, #Hio, #Heof, #Hueof, #Hed, #Hef, #HefV, #Hdec, HD, HP, #Hguard, #Hacc⟩
   wp_auto
   wp_apply wp_readFrame t cn s a la ra P eof ueof ed ef
       $$ [$Hc $Hio $Heof $Hueof $Hed $Hef $HefV $HP $Hacc]
@@ -62,9 +62,12 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
     iframe HD
     ipureintro; exact ⟨Hgot, Hpl⟩
   | ok b =>
-    unfold bodyDec
+    unfold bodyDecG
     icases Hdec with ⟨#Hset, #Hd⟩
+    subst Hgot
+    ihave HPG := Hguard $$ %pl %Hpl HP
     wp_auto
+    icases HPG with ⟨HP, HG⟩
     wp_apply wp_getCodec C $$ Hset as %cd #Hcd
     unfold codecIs
     icases Hcd with ⟨%v, #Hv, #Henc, #Hdecok, -⟩
@@ -72,18 +75,18 @@ theorem clientCodec.ReadResponseBody.wp_proof (wp_readFrame : readFrame.spec (GF
     wp_auto
     unfold decOk
     wp_bind (App (App (Val #v.Decode') _) _)
-    iapply Hdecok $$ Hp [HD]
-    · iapply Hd $$ HD
+    iapply Hdecok $$ Hp [HD HG]
+    · iapply Hd $$ HD HG
     inext
     iintro %err %ok Hp %Hiff HΘ Herr
     wp_auto
     iapply HΦ
-    iexists got
+    iexists (frameOf pl)
     iframe HP
     ileft
     iexists pl
     isplitr
-    · ipureintro; exact ⟨Hgot, Hpl⟩
+    · ipureintro; exact ⟨rfl, Hpl⟩
     unfold bodyRes
     iexists ok
     iframe HΘ

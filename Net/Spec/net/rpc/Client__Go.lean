@@ -37,7 +37,7 @@ abbrev Client.Go.spec : Prop :=
       ⌜splitSM sm = some (svc, M) ∧ W.SS a svc = some S ∧ reply ≠ interface.nil⌝ ∗
       ⌜done ≠ null ∧ 0 < sint.Z γf.chanName.chanCap⌝ ∗
       codecSet C ∗ C.enc args (fun bs => iprop(S M bs Φ ∗ Rargs)) ∗ D ∗
-      □ (D -∗ ∀ rep, C.dec rep reply (Θ rep)) ∗
+      □ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep)) ∗
       ghostMapAuth γt 1 (∅ : GMap Unit (Option Nat)) ∗
       callDone γ.conn γt sm args reply done γf K Φ Θ D }}
     (App (App (App (App (Val (c @!! go.GoType.PointerType net.rpc.Client.ty @!! go!"Go"))

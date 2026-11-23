@@ -4,9 +4,12 @@
 predicate `P` and accessor, as `readFrame.spec`), then, unless `body` is `nil` (the frame is
 discarded), the registered codec's `Decode` of its payload into `body`.
 
-The caller's decoding resource `D` is what it gives up for a decoding; `bodyDec C body D Θ`
+The caller's decoding resource `D` is what it gives up for a decoding; `bodyDecG C body D G Θ`
 (persistent) says what it is worth: nothing for a `nil` body, else a registered codec meeting `C`
-and, from `D`, the codec's `dec` of any payload into `body`, `Θ pl` its outcome. It returns:
+and, from `D`, the codec's `dec` into `body` of every payload `pl` with `G pl`, `Θ pl` its outcome.
+The guard `G pl` comes from the caller's reader predicate once the frame is read: from
+`P (frameOf pl)`, a step later, `P (frameOf pl)` again and `G pl` (the reply its protocol delivers
+there; the client's protocol facts come a step after a read, `recvTokL`). It returns:
 
 * after a whole frame `frameOf pl` (at most `maxFrameN` bytes): `nil` with `D` for a `nil` body;
   else the decoding's result `ok` with `Θ pl ok` (`nil` exactly when `ok`, otherwise a decoding
@@ -40,14 +43,16 @@ variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
 /-- See the file header. -/
 abbrev clientCodec.ReadResponseBody.spec : Prop :=
   ∀ (c t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) (body : GoInterface)
-    (C : CodecSpec GF) (D : IProp GF) (Θ : List w8 → Bool → IProp GF)
+    (C : CodecSpec GF) (D : IProp GF) (G : List w8 → IProp GF) (Θ : List w8 → Bool → IProp GF)
     (P : List w8 → IProp GF) (eof ueof ed ef : GoInterface),
   {{ structFieldRef net.rpc.clientCodec go!"rwc" c ↦□
         interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
       net.connAt (GF := GF) t cn s a la ra ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
       globalAddr io.EOF ↦□ eof ∗ globalAddr io.ErrUnexpectedEOF ↦□ ueof ∗
       globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ∗ globalAddr net.rpc.errFrame ↦□ ef ∗
-      errors.newVar net.rpc.errFrame go!"rpc: malformed frame" ∗ bodyDec C body D Θ ∗ D ∗ P [] ∗
+      errors.newVar net.rpc.errFrame go!"rpc: malformed frame" ∗ bodyDecG C body D G Θ ∗ D ∗ P [] ∗
+      □ (∀ pl : List w8, ⌜pl.length ≤ maxFrameN⌝ -∗ P (frameOf pl) -∗
+        ▷ (P (frameOf pl) ∗ G pl)) ∗
       □ (∀ (got : List w8) (m : Nat), P got -∗
         |={⊤,∅}=> ∃ st d, netEnd (extGlobalGS netExt (G := hG.goose_globalGS)) cn s st ∗
           netDir (extGlobalGS netExt (G := hG.goose_globalGS)) cn (!s) d ∗

@@ -8,7 +8,12 @@ functions stand in for gob and reflection.
   which were its own dispatch: here the server's dispatch is net/rpc's own code, through the
   `Receiver`'s `Method`s): `enc v Ψ` is what `Encode(v)` needs, and it returns a fresh slice of
   bytes `bs` with `Ψ bs`; `dec bs ptr Ψ` is what `Decode(bs, ptr)` needs, and it returns `nil`
-  with `Ψ true` or an error (some error, `errAny`) with `Ψ false`; `rcv rcvr Ψ` is what
+  with `Ψ true` or an error (some error, `errAny`) with `Ψ false`. A generated codec's `dec` can
+  hold only of bytes whose type tag names `ptr`'s element type (`Decode` panics `rpcNotModelled`
+  on another listed type's value, a documented deviation from gob), so a caller asks for it only
+  of the bytes the protocol can deliver there (`bodyDecG`); and a decoding that fails partway
+  leaves the fields decoded so far written, so its `Ψ false` can say only that the target holds
+  some value of its type (the codec's own ownership of it), not its old or zero value. `rcv rcvr Ψ` is what
   `Receiver(rcvr)` needs, and it returns a `*Receiver` `rp` with `Ψ rp` (what reflection tells
   `Register`: the server's `rcvrIs`, `ServerDefs.lean`).
 * `codecIs C c` (persistent): `c` holds a `Codec` whose `Encode` and `Decode` meet `C`
@@ -80,8 +85,12 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
     WP (App (Val #fe) (Val #v)) {{ Φ }})
 
 /-- A decoding error: a fresh `errors.New` error (an `*errors.errorString`) whose `Error()` returns
-its message `msg`, not empty, persistently. The generated codec's `Decode` fails only with
-`rpcErrDecode()`, `errors.New("net/rpc model: malformed value")` (`models/net/rpc/rpcgen_core.py`).
+its message `msg`, not empty, persistently. The generated codec's `Decode` returns no other error:
+only `rpcErrDecode()`, `errors.New("net/rpc model: malformed value")`
+(`models/net/rpc/rpcgen_core.py`), on bytes that do not parse. It also panics (`rpcNotModelled`)
+on a type tag that parses but names another type than the target's, and on a `nil` or unlisted
+target: outside any `C.dec` a generated codec meets, so a caller that has `C.dec` of its bytes
+excludes them (`bodyDecG`: the client asks it only of the replies the protocol delivers).
 What the client needs of it: not a `ServerError`, an `Error()`, and a pointer, which `==` compares
 (`input`'s `err == io.EOF`). What the server needs: a message that is not empty, so that the error
 response it sends for a request whose body does not decode is one (`sendResponse` with a
@@ -135,7 +144,10 @@ instance codecSet_persistent (C : CodecSpec GF) : Persistent (codecSet (GF := GF
 
 /-- What a body read needs to decode into `body` from the decoding resource `D` (persistent):
 nothing for a `nil` body (the frame is discarded), else a registered codec meeting `C` and, from
-`D`, its `dec` of any payload, `Θ pl` its outcome. -/
+`D`, its `dec` of any payload, `Θ pl` its outcome. The server's (`ReadRequestBody`, `methodOk`'s
+`NewArg`); asking `dec` of every payload is more than a generated codec with two types or more
+meets (its `Decode` panics on another type's value), as `Client.Call`'s was until 2026-11-23
+(`bodyDecG`): open, ledger 2026-11-23. -/
 def bodyDec (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
     (Θ : List w8 → Bool → IProp GF) : IProp GF :=
   match body with
@@ -145,6 +157,33 @@ def bodyDec (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
 instance bodyDec_persistent (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
     (Θ : List w8 → Bool → IProp GF) : Persistent (bodyDec C body D Θ) := by
   cases body <;> unfold bodyDec <;> infer_instance
+
+/-- `bodyDec` restricted by a guard `G` on the payload: what a body read needs to decode into
+`body` from `D` (persistent): nothing for a `nil` body, else a registered codec meeting `C` and,
+from `D`, its `dec` of every payload `pl` with `G pl`. The reader's protocol supplies `G pl` for
+the payload it reads (`ReadResponseBody`'s guard premise); a generated codec's `dec` holds only of
+bytes of the target's type, so the guard is what lets a caller with such a codec decode at all
+(`Client.Call`: `G rep := Φ rep ""`, the method's answer, which the method's spec gives only for
+replies of the method's reply type). -/
+def bodyDecG (C : CodecSpec GF) (body : GoInterface) (D : IProp GF) (G : List w8 → IProp GF)
+    (Θ : List w8 → Bool → IProp GF) : IProp GF :=
+  match body with
+  | interface.nil => iprop(True)
+  | interface.ok _ => iprop(codecSet C ∗ □ (D -∗ ∀ pl, G pl -∗ C.dec pl body (Θ pl)))
+
+instance bodyDecG_persistent (C : CodecSpec GF) (body : GoInterface) (D : IProp GF)
+    (G : List w8 → IProp GF) (Θ : List w8 → Bool → IProp GF) :
+    Persistent (bodyDecG C body D G Θ) := by
+  cases body <;> unfold bodyDecG <;> infer_instance
+
+/-- The trivial guard of a body read (for a `nil` body, or a codec that decodes every payload). -/
+theorem guard_true (P : List w8 → IProp GF) :
+    ⊢ □ (∀ pl : List w8, ⌜pl.length ≤ maxFrameN⌝ -∗ P (frameOf pl) -∗
+      ▷ (P (frameOf pl) ∗ (iprop(True) : IProp GF))) := by
+  imodintro
+  iintro %pl %_ HP
+  inext
+  iframe HP
 
 /-- What a body read of the payload `pl` gives: `nil` and `D` for a `nil` body; else the
 decoding's outcome. -/
