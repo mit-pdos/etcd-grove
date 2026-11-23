@@ -285,6 +285,28 @@ P4 (d)); when they are, recheck that their tables list these packages.
   else Φ [] msg)` (the server calls `Error()` once), or (b) `Client.Call.spec`'s non-server
   errors get `∃ msg, errMsg err msg` (ErrShutdown, decode and io/net errors have deterministic
   `Error()`), after which `isNodeClient`/`isCoordSvc`'s `errAny` could be strengthened. (2), (3):
+  **Closed (2026-11-23)**: `CodecSrvProof.lean` (`craqSrvCodecLaws`, `encString_inj`, `encMeta_inj`,
+  `encCommitArgs_inj`, `encWriteArgs_inj`, `encClientWriteArgs_inj`, `encPropReq_inj`, `dec_len`)
+  and `Netrpc/BindingsProof.lean` (`craqArgFacts`, `nodeRcv_ok`, `coordRcv_ok`): `lake build`
+  green, `#print axioms nodeRcv_ok`/`coordRcv_ok`: Lean's three (`coordRcv_ok` with premise `HRN`, F1).
+  `examples/craqnet/ServerProof.lean`: `codecFresh` (`isMutex codecMu codecInv ∗ codecUnset`),
+  `wp_Register` (over Net's `SetCodec.spec`) proved.
+  **Finding F2 (open point 3, Net)**: `Register()` = `rpc.SetCodec` needs the exclusive
+  `codecFresh`, which only net/rpc's initialization can give; net/rpc's package fact
+  (`Dsverify/Proof/net/rpc/Base.lean`, the `InitHyp`'s) is persistent and has no such part, and
+  Net has no initialization proof for net/rpc. So every machine's spec (client and server) takes
+  `codecFresh` as a precondition, and the top level needs it from the machine's boot (a premise
+  in the shape Net's eventual package fact decides; a `⊢ |==> codecFresh` premise would be
+  inconsistent: it is a heap points-to). Likewise `srvEnv` (`cliEnv ∗ invalidRequest ↦□ ()`):
+  the package fact has `cliEnv`'s content but not `invalidRequest`; a precondition for now.
+  **Finding F3 (blocks the nodes' `srvServes`, Net)**: Net's `errOk S` (`ServerDefs.lean`: every
+  method spec must accept every non-empty error message, for the server's own error answers)
+  fails for `nodeSpec`'s `Read`: the message `notFoundMsg` ("key doesn't exist") means a
+  linearized not-found (`readCont`, needed by `op`'s `ServerError` case), so a deposit cannot
+  give `Φ [] notFoundMsg` for free. (`coordSpec` meets `errOk`.) Fix in Net: `errOk` over the
+  messages the server itself sends (its decode error's, "can't find service/method", the
+  ill-formed request's), a named set (`srvMsg`), not every message; craq's messages are not in
+  it. Until then `runNode`'s `srvServes` for a chain node needs `errOk (nodeSpec …)` as a premise.
   `examples/craqnet/Conf.lean`, `ConfProof.lean` (a subagent, in progress: `choose`, `plan`,
   `mine`, `encode`, `decode`, `sendConf`, `configure`, `awaitConf` over a trivial protocol at the
   conf addresses).
