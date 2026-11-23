@@ -5286,15 +5286,30 @@ DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
                 f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
                 for n in DSV_NODES}
 
-# project dsv-craq (notes/dsv-craq.md): go-craq's packages and the kit's programs
+# project dsv-craq (notes/dsv-craq.md): go-craq's packages. Not yet those importing net/rpc or
+# net/http (transport/netrpc, the kit examples/craqnet and its commands): their closure reaches the
+# models' package initializers, which nothing proves yet (plan phase 5.2, item 5).
 DSV_CRAQ = 'github_com.despreston.go_craq'
-DSV_CRAQ_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s in range(1, 7)]
-DSV_PKGS += [f'{DSV_CRAQ}.{p}' for p in ['transport', 'transport.netrpc', 'store', 'store.kv',
-                                         'node', 'coordinator', 'examples.craqnet']] + \
-    [f'{DSV_CRAQ}.examples.craqnet.cmd.{n}' for n in DSV_CRAQ_NODES]
-DSV_PROGRAMS.update({f'{DSV_CRAQ}.examples.craqnet.cmd.{n}':
-                     f'Proof/{DSV_CRAQ.replace(".", "/")}/examples/craqnet/cmd/{n}/PkgTable.lean'
-                     for n in DSV_CRAQ_NODES})
+DSV_PKGS += [f'{DSV_CRAQ}.{p}' for p in ['transport', 'store', 'store.kv', 'node', 'coordinator']]
+# go-craq's `errors.New` package variables: each package's fact (its `Base.lean`) is their
+# `errors.newVar`s (as the lab's `PkgState.lean`)
+_CRAQ_ERRS = {'store': ['ErrNotFound', 'ErrDirtyItem'],
+              'node': ['errNoSuccessor', 'errNoTail', 'errNotTail', 'errTailVersion'],
+              'coordinator': ['ErrEmptyChain', 'errLastNode', 'errDisconnected', 'ErrVersions']}
+for _p, _xs in _CRAQ_ERRS.items():
+    SPECIAL[f'{DSV_CRAQ}.{_p}'] = dict(
+        doc=f'''Its fact (`Base.lean`): its error variables ({", ".join("`" + x + "`" for x in _xs)}, translated
+`errors.New` calls) each hold `errors.New` of their message (`errors.newVar`). Its initializer
+allocates them, initializes its imports and runs their translated initializers.''',
+        imports=['Perennial.Proof.errors.NewVar'],
+        alloc_types={x: 'GoInterface' for x in _xs},
+        before=dict({x: ['try wp_auto', f'wp_apply _root_.Perennial.errors.wp_New_errorString as %x{x} ⟨#S{x}, #M{x}⟩']
+                     for x in _xs}, **{'$end': ['try wp_auto']}),
+        finish=[f'ipersist H{x}' for x in _xs] + FIN_PRE[:6] + ['imodintro',
+               'unfold _root_.Perennial.errors.newVar'] +
+               [l for x in _xs[:-1] for l in ['isplitr', f'· iexists _; iframe H{x} S{x} M{x}']] +
+               [f'iexists _; iframe H{_xs[-1]} S{_xs[-1]} M{_xs[-1]}'])
+
 
 def dsv_inits():
     """The part's `Init.lean` files and its programs' `PkgTable.lean`."""

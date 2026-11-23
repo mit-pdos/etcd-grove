@@ -612,10 +612,12 @@ func op(s *Sys, c uint64, x In) Out {
 }
 
 // Client is client machine c's program: remote.ServeClient with its view of the deployment
-// (newSys) and op. It never returns.
+// (newSys, made before: it waits for the configuration once, which remote's newClient may not
+// need) and op. It never returns.
 func Client(c uint64) {
+	s := newSys(c)
 	newClient := func(id int) any {
-		return newSys(c)
+		return s
 	}
 	opc := func(sys any, in any) any {
 		s := sys.(*Sys)

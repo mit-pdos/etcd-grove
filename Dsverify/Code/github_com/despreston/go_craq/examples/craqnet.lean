@@ -2559,19 +2559,23 @@ noncomputable def op.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad Out.ty))) (Var "$res0")))))))
 
 /-- Client is client machine c's program: remote.ServeClient with its view of the deployment
-    (newSys) and op. It never returns.
+    (newSys, made before: it waits for the configuration once, which remote's newClient may not
+    need) and op. It never returns.
 
-    go: kit.go:616:6 -/
+    go: kit.go:617:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc go.uint64))) (Var "c"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))
+  (App (App (Val (GoInstruction (FuncResolve newSys []))) (Val #())) (Var "$a0")))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Sys.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Sys.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "id" (App (Val (GoInstruction (GoAlloc go.int))) (Var "id"))
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Sys.ty) go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "c"))
-  (App (App (Val (GoInstruction (FuncResolve newSys []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Sys.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Sys.ty)))) (Var "s")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2623,13 +2627,15 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.any]))))) (Pair (Var "opc") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Sys.ty)))) (Pair (Var "s") (Var "$r0")))))))))
   (Val #())))
 
 /-- joinMs is chain machine id's delay, after the configuration arrived, before it announces itself
     to the coordinator (Node.Start's AddNode): JoinMs apart in id order, and the last conf.Late
     nodes only after the clients have started (StartMs, then LateMs apart).
 
-    go: kit.go:632:6 -/
+    go: kit.go:634:6 -/
 noncomputable def joinMs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "conf"
@@ -2669,7 +2675,7 @@ noncomputable def joinMs.impl [GooseExts] [GoGlobalContext] : val :=
     a chain machine waits for the configuration, then runs cmd/node's main over the in-memory store
     if id <= N+1, else only waits.
 
-    go: kit.go:644:6 -/
+    go: kit.go:646:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)
@@ -2765,7 +2771,7 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
     in-memory store): its net/rpc server, and its announcement to the coordinator joinMs after the
     configuration arrived. It returns only if the server cannot listen.
 
-    go: kit.go:672:6 -/
+    go: kit.go:674:6 -/
 noncomputable def runNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addr"
