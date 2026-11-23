@@ -322,10 +322,11 @@ def shared (γ : Names) : IProp GF :=
     inv estabN (estabInv γ) ∗
     [∗list] a ∈ protoAddrs, addrProto (Gg := G) a (addrP γ a) (addrQ γ a))
 
-/-- The orchestrator's (node 0's) part: the shared state, the key-value state's half
-(`own_state`'s, empty), its key set (empty: it records the configuration). -/
+/-- The orchestrator's (node 0's) part: the shared state and its key set (empty: it records the
+configuration). The key-value state's half (`kvState`'s) is not here: the start hands it to
+remote's pending library (`Core/Start.lean`). -/
 def orchCore (γ : Names) : IProp GF :=
-  iprop(shared γ ∗ kvHalf γ.rab [] ∗ keysOf γ.rab .orch [])
+  iprop(shared γ ∗ keysOf γ.rab .orch [])
 
 /-- Client node `c`'s part (`c < nC`): the shared state, client `c`'s key set (empty), the right
 to establish its connection to every server node's proxy (it connects to server `c mod n`'s, `n`
