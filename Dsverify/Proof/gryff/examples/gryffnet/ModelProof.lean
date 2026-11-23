@@ -42,6 +42,8 @@ steps to): rewritten to `W64 0` inside `wp_auto` (its extra simp set). -/
 
 attribute [local goose_wp_simp_extra] OpRead OpWrite OpCAS
 
+@[local goose_wp_simp_extra] theorem zero_val_bool : (zero_val Bool : Bool) = false := rfl
+
 /-- `Out{}`. -/
 @[local goose_wp_simp_extra] theorem zero_val_Out : (zero_val Out : Out) = outDone := rfl
 
@@ -86,6 +88,134 @@ theorem wp_apply (v : w64) (i : In) :
     · simp only [h2, _root_.decide_false, ↓reduceIte]
       wp_auto
       iapply HΦ; itrivial
+
+theorem eraseIdx_take_succ {α : Type} (P : List α) (n k : Nat) (x : α) (hx : P[n]? = some x) :
+    (P.take (n + 1)).eraseIdx k =
+      if n = k then (P.take n).eraseIdx k else (P.take n).eraseIdx k ++ [x] := by
+  have hn : n < P.length := (List.getElem?_eq_some_iff.1 hx).1
+  have hl : (P.take n).length = n := by simp; omega
+  rw [List.take_add_one, hx, Option.toList_some]
+  split
+  · subst k
+    rw [List.eraseIdx_append_of_length_le (by omega), hl, Nat.sub_self]
+    simp only [List.eraseIdx_cons_zero, List.append_nil]
+    exact (List.eraseIdx_of_length_le (by omega)).symm
+  · rename_i hne
+    by_cases hk : k < n
+    · rw [List.eraseIdx_append_of_lt_length (by omega)]
+    · rw [List.eraseIdx_of_length_le (by simp; omega), List.eraseIdx_of_length_le (by omega)]
+
+theorem wp_without (p : GoSlice) (P : List In) (i : w64) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ p ↦*□ P }}
+      (App (App (Val (@! gryff.examples.gryffnet.without)) (Val #p)) (Val #i))
+    {{ (q : GoSlice), RET #q; q ↦* P.eraseIdx (sint.nat i) }} := by
+  wp_start as #Hp
+  ihave %Hl := ownSlice_len _ _ _ $$ Hp
+  wp_auto
+  sorry
+
+theorem wp_with (p : GoSlice) (P : List In) (x : In) (hP : P.length < 2 ^ 62) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ p ↦*□ P }}
+      (App (App (Val (@! gryff.examples.gryffnet.«with»)) (Val #p)) (Val #x))
+    {{ (q : GoSlice), RET #q; q ↦* (P ++ [x]) }} := by
+  wp_start as #Hp
+  ihave %Hl := ownSlice_len _ _ _ $$ Hp
+  wp_auto
+  sorry
+
+theorem wp_sameCfg (a b : Cfg) (A B : List In) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ a.Pend' ↦*□ A ∗ b.Pend' ↦*□ B }}
+      (App (App (Val (@! gryff.examples.gryffnet.sameCfg)) (Val #a)) (Val #b))
+    {{ RET #(decide (a.V' = b.V' ∧ A = B)); True }} := by
+  wp_start as ⟨#Ha, #Hb⟩
+  ihave %HA := ownSlice_len _ _ _ $$ Ha
+  ihave %HB := ownSlice_len _ _ _ $$ Hb
+  wp_auto
+  by_cases h1 : ¬ a.V' = b.V'
+  · simp only [h1, _root_.decide_false, Bool.not_false]
+    wp_auto
+    simp only [false_and, _root_.decide_false]
+    iapply HΦ; itrivial
+  have h1 := Classical.not_not.mp h1
+  simp only [h1, _root_.decide_true, Bool.not_true]
+  wp_auto
+  by_cases h3 : ¬ a.Pend'.len = b.Pend'.len
+  · simp only [h3, _root_.decide_false, Bool.not_false]
+    wp_auto
+    have : ¬ A = B := fun e => h3 (by
+      have := HA.1; have := HB.1; subst e; word)
+    simp only [true_and, decide_eq_false this]
+    iapply HΦ; itrivial
+  have h3 := Classical.not_not.mp h3
+  simp only [h3, _root_.decide_true, Bool.not_true]
+  wp_auto
+  have hAB : A.length = B.length := by rw [HA.1, HB.1, h3]
+  ihave HI : (∃ i : w64, "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z a.Pend'.len ∧
+        A.take (sint.nat i) = B.take (sint.nat i)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    have h0 : sint.nat (W64 0) = 0 := rfl
+    refine ⟨by word, by word, by rw [h0]; simp⟩
+  wp_for HI
+  obtain ⟨Hi0, Hil, Ht⟩ := Hi
+  wp_if_destruct
+  · have hlt : sint.Z i < sint.Z a.Pend'.len := Hif
+    list_elem A (sint.nat i) as x
+    list_elem B (sint.nat i) as y
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z a.Pend'.len from ⟨Hi0, hlt⟩)]
+    wp_apply wp_load_slice_index a.Pend' (sint.Z i) A _ x Hi0 $$ [Ha] as -
+    · iframe Ha; ipureintro; exact Hx_lookup
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z b.Pend'.len from ⟨Hi0, h3 ▸ hlt⟩)]
+    wp_apply wp_load_slice_index b.Pend' (sint.Z i) B _ y Hi0 $$ [Hb] as -
+    · iframe Hb; ipureintro; exact Hy_lookup
+    have hne : x ≠ y → ¬ A = B := fun hxy e => hxy (by
+      subst e; rw [Hx_lookup] at Hy_lookup; exact Option.some.inj Hy_lookup)
+    by_cases hxy : x = y
+    · subst hxy
+      simp only [_root_.decide_true]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1
+      iframe
+      ipureintro
+      have hs : sint.nat (i + W64 1) = sint.nat i + 1 := by word
+      refine ⟨by word, by word, ?_⟩
+      rw [hs, List.take_add_one, List.take_add_one, Ht, Hx_lookup, Hy_lookup]
+    · have hAB' := hne hxy
+      by_cases e1 : x.Op' = y.Op'
+      · simp only [e1, _root_.decide_true]
+        wp_auto
+        by_cases e2 : x.A' = y.A'
+        · simp only [e2, _root_.decide_true]
+          wp_auto
+          have e3 : ¬ x.B' = y.B' := fun e3 => hxy (by
+            cases x; cases y; simp only at e1 e2 e3; subst e1 e2 e3; rfl)
+          simp only [e3, _root_.decide_false]
+          wp_auto
+          wp_for_post
+          simp only [true_and, decide_eq_false hAB']
+          iapply HΦ; itrivial
+        · simp only [e2, _root_.decide_false]
+          wp_auto
+          wp_for_post
+          simp only [true_and, decide_eq_false hAB']
+          iapply HΦ; itrivial
+      · simp only [e1, _root_.decide_false]
+        wp_auto
+        wp_for_post
+        simp only [true_and, decide_eq_false hAB']
+        iapply HΦ; itrivial
+  · have heq : sint.Z i = sint.Z a.Pend'.len := by omega
+    have hn : sint.nat i = A.length := by
+      rw [HA.1]; show (sint.Z i).toNat = _; rw [heq]
+    have e : A = B := by
+      rw [hn, List.take_length, hAB, List.take_length] at Ht
+      exact Ht
+    simp only [true_and, decide_eq_true e]
+    iapply HΦ; itrivial
 
 end proof
 
