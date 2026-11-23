@@ -63,6 +63,7 @@ public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Hash
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.WireWf
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.L2Words
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Model.LinCut
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
 
 @[expose] public section
 
@@ -159,7 +160,7 @@ def linPuts (G : Seq) : List (GoString × GoString) :=
   (G.filter (fun p => p.2.isPut)).map (fun p => (lin.keyName p.2.key, p.2.val))
 
 section defs
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
 /-! ## Persistent facts -/
 
@@ -215,7 +216,7 @@ C12). -/
 def doneRes (γ : Names) (x : CmdId) (o : List w8) : IProp netDistGF :=
   ghostMapElem γ.dec x .discard o
 /-- Connection `cid` to a replica's port carries `k`'s messages. -/
-def connKind (γ : Names) (cid : w64) (k : ConnKind) : IProp netDistGF :=
+def connKind (γ : Names) (cid : Nat) (k : ConnKind) : IProp netDistGF :=
   ghostMapElem γ.conn cid .discard k
 
 /-- Change log C22 (M3, decision D19): replica `r` numbered `x` with `s` when it handled it in
@@ -589,7 +590,7 @@ def invBody (γ : Names) (γc γm γl : GName) : IProp netDistGF :=
       (mS : GMap Nat SyncMsg) (mA : GMap (Nat × Nat × CmdId) Unit)
       (mP : GMap (Nat × Nat × CmdId) (List CmdId)) (mCo : GMap (Nat × Nat × CmdId) Unit)
       (mR : GMap (Nat × Nat) Report) (mN : GMap Nat RState) (sh : SHist)
-      (mD : GMap CmdId (List w8)) (mQ : GMap w32 Nat) (mK : GMap w64 ConnKind)
+      (mD : GMap CmdId (List w8)) (mQ : GMap w32 Nat) (mK : GMap Nat ConnKind)
       (mPa : GMap (Nat × Nat × CmdId) (List CmdId)),
     ghostMapAuth γ.cmds 1 mC ∗ ghostMapAuth γ.loc 1 mL ∗ ghostMapAuth γ.sync 1 mS ∗
     ghostMapAuth γ.acc 1 mA ∗ ghostMapAuth γ.pre 1 mP ∗ ghostMapAuth γ.com 1 mCo ∗
@@ -658,7 +659,7 @@ end defs
 /-! ## Laws (the Prove phase's) -/
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable {γ : Names} {γc γm γl : GName}
 
 instance inv_persistent : Persistent (inv γ γc γm γl) := by unfold inv; infer_instance
@@ -698,7 +699,7 @@ instance reported_persistent (r b : Nat) (R : Report) : Persistent (reported γ 
   unfold reported; infer_instance
 instance numIs_persistent (r b : Nat) (x : CmdId) (s : w64) : Persistent (numIs γ r b x s) := by
   unfold numIs; infer_instance
-instance connKind_persistent (cid : w64) (k : ConnKind) : Persistent (connKind γ cid k) := by
+instance connKind_persistent (cid : Nat) (k : ConnKind) : Persistent (connKind γ cid k) := by
   unfold connKind; infer_instance
 instance numAck_persistent (r b : Nat) (x : CmdId) (s : w64) : Persistent (numAck γ r b x s) := by
   unfold numAck; infer_instance
@@ -802,13 +803,13 @@ theorem cfg_memIs (N : Nat) (fr : Bool) (l : List GoString) :
 `clientsStart`, `replicaStart` are `@[no_expose]`: clients use these, not their bodies) -/
 
 /-- An empty stream is in either protocol. -/
-theorem inP_nil (cid : w64) : ⊢ inP γ γc γm cid [] := by
+theorem inP_nil (cid : Nat) : ⊢ inP γ γc γm cid [] := by
   unfold inP; ileft; ipureintro; rfl
-theorem outQ_nil (cid : w64) : ⊢ outQ γ γc γm cid [] := by
+theorem outQ_nil (cid : Nat) : ⊢ outQ γ γc γm cid [] := by
   unfold outQ; ileft; ipureintro; rfl
 
 /-- A client's stream of proposals on a connection it registered as its own. -/
-theorem inP_client (cid : w64) (cl : w32) (bs : List w8) :
+theorem inP_client (cid : Nat) (cl : w32) (bs : List w8) :
     connKind γ cid (.client cl) ∗ framesProto γ γc γm [] (Msg.isProposeOf cl) bs ⊢
       inP γ γc γm cid bs := by
   unfold inP
@@ -819,7 +820,7 @@ theorem inP_client (cid : w64) (cl : w32) (bs : List w8) :
   iexact H
 
 /-- A peer's stream: its hello, then peer messages. -/
-theorem inP_peer (cid : w64) (id : w32) (bs : List w8) :
+theorem inP_peer (cid : Nat) (id : w32) (bs : List w8) :
     connKind γ cid .peer ∗ framesProto γ γc γm (helloBytes id) Msg.isPeer bs ⊢
       inP γ γc γm cid bs := by
   unfold inP
@@ -831,14 +832,14 @@ theorem inP_peer (cid : w64) (id : w32) (bs : List w8) :
   iexact H
 
 /-- What a replica's reader learns of a dialer's stream. -/
-theorem inP_elim (cid : w64) (bs : List w8) :
+theorem inP_elim (cid : Nat) (bs : List w8) :
     inP γ γc γm cid bs ⊢ ⌜bs = []⌝ ∨ ∃ k, connKind γ cid k ∗ match k with
       | .client cl => framesProto γ γc γm [] (Msg.isProposeOf cl) bs
       | .peer => ∃ id : w32, framesProto γ γc γm (helloBytes id) Msg.isPeer bs := by
   unfold inP; exact .rfl
 
 /-- A replica's stream back to a client. -/
-theorem outQ_client (cid : w64) (cl : w32) (bs : List w8) :
+theorem outQ_client (cid : Nat) (cl : w32) (bs : List w8) :
     connKind γ cid (.client cl) ∗ framesProto γ γc γm [] (Msg.isToClient cl) bs ⊢
       outQ γ γc γm cid bs := by
   unfold outQ
@@ -849,7 +850,7 @@ theorem outQ_client (cid : w64) (cl : w32) (bs : List w8) :
   iexact H
 
 /-- A replica's stream back to a peer. -/
-theorem outQ_peer (cid : w64) (bs : List w8) :
+theorem outQ_peer (cid : Nat) (bs : List w8) :
     connKind γ cid .peer ∗ framesProto γ γc γm [] Msg.isPeer bs ⊢ outQ γ γc γm cid bs := by
   unfold outQ
   iintro ⟨#Hk, H⟩
@@ -859,7 +860,7 @@ theorem outQ_peer (cid : w64) (bs : List w8) :
   iexact H
 
 /-- What a dialer's reader learns of the replica's stream. -/
-theorem outQ_elim (cid : w64) (bs : List w8) :
+theorem outQ_elim (cid : Nat) (bs : List w8) :
     outQ γ γc γm cid bs ⊢ ⌜bs = []⌝ ∨ ∃ k, connKind γ cid k ∗ match k with
       | .client cl => framesProto γ γc γm [] (Msg.isToClient cl) bs
       | .peer => framesProto γ γc γm [] Msg.isPeer bs := by
@@ -957,7 +958,7 @@ theorem framesProto_prefix (head : List w8) (ok : Msg → Prop) (x y : List w8) 
 
 /-- The protocols are prefix-closed (what `bufio`'s writer over a connection needs:
 `writerOk_conn`). -/
-theorem inP_prefixClosed (cid : w64) :
+theorem inP_prefixClosed (cid : Nat) :
     ⊢ (□ (∀ (x y : List w8), inP γ γc γm cid (x ++ y) -∗ inP γ γc γm cid x) : IProp netDistGF) := by
   unfold inP
   iintro !> %x %y (%H | ⟨%k, #Hk, H⟩)
@@ -972,7 +973,7 @@ theorem inP_prefixClosed (cid : w64) :
       iexists id
       iapply framesProto_prefix $$ H
 
-theorem outQ_prefixClosed (cid : w64) :
+theorem outQ_prefixClosed (cid : Nat) :
     ⊢ (□ (∀ (x y : List w8), outQ γ γc γm cid (x ++ y) -∗ outQ γ γc γm cid x) : IProp netDistGF) := by
   unfold outQ
   iintro !> %x %y (%H | ⟨%k, #Hk, H⟩)
@@ -1093,7 +1094,7 @@ theorem alloc (γc γm γl : GName) :
   imod ghost_map_alloc_empty (GF := netDistGF) (K := Nat × Nat) (V := Report) with ⟨%gR, HRp⟩
   imod ghost_map_alloc_empty (GF := netDistGF) (K := CmdId) (V := List w8) with ⟨%gD, HD⟩
   imod token_alloc (GF := netDistGF) with ⟨%gO, HO⟩
-  imod ghost_map_alloc_empty (GF := netDistGF) (K := w64) (V := ConnKind) with ⟨%gK, HK⟩
+  imod ghost_map_alloc_empty (GF := netDistGF) (K := Nat) (V := ConnKind) with ⟨%gK, HK⟩
   imod mono_list_own_alloc (GF := netDistGF) (A := Ev) [] with ⟨%gH, HH, -⟩
   icases (monoList_halves gH ([] : List Ev)).1 $$ HH with ⟨HH1, HH2⟩
   imod ghostMap_alloc_list (fun c : Nat => W32 (((c : Nat) + 1 : Nat) : Int)) (0 : Nat)
@@ -1183,7 +1184,7 @@ theorem alloc (γc γm γl : GName) :
   · iexact HPr
 
 /-- A dialer registers its connection's kind, once, with the `Dial`'s fresh token. -/
-theorem conn_register (E : CoPset) (hE : ↑spN ⊆ E) (cid : w64) (k : ConnKind) :
+theorem conn_register (E : CoPset) (hE : ↑spN ⊆ E) (cid : Nat) (k : ConnKind) :
     inv γ γc γm γl ∗ connFresh cid false ⊢ |={E}=> connKind γ cid k := by
   unfold inv connKind
   iintro ⟨#Hinv, Hfresh⟩
@@ -1194,7 +1195,7 @@ theorem conn_register (E : CoPset) (hE : ↑spN ⊆ E) (cid : w64) (k : ConnKind
   | some k0 =>
     ihave Hf := (BigSepM.bigSepM_lookup (show Iris.Std.PartialMap.get? mK cid = some k0 from hlk)) $$ Hconns
     iexfalso
-    iapply connFreshG_excl _ cid false
+    iapply connFresh_excl cid false
     isplitl [Hf]
     · iexact Hf
     · iexact Hfresh
@@ -1210,7 +1211,7 @@ theorem conn_register (E : CoPset) (hE : ↑spN ⊆ E) (cid : w64) (k : ConnKind
     iexact Hk
 
 /-- A connection's kind is unique. -/
-theorem connKind_agree (cid : w64) (k1 k2 : ConnKind) :
+theorem connKind_agree (cid : Nat) (k1 k2 : ConnKind) :
     connKind γ cid k1 ∗ connKind γ cid k2 ⊢ ⌜k1 = k2⌝ := by
   unfold connKind
   iintro ⟨H1, H2⟩
