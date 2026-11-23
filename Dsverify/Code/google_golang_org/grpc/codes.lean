@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Golang.Defn
-public import Dsverify.TrustedCode.google_golang_org.grpc.codes
 
 @[expose] public section
 
@@ -65,6 +64,8 @@ opaque _maxCode [GooseExts] [GoGlobalContext] : val
 noncomputable def strToCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.strToCode"
 
+opaque strToCode.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.init.0"
 
@@ -102,10 +103,8 @@ attribute [instance] Code.TypeAssumptions.underlying
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Code_instance : Code.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.Code_instance
-  Assumptions.«init.0_unfold»
 
 end google_golang_org.grpc.codes
 

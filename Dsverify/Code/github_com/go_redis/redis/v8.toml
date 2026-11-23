@@ -3,6 +3,3 @@
 # not brought over: notes/dsv-quepaxa.md).
 translate = ["!*"]
 imports = ["!*"]
-
-# no-op models of the initializers (`Dsverify/TrustedCode/github_com/go_redis/redis/v8.lean`)
-trusted = ["ErrClosed", "errClusterNoNodes", "errRingShardsDown", "_"]

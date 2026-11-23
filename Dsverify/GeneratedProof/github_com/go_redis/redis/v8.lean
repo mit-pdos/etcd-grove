@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.ManualProof.github_com.go_redis.redis.v8
 public import Perennial.Golang.Theory
 public import Dsverify.Code.github_com.go_redis.redis.v8
 

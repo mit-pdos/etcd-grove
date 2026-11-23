@@ -3,7 +3,6 @@ module
 
 public import Perennial.Code.context
 public import Perennial.Golang.Defn
-public import Dsverify.TrustedCode.google_golang_org.grpc
 
 @[expose] public section
 
@@ -841,41 +840,67 @@ opaque Version [GooseExts] [GoGlobalContext] : val
 noncomputable def DefaultBackoffConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.DefaultBackoffConfig"
 
+opaque DefaultBackoffConfig.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def unaryStreamDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.unaryStreamDesc"
+
+opaque unaryStreamDesc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClientConnClosing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrClientConnClosing"
 
+opaque ErrClientConnClosing.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errConnDrain [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errConnDrain"
+
+opaque errConnDrain.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errConnClosing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errConnClosing"
 
+opaque errConnClosing.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errConnIdling [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errConnIdling"
+
+opaque errConnIdling.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def invalidDefaultServiceConfigErrPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.invalidDefaultServiceConfigErrPrefix"
 
+opaque invalidDefaultServiceConfigErrPrefix.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def PickFirstBalancerName [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.PickFirstBalancerName"
+
+opaque PickFirstBalancerName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoTransportSecurity [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errNoTransportSecurity"
 
+opaque errNoTransportSecurity.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errTransportCredsAndBundle [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errTransportCredsAndBundle"
+
+opaque errTransportCredsAndBundle.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoTransportCredsInBundle [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errNoTransportCredsInBundle"
 
+opaque errNoTransportCredsInBundle.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errTransportCredentialsMissing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errTransportCredentialsMissing"
 
+opaque errTransportCredentialsMissing.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def ErrClientConnTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrClientConnTimeout"
+
+opaque ErrClientConnTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalDialOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalDialOptions"
@@ -886,44 +911,72 @@ noncomputable def globalPerTargetDialOptions [GooseExts] [GoGlobalContext] : GoS
 noncomputable def modelChooseRandom [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.modelChooseRandom"
 
+opaque modelChooseRandom.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def grpcStatusDetailsBinHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.grpcStatusDetailsBinHeader"
+
+opaque grpcStatusDetailsBinHeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errStreamDone [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errStreamDone"
 
+opaque errStreamDone.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errIllegalHeaderWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errIllegalHeaderWrite"
+
+opaque errIllegalHeaderWrite.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTransportClosing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errTransportClosing"
 
+opaque errTransportClosing.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def transportFailureCodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.transportFailureCodes"
+
+opaque transportFailureCodes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMalformedFrame [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errMalformedFrame"
 
+opaque errMalformedFrame.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def http2ErrCodeNames [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.http2ErrCodeNames"
+
+opaque http2ErrCodeNames.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def http2ErrConvTab [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.http2ErrConvTab"
 
+opaque http2ErrConvTab.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errContextCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errContextCanceled"
+
+opaque errContextCanceled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errContextDeadline [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.errContextDeadline"
 
+opaque errContextDeadline.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def statusOK [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.statusOK"
+
+opaque statusOK.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.logger"
 
+opaque logger.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def defaultServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.defaultServerOptions"
+
+opaque defaultServerOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalServerOptions"
@@ -931,11 +984,17 @@ noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def ErrServerStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.ErrServerStopped"
 
+opaque ErrServerStopped.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def metadataFromOutgoingContextRaw [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.metadataFromOutgoingContextRaw"
 
+opaque metadataFromOutgoingContextRaw.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def emptyMethodConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.emptyMethodConfig"
+
+opaque emptyMethodConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def EnableTracing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.EnableTracing"
@@ -1596,6 +1655,8 @@ noncomputable def newTraceEventLog [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
   pkgImportedPkgs := [pkg_id.context]
+
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -4955,9 +5016,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   payload_instance : payload.TypeAssumptions
   fmtStringer_instance : fmtStringer.TypeAssumptions
   stringer_instance : stringer.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
-  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
 
 attribute [instance] Assumptions.BackoffConfig_instance
@@ -5083,9 +5141,6 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.payload_instance
   Assumptions.fmtStringer_instance
   Assumptions.stringer_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.«init.1_unfold»
-  Assumptions.«init.2_unfold»
   Assumptions.import_context_Assumption
 
 end google_golang_org.grpc

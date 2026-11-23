@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.ManualProof.google_golang_org.grpc
 public import Perennial.GeneratedProof.context
 public import Perennial.Golang.Theory
 public import Dsverify.Code.google_golang_org.grpc

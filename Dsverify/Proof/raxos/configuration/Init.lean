@@ -8,10 +8,10 @@ variable).
 module
 
 public import Dsverify.Proof.raxos.configuration.Base
-public import Perennial.Proof.strconv.Link
 public import Dsverify.Proof.gopkg_in.yaml_v2.Init
 public import Dsverify.Proof.io.ioutil.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Perennial.Proof.strconv.Link
+public import Dsverify.Proof.runtime.PkgInitDsv
 
 @[expose] public section
 
@@ -34,6 +34,8 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [_root_.Perennial.io.ioutil.InitHyp GF]
+variable [_root_.Perennial.gopkg_in.yaml_v2.InitHyp GF]
 variable [package_sem : _root_.Perennial.raxos.configuration.Assumptions]
 
 namespace raxos.configuration
@@ -51,8 +53,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
       EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (_root_.Perennial.io.ioutil.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (_root_.Perennial.gopkg_in.yaml_v2.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.io.ioutil _root_.Perennial.io.ioutil.initialize'
+      _root_.Perennial.io.ioutil.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.Dsv.initLb_of_spec pkg_id.gopkg_in.yaml_v2 _root_.Perennial.gopkg_in.yaml_v2.initialize'
+      _root_.Perennial.gopkg_in.yaml_v2.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   iframe Hown
   is_pkg_init_finish
 

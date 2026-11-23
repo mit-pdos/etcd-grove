@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Golang.Defn
-public import Dsverify.TrustedCode.gopkg_in.yaml_v2
 
 @[expose] public section
 
@@ -623,23 +622,37 @@ opaque initial_string_size [GooseExts] [GoGlobalContext] : val
 noncomputable def disableLineWrapping [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.disableLineWrapping"
 
+opaque disableLineWrapping.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def mapItemType [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.mapItemType"
+
+opaque mapItemType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def durationType [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.durationType"
 
+opaque durationType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def defaultMapType [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.defaultMapType"
+
+opaque defaultMapType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ifaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.ifaceType"
 
+opaque ifaceType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def timeType [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.timeType"
 
+opaque timeType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def ptrTimeType [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.ptrTimeType"
+
+opaque ptrTimeType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def zeroValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.zeroValue"
@@ -647,29 +660,45 @@ noncomputable def zeroValue [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def base60float [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.base60float"
 
+opaque base60float.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def default_tag_directives [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.default_tag_directives"
+
+opaque default_tag_directives.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resolveTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.resolveTable"
 
+opaque resolveTable.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def resolveMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.resolveMap"
+
+opaque resolveMap.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def yamlStyleFloat [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.yamlStyleFloat"
 
+opaque yamlStyleFloat.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def allowedTimestampFormats [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.allowedTimestampFormats"
 
+opaque allowedTimestampFormats.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def structMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.structMap"
+
+opaque structMap.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fieldMapMutex [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.fieldMapMutex"
 
 noncomputable def eventStrings [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.eventStrings"
+
+opaque eventStrings.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def yaml_insert_token [GooseExts] [GoGlobalContext] : GoString :=
   go!"gopkg.in/yaml.v2.yaml_insert_token"
@@ -2262,7 +2291,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   yaml_write_handler_t_instance : yaml_write_handler_t.TypeAssumptions
   yaml_emitter_state_t_instance : yaml_emitter_state_t.TypeAssumptions
   yaml_emitter_t_instance : yaml_emitter_t.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
 
 attribute [instance] Assumptions.node_instance
   Assumptions.parser_instance
@@ -2309,7 +2337,6 @@ attribute [instance] Assumptions.node_instance
   Assumptions.yaml_write_handler_t_instance
   Assumptions.yaml_emitter_state_t_instance
   Assumptions.yaml_emitter_t_instance
-  Assumptions.«init.0_unfold»
 
 end gopkg_in.yaml_v2
 

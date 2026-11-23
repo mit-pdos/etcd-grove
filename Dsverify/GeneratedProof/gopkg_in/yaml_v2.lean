@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import Dsverify.ManualProof.gopkg_in.yaml_v2
 public import Perennial.Golang.Theory
 public import Dsverify.Code.gopkg_in.yaml_v2
 

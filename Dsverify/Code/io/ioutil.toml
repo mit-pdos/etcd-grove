@@ -1,6 +1,3 @@
 # Names only: configuration's `NewInstanceConfig` calls `ioutil.ReadFile`; the kit never reaches it.
 translate = ["!*"]
 imports = ["!*"]
-
-# no-op models of the initializers (`Dsverify/TrustedCode/io/ioutil.lean`)
-trusted = ["Discard"]

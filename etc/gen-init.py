@@ -5281,10 +5281,16 @@ DSV_PROGRAMS.update({f'{DSV_QP}.examples.quepaxanet.cmd.{n}':
 # (their `Init.lean` are made here, in the part, as `NET_MAIN`'s in `Net/`: the main tree's import the
 # main tree's `PkgInitExt`, and protobuf's facts live in modules that import the main tree's `net`;
 # their facts here: `Dsverify/Proof/google_golang_org/protobuf/Base.lean`)
-DSV_MAIN = ['bufio', 'math.rand', 'google_golang_org.protobuf.proto',
+DSV_MAIN = ['bufio', 'google_golang_org.protobuf.proto',
             'google_golang_org.protobuf.reflect.protoreflect',
             'google_golang_org.protobuf.runtime.protoimpl', 'google_golang_org.protobuf.internal.impl',
             'google_golang_org.protobuf.internal.pragma']
+# (dsv-quepaxa; dsv-vr's pattern) the packages whose `wp_initialize'` is a hypothesis
+# (`Dsverify/Proof/<pkg>/Init.lean`'s class `InitHyp`): the names-only libraries, whose variables'
+# initializers are untranslated, and math/rand (Perennial's translation leaves its initializers
+# untranslated: the main tree's trust-boundary axiom `opaqueInitsOk`)
+DSV_HYP_INITS = ['gopkg_in.yaml_v2', 'github_com.go_redis.redis.v8', 'io.ioutil', 'encoding.gob',
+                 'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'math.rand']
 # the part's own names-only translations of packages the main tree translates otherwise (grpc's):
 # the main tree's configurations (`SPECIAL`) do not apply
 DSV_OWN = {'google_golang_org.grpc', 'google_golang_org.grpc.codes', 'google_golang_org.grpc.status'}
@@ -5301,6 +5307,26 @@ that do nothing).''',
                        'repeat (wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %_ ⟨-, -⟩; try wp_auto)',
                        'try wp_auto']},
 )
+
+
+DSV_HYP_NEED = {}
+
+
+def dsv_hyp_fix(path, txt):
+    """A generated file of the part whose package's closure holds a hypothesis package: its import
+    of that package's initialization is the part's `Init.lean`, and its sections take the
+    hypothesis (`InitHyp`) as an instance."""
+    d = os.path.dirname(path)[len(f'{DSV_ROOT}/Proof/'):]
+    for q in DSV_HYP_NEED.get(d, []):
+        txt = txt.replace(f'public import Perennial.Proof.{q}.Link\n',
+                          f'public import {DSV_ROOT}.Proof.{q}.Init\n')
+        if f'public import {DSV_ROOT}.Proof.{q}.Init\n' not in txt:
+            txt = re.sub(r'(?m)^(public import .*\n)(?!public import)',
+                         lambda m: m.group(1) + f'public import {DSV_ROOT}.Proof.{q}.Init\n', txt,
+                         count=1)
+        txt = re.sub(r'(?m)^(variable \[sem : go\.Semantics\].*)$',
+                     lambda m: m.group(1) + f'\nvariable [_root_.Perennial.{q}.InitHyp GF]', txt)
+    return txt
 
 
 def dsv_inits():
@@ -5320,9 +5346,16 @@ def dsv_inits():
         for q, d in inventory(f'{DSV_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
+        for q in DSV_HYP_INITS:
+            inv[q] = dict(inv[q], perennial=True)
+        PERENNIAL_HERE.difference_update(DSV_HYP_INITS)
+        for p in DSV_PKGS:
+            if p in inv:
+                DSV_HYP_NEED[dirof(p)] = [q for q in DSV_HYP_INITS if q in closure(p)]
         inst.update(instances(f'{DSV_ROOT}/Proof/'))
         raw = [(f'{DSV_ROOT}/{path}', txt) for p in DSV_PKGS + DSV_MAIN
-               if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean') or p in DSV_MAIN
+               if (os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean') or p in DSV_MAIN)
+               and p not in DSV_HYP_INITS
                for path, txt in gen(p, None if p in DSV_OWN else SPECIAL.get(p))]
         made = {path for path, _ in raw}
         for p, path in DSV_PROGRAMS.items():
@@ -5331,6 +5364,7 @@ def dsv_inits():
     finally:
         inv, inst, CFG_OVERRIDE = saved
         RAFT_INIT = saved_raft
+        PERENNIAL_HERE.add('math.rand')
     made = {path for path, _ in raw}
 
     def imp(m):
@@ -5361,7 +5395,8 @@ def dsv_inits():
             new = new.replace('public import Net.Proof.runtime.PkgInitExt\n',
                               'public import Dsverify.Proof.runtime.PkgInitDsv\n', 1)
         return new
-    return [(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))) for path, txt in raw]
+    return [(path, dsv_hyp_fix(path, fix(re.sub(r'(?m)^(public import )(\S+)', imp, txt))))
+            for path, txt in raw]
 
 
 def main(argv):

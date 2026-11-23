@@ -1,105 +1,49 @@
 /-
-Package initialization of `math.rand`
-(item 8, 2026-10-17): its `wp_initialize'`.
-
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+**A hypothesis**: `math/rand`'s initializer meets Perennial's initialization spec (notes/dsv-quepaxa.md,
+"Hypotheses"; dsv-vr's pattern, `Dsverify/Proof/encoding/json/Init.lean` there). `math/rand` is
+Perennial's translation, its variables' initializers untranslated (the main tree's trust-boundary axiom `opaqueInitsOk`, `Proof/math/rand/Init.lean`), so its `initialize'` cannot be proved here, and the rule is no new axiom and no trusted code:
+the spec is the class `InitHyp` (a `Prop`), which every theorem whose proof initializes `math/rand` takes
+as an instance argument (`etc/gen-init.py`'s `dsv_inits` adds the section variable, `dsv_hyp_fix`),
+up to the kit's closed statement. Replace by a proved `wp_initialize'` when the package's
+translation or model lands.
 -/
 module
 
 public import Proof.math.rand.Base
-public import Perennial.Proof.sync.Link
 public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
-set_option linter.unusedSectionVars false
-set_option linter.iris.dupNamespace false
 
 noncomputable section
 
 namespace Perennial
 
-/-- `x ∈ [a, ..., x, ...]`, linear in the list (`simp` overflows on the long ones). -/
-local macro "mem_tac" : tactic =>
-  `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
+open Iris Iris.BI Iris.ProgramLogic
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-section opaqueInits
 namespace math.rand
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
 
-/-- **The trust boundary: `math.rand`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([ke.init,
-        we.init,
-        fe.init,
-        kn.init,
-        wn.init,
-        fn.init,
-        randautoseed.init,
-        randseednop.init,
-        rngCooked.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end math.rand
-end opaqueInits
+/-- **Hypothesis** (the file header): `math/rand`'s initializer establishes its package fact. -/
+class InitHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {hlc : HasLC}
+    (GF : BundledGFunctors) [HeapGS hlc GF] [go.Semantics] : Prop where
+  wp_init : ∀ (get_is_pkg_init : GoString → IProp GF),
+    GetIsPkgInitProp pkg_id.math.rand get_is_pkg_init →
+    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
 
 section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.math.rand.Assumptions]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [sem : go.Semantics]
 
-namespace math.rand
-
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.math.rand get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.math.rand }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk ke.init (by mem_tac))
-  wp_apply (opaqueInitsOk we.init (by mem_tac))
-  wp_apply (opaqueInitsOk fe.init (by mem_tac))
-  wp_apply (opaqueInitsOk kn.init (by mem_tac))
-  wp_apply (opaqueInitsOk wn.init (by mem_tac))
-  wp_apply (opaqueInitsOk fn.init (by mem_tac))
-  wp_apply (opaqueInitsOk randautoseed.init (by mem_tac))
-  wp_apply (opaqueInitsOk randseednop.init (by mem_tac))
-  wp_apply (opaqueInitsOk rngCooked.init (by mem_tac))
-  iframe Hown
-  is_pkg_init_finish
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
+/-- Perennial's form of `math/rand`'s initialization, from the hypothesis. -/
+theorem wp_initialize' [h : InitHyp GF] (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.math.rand get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.math.rand }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end math.rand
+    {{ ownInitializing get_is_pkg_init }} (App (Val initialize') (Val #()))
+    {{ RET #(); ownInitializing get_is_pkg_init ∗ isPkgInit (PROP := IProp GF) pkg_id.math.rand }} :=
+  h.wp_init get_is_pkg_init Hinit
 
 end init
 
+end math.rand
 end Perennial

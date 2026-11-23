@@ -2,7 +2,6 @@
 module
 
 public import Perennial.Golang.Defn
-public import Dsverify.TrustedCode.encoding.gob
 
 @[expose] public section
 
@@ -254,17 +253,27 @@ opaque firstUserId [GooseExts] [GoGlobalContext] : val
 noncomputable def decArrayHelper [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.decArrayHelper"
 
+opaque decArrayHelper.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def decSliceHelper [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.decSliceHelper"
+
+opaque decSliceHelper.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errBadUint [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.errBadUint"
 
+opaque errBadUint.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errBadType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.errBadType"
 
+opaque errBadType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.errRange"
+
+opaque errRange.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.noValue"
@@ -272,17 +281,27 @@ noncomputable def noValue [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def decOpTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.decOpTable"
 
+opaque decOpTable.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def decIgnoreOpMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.decIgnoreOpMap"
+
+opaque decIgnoreOpMap.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxIgnoreNestingDepth [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.maxIgnoreNestingDepth"
 
+opaque maxIgnoreNestingDepth.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def emptyStructType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.emptyStructType"
 
+opaque emptyStructType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def errBadCount [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.errBadCount"
+
+opaque errBadCount.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def debugFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.debugFunc"
@@ -290,17 +309,27 @@ noncomputable def debugFunc [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def encArrayHelper [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.encArrayHelper"
 
+opaque encArrayHelper.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def encSliceHelper [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.encSliceHelper"
+
+opaque encSliceHelper.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encBufferPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.encBufferPool"
 
+opaque encBufferPool.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def encOpTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.encOpTable"
 
+opaque encOpTable.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def spaceForLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.spaceForLength"
+
+opaque spaceForLength.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def userTypeCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.userTypeCache"
@@ -308,23 +337,37 @@ noncomputable def userTypeCache [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def gobEncoderInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.gobEncoderInterfaceType"
 
+opaque gobEncoderInterfaceType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def gobDecoderInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.gobDecoderInterfaceType"
+
+opaque gobDecoderInterfaceType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def binaryMarshalerInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.binaryMarshalerInterfaceType"
 
+opaque binaryMarshalerInterfaceType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def binaryUnmarshalerInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.binaryUnmarshalerInterfaceType"
+
+opaque binaryUnmarshalerInterfaceType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def textMarshalerInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.textMarshalerInterfaceType"
 
+opaque textMarshalerInterfaceType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def textUnmarshalerInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.textUnmarshalerInterfaceType"
 
+opaque textUnmarshalerInterfaceType.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def wireTypeType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.wireTypeType"
+
+opaque wireTypeType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def typeLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.typeLock"
@@ -332,8 +375,12 @@ noncomputable def typeLock [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def types [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.types"
 
+opaque types.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def idToTypeSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.idToTypeSlice"
+
+opaque idToTypeSlice.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def builtinIdToTypeSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.builtinIdToTypeSlice"
@@ -341,50 +388,82 @@ noncomputable def builtinIdToTypeSlice [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def tBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tBool"
 
+opaque tBool.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tInt [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tInt"
+
+opaque tInt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tUint [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tUint"
 
+opaque tUint.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tFloat [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tFloat"
+
+opaque tFloat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tBytes"
 
+opaque tBytes.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tString [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tString"
+
+opaque tString.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tComplex [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tComplex"
 
+opaque tComplex.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tInterface [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tInterface"
+
+opaque tInterface.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tReserved7 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tReserved7"
 
+opaque tReserved7.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tReserved6 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tReserved6"
+
+opaque tReserved6.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tReserved5 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tReserved5"
 
+opaque tReserved5.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tReserved4 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tReserved4"
+
+opaque tReserved4.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tReserved3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tReserved3"
 
+opaque tReserved3.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tReserved2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tReserved2"
+
+opaque tReserved2.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tReserved1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tReserved1"
 
+opaque tReserved1.init [GooseExts] [GoGlobalContext] : val
+
 noncomputable def tWireType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.tWireType"
+
+opaque tWireType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def wireTypeUserInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.wireTypeUserInfo"
@@ -394,6 +473,8 @@ noncomputable def typeInfoMap [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def typeInfoMapInit [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.typeInfoMapInit"
+
+opaque typeInfoMapInit.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nameToConcreteType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/gob.nameToConcreteType"
@@ -1566,9 +1647,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   typeInfo_instance : typeInfo.TypeAssumptions
   GobEncoder_instance : GobEncoder.TypeAssumptions
   GobDecoder_instance : GobDecoder.TypeAssumptions
-  «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
-  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
-  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
 
 attribute [instance] Assumptions.decHelper_instance
   Assumptions.decoderState_instance
@@ -1600,9 +1678,6 @@ attribute [instance] Assumptions.decHelper_instance
   Assumptions.typeInfo_instance
   Assumptions.GobEncoder_instance
   Assumptions.GobDecoder_instance
-  Assumptions.«init.0_unfold»
-  Assumptions.«init.1_unfold»
-  Assumptions.«init.2_unfold»
 
 end encoding.gob
 

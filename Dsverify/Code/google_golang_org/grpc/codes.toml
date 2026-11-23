@@ -2,6 +2,3 @@
 translate = ["!*"]
 imports = ["!*"]
 translate_types = true
-
-# no-op models of the initializers (`Dsverify/TrustedCode/google_golang_org/grpc/codes.lean`)
-trusted = ["init.0", "strToCode"]
