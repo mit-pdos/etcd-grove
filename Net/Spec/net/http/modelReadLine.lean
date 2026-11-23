@@ -2,8 +2,9 @@
 `modelReadLine(b)` (the model's textproto `ReadLine`, `textproto_model.go`), `b` a `*bufio.Reader`
 (`bufio.ownReader`) over a stream reader that makes progress (`io.readerStreamNE`): the bytes `l` up to
 the next `"\n"` (none in `l`): with it, `l` without a final `"\r"` (`dropCR`) and `nil`, the reader
-past the `"\n"`; or cut by an error `e` of the stream there (`E (r ++ l) e`), the reader at
-`r ++ l`, and then `l` and `nil` if `l` is not empty, else `""` and `e`. Proved in
+past the `"\n"`; or cut by an error `e` of the stream there (`io.errAt E (r ++ l) e`: with `E`'s
+evidence, and typed, what comparing it with `io.EOF` needs), the reader at `r ++ l`, and then `l`
+and `nil` if `l` is not empty, else `""` and `e`. Proved in
 `Net/Proof/net/http/modelReadLine.lean`.
 -/
 module
@@ -38,7 +39,7 @@ abbrev modelReadLine.spec : Prop :=
         ∃ l : List w8, ⌜W8 10 ∉ l⌝ ∗
         ((⌜err = interface.nil ∧ line = dropCR l⌝ ∗
             EtcdGrove.bufio.ownReader b ri S E (r ++ l ++ [W8 10])) ∨
-         (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ □ E (r ++ l) e ∗
+         (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ EtcdGrove.io.errAt E (r ++ l) e ∗
            EtcdGrove.bufio.ownReader b ri S E (r ++ l) ∗
            ⌜(l ≠ [] ∧ err = interface.nil ∧ line = l) ∨ (l = [] ∧ err = e ∧ line = [])⌝)) }}
 

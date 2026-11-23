@@ -2,7 +2,8 @@
 `(*bufio.Reader).ReadByte()` (Go 1.27 `bufio.go`) over a stream reader that makes progress
 (`io.readerStreamNE`, `Proof/io/ReaderStreamNE.lean`): the stream's next byte `c` (from the buffer,
 or after a `fill`), the reader then at `r ++ [c]`; or, with nothing buffered, an error of the stream
-at `r` (`E r err`, the pending one or a new read's), cleared, the reader still at `r`. Proved in
+at `r` (`io.errAt E r err`: its evidence, and a pointer type's value a location, what comparing
+it with `io.EOF` needs; the pending one or a new read's), cleared, the reader still at `r`. Proved in
 `Proof/bufio/Reader__ReadByte.lean`. net/http's `ReadResponse`, 2026-11-23 (the model's
 `modelReadLine`); Lean-first.
 -/
@@ -37,7 +38,7 @@ abbrev bufio.Reader.ReadByte.spec : Prop :=
         (Val #()))
     {{ (c : w8) (err : GoInterface), RET (PairV #c #err);
         (⌜err = GoInterface.nil⌝ ∗ bufio.ownReader b ri S E (r ++ [c])) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ □ E r err ∗ bufio.ownReader b ri S E r) }}
+        (⌜err ≠ GoInterface.nil⌝ ∗ io.errAt E r err ∗ bufio.ownReader b ri S E r) }}
 
 end spec
 

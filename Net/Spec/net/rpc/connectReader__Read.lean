@@ -3,8 +3,8 @@
 connection to `a` in `W` before any request (`crAt`, `crSt`, `HttpDefs.lean`), the end's reader
 at `r`: `p`'s first bytes `ys` (`sint.Z n = len(ys)`, at most `len(p)`) are the connection's next
 bytes, `cr` then at `r ++ ys`, still a prefix of the answer `connectAns`; and no error, or an error
-(`crErr`: `cr` failed at `r ++ ys`, which it stays at). As `io.readerStream`'s triple, for
-`DialHTTPPath`'s `bufio.Reader`. Proved in `Net/Proof/net/rpc/connectReader__Read.lean`.
+(`crErr`: `cr` failed at `r ++ ys`, which it stays at); a byte or an error when `p` is not empty.
+As `io.readerStreamNE`'s triple, for `DialHTTPPath`'s `bufio.Reader`. Proved in `Net/Proof/net/rpc/connectReader__Read.lean`.
 -/
 module
 
@@ -37,7 +37,8 @@ abbrev connectReader.Read.spec : Prop :=
       crAt cr t cn a la ra ∗ crSt W a cn γ cr γe r ∗ p ↦* xs }}
     (App (Val #(methods (go.GoType.PointerType net.rpc.connectReader.ty) go!"Read" #cr)) (Val #p))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length⌝ ∗
+      ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧
+          (xs ≠ [] → ys ≠ [] ∨ err ≠ interface.nil)⌝ ∗
         EtcdGrove.io.errAt (crErr γe) (r ++ ys) err ∗
         p ↦* (ys ++ xs.drop ys.length) ∗ crSt W a cn γ cr γe (r ++ ys) }}
 

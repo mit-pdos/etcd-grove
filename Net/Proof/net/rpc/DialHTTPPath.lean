@@ -133,9 +133,9 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iright
       iframe Hγe
       ipureintro; exact ⟨rfl, rfl⟩
-    ihave #Hstream : EtcdGrove.io.readerStream ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
+    ihave #Hstream : EtcdGrove.io.readerStreamNE ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
         (crSt W a cn γ cr γe) (crErr γe) $$ []
-    · iunfold EtcdGrove.io.readerStream
+    · iunfold EtcdGrove.io.readerStreamNE
       imodintro
       iintro %r0 %p %xs
       imodintro

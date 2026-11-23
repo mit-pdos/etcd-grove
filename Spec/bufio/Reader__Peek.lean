@@ -41,7 +41,7 @@ abbrev bufio.Reader.Peek.spec : Prop :=
     {{ (s : GoSlice) (err : GoInterface), RET (PairV #s #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ (c : w8) (q : List w8) (e : GoInterface), s ↦* [c] ∗
           (s ↦* [c] -∗ bufio.ownReaderBuf b ri S E r (c :: q) e)) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ □ E r err ∗ bufio.ownReader b ri S E r) }}
+        (⌜err ≠ GoInterface.nil⌝ ∗ io.errAt E r err ∗ bufio.ownReader b ri S E r) }}
 
 end spec
 
