@@ -247,7 +247,7 @@ def kindW : Kind → w64
 def verdictRO (r : G.Verdict) (v : Verdict) : IProp GF :=
   iprop(⌜r.Kind' = kindW v.kind ∧ sint.Z r.K' = v.k ∧ r.Err' = []⌝ ∗ strsRO r.Names' v.names)
 
-/-! ## States (`state.go`; for the proofs of `binding.go` and `check.go`, none proved yet) -/
+/-! ## States (`state.go`; the laws to read and build them: `StateLaws.lean`) -/
 
 /-- A Go `[]int` holding `xs`. -/
 def intsRO (sl : GoSlice) (xs : List Int) : IProp GF :=
@@ -329,29 +329,85 @@ def pendingRO (sl : GoSlice) (ms : List (List Msg)) : IProp GF :=
 /-- A Go `QItem` holding `q`. -/
 def qitemRO (g : G.QItem) (q : QItem) : IProp GF := iprop(eventRO g.Ev' q.ev ∗ msgsRO g.M' q.m)
 
+/-- A Go `[]QItem` holding `q` (a node's queue). -/
+def qitemsRO (sl : GoSlice) (q : List QItem) : IProp GF :=
+  iprop(∃ items : List G.QItem, sl ↦*□ items ∗ [∗list] i;x ∈ items;q, qitemRO i x)
+
 /-- A Go `[][]QItem` holding `qs`. -/
 def queueRO (sl : GoSlice) (qs : List (List QItem)) : IProp GF :=
-  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;q ∈ gs;qs,
-    ∃ items : List G.QItem, g ↦*□ items ∗ [∗list] i;x ∈ items;q, qitemRO i x)
+  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;q ∈ gs;qs, qitemsRO g q)
+
+/-- A Go `ReadRec` holding `r`. -/
+def readRel (i : G.ReadRec) (r : ReadRec) : Prop := i.Ctx' = r.ctx ∧ sint.Z i.Floor' = r.floor
+
+/-- A Go `[]ReadRec` holding `r` (a node's reads). -/
+def readRecsRO (sl : GoSlice) (r : List ReadRec) : IProp GF :=
+  iprop(∃ items : List G.ReadRec, sl ↦*□ items ∗ ⌜List.Forall₂ readRel items r⌝)
 
 /-- A Go `[][]ReadRec` holding `rs`. -/
 def readsRO (sl : GoSlice) (rs : List (List ReadRec)) : IProp GF :=
-  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;r ∈ gs;rs,
-    ∃ items : List G.ReadRec, g ↦*□ items ∗
-      ⌜List.Forall₂ (fun (i : G.ReadRec) (x : ReadRec) => i.Ctx' = x.ctx ∧ sint.Z i.Floor' = x.floor) items r⌝)
+  iprop(∃ gs : List GoSlice, sl ↦*□ gs ∗ [∗list] g;r ∈ gs;rs, readRecsRO g r)
 
-/-- A Go `*State` holding `s` (never written once built, so persistent). -/
+/-- The shape of a state: every function on `Server` (a per-server list) has one entry per server
+(the Go indexes its slices by `idx`'s positions). Every state the checker builds has it (`init0`,
+and every successor, which `List.set`s these lists). -/
+def State.Wf (s : State) : Prop :=
+  s.currentTerm.length = s.cfg.server.length ∧ s.voteTerm.length = s.cfg.server.length ∧
+  s.voteFor.length = s.cfg.server.length ∧ s.log.length = s.cfg.server.length ∧
+  s.commitIndex.length = s.cfg.server.length ∧ s.role.length = s.cfg.server.length ∧
+  s.lastApplied.length = s.cfg.server.length ∧ s.config.length = s.cfg.server.length ∧
+  s.confAt.length = s.cfg.server.length ∧ s.confirmed.length = s.cfg.server.length ∧
+  s.undo.length = s.cfg.server.length ∧ s.pending.length = s.cfg.server.length ∧
+  s.queue.length = s.cfg.server.length ∧ s.reads.length = s.cfg.server.length
+
+/-- A Go `State` value `g` holding `s`: each field (named `H<Field>`, for `iNamed`) holds the Lean
+state's variable, and the state has its shape (`State.Wf`). Persistent: what a state's fields
+point to is never written. -/
+def stateFields (g : G.State) (s : State) : IProp GF :=
+  iprop("HCfg" ∷ configRO g.Cfg' s.cfg ∗
+    "HCurrentTerm" ∷ intsRO g.CurrentTerm' s.currentTerm ∗ "HVoteTerm" ∷ intsRO g.VoteTerm' s.voteTerm ∗
+    "HVoteFor" ∷ strsRO g.VoteFor' s.voteFor ∗ "HLog" ∷ logsRO g.Log' s.log ∗
+    "HCommitIndex" ∷ intsRO g.CommitIndex' s.commitIndex ∗ "HRole" ∷ strsRO g.Role' s.role ∗
+    "HLastApplied" ∷ intsRO g.LastApplied' s.lastApplied ∗ "HConfig" ∷ confsRO g.Config' s.config ∗
+    "HConfAt" ∷ intsRO g.ConfAt' s.confAt ∗ "HConfirmed" ∷ confirmedsRO g.Confirmed' s.confirmed ∗
+    "HMsgs" ∷ factsRO g.Msgs' s.msgs ∗ "HVotes" ∷ votesRO g.Votes' s.votes ∗
+    "HLeaders" ∷ leadersRO g.Leaders' s.leaders ∗ "HLedLog" ∷ termLogsRO g.LedLog' s.ledLog ∗
+    "HLedConf" ∷ termConfsRO g.LedConf' s.ledConf ∗ "HLedAt" ∷ termIntsRO g.LedAt' s.ledAt ∗
+    "HElAt" ∷ termIntsRO g.ElAt' s.elAt ∗ "%HI" ∷ ⌜sint.Z g.I' = s.i⌝ ∗
+    "HUndo" ∷ undoRO g.Undo' s.undo ∗ "HPending" ∷ pendingRO g.Pending' s.pending ∗
+    "HQueue" ∷ queueRO g.Queue' s.queue ∗ "HReads" ∷ readsRO g.Reads' s.reads ∗
+    "HChain" ∷ logRO g.Chain' s.chain ∗ "HTermLen" ∷ termIntsRO g.TermLen' s.termLen ∗
+    "HViol" ∷ strsRO g.Viol' s.viol ∗ "%HWf" ∷ ⌜s.Wf⌝)
+
+/-- A Go `*State` holding `s`, read-only (a state is never written once built: `Run`'s states,
+an action's argument). -/
 def stateRO (p : Loc) (s : State) : IProp GF :=
-  iprop(∃ g : G.State, p ↦□ g ∗ configRO g.Cfg' s.cfg ∗
-    intsRO g.CurrentTerm' s.currentTerm ∗ intsRO g.VoteTerm' s.voteTerm ∗ strsRO g.VoteFor' s.voteFor ∗
-    logsRO g.Log' s.log ∗ intsRO g.CommitIndex' s.commitIndex ∗ strsRO g.Role' s.role ∗
-    intsRO g.LastApplied' s.lastApplied ∗ confsRO g.Config' s.config ∗ intsRO g.ConfAt' s.confAt ∗
-    confirmedsRO g.Confirmed' s.confirmed ∗ factsRO g.Msgs' s.msgs ∗ votesRO g.Votes' s.votes ∗
-    leadersRO g.Leaders' s.leaders ∗ termLogsRO g.LedLog' s.ledLog ∗ termConfsRO g.LedConf' s.ledConf ∗
-    termIntsRO g.LedAt' s.ledAt ∗ termIntsRO g.ElAt' s.elAt ∗ ⌜sint.Z g.I' = s.i⌝ ∗
-    undoRO g.Undo' s.undo ∗ pendingRO g.Pending' s.pending ∗ queueRO g.Queue' s.queue ∗
-    readsRO g.Reads' s.reads ∗ logRO g.Chain' s.chain ∗ termIntsRO g.TermLen' s.termLen ∗
-    strsRO g.Viol' s.viol)
+  iprop(∃ g : G.State, "Hp" ∷ p ↦□ g ∗ "Hf" ∷ stateFields g s)
+
+/-- A Go `*State` holding `s`, the struct owned (a successor being built: `clone`'s result, whose
+fields an action then sets; `Step` sets `I`). Frozen into `stateRO` by `stateOwn_persist`. -/
+def stateOwn (p : Loc) (s : State) : IProp GF :=
+  iprop(∃ g : G.State, "Hp" ∷ p ↦ g ∗ "Hf" ∷ stateFields g s)
+
+/-- An action's result `(ns, ok)` (Go: `(*State, bool)`) holding the Lean action's `Option State`:
+`none` (the TLA+ action is false) is `ok = false`, `some s` an owned successor holding `s`. -/
+def succOwn (q : Loc) (ok : Bool) : Option State → IProp GF
+  | none => iprop(⌜ok = false⌝)
+  | some s => iprop(⌜ok = true⌝ ∗ stateOwn q s)
+
+/-- **The spec of an action of `Bind`** (`binding.go`'s `Boot` .. `ReadGiven`, and `Bind`):
+`s.<name>(n, ev)` on a read-only state, server `n` (a position `idx` returned) and a report, where
+the Lean action `act` evaluates (to `o`), returns `act`'s successor, owned (`Step` then sets its
+`I`), or `ok = false` where `act` gives `none`. Where `act` errs the Go panics (an `EvalError`),
+which the premise excludes. -/
+abbrev ActionSpec (name : GoString) (act : State → Nat → Event → EvalM (Option State)) : Prop :=
+  ∀ (p : Loc) (s : State) (n : w64) (e : Loc) (ev : Event) (o : Option State),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check ∗
+      stateRO p s ∗ eventRO e ev ∗
+      ⌜0 ≤ sint.Z n ∧ sint.Z n < s.cfg.server.length ∧ act s (sint.nat n) ev = .ok o⌝ }}
+    (App (App (Val (p @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.State.ty
+      @!! name)) (Val #n)) (Val #e))
+  {{ (q : Loc) (ok : Bool), RET (PairV #q #ok); succOwn q ok o }}
 
 /-! ## Persistence -/
 
@@ -431,11 +487,20 @@ instance pendingRO_persistent (sl : GoSlice) (ms : List (List Msg)) : Persistent
 instance qitemRO_persistent (g : G.QItem) (q : QItem) : Persistent (qitemRO (GF := GF) g q) := by
   unfold qitemRO; infer_instance
 
+instance qitemsRO_persistent (sl : GoSlice) (q : List QItem) : Persistent (qitemsRO (GF := GF) sl q) := by
+  unfold qitemsRO; infer_instance
+
+instance readRecsRO_persistent (sl : GoSlice) (r : List ReadRec) : Persistent (readRecsRO (GF := GF) sl r) := by
+  unfold readRecsRO; infer_instance
+
 instance queueRO_persistent (sl : GoSlice) (qs : List (List QItem)) : Persistent (queueRO (GF := GF) sl qs) := by
   unfold queueRO; infer_instance
 
 instance readsRO_persistent (sl : GoSlice) (rs : List (List ReadRec)) : Persistent (readsRO (GF := GF) sl rs) := by
   unfold readsRO; infer_instance
+
+instance stateFields_persistent (g : G.State) (st : State) : Persistent (stateFields (GF := GF) g st) := by
+  unfold stateFields; infer_instance
 
 instance stateRO_persistent (p : Loc) (st : State) : Persistent (stateRO (GF := GF) p st) := by
   unfold stateRO; infer_instance
