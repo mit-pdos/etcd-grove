@@ -400,6 +400,51 @@ clients ++ servers) gryffNetCfg`, axioms Lean's three and porcupine's `CheckOper
 
 ## Next
 
+**Done 2026-11-23 (fourth session)**: (3) bufio: the wire layer is ported over dsv-bufio, all of it
+checking clean with `etc/lean-check.py -a`: `Wire/Proof/{Lemmas,VarintWp,State,Gryff1,Gryff2,Client,
+Epaxos,Genericsmr,Slices,SlicesM}`, `Wire/Specs`, `N/{ArrLen,SliceMarshal}`, `Replica/Base`; dlog's fact
+is now `DLOG ↦□ false` (`etc/dsv/gryff.py`'s `finish`, `src/dlog/Base.lean`; gen-init and
+`_gryff_boot.py` regenerated). `Wire/Proof/Lemmas.lean` also has lab-shaped wrappers over dsv-bufio's
+proofs: `wire.wp_Flush`, `wire.wp_WriteByte` (pre `⌜err = nil⌝ -∗ □ Q …`; post with dsv-bufio's two
+extra clauses: a failed writer keeps its state, a byte that fits is not sent), `wire.wp_NewWriter`
+(`wr.sz = 4096`, the wrapped writer not a `*bufio.Writer`), `wire.wp_NewReader` (over
+`io.readerOk rd.ri (fun _ m => 0 < m) I rd.E`, which `net.conn_readerOk` gives),
+`wire.writerOk_prefixClosed`. Not yet run: a `lake build` of these modules (lean-check only).
+
+**How to port the rest** (the helper is a scratch script, rewritten each session; its rules are the list in
+"What changed against the lab (proof)" plus): `port.py` = copy a lab module, header line "Ported from …",
+`GryffProof.` -> `Dsverify.Proof.gryff.`, `Gryff.{GeneratedProof,Code}.` -> `Dsverify.{…}.`; then the
+`wire_rw` rewrites; for N-level files also `bufio.ownWriter/writerOk/ownReader/readerOk/wp_Flush/
+wp_WriteByte/wp_NewWriter/wp_NewReader` -> `wire.…`, `bufio.prefixClosed` -> `EtcdGrove.io.prefixClosed`,
+`bufio.Q_of_prefix` -> `EtcdGrove.bufio.Q_of_prefix`, `variable [GryffNetPkgState GF]` dropped, the
+`Slots` import -> `Dsverify.Proof.gryff.src.gryff.Base`. Proofs that unfolded the lab's `ownWriter`/
+`writerRep` (e.g. `N/Generic.lean`'s `wp_WriteByte_sticky`) are redone over the wrappers.
+
+Remaining, in order:
+1. **N** (26 lab modules left): `N/Generic` (in progress: renamed, `wp_WriteByte_sticky` and
+   `writerOk_prefixClosed` redone over the wrappers; check it), `N/Marshal` (renamed, unchecked), then the
+   frontier `N/{WireDefs✓,WireInj✓,WireLaws✓,SliceElems✓}` -> `NetDefs` (needs `Proto2/Replica`,
+   ported? check) -> `Stats`, `SpecsDefs` (needs `Replica2/State`), ... The lab's room lemmas
+   (`bufio.writerRoom`, `wp_WriteByte_room`, `wp_Write_room`, `wp_NewWriter_room`, `ownWriter_room`) are
+   dsv-bufio's fit clauses (`err = nil ∧ pend.length + n ≤ sz → e = nil ∧ sent' = sent`) with
+   `bufio.ownBufWriter_size`; `bufio.ownWriter_sentLb` -> `bufio.ownBufWriter_fact` with
+   `sendTok_sentLb`; `bufio.ownReader_proto` -> `net.connReader_proto`; `bufio.readerOk_conn`/
+   `writerOk_conn` -> `net.conn_readerOk`/`net.conn_streamWriterOk` (`RSt := {connIface t, connReadE …}`,
+   `WSt := {connIface t, connWriteE …, 4096}`). N must also give, for a connection, `readNext` (from
+   `net.connReader_proto`) and what logging/`err != io.EOF` need of `rdErr` (see above).
+   `N/StrIndex.lean` needs `strings.Index` (names only in Perennial: a hypothesis).
+2. **Rpc** (`Rpc/*`, 6 modules) against `Net/`'s `CodecSpec` with the decode guards (`Client.Call`'s
+   `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply (Θ rep))`, the server's `argDec`), and the HTTP transport
+   as ONE hypothesis class mirroring `models-rpc-http`'s intended shapes (as dsv-epaxos's
+   `Interface/RpcHttpHyps.lean`, on `origin/dsv-epaxos`: copy its shape).
+3. Server, Replica2/B/H*/X, the client on remote, Codec()/Gen (see item 2 of the old list below),
+   Start/Shares, Mains, Linked, `gryff_remote_robust` (every hypothesis class, `InitHyp`s and
+   `BinaryVarintHyps` included, a visible premise; confirm with `etc/theorem-loc.py`),
+   `etc/tcb-collections/dsv-gryff.txt`.
+
+### Older plan (sessions 1-3), still valid where not superseded above
+
+
 Remaining lab modules (as of `858378e8aa`, by directory): B 16, Client 12, H1 32, H2 6, H2a 9,
 H2b 3, H2c 7, H2c2 5, H3 6, N 26, Proto2/Replica 1, Replica 2, Replica2 3, Rpc 6, S 1, Server 16,
 Shares, Start, Top, Wire 11 (`Wire/Specs`, `Wire/Proof/*`), X 15. The port helper used this

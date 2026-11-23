@@ -17,6 +17,11 @@ module
 public import Dsverify.Proof.gryff.Wire.Enc
 public import Proof.bufio.Writer__Write
 public import Proof.bufio.Writer__Flush
+public import Proof.bufio.Writer__WriteByte
+public import Proof.bufio.NewWriter
+public import Proof.bufio.NewWriterSize
+public import Proof.bufio.NewReaderSize
+public import Proof.bufio.NewReaderOk
 public import Proof.bufio.ReaderLaws
 public import Proof.bufio.Reader__ReadOk
 public import Perennial.Proof.io.Link
@@ -509,6 +514,51 @@ theorem wst_congr (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF) (sent pe
     wst bw wr J Q sent pend err D1 ⊢ wst bw wr J Q sent pend err D2 := by
   rw [h]
 
+/-- The wrapped writer's prefix closure (the lab's `bufio.writerOk`'s third conjunct). -/
+theorem writerOk_prefixClosed (wr : WSt GF) (J Q : List w8 → IProp GF) :
+    writerOk wr J Q ⊢ EtcdGrove.io.prefixClosed Q :=
+  EtcdGrove.io.streamWriterOk_prefixClosed _ _ _ _
+
+/-- `Flush()` (the lab's `bufio.wp_Flush`): dsv-bufio's `Writer.Flush.spec`. -/
+theorem wp_Flush (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)
+    (sent pend : List w8) (err : GoInterface) :
+    {{ ownWriter bw wr J Q sent pend err }}
+      (App (Val (bw @!! go.GoType.PointerType bufio.Writer.ty @!! go!"Flush")) (Val #()))
+    {{ (e : GoInterface), RET #e; ∃ k : Nat,
+        ⌜k ≤ pend.length ∧ (e = interface.nil → k = pend.length) ∧
+          (err ≠ interface.nil → e = err ∧ k = 0)⌝ ∗
+        ownWriter bw wr J Q (sent ++ pend.take k) (pend.drop k) e }} :=
+  EtcdGrove.bufio.Writer.Flush.wp_proof bw wr.wi J Q wr.Ew wr.sz sent pend err
+
+/-- `WriteByte(c)` (the lab's `bufio.wp_WriteByte`, with dsv-bufio's stronger post: a failed
+writer keeps its state; a byte that fits is not sent). -/
+theorem wp_WriteByte (bw : Loc) (wr : WSt GF) (J Q : List w8 → IProp GF)
+    (sent pend : List w8) (err : GoInterface) (c : w8) :
+    {{ ownWriter bw wr J Q sent pend err ∗ (⌜err = interface.nil⌝ -∗ □ Q (sent ++ pend ++ [c])) }}
+      (App (Val (bw @!! go.GoType.PointerType bufio.Writer.ty @!! go!"WriteByte")) (Val #c))
+    {{ (e : GoInterface), RET #e; ∃ sent' pend' : List w8,
+        ⌜sent <+: sent' ∧ (e = interface.nil → sent' ++ pend' = sent ++ pend ++ [c]) ∧
+          (e ≠ interface.nil → sent' ++ pend' = sent ++ pend) ∧
+          (err ≠ interface.nil → e = err ∧ sent' = sent ∧ pend' = pend) ∧
+          (err = interface.nil ∧ pend.length + 1 ≤ wr.sz → e = interface.nil ∧ sent' = sent)⌝ ∗
+        ownWriter bw wr J Q sent' pend' e }} :=
+  EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof bw wr.wi J Q
+    wr.Ew wr.sz sent pend err c
+
+/-- `bufio.NewWriter(w)` (the lab's `bufio.wp_NewWriter`): a writer of size 4096. -/
+theorem wp_NewWriter (wr : WSt GF) (J Q : List w8 → IProp GF) (W : List w8) (hsz : wr.sz = 4096)
+    (hty : wr.wi.ty ≠ go.GoType.PointerType bufio.Writer.ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ writerOk wr J Q ∗ J W ∗ □ Q W }}
+      (App (Val (@! bufio.NewWriter)) (Val #(GoInterface.ok wr.wi)))
+    {{ (bw : Loc), RET #bw; ownWriter bw wr J Q W [] interface.nil }} := by
+  iintro %Φ ⟨#Hpkg, #Hwr, HJ, #HQ⟩ HΦ
+  iapply EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof wr.wi J Q wr.Ew W
+    $$ [HJ]
+  · iframe Hpkg Hwr HJ HQ; ipureintro; exact hty
+  iintro !> %bw Hown
+  iapply HΦ
+  unfold ownWriter; rw [hsz]; iexact Hown
+
 end writer
 
 /-! ## The reader
@@ -810,6 +860,23 @@ theorem readNext_mono (br : Loc) (rd : RSt GF) (I : List w8 → IProp GF) (R : L
   ipureintro
   obtain ⟨pend, hp⟩ := Hp
   exact ⟨pend, h _ hp⟩
+
+/-- `bufio.NewReader(r)` (the lab's `bufio.wp_NewReader`), over a reader whose reads of positive
+length meet `Pre` (`rd.ri`'s contract with the state `I`). -/
+theorem wp_NewReader (rd : RSt GF) (I : List w8 → IProp GF) (R : List w8)
+    (hty : rd.ri.ty ≠ go.GoType.PointerType bufio.Reader.ty) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ io.readerOk rd.ri (fun _ m => 0 < m) I rd.E ∗
+        I R }}
+      (App (Val (@! bufio.NewReader)) (Val #(GoInterface.ok rd.ri)))
+    {{ (br : Loc), RET #br; ownReader br rd I R }} := by
+  iintro %Φ ⟨#Hpkg, #Hrd, HI⟩ HΦ
+  iapply EtcdGrove.bufio.NewReader.wp_proofOk
+    (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE) rd.ri
+    (fun _ m => 0 < m) I rd.E R $$ [HI] HΦ
+  iframe Hpkg Hrd HI
+  isplitr
+  · ipureintro; exact hty
+  iapply EtcdGrove.bufio.preUpTo_trivial
 
 end reader
 
