@@ -54,8 +54,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `ids`): the statement's term changes, its meaning does not (an existential over a type with one more unread
   field). No other top-level statement names `IdNames` (`etc/theorem-loc.py --list-tcb`: `k8s_safe_single_process`,
   `etcd_leaseexpiryN_safe_single_process` only as axiom vocabulary; `mvccfull`, `mvccrand`, `k8s_authz` not at
-  all). Option (a), this branch: accept it; option (b): `gen` an explicit parameter, `IdNames` unchanged. Pending
-  Upamanyu's answer on #28 (the coordinator); not queued until then.
+  all). Option (a), this branch: accept it; option (b): `gen` an explicit parameter, `IdNames` unchanged. **(a)
+  accepted** (Upamanyu's coordinator on #28, 2026-11-23: a vocabulary change with unchanged meaning is not covered
+  by #8).
 
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
