@@ -81,7 +81,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.NewDecoder.wp_proof
       (fun fi err => iprop(⌜err ≠ GoInterface.nil → IoE err⌝ ∗ decAns eof err ∗ ioUeof IoE err ∗
         (⌜err = GoInterface.nil⌝ -∗ fileInfoOk fi F.bs.length))) HFp.1 $$ [HS]
       as %fbr ⟨%b, %fi, %err, Hfbr, Hb, HQ⟩
-    · iframe; iexact HFI
+    · iframe
+      isplitr
+      · iexact Hrs
+      isplitr
+      · iintro !> %r' HS'
+        ihave %h := Hpre $$ HS'
+        ipureintro
+        have := h.length_le
+        omega
+      iexact HFI
     try wp_auto
     ihave Hfbr2 := (dfractional_update_into_persistently
       (typedPointsto (GF := GF) fbr

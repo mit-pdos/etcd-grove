@@ -5060,3 +5060,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   lease, auth and watch ones, `etcdstart`'s `grpcUp`).
 - **Decision.** Applied: an axiom retired, callee contracts restated so that every caller proves on top; no
   top-level statement changes.
+
+## 2026-11-23: `semver.Version.LessThan` back to the trust boundary; `apply.isCluster`'s `Version()` law back to `True` (prove-ps2-version)
+
+- **Spec.** Reverts the 2026-11-22 entry (prove-ps2-semver). `semver.Version.LessThan.spec`
+  (`Spec/github_com/Masterminds/semver/v3/Version__LessThan.lean`): again of any `v`, `o` not nil, some boolean;
+  `semver.Version.LessThan.wp_proof` again an axiom. `apply.isCluster`'s `Version` law (`apply/Contracts.lean`):
+  the post `⌜v = null⌝ ∨ ∃ x, v ↦□ x` again `True`. The callers' proofs (`version/LessThan`,
+  `rafthttp/compareMajorMinorVersion`, `apply/applierV3backend__ClusterVersionSet`) as before 2026-11-22.
+- **Defect.** The 2026-11-22 change was a stronger trusted premise, not a proved fact: `isCluster` reaches every
+  top-level theorem through `clusterApplyOk`, `bootOk`, `bootstrapContract` and `bootPremise` (`bootstrap` and
+  `RaftCluster.Version` are not verified: `membership` translates `Version` names-only, and the cluster's lock
+  invariant `rcLockInv` holds nothing of `c.version`). Upamanyu's ruling on etcd-grove#18 (2026-11-23): no
+  axiom is retired by growing a top-level premise.
+- **Evidence.** `semver.Version.Compare` and its callees stay proved over the real code
+  (`Proof/github_com/Masterminds/semver/v3/{Version__Compare,…}.lean`), linked but used by no proof until
+  `LessThan` can take ownership; `LessThan` stays translated with its body (`v.Compare(o) < 0`).
+- **Proposed change.** Retire the axiom again once `ClusterVersionSet`'s `prev` has a proved ownership: the
+  cluster's version field in `rcLockInv` (`c.version` nil or read-only), `RaftCluster.Version`/`SetVersion`/
+  `Recover` translated and proved over it, and the cluster's construction in `bootstrap` verified so that
+  `bootOk`'s `isRaftCluster` is proved, not assumed.
+- **Decision.** Applied (reverted).

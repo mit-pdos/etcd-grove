@@ -38,8 +38,8 @@ def pr_kind(f):
 
 
 def cycle(S, n):
-    """The Go field names and numbers of a shortest path of message fields from n back to n, or
-    None."""
+    """A shortest path of message fields from n back to n, or None: per step the Go field (a
+    oneof member: its holder), the number, and the wrapper type (alias.W, or None)."""
     q = deque([(n, [])])
     seen = set()
     while q:
@@ -47,7 +47,7 @@ def cycle(S, n):
         for f in S.m[t]:
             if f.cat != "message":
                 continue
-            p2 = path + [(f.name, f.num)]
+            p2 = path + [(f.holder if f.oneof is not None else f.name, f.num, f.wrapper)]
             if f.kind == n:
                 return p2
             if f.kind not in seen:
@@ -72,9 +72,13 @@ type pbType struct {
 	new    func() proto.Message
 	fields []pbField
 	// nest: the Go field names and numbers of a path of message fields from the type back to
-	// itself (nil: not recursive)
+	// itself (nil: not recursive); nestWrap: per step, the oneof wrapper type (*W) or nil
 	nest     []string
 	nestNums []protowire.Number
+	nestWrap []reflect.Type
+	// req: the type has a required field; init: it reaches one (Marshal and Unmarshal check
+	// them)
+	req, init bool
 }
 
 type pbField struct {
@@ -85,6 +89,12 @@ type pbField struct {
 	packed bool
 	ref    string // a message or enum field's type's full name
 	goType reflect.Type
+	pres   bool         // explicit presence (not a message, not in a oneof)
+	req    bool         // required
+	utf8   bool         // a string field whose UTF-8 is checked
+	oneof  string       // the (non-synthetic) oneof's name
+	holder string       // a oneof member's holder field
+	wrap   reflect.Type // a oneof member's wrapper type (*W); goName is W's field
 }
 
 func pbFullName(m proto.Message) string {
@@ -93,6 +103,15 @@ func pbFullName(m proto.Message) string {
 
 func pbTypeOf[T any]() reflect.Type {
 	return reflect.TypeOf((*T)(nil)).Elem()
+}
+
+// pbHolderType: the type of T's struct field name (a oneof's holder).
+func pbHolderType[T any](name string) reflect.Type {
+	f, ok := reflect.TypeOf((*T)(nil)).Elem().FieldByName(name)
+	if !ok {
+		panic("no field " + name)
+	}
+	return f.Type
 }
 
 func pbNil(m proto.Message) proto.Message {
@@ -122,11 +141,11 @@ func TestProtoShapes(t *testing.T) {
 			t.Errorf("%s: no descriptor", tp.name)
 			continue
 		}
-		if md.ParentFile().Syntax() != protoreflect.Proto3 {
-			t.Errorf("%s: syntax %v, not proto3 (outside the codec)", tp.name, md.ParentFile().Syntax())
+		if sx := md.ParentFile().Syntax(); sx != protoreflect.Proto3 && sx != protoreflect.Proto2 {
+			t.Errorf("%s: syntax %v, not proto2 or proto3 (outside the codec)", tp.name, sx)
 		}
-		if md.Oneofs().Len() != 0 || md.ExtensionRanges().Len() != 0 {
-			t.Errorf("%s: has oneofs or extension ranges (outside the codec)", tp.name)
+		if md.ExtensionRanges().Len() != 0 {
+			t.Errorf("%s: has extension ranges (outside the codec)", tp.name)
 		}
 		if md.Fields().Len() != len(tp.fields) {
 			t.Errorf("%s: the message has %d fields, the generator derived %d", tp.name, md.Fields().Len(), len(tp.fields))
@@ -138,8 +157,25 @@ func TestProtoShapes(t *testing.T) {
 				exported++
 			}
 		}
-		if exported != len(tp.fields) {
-			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d", tp.name, exported, len(tp.fields))
+		holders := map[string]bool{}
+		plain := 0
+		for _, f := range tp.fields {
+			if f.oneof != "" {
+				holders[f.holder] = true
+			} else {
+				plain++
+			}
+		}
+		if exported != plain+len(holders) {
+			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d fields and %d oneofs",
+				tp.name, exported, plain, len(holders))
+		}
+		req := false
+		for i := 0; i < md.Fields().Len(); i++ {
+			req = req || md.Fields().Get(i).Cardinality() == protoreflect.Required
+		}
+		if req != tp.req {
+			t.Errorf("%s: required fields %v, the generator says %v", tp.name, req, tp.req)
 		}
 		for _, f := range tp.fields {
 			fd := md.Fields().ByNumber(f.num)
@@ -151,8 +187,21 @@ func TestProtoShapes(t *testing.T) {
 				t.Errorf("%s.%s (%d): kind %v, list %v, map %v, packed %v; the generator says %v, %v, false, %v",
 					tp.name, f.goName, f.num, fd.Kind(), fd.IsList(), fd.IsMap(), fd.IsPacked(), f.kind, f.rep, f.packed)
 			}
-			if fd.ContainingOneof() != nil || fd.HasPresence() != (!f.rep && f.kind == protoreflect.MessageKind) {
-				t.Errorf("%s.%s: explicit presence or a oneof (outside the codec)", tp.name, f.goName)
+			od := fd.ContainingOneof()
+			if od != nil && od.IsSynthetic() {
+				od = nil
+			}
+			oneof := ""
+			if od != nil {
+				oneof = string(od.Name())
+			}
+			pres := fd.HasPresence() && f.kind != protoreflect.MessageKind && od == nil
+			if oneof != f.oneof || pres != f.pres || (fd.Cardinality() == protoreflect.Required) != f.req {
+				t.Errorf("%s.%s: oneof %q, presence %v, required %v; the generator says %q, %v, %v", tp.name,
+					f.goName, oneof, pres, fd.Cardinality() == protoreflect.Required, f.oneof, f.pres, f.req)
+			}
+			if fd.Kind() == protoreflect.StringKind && f.utf8 != (fd.Syntax() == protoreflect.Proto3) {
+				t.Errorf("%s.%s: a %v string, the generator says UTF-8 checked %v", tp.name, f.goName, fd.Syntax(), f.utf8)
 			}
 			ref := ""
 			if fd.Message() != nil {
@@ -163,7 +212,18 @@ func TestProtoShapes(t *testing.T) {
 			if ref != f.ref {
 				t.Errorf("%s.%s: type %q, the generator says %q", tp.name, f.goName, ref, f.ref)
 			}
-			sf, ok := st.FieldByName(f.goName)
+			ft := st
+			if f.oneof != "" {
+				hf, ok := st.FieldByName(f.holder)
+				if !ok || hf.Tag.Get("protobuf_oneof") != f.oneof || hf.Type.Kind() != reflect.Interface ||
+					!f.wrap.Implements(hf.Type) {
+					t.Errorf("%s.%s: holder %s (%v, tag %q) of oneof %s, wrapper %v", tp.name, f.goName, f.holder,
+						hf.Type, hf.Tag.Get("protobuf_oneof"), f.oneof, f.wrap)
+					continue
+				}
+				ft = f.wrap.Elem()
+			}
+			sf, ok := ft.FieldByName(f.goName)
 			if !ok || sf.Type != f.goType || pbTagNumber(sf.Tag.Get("protobuf")) != f.num {
 				t.Errorf("%s.%s: Go field %v (tag %q), the generator says %v number %d", tp.name, f.goName,
 					sf.Type, sf.Tag.Get("protobuf"), f.goType, f.num)
@@ -243,12 +303,35 @@ func pbRandValue(r *rand.Rand, f reflect.Value, depth int) {
 	case reflect.String:
 		f.SetString(pbRndString(r))
 	case reflect.Pointer:
+		if f.Type().Elem().Kind() != reflect.Struct { // explicit presence: often a zero value
+			p := reflect.New(f.Type().Elem())
+			if r.Intn(3) != 0 {
+				pbRandValue(r, p.Elem(), depth)
+			}
+			f.Set(p)
+			return
+		}
 		if depth >= 5 {
 			return
 		}
 		p := reflect.New(f.Type().Elem())
 		if r.Intn(4) != 0 {
 			pbRandFill(r, p.Elem(), depth+1)
+		}
+		f.Set(p)
+	case reflect.Interface: // a oneof: one of its wrappers (rarely a typed nil one)
+		ws := pbOneofWrappers[f.Type()]
+		if len(ws) == 0 {
+			panic("pbRandValue: no wrappers for " + f.Type().String())
+		}
+		w := ws[r.Intn(len(ws))]
+		if r.Intn(10) == 0 {
+			f.Set(reflect.Zero(w))
+			return
+		}
+		p := reflect.New(w.Elem())
+		if r.Intn(5) != 0 {
+			pbRandValue(r, p.Elem().Field(0), depth)
 		}
 		f.Set(p)
 	case reflect.Slice:
@@ -293,7 +376,12 @@ func pbChain(tp pbType, d int) proto.Message {
 	for i := 0; i < d; i++ {
 		f := cur.FieldByName(tp.nest[i%len(tp.nest)])
 		var child reflect.Value
-		if f.Kind() == reflect.Pointer {
+		if w := tp.nestWrap[i%len(tp.nest)]; w != nil {
+			wv := reflect.New(w.Elem())
+			child = reflect.New(wv.Elem().Field(0).Type().Elem())
+			wv.Elem().Field(0).Set(child)
+			f.Set(wv)
+		} else if f.Kind() == reflect.Pointer {
 			child = reflect.New(f.Type().Elem())
 			f.Set(child)
 		} else {
@@ -313,6 +401,11 @@ func pbEq(a, b reflect.Value) bool {
 			return a.IsNil() == b.IsNil()
 		}
 		return pbEq(a.Elem(), b.Elem())
+	case reflect.Interface:
+		if a.IsNil() || b.IsNil() {
+			return a.IsNil() == b.IsNil()
+		}
+		return a.Elem().Type() == b.Elem().Type() && pbEq(a.Elem(), b.Elem())
 	case reflect.Struct:
 		for i := 0; i < a.NumField(); i++ {
 			if a.Type().Field(i).IsExported() && !pbEq(a.Field(i), b.Field(i)) {
@@ -372,13 +465,14 @@ func TestProtoMarshal(t *testing.T) {
 			}
 		}
 	}
-	if pbHasStrings && pbStats.marshalErrs == 0 {
-		t.Fatalf("no Marshal error (invalid UTF-8) seen")
+	if (pbHasStrings || pbHasRequired) && pbStats.marshalErrs == 0 {
+		t.Fatalf("no Marshal error (invalid UTF-8, a required field not set) seen")
 	}
 	t.Logf("%d encodings, %d errors", pbStats.marshalOK, pbStats.marshalErrs)
 }
 
-// pbSamples: real encodings of random values of every type of the codec.
+// pbSamples: real encodings of random values of every type of the codec (a third of those of
+// types with required fields marshaled with AllowPartial: missing some).
 func pbSamples(r *rand.Rand, n int) [][]byte {
 	types := pbTypes()
 	var out [][]byte
@@ -387,6 +481,9 @@ func pbSamples(r *rand.Rand, n int) [][]byte {
 		m := tp.new()
 		pbRandFill(r, reflect.ValueOf(m).Elem(), 0)
 		b, err := proto.Marshal(m)
+		if err != nil && tp.init && r.Intn(3) == 0 {
+			b, err = proto.MarshalOptions{AllowPartial: true}.Marshal(m)
+		}
 		if err == nil {
 			out = append(out, b)
 		}
@@ -845,9 +942,11 @@ func pbNest(nums []protowire.Number, k int, inner []byte) []byte {
 func TestProtoDepth(t *testing.T) {
 	r := rand.New(rand.NewSource(4))
 	for _, tp := range pbTypes() {
+		// (the expected outcomes below hold for messages that need no required field; the
+		// codec is compared with the real one in every case)
 		for _, d := range []int{1, 2, 10001, 10002} {
 			ok := pbCheckUnmarshal(t, r, tp, pbGroup(pbUnknownNum, d))
-			if ok != (d <= 10001) {
+			if ok != (d <= 10001) && !tp.req {
 				t.Fatalf("%s: a group nested %d deep: real %v", tp.name, d, ok)
 			}
 		}
@@ -856,13 +955,14 @@ func TestProtoDepth(t *testing.T) {
 		}
 		for _, k := range []int{1, 2, 9999, 10000, 10001} {
 			ok := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, k, nil))
-			if ok != (k < 10000) {
+			if ok != (k < 10000) && !tp.init {
 				t.Fatalf("%s: nested %d deep: real %v", tp.name, k, ok)
 			}
 		}
 		// groups at protowire's limit inside messages at the recursion limit
-		if !pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10001))) ||
-			pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10002))) {
+		ok1 := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10001)))
+		ok2 := pbCheckUnmarshalFresh(t, tp, pbNest(tp.nestNums, 9999, pbGroup(pbUnknownNum, 10002)))
+		if (!ok1 || ok2) && !tp.init {
 			t.Fatalf("%s: groups inside deep nesting: the real one's limits are not as expected", tp.name)
 		}
 	}
@@ -910,11 +1010,14 @@ def gen_test_go(P, header, go_name):
     table = ["// pbTypes: the codec's message types.", "func pbTypes() []pbType {",
              "\treturn []pbType{"]
     for n in P.names:
-        table.append(f"\t\t{{name: {go_str(n)}, new: func() proto.Message {{ return &{n}{{}} }},")
+        table.append(f"\t\t{{name: {go_str(n)}, new: func() proto.Message {{ return &{n}{{}} }}, "
+                     f"req: {str(n in P.direct_req).lower()}, init: {str(n in P.needs_init).lower()},")
         cyc = cycle(P, n)
         if cyc:
-            table.append("\t\t\tnest:     []string{" + ", ".join(go_str(a) for a, _ in cyc) + "},")
-            table.append("\t\t\tnestNums: []protowire.Number{" + ", ".join(str(b) for _, b in cyc) + "},")
+            table.append("\t\t\tnest:     []string{" + ", ".join(go_str(a) for a, _, _ in cyc) + "},")
+            table.append("\t\t\tnestNums: []protowire.Number{" + ", ".join(str(b) for _, b, _ in cyc) + "},")
+            table.append("\t\t\tnestWrap: []reflect.Type{" + ", ".join(
+                (f"pbTypeOf[*{w}]()" if w else "nil") for _, _, w in cyc) + "},")
         if not P.m[n]:
             table += ["\t\t\tfields: []pbField{},", "\t\t},"]
             continue
@@ -926,18 +1029,34 @@ def gen_test_go(P, header, go_name):
                 ref = f"string({f.kind}(0).Descriptor().FullName())"
             else:
                 ref = '""'
+            wrap = f"pbTypeOf[*{f.wrapper}]()" if f.wrapper else "nil"
+            b = lambda v: str(v).lower()
             table.append(f"\t\t\t\t{{{go_str(f.name)}, {f.num}, protoreflect.{pr_kind(f)}, "
-                         f"{str(f.rep).lower()}, {str(f.packed).lower()}, {ref}, pbTypeOf[{f.go_type()}]()}},")
+                         f"{b(f.rep)}, {b(f.packed)}, {ref}, pbTypeOf[{f.go_type()}](), {b(f.pres)}, "
+                         f"{b(f.req)}, {b(f.utf8)}, {go_str(f.oneof or '')}, {go_str(f.holder or '')}, {wrap}}},")
         table += ["\t\t\t},", "\t\t},"]
     table += ["\t}", "}", ""]
+    # the oneofs' holder interface types and their wrappers, for random values
+    table += ["// pbOneofWrappers: each oneof holder's interface type, with its wrapper types.",
+              "var pbOneofWrappers = pbOneofWrappersOf()", "",
+              "func pbOneofWrappersOf() map[reflect.Type][]reflect.Type {",
+              "\tw := map[reflect.Type][]reflect.Type{}"]
+    for n in P.names:
+        for h, _, mem in P.oneofs[n]:
+            ws = ", ".join(f"pbTypeOf[*{f.wrapper}]()" for f in mem)
+            table.append(f"\tw[pbHolderType[{n}]({go_str(h)})] = []reflect.Type{{{ws}}}")
+    table += ["\treturn w", "}", ""]
     nums = sorted({f.num for fs in P.m.values() for f in fs} | {unknown_num(P)})
-    has_strings = any(f.kind == "string" for fs in P.m.values() for f in fs)
+    has_strings = any(f.kind == "string" and f.utf8 for fs in P.m.values() for f in fs)
+    has_req = bool(P.direct_req)
     consts = [f"// pbUnknownNum: a field number no codec message has.",
               f"const pbUnknownNum protowire.Number = {unknown_num(P)}", "",
               "// pbNums: the listed field numbers (and pbUnknownNum), for mutations.",
               "var pbNums = []protowire.Number{" + ", ".join(map(str, nums)) + "}", "",
-              "// pbHasStrings: some codec message has a string field.",
-              f"const pbHasStrings = {str(has_strings).lower()}", ""]
+              "// pbHasStrings: some codec message has a UTF-8-checked string field.",
+              f"const pbHasStrings = {str(has_strings).lower()}", "",
+              "// pbHasRequired: some codec message has a required field.",
+              f"const pbHasRequired = {str(has_req).lower()}", ""]
     text = "\n".join(table)
     lines += used_imports(P, text, pbpkgs) + [")", ""]
     return "\n".join(lines + consts + table) + TEST_HELPERS
