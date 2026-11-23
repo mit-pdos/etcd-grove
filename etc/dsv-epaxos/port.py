@@ -153,6 +153,10 @@ def generic_conv(t):
     t = re.sub(r'\) : ([\w.]+\.spec\w*) := by', r') : \1 (GF := GF) := by', t)
     t = re.sub(r'\((h\w* : [\w.]+\.spec)\)', r'(\1 (GF := GF))', t)
     t = re.sub(r'\((h\w* : [A-Z]\w*Spec)\)', r'(\1 (GF := GF))', t)
+    # a `structure … : Prop` of specs: its fields' spec types determine no `GF`
+    t = re.sub(r'(?m)^(  \w+ : [A-Z]\w*Spec)(?= )(?! \(GF)', r'\1 (GF := GF)', t)
+    # `omit … [net.model.Assumptions] in`: the variables that replace it
+    t = re.sub(r'(?m)^(omit .*)\[net\.model\.Assumptions\]', r'\1[HasExt netExt] [π : NetProtoGS]', t)
     t = re.sub(r'attribute \[local instance\] Dsv\.netConnExts Dsv\.netConnExtsSemantics Dsv\.netConnExtsInterp\s*\n\s*'
                r'GooseGlobalGS\.gooseInvGS Dsv\.netConnExts_has',
                'attribute [local instance] GooseGlobalGS.gooseInvGS', t)

@@ -359,7 +359,13 @@ that needs it):
   discharged by `models-rpc-http`; a visible premise of `epaxos_remote_robust`, never an instance.
   Field names use `_spec` (`DialHTTP_spec` for Upamanyu's `rpc.DialHTTP.spec`): rename to his
   `def …spec` names when his branch lands.
-- `TreemapHyp GF` (`Interface/Treemap.lean`): gods' treemap (above).
+- `TreemapHyp GF` (`Interface/Treemap.lean`): gods' treemap (above). **Audit against real gods
+  (rabia review lessons, 2026-11-23):** `isTreeMap m M` is exclusive and only `NewWith_spec` creates
+  it (so `m` is non-nil and the comparator is `state.KeyComparator`, a total order on `int64` keys);
+  `Put`/`Get` take `keyIface`/`valIface` (a `state.Key`, a `state.Value`: no comparator panic on a
+  foreign key type); `Select` needs `f`'s triple; `Iterator` consumes the map's ownership (no
+  modification while iterating); `Next`/`Value` need `ownIter`. No spec holds where Go panics or
+  races. The `InitHyp`s assert only that the initializer runs (package fact `True`).
 
 To be stated when the code proofs reach them (the library specs below, named after the lab's):
 
