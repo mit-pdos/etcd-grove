@@ -35,7 +35,7 @@ variable [os_sem : os.Assumptions]
 
 /-- A whole claim on an absent name is a pipeline claim. -/
 theorem tmpClaim_absent (j : Ino) (b : GoString) (h : NamesH) (hb : h.cur !! b = none) :
-    osNames (GF := GF) j (.only [b]) (DFrac.own 1) h ⊢ tmpClaim j b := by
+    osNames (GF := GF) j (.only [b]) (DFrac.own qTmp) h ⊢ tmpClaim j b := by
   iintro Hn
   iunfold tmpClaim
   iexists h

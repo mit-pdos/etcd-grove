@@ -111,6 +111,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Fdatasync_unfold : FuncUnfold Fdatasync [] Fdatasync.impl
   Flock_unfold : FuncUnfold Flock [] Flock.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_errors_Assumption : _root_.Perennial.errors.Assumptions
+  import_oserror_Assumption : _root_.Perennial.internal.oserror.Assumptions
 
 attribute [instance] Assumptions.SysProcIDMap_instance
   Assumptions.SysProcAttr_instance
@@ -203,6 +205,8 @@ attribute [instance] Assumptions.SysProcIDMap_instance
   Assumptions.Fdatasync_unfold
   Assumptions.Flock_unfold
   Assumptions.import_sync_Assumption
+  Assumptions.import_errors_Assumption
+  Assumptions.import_oserror_Assumption
 
 end syscall
 

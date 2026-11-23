@@ -43,23 +43,21 @@ set_option hygiene false in
 local macro "handler_tail" : tactic => `(tactic| (
   icases Hk with ⟨Hk, -⟩;
   iunfold srvHandlerCall at Hk;
-  ispecialize Hk $$ [//];
+  ispecialize Hk $$ HR;
   wp_bind (App (App (Val #h) _) _);
   iapply (wp_wand (Φ := fun v => iprop(∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ True ∗ (True -∗ Ψ v)))) $$ Hk;
-  iintro %v ⟨%resp, %err, %Hv, -, -, HΨ⟩;
+    go_etcd_io.etcd.cache.v3.srvErrOk err ∗ levelTok 0 ∗ (levelTok 0 -∗ Ψ v)))) $$ Hk;
+  iintro %v ⟨%resp, %err, %Hv, -, HR, HΨ⟩;
   subst Hv;
   wp_auto;
-  iapply HΨ;
-  itrivial))
+  iapply HΨ $$ HR))
 
 set_option hygiene false in
 /-- An early `return nil, err` of the interceptor, from the error continuation of `Hk` (`s`: the
 error's `srvErrOk`). -/
 local macro "error_return" e:term : tactic => `(tactic| (
   icases Hk with ⟨-, Hk⟩;
-  iapply Hk $$ [] %(GoInterface.ok $e);
-  · itrivial
+  iapply Hk $$ HR %(GoInterface.ok $e);
   · unfold notHandlerErr handlerDescs; iassumption
   iassumption))
 
@@ -76,7 +74,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     (wp_Leader : EtcdServer.Leader.spec (GF := GF) (hG := hG)) :
     v3rpc.newUnaryInterceptor.spec (GF := GF) (hG := hG) := by
   have wp_FromIncoming := metadata.FromIncomingContext.weaken wp_FromIncoming
-  intro s c mid
+  intro _ s c mid
   wp_start as ⟨#Hmid, #Hlead, #Hcl, #Hrc', #Hkept⟩
   ihave Hinit : (go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.v3rpcInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -115,7 +113,8 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   iintro !> %ci %cd %req %info %h %Ψ HR #Hctx #Hrc #Hinfo #HQ Hk
   iunfold srvInterceptorCall
   wp_auto
-  wp_apply wp_IsCap as %b -
+  wp_apply wp_IsCap $$ [HR] as %b HR
+  · iframe HR
   cases b
   · wp_auto
     icases Hk with ⟨-, Hk⟩
@@ -126,10 +125,11 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
   ipersist Hreqp
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
       «$res1_ptr» ↦ GoInterface.nil ∗
-      ((True -∗ WP (srvHandlerCall h #(GoInterface.ok ci) #req)
+      levelTok 0 ∗
+      ((levelTok 0 -∗ WP (srvHandlerCall h #(GoInterface.ok ci) #req)
           {{ v, ∃ resp err : GoInterface, ⌜v = PairV #resp #err⌝ ∗
-            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ True ∗ (True -∗ Ψ v) }}) ∧
-        (True -∗ ∀ err : GoInterface,
+            go_etcd_io.etcd.cache.v3.srvErrOk err ∗ levelTok 0 ∗ (levelTok 0 -∗ Ψ v) }}) ∧
+        (levelTok 0 -∗ ∀ err : GoInterface,
           notHandlerErr err -∗
           go_etcd_io.etcd.cache.v3.srvErrOk err -∗ Ψ (PairV #GoInterface.nil #err)))) ∨
       ∃ e : GoInterface, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ GoInterface.nil ∗
@@ -163,7 +163,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     · wp_auto
       ileft; iframe; ipureintro; rfl
   rename_i v
-  iintro (⟨%Hv, «$res0», «$res1», Hk⟩ | ⟨%e, %Hv, «$res0», «$res1», HΨ⟩)
+  iintro (⟨%Hv, «$res0», «$res1», HR, Hk⟩ | ⟨%e, %Hv, «$res0», «$res1», HΨ⟩)
   rotate_left
   · subst Hv
     wp_auto

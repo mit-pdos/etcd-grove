@@ -514,8 +514,8 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     v3rpc.isWatchServer pw R ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
+    srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
     netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 
@@ -618,8 +618,8 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     v3rpc.isWatchServer pw R ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
+    srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
     netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 
@@ -645,8 +645,8 @@ def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     v3rpc.isWatchServer pw R ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
     (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-    srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
+    srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+    srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
     netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
 

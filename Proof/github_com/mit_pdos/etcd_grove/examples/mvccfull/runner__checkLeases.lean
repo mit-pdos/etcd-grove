@@ -174,7 +174,7 @@ theorem runner.checkLeases.wp_proof
     icases lease.leaseOwn_leases (mvccLeases v.ι.kv) _ _ $$ Hlo with ⟨%mL, #HlbL, Hback⟩
     have hTB : threadBound GF ≤ 2 ^ 30 - 1 := ThreadBoundLe.le_of (2 ^ 28) (by omega)
     have hRB : receiptBound GF ≤ 2 ^ 62 := by
-      have : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.receiptBound_le
+      have : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.receiptBound_le
       omega
     -- `Leases()` takes the level-0 token (the lessor's and the leases' pools are level 0)
     icases (threadTok_level0 (GF := GF)).1 $$ Htok with ⟨Htok, Htok1⟩

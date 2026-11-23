@@ -72,6 +72,7 @@ public import Proof.google_golang_org.grpc.status.Init
 public import Proof.math.rand.Init
 public import Proof.unicode.utf8.Init
 public import Perennial.Proof.sync.RWMutexGuard
+public import Proof.github_com.prometheus.client_golang.prometheus.MetricLaws
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
 public import Proof.runtime.PkgInitRes
 

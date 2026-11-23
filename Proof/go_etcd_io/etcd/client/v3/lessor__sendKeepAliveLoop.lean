@@ -142,9 +142,13 @@ theorem lessor.sendKeepAliveLoop.wp_proof
       $$ [Htsl] as Htsl
     · iframe; ipureintro; exact Hc
     (try wp_auto)
-    ihave #HS := HSend $$ %L2 %«$r0_ptr» %(⟨ids[sint.nat n]'Hlt, 0, 0⟩ : KaReqM)
-    wp_apply HS $$ [Htok «$r0»] as %err ⟨-, Hres⟩
-    · iframe Htok
+    ihave #HS := HSend $$ %L2 %«$r0_ptr» %(⟨ids[sint.nat n]'Hlt, 0, 0⟩ : KaReqM) %iprop(True)
+    wp_apply HS $$ [Htok «$r0»] as %err ⟨-, -, Hres⟩
+    · isplitr
+      · ipureintro; trivial
+      isplitr
+      · itrivial
+      iframe Htok
       isplitl [«$r0»]
       · iexists _; iframe «$r0»; ipureintro; exact ⟨rfl, rfl⟩
       isplitl []

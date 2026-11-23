@@ -17,9 +17,9 @@ The premises: the configuration's bounds (`make(chan int64, Watchers)` takes a c
 the receiver and the readers, holds one of its lock's `actualMaxReaders = 2 ^ 30 - 1` reader slots,
 `History.lean`, and each of the store's `Readers + 2` readers, the writer, the registrar and the
 readers, one of its reader tokens (`mvccReaders`, of which `New` gives `mvccReaderN`, at least
-`2 ^ 28`): `Readers + 2 ≤ 2 ^ 28`; the writer's lease grants spend one of the backend's `2 ^ 40 - 1` write-back tokens
+`2 ^ 28`): `Readers + 2 ≤ 2 ^ 28`; the writer's lease grants spend one of the backend's `2 ^ 62 - 1` write-back tokens
 each, the store's receipt-paid supply as many as there are receipts: `Ops < 2 ^ 38` and
-`receiptBound ≤ 2 ^ 38`), the thread bound of the backend's reader pool (`2 ^ 28`), and `dbOpenOk` (`Open_kv`'s
+`receiptBound ≤ 2 ^ 48`), the thread bound of the backend's reader pool (`2 ^ 28`), and `dbOpenOk` (`Open_kv`'s
 environment premise). (Premise fixes 5, 2026-11-10) The store's key-count premise `keySized`
 (`etcdStorage_open.law`'s) is proved (`mvcc.keySized_all`), no longer a premise here.
 -/
@@ -48,7 +48,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccrand.Assumpt
 
 /-- See the file header. -/
 abbrev runChecks.spec : Prop :=
-  ∀ (cfg : Config) [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)],
+  ∀ (cfg : Config) [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)],
   0 ≤ sint.Z cfg.Ops' → sint.Z cfg.Ops' < 2 ^ 38 →
   0 ≤ sint.Z cfg.Readers' → sint.Z cfg.Readers' + 2 ≤ 2 ^ 28 →
   0 ≤ sint.Z cfg.Watchers' → sint.Z cfg.Watchers' < 2 ^ 32 →

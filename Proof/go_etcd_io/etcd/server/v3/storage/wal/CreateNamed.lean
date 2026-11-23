@@ -206,7 +206,8 @@ theorem absentNone_mono {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n0 n : 
 /-- `WalsNamed` under a larger commit bound (fewer crashes). -/
 theorem walsNamed_mono {Ls : GMap GoString WalLay} {cl : List Claim} {n0 n : Nat} (hn : n0 ≤ n)
     (h : WalsNamed Ls cl n0) : WalsNamed Ls cl n := fun dir lay hl =>
-  ⟨(h dir lay hl).1, fun m' hr => (h dir lay hl).2 m' (regionCrashed_mono hn hr)⟩
+  ⟨(h dir lay hl).1, fun m' hr => (h dir lay hl).2.1 m' (regionCrashed_mono hn hr),
+    fun N hj hm => ((h dir lay hl).2.2 N hj hm).mono hn⟩
 
 /-- **Strong absence with the WAL in `dir` named** (its WAL-less names unchanged). -/
 theorem absentNone_named {s : AbsDiskState} {jr : Ino} {cl : List Claim} {n : Nat}

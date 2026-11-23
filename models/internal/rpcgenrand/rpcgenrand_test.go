@@ -220,6 +220,28 @@ func TestRandomTypes(t *testing.T) {
 	}
 }
 
+// The receiver in a package other than its methods' types' (gryff: *masterlib.Master taking
+// masterproto's): rpc_gen.go (the codec) uses only the types, so it must not import the receiver's
+// package (an unused import does not compile); the generated test, which checks the receiver, does.
+func TestReceiverOtherPackage(t *testing.T) {
+	s := newSetup(t)
+	dir := t.TempDir()
+	s.module(t, dir, "package t\n\ntype A struct{ X int }\n\ntype R struct{ Ok bool }\n", nil, nil)
+	must(t, os.MkdirAll(filepath.Join(dir, "srv"), 0o755))
+	must(t, os.WriteFile(filepath.Join(dir, "srv", "srv.go"), []byte("package srv\n\nimport \"rpcgenrand.tmp/t\"\n\n"+
+		"type Svc struct{}\n\nfunc (s *Svc) M(a *t.A, r *t.R) error { return nil }\n"), 0o644))
+	toml := "[rpc]\nimports = { t = \"rpcgenrand.tmp/t\", srv = \"rpcgenrand.tmp/srv\" }\nreceivers = [\"*srv.Svc\"]\n"
+	must(t, os.WriteFile(filepath.Join(dir, "rpc.toml"), []byte(toml), 0o644))
+	out, code := runCode(dir, "python3", s.rpcgen, "rpc.toml", "codec", "--pkg", "codec")
+	if code != 0 {
+		t.Fatalf("rpcgen: exit %d\n%s", code, out)
+	}
+	out, code = runCode(dir, "go", "test", "-count=1", "./codec")
+	if code != 0 {
+		t.Fatalf("the generated package or its test failed:\n%s", out)
+	}
+}
+
 // One input per construct outside the subset: refused (exit 2), naming it.
 func TestRefusals(t *testing.T) {
 	s := newSetup(t)

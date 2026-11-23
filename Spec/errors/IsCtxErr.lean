@@ -1,10 +1,10 @@
 /-
 `errors.Is(err, target)` for a context error target (`context.Canceled`, `context.DeadlineExceeded`):
-the trust boundary. Lean-first (no Rocq counterpart).
+proved (`Proof/errors/IsCtxErr.lean`; a trust-boundary axiom until 2026-11-22). Lean-first (no Rocq
+counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
 
@@ -34,10 +34,14 @@ Neither error type has an `Is` or `Unwrap` method, and both are comparable, so G
 panic. Perennial's `errors.wp_Is` needs the error tree of `err` and a pointer target
 (`DeadlineExceeded` is a `deadlineExceededError{}` struct, not a pointer). Until premise-fixes-6
 (2026-11-11) the premise was `context.isTypedErr err`, which admits an error type whose `Is` or
-`Unwrap` panics (`notes/axiom-review/isctxerr.md`; `examples/premisefix/isctxerr`). -/
+`Unwrap` panics (`notes/axiom-review/isctxerr.md`; `examples/premisefix/isctxerr`). Since
+errors-is-axioms (2026-11-22) proved, over `errors.Is` at comparable targets (perennial#677), with
+`isPkgInit context`, which makes `target` a context's error too (`isCtxErr_of_Canceled`): until then
+`target` could be any value, whose `==` the proof could not run (`notes/specs-only/ledger.md`). -/
 abbrev errors.IsCtxErr.spec : Prop :=
   ∀ (err target : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ context.isCtxErr err ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      context.isCtxErr err ∗
       (globalAddr context.Canceled ↦□ target ∨ globalAddr context.DeadlineExceeded ↦□ target) }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
   {{ (b : Bool), RET #b; ⌜err = target → b = true⌝ }}

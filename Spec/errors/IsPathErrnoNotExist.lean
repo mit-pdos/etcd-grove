@@ -7,11 +7,9 @@
 * **`errIsNotExist err b`**: `errors.Is(err, os.ErrNotExist)` returns `b` (persistent; for any value of
   the `os.ErrNotExist` variable).
 * **`errors.IsPathErrnoNotExist.spec`**: true in Go (`errors.Is` unwraps the `*PathError` to the `Errno`,
-  whose `Is` compares the target with `oserror.ErrNotExist`); its proof needs the error tree of the `os`
-  errors (Perennial's `errors.Is.spec` with `syscall.Errno.Is`, `notes/perennial-changes.md`, as
-  `errors.IsErrno.spec`) and `os`'s package fact to say `os.ErrNotExist` is `oserror.ErrNotExist`, distinct
-  from `ErrPermission`, `ErrExist` and `errors.ErrUnsupported` (it says only "some error"). Not proved: a
-  hypothesis of its users (`ExistCallees.lean`'s header).
+  whose `Is` compares the target with `oserror.ErrNotExist`). Proved (`Proof/errors/IsPathErrnoNotExist.lean`,
+  2026-11-22) over Perennial's `errors.Is`, `syscall.Errno.Is` and `os`'s package fact that `os.ErrNotExist`
+  is `oserror.ErrNotExist`.
 Lean-first.
 -/
 module

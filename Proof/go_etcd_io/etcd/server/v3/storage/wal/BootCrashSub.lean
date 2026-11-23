@@ -15,14 +15,14 @@
   area claim's names (`bootN`: all but those and the WALs' names, which have claims of their own);
 * **the directories taken** (`bootTaken`: the area's, the WALs', those under an `nm.<sfx>`; distinct)
   and the others (`bootRest`: given back);
-* **the files-only premise** (`BootFo`, the ledger's `hfo`, 2026-11-14): every WAL directory and every
-  `nm.tmp` directory holds only files, and no `nm.tmp` is a file. True of the Go code (the WAL creates
-  no directory in them, and `nm.tmp` only as a directory), but no fact of the WAL invariant as it
-  stands (the claims involved are the program's when the crash comes: U3 log, second session, (d)).
+* **the files-only premise** (`BootFo`, the ledger's `hfo`, 2026-11-14): every WAL directory holds only
+  files (from `walInv_crash`: `bootFo_of`). Its `nm.tmp` parts went on 2026-11-22: `Create` copes with
+  whatever a crash left at `nm.tmp` (`tmpAny`), the boot hands its claims over ranked (`bootCls_ranked`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.BootCrashCl
+public import Proof.os.RemoveAllCover
 
 @[expose] public section
 
@@ -436,12 +436,29 @@ theorem mem_bootRest_root {R : List (GoString × Ino)} {m : Tree} (hw : TreeWf R
 
 /-! ## The files-only premise -/
 
-/-- **Every WAL directory and every `nm.tmp` directory of the area holds only files, and no `nm.tmp`
-is a file** (the crash boot's premise: the ledger's `hfo`, 2026-11-14). -/
+/-- **Every WAL directory of the area holds only files** (the crash boot's premise: the ledger's `hfo`,
+2026-11-14; its `nm.tmp` parts gone 2026-11-22, `Create` coping with any leftover `nm.tmp`: ledger
+2026-11-22). -/
 def BootFo (m : Tree) (jr : Ino) : Prop :=
-  (∀ nm J, walNameOk nm → (m.entry jr nm = some (.dir J) ∨ m.entry jr (tmpName nm) = some (.dir J)) →
-    FilesOnly (entsOf m J)) ∧
-  (∀ nm i, walNameOk nm → m.entry jr (tmpName nm) ≠ some (.file i))
+  ∀ nm J, walNameOk nm → m.entry jr nm = some (.dir J) → FilesOnly (entsOf m J)
+
+/-- **What of `BootFo` the crash's `NoDirX` does not give** (`walInv_crash` gives every WAL directory's
+names but the pipeline's, `NoDirX`, and this): the pipeline names of every WAL directory hold no
+directory (from the pipeline claims' halves in the invariant). -/
+def BootFoRest (m : Tree) (jr : Ino) : Prop :=
+  ∀ nm J, walNameOk nm → m.entry jr nm = some (.dir J) → ∀ b ∈ walTmps, ∀ J', entsOf m J !! b ≠ some (.dir J')
+
+/-- **`BootFo` from the crash's `NoDirX` and the rest.** -/
+theorem bootFo_of {m : Tree} {jr : Ino}
+    (hx : ∀ nm J, walNameOk nm → m.entry jr nm = some (.dir J) → NoDirX (entsOf m J))
+    (hr : BootFoRest m jr) : BootFo m jr := by
+  intro nm J hw he c n hc
+  cases n with
+  | file i => exact ⟨i, rfl⟩
+  | dir J' =>
+    by_cases hct : c ∈ walTmps
+    · exact absurd hc (hr nm J hw he c hct J')
+    · exact absurd hc (hx nm J hw he c J' hct)
 
 /-! ## The area's claims tagged with their name (`walAreaRes`'s) -/
 
@@ -505,26 +522,17 @@ theorem bootCls_subCover {R : List (GoString × Ino)} {V : Hist} (hw : TreeWf R 
   refine ⟨namesOf V J' (.except []), mem_clOf_bootCls.2 ⟨?_, rfl⟩⟩
   exact mem_bootSubs.2 ⟨hs, J, he, hJ', tDesc_mem hw hJm hJ'⟩
 
-/-- **`walAreaRes`'s `TmpOk`**: a WAL name's `nm.tmp` holds nothing or a directory of files only. -/
-theorem bootCls_tmpOk {V : Hist} {jr : Ino} (hfo : BootFo V.now jr) (nm : GoString) (h : walNameOk nm) :
-    TmpOk (clOf (bootCls V jr) (tmpName nm)) ((namesOf V jr (bootN V.now jr)).cur !! tmpName nm) := by
-  have e : (namesOf V jr (bootN V.now jr)).cur !! tmpName nm = V.now.entry jr (tmpName nm) := by
-    show restrictN _ (entsOf V.now jr) !! _ = _
-    rw [restrictN_lookup _ _ _ (bootN_tmp h), entsOf_lookup]
-  rw [e]
-  cases he : V.now.entry jr (tmpName nm) with
-  | none => exact .inl rfl
-  | some n =>
-    cases n with
-    | file i => exact (hfo.2 nm i h he).elim
-    | dir J =>
-      refine .inr ⟨J, rfl, fun hJ hc => ?_⟩
-      obtain ⟨-, e⟩ := mem_clOf_bootCls.1 hc
-      simp only [Prod.mk.injEq, true_and] at e
-      rw [e]
-      show FilesOnly (restrictN _ (entsOf V.now J))
-      rw [restrictN_except_nil]
-      exact hfo.1 nm J h (.inr he)
+/-- **`walAreaRes`'s ranks**: the claims under a name, read off a well-formed tree, hold no cycle. -/
+theorem bootCls_ranked {R : List (GoString × Ino)} {V : Hist} (hw : TreeWf R V.now) (jr : Ino)
+    (b : GoString) : ClRanked (clOf (bootCls V jr) b) :=
+  ClRanked.of_tree hw (fun c hc x n hx => by
+    obtain ⟨-, e⟩ := mem_clOf_bootCls.1 hc
+    rw [show c.2.2 = namesOf V c.1 (.except []) from congrArg (·.2.2) e] at hx
+    have e2 : (namesOf V c.1 (.except [])).cur = entsOf V.now c.1 := by
+      show restrictN _ (entsOf V.now c.1) = _
+      exact restrictN_except_nil _
+    rw [e2, entsOf_lookup] at hx
+    exact hx)
 
 end pure
 

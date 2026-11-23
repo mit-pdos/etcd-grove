@@ -28,21 +28,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **`newUnaryInterceptor(s)`** returns a transparent interceptor (`srvInterceptorOk`, no
-resource, for requests the learner check can read, `learnerReqOk`): it answers an error without
+/-- **`newUnaryInterceptor(s)`** returns a transparent interceptor (`srvInterceptorOk`, for requests
+the learner check can read, `learnerReqOk`), whose resource is a level-0 thread token (prove-ps2-cap,
+2026-11-23; until then none): `api.IsCapabilityEnabled` borrows `enableMapMu`'s reader slot with it,
+before the handler's call, which the token is then lent to. It answers an error without
 calling the handler if the v3 RPC capability is off, if the member is a learner and the request
 not one a learner serves, if the client's API version is not UTF-8, or if the client requires a
 leader and there is none; otherwise it calls the handler. Premises: the server's member id, its
 `lead` (`s.Leader()`), its cluster (`IsMemberExist`, `IsLearner`) with the local member in it
-(`membership.localKept`). -/
+(`membership.localKept`); under the thread bound `IsCapabilityEnabled`'s pool needs. -/
 abbrev v3rpc.newUnaryInterceptor.spec : Prop :=
-  ∀ (s c : Loc) (mid : w64),
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (s c : Loc) (mid : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvMemberIDAddr s ↦□ mid ∗ srvLeadInv s ∗ srvClusterAddr s ↦□ c ∗
       membership.isRaftCluster c ∗ membership.localKept c }}
     (App (Val (@! v3rpc.newUnaryInterceptor)) (Val #s))
-  {{ (ic : GoFunc), RET #ic; srvInterceptorOk ic iprop(True) v3rpc.learnerReqOk }}
+  {{ (ic : GoFunc), RET #ic; srvInterceptorOk ic (levelTok 0) v3rpc.learnerReqOk }}
 
 end spec
 

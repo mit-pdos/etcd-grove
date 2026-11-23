@@ -4,10 +4,13 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api`
 `InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
 functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
-Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs the
+Its fact (`capInit`, `CapPool.lean`; prove-ps2-cap, 2026-11-23, until then `True`):
+`enableMapMu`'s guard and its reader slots, pooled at level 0, over `enabledMap` holding `nil` or a
+read-only map. Its initializer initializes its imports, allocates its variables and runs the
 translated initializer of `capabilityMaps` (a map literal of map literals) and its translated `init`
 function, which sets `enabledMap` to a map literal (prove-smallinits, 2026-11-20; until then the
-trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`).
+trust-boundary axioms `opaqueInitsOk` and `initFuncsOk`), and makes the fact from the map, made
+read-only, and the fresh lock (`capInit_alloc`).
 -/
 module
 
