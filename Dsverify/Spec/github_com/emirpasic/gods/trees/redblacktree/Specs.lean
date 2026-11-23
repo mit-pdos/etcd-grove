@@ -96,6 +96,42 @@ abbrev Iterator.Key.spec : Prop :=
     (App (Val (q @!! go.GoType.PointerType Iterator.ty @!! go!"Key")) (Val #()))
   {{ RET #(enc k); ownIterR q enc rest (some (k, v)) }}
 
+/-! ### Helpers of the fix-up -/
+
+/-- `nodeColor(x)`: `x`'s color, black (`true`) for `nil`. -/
+abbrev nodeColor.spec : Prop :=
+  ∀ (h : Loc → Node) (D : List Loc) (x : Loc),
+  {{ ownNodes (GF := GF) h D ∗ ⌜x = null ∨ x ∈ D⌝ }}
+    (App (Val (@! redblacktree.nodeColor)) (Val #x))
+  {{ RET #(if x = null then true else (h x).color'); ownNodes h D }}
+
+/-- `p.sibling()`, `p` a node with a parent `g`: `g`'s other child. -/
+abbrev Node.sibling.spec : Prop :=
+  ∀ (h : Loc → Node) (D : List Loc) (p : Loc),
+  {{ ownNodes (GF := GF) h D ∗
+      ⌜p ∈ D ∧ p ≠ null ∧ (h p).Parent' ∈ D ∧ (h p).Parent' ≠ null⌝ }}
+    (App (Val (p @!! go.GoType.PointerType Node.ty @!! go!"sibling")) (Val #()))
+  {{ RET #(if p = (h (h p).Parent').Left' then (h (h p).Parent').Right'
+        else (h (h p).Parent').Left'); ownNodes h D }}
+
+/-- `n.uncle()`, `n` a node with a parent `p` and a grandparent `g`: `g`'s other child. -/
+abbrev Node.uncle.spec : Prop :=
+  ∀ (h : Loc → Node) (D : List Loc) (n : Loc),
+  {{ ownNodes (GF := GF) h D ∗
+      ⌜n ∈ D ∧ n ≠ null ∧ (h n).Parent' ∈ D ∧ (h n).Parent' ≠ null ∧
+        (h (h n).Parent').Parent' ∈ D ∧ (h (h n).Parent').Parent' ≠ null⌝ }}
+    (App (Val (n @!! go.GoType.PointerType Node.ty @!! go!"uncle")) (Val #()))
+  {{ RET #(if (h n).Parent' = (h (h (h n).Parent').Parent').Left'
+        then (h (h (h n).Parent').Parent').Right' else (h (h (h n).Parent').Parent').Left');
+      ownNodes h D }}
+
+/-- `n.grandparent()`, `n` a node with a parent. -/
+abbrev Node.grandparent.spec : Prop :=
+  ∀ (h : Loc → Node) (D : List Loc) (n : Loc),
+  {{ ownNodes (GF := GF) h D ∗ ⌜n ∈ D ∧ n ≠ null ∧ (h n).Parent' ∈ D ∧ (h n).Parent' ≠ null⌝ }}
+    (App (Val (n @!! go.GoType.PointerType Node.ty @!! go!"grandparent")) (Val #()))
+  {{ RET #((h (h n).Parent').Parent'); ownNodes h D }}
+
 /-! ### The fix-up after an insertion -/
 
 /-- `tree.replaceNode(old, new)` (`replaceRes`): `old`'s parent `p` is `nil` and `old` the root,
