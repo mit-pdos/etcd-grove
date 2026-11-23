@@ -6,7 +6,9 @@ Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `le
 **`gryff-bump-1`**, the final verified run: clients on nodes of their own, Perennial `3afd77e35`;
 proof `21ef7d6` tag `final`, fork `ef17c2d`; read only, nothing in the lab changed).
 
-**State: Go and translation done; the proof port is blocked** on model pieces not proved yet
+**State: Go and translation done (`lake build` of `Dsverify.GeneratedProof.gryff.examples.gryffnet`
+and the eleven `cmd` modules green, 2026-11-23; `etc/goose.py --check --project dsv-gryff` clean);
+the proof port is blocked** on model pieces not proved yet
 (below, "Blocked"). No Lean proof is written yet; nothing under `Dsverify/` for gryff has an axiom
 or `sorry` (there is no proof).
 
@@ -83,10 +85,15 @@ this branch; where a spec is needed, take it as a hypothesis named after the lab
    only: the stable store's `Write`/`Sync` are behind `Durable`, false here, fix T4),
    `encoding/json`/`io/ioutil` (avoided: `stats.toml` above).
 
-What is not blocked by these: the pure protocol model and its lemmas (`GryffProof/Pure*`, `Proto*`,
-`Kahn`, `Model`; about 45k of the lab's 112k lines), which name no library. The handlers' proofs
-(`H1`-`H3`, `B`, `X`, `N`, `Replica*`, `Client`, `Wire`) go through bufio (item 3) and the
-transport; the master and registration (`Server`, `Rpc`, `B/Register`, `Names`) through items 1-2.
+How far the blockers reach into the lab's proof (its import graph, 369 modules, 112k lines): only
+21 modules (5k lines: `Model/` the replica's step model, `Kahn/`, the tag order, a few defs) reach
+no library spec. Everything else, the pure protocol layers (`Pure*`, `Proto*`) included, imports
+the lab's library vocabulary transitively, through the shared ghost names and invariant modules
+(`GryffProof/Names.lean` imports `Harness.Proof.net.rpc.Results` and `net/http`'s `Mux`;
+`Proto/` imports the `NetConn` specs and `bufio.Base`). The `NetConn` part is what the port
+replaces by `Net/`'s specs anyway; the rpc/http and bufio parts are items 1-3. A port before they
+land would first split `Names`/`Proto` so that the pure layers name no rpc/http vocabulary, then
+take the bufio specs as hypotheses (the coordinator's instruction).
 
 ## Findings
 
