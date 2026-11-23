@@ -581,3 +581,31 @@ Go loop follows (induction on the fuel); its intermediate states stay within bud
 - **W3 in progress:** 9 of `inMem`'s 17 methods proved (`T`, `c`, `snapsM`, `leads`, `role1`, `es`,
   `known`, `wins`, `app`). Left: `ld1`, `ll1`, `lc1`, `ll2`, `L`, `cmt`, `newC`, `ok`, `State.InMemory`
   and `inMemory_within`. Then W4b, W5, W6, W7.
+- **W3, second session:** `ld1`, `ll1`, `lc1`, `ll2` proved; their pure laws in `InMemLaws.lean` (new:
+  `TermFn.get_mem`, `InMem.es_within`, `ll1_within`, `ll2_within`, `L_within`: the logs `ll1`/`ll2`/`L`
+  within `b + ev.size`). Tier fix: four proofs imported the proof module `Init0` (its empty-slice
+  lemmas) and `onDisk__K` the proof module `Matching` (`range_drop_cons`); the lemmas moved, names and
+  statements unchanged, to the defs modules `Init0Laws.lean` and `EvalLaws.lean`.
+
+**The plan for the rest (2026-11-23, parallel).** Every spec is fixed (W0), and a proof takes its
+callees' specs as hypotheses, so the groups below are independent; what they share is only the defs
+modules already written (`Rep`, `StateLaws`, `EvalLaws`, `ActionLaws`, `OnDiskLaws`, `InMemLaws`,
+`Init0Laws`, `Within/Parts`, `Within/Laws`), which no group edits: a group's new pure laws go in a
+new file of its own (named below), and it reports its link lines, which the integrator adds.
+- **H1 (W3a):** `inMem.L`, `newC`, `cmt`, `ok`; `ok`'s own laws (quorum, `AllSwitched`, `Legal`
+  premises) in `InMemOkLaws.lean`.
+- **H2 (W3b):** `State.InMemory` (over the 17 methods' specs) and `State.inMemory_within`
+  (`Within/InMemory.lean`; its proof's own laws, e.g. `granted`/`acked` no longer than `server`, in
+  `InMemoryLaws.lean`).
+- **H3 (W5):** `State.Boot`, `State.Send`, `boot_within`, `send_within` (`Within/Boot.lean`,
+  `Within/Send.lean`; shared laws in `BootSendLaws.lean`).
+- **H4 (W4b):** `State.OnDisk` over the 33 methods' specs, and `onDisk_within` (`Within/OnDisk.lean`;
+  laws beyond `OnDiskLaws` in `OnDiskLaws2.lean`).
+- **H5 (W6):** `Ready` .. `Step`, `Garbage`, `OldVotes`, `StaleLed`, `GCDue`, `GC`; `gc_within`,
+  `step_within`, `ready`/`mem`/`write`/`flush`/`bind_within`. A W6 law that needs another group's
+  law takes its statement (`InMemoryWithin`, `OnDiskWithin`, `ActionWithin State.boot`, ...) as a
+  hypothesis (`State.ready_within_of`); the integrator states the plain law once the other is proved.
+- **W7** (`violated`, `NewChecker`, `Checker.Next`, `Checker.End`, `Run`, `init0_within`) after W6,
+  by the integrator: `Run`'s invariant from `StepWithin`/`GCWithin`.
+- The integrator merges each group's branch, adds its link lines and runs the full build
+  (`build.sh`, under the build slot).
