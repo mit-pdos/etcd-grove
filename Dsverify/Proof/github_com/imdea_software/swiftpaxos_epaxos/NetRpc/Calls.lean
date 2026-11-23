@@ -140,8 +140,7 @@ theorem btlCall_holds (L : CodecLaws (GF := GF)) (Hcall : net.rpc.Client.Call.sp
   wp_apply (wp_Call_simple Hcall cl W (rpcAddrOf k) go!"Replica.BeTheLeader" go!"Replica"
     go!"BeTheLeader" replicaSvc _ _ (fun rep msg => iprop(⌜msg = [] → rep = btlReplyBytes⌝))
     (bl ↦ replica.defs.BeTheLeaderReply.mk l0 nl0)
-    (fun _ ok => if ok then bl ↦ replica.defs.BeTheLeaderReply.mk l0 nl0
-      else iprop(∃ v : replica.defs.BeTheLeaderReply, bl ↦ v))
+    (fun _ _ => bl ↦ replica.defs.BeTheLeaderReply.mk l0 nl0)
     ⟨by decide, hss, by intro h; cases h⟩) $$ [Hla Hbl]
   · isplitr
     · iexact Hc
@@ -173,7 +172,8 @@ theorem btlCall_holds (L : CodecLaws (GF := GF)) (Hcall : net.rpc.Client.Call.sp
       iintro %ok Hok
       cases ok
       · simp only [Bool.false_eq_true, ite_false]
-        iexact Hok
+        icases Hok with ⟨%v, -, %Hne⟩
+        exact absurd rfl (Hne (W32 0) (W32 0))
       · simp only [ite_true]
         icases Hok with ⟨%l, %nl, Hbl, %Heq⟩
         obtain ⟨rfl, rfl⟩ := Heq (W32 0) (W32 0) rfl
@@ -183,16 +183,12 @@ theorem btlCall_holds (L : CodecLaws (GF := GF)) (Hcall : net.rpc.Client.Call.sp
   iapply HΨ
   icases Hpost with (⟨%Herr, %rep, Hbl⟩ | ⟨%Herr, (Hbl | ⟨%rep, Hbl⟩)⟩)
   · ileft
-    simp only [ite_true]
     iframe
     ipureintro; exact Herr
   · iright
-    isplitr
-    · ipureintro; exact Herr
-    iexists _
-    iexact Hbl
+    iframe
+    ipureintro; exact Herr
   · iright
-    simp only [Bool.false_eq_true, ite_false]
     iframe
     ipureintro; exact Herr
 
