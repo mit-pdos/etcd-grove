@@ -103,6 +103,10 @@ translate = ["!*",
   # rebuilds it from the WAL's records over raft's proved `MemoryStorage` methods, so the restart
   # contract's `memStorRestarted` is that method's post, not a trusted definition
   "bootstrappedWAL.MemoryStorage",
+  # (claim #34 stage 3, 2026-11-23) `bootstrap` itself, over its callees' specs (`bootstrapSnapshot`,
+  # `bootstrapBackend`, `bootstrapCluster`, `bootstrapStorage`, `Finalize`, `bootstrapRaft`: names
+  # only, hypotheses of the linked result until stages 2 and 4 prove them)
+  "bootstrap",
   # the client lease (item 1, branch `lease-client`): v3_server.go's lease grant and revoke
   "EtcdServer.LeaseGrant", "EtcdServer.LeaseRevoke", "EtcdServer.requireAuthInfo",
   # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go); their
