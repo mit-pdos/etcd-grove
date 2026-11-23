@@ -137,6 +137,11 @@ class Project:
     # temporary file (GOWORK, or -modfile in GOFLAGS), as models/grpc/gomodel.py does for go
     # builds. None: every module from the module cache.
     module_models: dict = None
+    # Expand tabs in the translation's comments to four spaces (Go doc comments indented with tabs:
+    # goose copies them into `/-- … -/`, where Lean rejects a tab at the start of a line; a goose gap,
+    # notes/perennial-changes.md, 2026-11-23). A tab outside a comment is an error. False: as goose
+    # writes it.
+    expand_comment_tabs: bool = False
 
     @property
     def env(self):
@@ -2080,6 +2085,30 @@ PROJECTS = [
 ]
 
 
+# The dsverify kits (notes/dsv-paxos.md; etc/dsv/README.md): each kit's project is the `GOOSE` dict
+# of its own file `etc/dsv/<kit>.py` (the fields of `Project`), so that a kit adds a file instead of
+# editing this one. Placed before project models-net, in the files' order.
+def dsv_kits():
+    """The kit files `etc/dsv/*.py`, loaded, in name order (also read by etc/gen-init.py)."""
+    import importlib.util
+    d = os.path.join(ROOT, "etc", "dsv")
+    out = []
+    for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
+        if not f.endswith(".py") or f.startswith("_"):
+            continue
+        spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
+        m = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(m)
+        m.KIT = f[:-3]
+        out.append(m)
+    return out
+
+
+DSV_KITS = dsv_kits()
+_i = next(i for i, p in enumerate(PROJECTS) if p.name == "models-net")
+PROJECTS[_i:_i] = [Project(**k.GOOSE) for k in DSV_KITS if hasattr(k, "GOOSE")]
+
+
 
 # The Go modules of this repository that build the examples against the forks, and which project's
 # pinned `rev` each replaced Go path must be at (a replace's pseudo-version names the commit): the
@@ -2361,6 +2390,58 @@ def with_proph_patches(proj, src, desc):
     return proj, proph_patch.patched_copy(proj.name, src, dest), f"{desc} + {n} prophecy patch(es)"
 
 
+def expand_comment_tabs(top):
+    """Project.expand_comment_tabs: every `.lean` file under `top` with the tabs in its comments
+    (`/- … -/`, nested, and `--` to the end of the line) replaced by four spaces; exits on a tab
+    elsewhere (in a string literal, or in code)."""
+    for d, _, fs in os.walk(top):
+        for name in fs:
+            if not name.endswith(".lean"):
+                continue
+            p = os.path.join(d, name)
+            with open(p) as f:
+                src = f.read()
+            if "\t" not in src:
+                continue
+            out, depth, i, n = [], 0, 0, len(src)
+            while i < n:
+                if not depth and src[i] == '"':
+                    j = i + 1
+                    while j < n and src[j] != '"':
+                        j += 2 if src[j] == "\\" else 1
+                    seg = src[i:j + 1]
+                    if "\t" in seg:
+                        sys.exit(f"goose.py: a tab in a string literal in {p}")
+                    out.append(seg)
+                    i = j + 1
+                    continue
+                if src.startswith("/-", i):
+                    depth += 1
+                    out.append("/-")
+                    i += 2
+                    continue
+                if depth and src.startswith("-/", i):
+                    depth -= 1
+                    out.append("-/")
+                    i += 2
+                    continue
+                if not depth and src.startswith("--", i):
+                    j = src.find("\n", i)
+                    j = n if j < 0 else j
+                    out.append(src[i:j].replace("\t", "    "))
+                    i = j
+                    continue
+                c = src[i]
+                if c == "\t":
+                    if not depth:
+                        sys.exit(f"goose.py: a tab outside a comment in {p}")
+                    c = "    "
+                out.append(c)
+                i += 1
+            with open(p, "w") as f:
+                f.write("".join(out))
+
+
 def translate(proj, src, bindir, perennial_rev, desc, check):
     """Translate `proj`; return True if the checked-in translation is (now) up to date."""
     out = tempfile.mkdtemp(prefix="goose-", dir=WORK)
@@ -2380,6 +2461,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
                     + packages, env=env)
             others = others_owned(root, owned)
+            if proj.expand_comment_tabs:
+                expand_comment_tabs(piece_out)
             for f, c in lean_files(piece_out, owned, others).items():
                 new[os.path.join(root, f)] = (c, os.path.join(piece_out, f))
             for f, c in lean_files(lib_dir, owned, others).items():

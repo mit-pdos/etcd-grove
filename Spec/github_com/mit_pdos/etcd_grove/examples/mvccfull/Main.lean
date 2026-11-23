@@ -34,7 +34,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 38)],
+  ∀ [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)],
   backend.dbOpenOk → backend.dbCloseOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗
       ([∗list] p ∈ filePathsM (mainConfigM go!"mvccfull" (zeroValDef : Mix)), backend.fileHolds p ∅) ∗

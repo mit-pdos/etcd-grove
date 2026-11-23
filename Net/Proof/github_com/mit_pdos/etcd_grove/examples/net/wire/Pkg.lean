@@ -26,12 +26,21 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `internal/poll`'s package fact (the main tree's, `Proof/internal/poll/PkgInit.lean`). -/
+/-- `internal/poll`'s package fact (the main tree's, `Proof/internal/poll/PkgInit.lean`), its first two
+conjuncts (the third, `ErrFileClosing` an `*errorString`, unused here). -/
 theorem poll_access :
     isPkgInit (PROP := IProp GF) pkg_id.internal.poll ⊢
       iprop((∃ e : GoInterface, globalAddr internal.poll.ErrNoDeadline ↦□ e) ∗
         (∃ e : GoInterface, globalAddr internal.poll.ErrDeadlineExceeded ↦□ e)) := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll
+  refine (isPkgInit_access (PROP := IProp GF) pkg_id.internal.poll).trans ?_
+  show iprop((∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrNoDeadline) e DFrac.discard) ∗
+    (∃ e : GoInterface, typedPointsto (globalAddr internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗
+    (∃ x : Loc, typedPointsto (globalAddr internal.poll.ErrFileClosing)
+      (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) ⊢ _
+  iintro ⟨#Hn, #Hd, -⟩
+  isplitl [Hn]
+  · iexact Hn
+  · iexact Hd
 
 /-- `poll.ErrDeadlineExceeded`'s value, from `internal/poll`'s initialization. -/
 theorem ed_of_poll :

@@ -11,7 +11,7 @@ Over the part's shared-mode directory specs (`os.Open.wp_dirS`, `File.Readdirnam
 of `N` is among them iff `j` has it, at most once) and the result is `fileutil.ReadDirOut names ext`
 (sorted, filtered by the extension); on an error an error `fmt.Errorf` may wrap (`fmtErrorOkOrNil`:
 `readWALNames` wraps it with `%w`; 2026-11-13, `wal-read2`), on which `errors.Is` returns for every pointer
-target (`errIsTerm`: a `*PathError` of an errno, `errors.IsPathErrnoTerm.spec`; 2026-11-14, `wal-vsnap4`). The option slice and its closures are
+target (`errTreeTerm`, its error tree since 2026-11-22: a `*PathError` of an errno, `errors.IsPathErrnoTerm.spec`; 2026-11-14, `wal-vsnap4`). The option slice and its closures are
 given back. Proved in `Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/ReadDir.lean`.
 Lean-first.
 -/
@@ -67,7 +67,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir.spec : Prop :=
             (∀ b, N.Mem b → ((h.cur !! b).isSome ↔ b ∈ names)) ∧
             (∀ b, N.Mem b → names.count b ≤ 1) ∧ fileutil.ReadDirOut names (fileutil.optsExt es) rs⌝ ∗
           r ↦* rs) ∨
-       ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err ∗ errIsTerm err) }}
+       ⌜err ≠ interface.nil⌝ ∗ fmtErrorOkOrNil err ∗ errTreeTerm err) }}
 
 end spec
 

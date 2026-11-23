@@ -153,8 +153,7 @@ theorem create_areaBack (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) 
     (fun b hb hw _ => areaBack_cur N h h' jr nm (tmpName nm) hself hself' hm.1 hnm b hb hw)
   iframe HN Hcl Hsf
   rw [htc]
-  simp only [tmpSub]
-  iempintro
+  iapply tmpCls_none
 
 end iris
 

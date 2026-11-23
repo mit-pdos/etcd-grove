@@ -7,6 +7,7 @@ module
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.listen
 public import KvNet.Spec.net.Listen
 public import Perennial.Proof.time.Link
+public import KvNet.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -34,7 +35,7 @@ theorem listen.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
   ihave %Hok := addrTok_ok _ $$ Ht
   try wp_auto
   wp_for
-  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp a $$ [] as %li %err
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp a $$ [] as %li %err
     (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
   · iframe %Hok
     iapply listen_au a P Q $$ Ha

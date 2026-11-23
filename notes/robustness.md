@@ -107,8 +107,9 @@ them. `find . -name TopLevelRobustness.lean` lists them all.)
   since 2026-11-22, #30 step 2: the request ids' receipt bound, `idutil`'s; the backend's buffered
   entries are paid by time receipts, so its write-back budget, `2^62`, no longer binds; from
   2026-11-20 `2^40 - 11`, that budget; before, `2^28 - 1`, their proofs' thread bound `n + 2`),
-  `2^38` at `2^28` threads (`mvccfull`, `mvccrand`, since 2026-11-22: their receipt bound, tied to
-  `Ops < 2^38` across mvcc's specs; a follow-up of #30), `2^61 - 3` at `2^31` threads (tracecheck),
+  `2^48` at `2^28` threads (`mvccfull`, `mvccrand`, since 2026-11-23, #30: mvcc's own receipt
+  bound, `ReceiptBoundLe GF (2 ^ 48)` of `mvcc.New`; from 2026-11-22 `2^38`, a convention the
+  examples' specs passed along), `2^61 - 3` at `2^31` threads (tracecheck),
   `2^30 - 1` (`bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
   `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
   (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound, and stays

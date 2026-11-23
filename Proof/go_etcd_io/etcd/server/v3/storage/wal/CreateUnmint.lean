@@ -56,19 +56,22 @@ theorem tmpEnt_noDir (o : Option Node) :
   · unfold tmpEnt; iintro %h; exact h.elim
 
 /-- **`J`'s claim back whole**: its claim off the pipeline's names (only files) merged with the
-pipeline's two names (`walTmpsRes`, no directory), a claim on all of `J`'s names holding only files. -/
+pipeline's two names (`walTmpsRes` and the invariant's quarters `walTmpsHalf`, which `Create` holds
+until its commit; no directory), a claim on all of `J`'s names holding only files. -/
 theorem create_Jback (R : Roots) (J : Ino) (hJ : NamesH) {E : CoPset} (hE : ↑osShN ⊆ E)
     (hfo : FilesOnly hJ.cur) :
     osSharedInv (L := hG.goose_localGS) R -∗
       osNames (L := hG.goose_localGS) J (.except walTmps) (DFrac.own 1) hJ -∗
-      walTmpsRes (GF := GF) J ={E}=∗
+      walTmpsRes (GF := GF) J -∗ walTmpsHalf (GF := GF) J ={E}=∗
       ∃ hJ' : NamesH, ⌜FilesOnly hJ'.cur ∧ hJ'.cur !! go!".touch" = hJ.cur !! go!".touch"⌝ ∗
         osNames (L := hG.goose_localGS) J (.except []) (DFrac.own 1) hJ' := by
-  iintro #Hsi HD HT
-  unfold walTmpsRes
+  iintro #Hsi HD HT HTh
+  unfold walTmpsRes walTmpsHalf
   simp only [walTmps]
-  unfold tmpClaim
-  icases HT with ⟨⟨%h0, H0, He0⟩, ⟨%h1, H1, He1⟩, -⟩
+  icases HT with ⟨Hc0, Hc1, -⟩
+  icases HTh with ⟨Hh0, Hh1, -⟩
+  ihave ⟨%h0, H0, He0⟩ := tmpClaim_join J _ $$ [$Hc0 $Hh0]
+  ihave ⟨%h1, H1, He1⟩ := tmpClaim_join J _ $$ [$Hc1 $Hh1]
   ihave %hf0 := tmpEnt_noDir _ $$ He0
   ihave %hf1 := tmpEnt_noDir _ $$ He1
   imod osNames_merge R J (.except [go!"0.tmp", go!"1.tmp"]) (.only [go!"0.tmp"])
@@ -112,13 +115,13 @@ theorem create_abortTmpH (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino)
     ⊢ walInv (L := hG.goose_localGS) (W := W) C Mr R jr r -∗ osSharedInv (L := hG.goose_localGS) R -∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
       osNames (L := hG.goose_localGS) jr (N.diff [tmpName nm]) (DFrac.own (1 : Qp).half) hN -∗
-      tmpDirH jr (tmpName nm) hT -∗
+      tmpAny jr (tmpName nm) hT -∗
       areaCls (L := hG.goose_localGS) (cl.filter (fun c => decide (c.1 ≠ tmpName nm))) -∗
       walSplitFrag (W := W) Wn ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walUnlockedTok (W := W) ∗
         walAreaRes (L := hG.goose_localGS) jr := by
   iintro #Hinv #Hsi Hnc Hu HN Ht Hcl Hsf
-  unfold tmpDirH
+  unfold tmpAny
   icases Ht with ⟨HT, Hs⟩
   have hNnm : (N.diff [tmpName nm]).Mem nm :=
     (NameSet.mem_diff _ _ _).2 ⟨hNm, by simpa using (tmpName_ne nm).symm⟩
@@ -174,12 +177,12 @@ theorem create_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
       osNames (L := hG.goose_localGS) jr (.only [nm, tmpName nm]) (DFrac.own (1 : Qp).half) hC -∗
       osNames (L := hG.goose_localGS) J (.except walTmps) (DFrac.own (1 : Qp).half) hJ -∗
       osNames (L := hG.goose_localGS) J (.except walTmps) (DFrac.own (1 : Qp).half) hJ -∗
-      walTmpsRes (GF := GF) J ={⊤}=∗
+      walTmpsRes (GF := GF) J -∗ walTmpsHalf (GF := GF) J ={⊤}=∗
       notCrashed (hC := hG.goose_localGS.goose_crashGS) ∗ walUnlockedTok (W := W) ∗
         ∃ hN hT : NamesH, ⌜∀ b, (N.diff [tmpName nm]).Mem b → hN.cur !! b = h.cur !! b⌝ ∗
           osNames (L := hG.goose_localGS) jr (N.diff [tmpName nm]) (DFrac.own (1 : Qp).half) hN ∗
           tmpDirH jr (tmpName nm) hT := by
-  iintro #Hinv #Hsi Hnc Hcr HNr HC HJ1 HJ2 HTs
+  iintro #Hinv #Hsi Hnc Hcr HNr HC HJ1 HJ2 HTs HTh
   have hNt : N.Mem (tmpName nm) := areaOk_tmp hok hnm
   obtain ⟨b1, hb1, hb1L⟩ := walName_fresh (nm :: Wn)
   have hb1n : b1 ≠ nm := fun he => hb1L (by simp [he])
@@ -223,7 +226,7 @@ theorem create_unmint (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r
   · iapply (osNames_frac (L := hG.goose_localGS) J (.except walTmps) (1 : Qp).half (1 : Qp).half hJ).2
     iframe
   rw [Qp.half_add_half]
-  imod create_Jback R J hJ CoPset.subseteq_top hfo $$ Hsi HJ HTs with ⟨%hJ', ⟨%hfo', %hJt'⟩, HJ⟩
+  imod create_Jback R J hJ CoPset.subseteq_top hfo $$ Hsi HJ HTs HTh with ⟨%hJ', ⟨%hfo', %hJt'⟩, HJ⟩
   have h2t : h2.cur !! tmpName nm = some (.dir J) := by
     rw [cur_of_part hm.2.1 (by simp [NameSet.Mem] : (NameSet.only [nm, tmpName nm]).Mem (tmpName nm)),
       hctmp]

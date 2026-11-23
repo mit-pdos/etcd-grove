@@ -95,7 +95,9 @@ theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
         osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.unlinkLoop) (Val #(child p c)))
-    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J (.only [c]) dqn hc ∗
+    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗
+        ⌜FsNoErrAt (child p c) → (∃ J', hc.cur !! c = some (.dir J')) → e = EISDIR⌝ ∗
+        osPathS R p dq J ∗ osNames J (.only [c]) dqn hc ∗
         osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
@@ -105,8 +107,8 @@ theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_auto
-  wp_apply +noauto wp_osUnlinkS_none R p c J dq dqn hc t s0 qc hcN hnf CoPset.subseteq_top
-    CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
+  wp_apply +noauto wp_osUnlinkS_noneW R p c J dq dqn hc t s0 qc hcN hnf CoPset.subseteq_top
+    CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he %hw Hperm Hp Hn
   wp_auto
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
@@ -116,7 +118,9 @@ theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq
   wp_auto
   iapply HΦ
   iframe
-  ipureintro; exact he
+  isplitr
+  · ipureintro; exact he
+  ipureintro; exact hw
 
 /-- The name `b` after the `rmdir` of `J` was logged holds nothing. -/
 theorem os.rmDir_cur_none (j : Ino) (b : GoString) (J : Ino) (h : NamesH) (x s : Nat) :
@@ -124,16 +128,52 @@ theorem os.rmDir_cur_none (j : Ino) (b : GoString) (J : Ino) (h : NamesH) (x s :
   simp only [NamesH.log]
   rw [restrictN_lookup _ _ _ (by simp [NameSet.Mem])]; exact GMap.lookup_delete _ _
 
-/-- `rmdir` loop on the directory `d/b` (`J`, the state `rmAllOut`), under the guard `t`: an
+/-- **`rmAllOut` whose first arm (`b` still `J`) also says `P`**: what the loops on `d/b` witness of
+their errno while `b` is there (`FsNoErrAt`, `RemoveAllNE.lean`). -/
+def os.rmAllOutP (j : Ino) (b : GoString) (J : Ino) (h hJ0 : NamesH) (P : Prop) : IProp GF :=
+  iprop(∃ (h' hJ' : NamesH), osNames j (.only [b]) (DFrac.own 1) h' ∗
+    osNames J (.except []) (DFrac.own 1) hJ' ∗ ⌜EntsSub hJ'.cur hJ0.cur⌝ ∗
+    (⌜h' = h ∧ P⌝ ∨ ∃ x s, osLogged x (rmDirEnt j b J s) ∗
+      ⌜h' = h.log x (rmDirEnt j b J s) (restrictN (.only [b]) (GMap.delete b h.cur)) ∧
+        hJ'.cur = ∅⌝))
+
+theorem os.rmAllOutP_out (j : Ino) (b : GoString) (J : Ino) (h hJ0 : NamesH) (P : Prop) :
+    os.rmAllOutP (GF := GF) j b J h hJ0 P ⊢ rmAllOut j b J h hJ0 := by
+  unfold os.rmAllOutP rmAllOut
+  iintro ⟨%h', %hJ', Hb, HJ, %hsub, Ho⟩
+  iexists h', hJ'
+  iframe
+  isplitr
+  · ipureintro; exact hsub
+  icases Ho with (%he | Ho)
+  · ileft; ipureintro; exact he.1
+  · iright; iexact Ho
+
+theorem os.rmAllOutP_of (j : Ino) (b : GoString) (J : Ino) (h hJ0 : NamesH) (P : Prop) (hP : P) :
+    rmAllOut (GF := GF) j b J h hJ0 ⊢ os.rmAllOutP j b J h hJ0 P := by
+  unfold os.rmAllOutP rmAllOut
+  iintro ⟨%h', %hJ', Hb, HJ, %hsub, Ho⟩
+  iexists h', hJ'
+  iframe
+  isplitr
+  · ipureintro; exact hsub
+  icases Ho with (%he | Ho)
+  · ileft; ipureintro; exact ⟨he, hP⟩
+  · iright; iexact Ho
+
+/-- `rmdir` loop on the directory `d/b` (`J`, the state `rmAllOut`), under the guard `t` (of a path
+`pg` in `d`'s root's tree): an
 errno; the state, perhaps with the `rmdir` logged (only on an empty `J`). -/
-theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
-    (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
+theorem os.model.wp_rmdirLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
+    (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (pg : GoString)
+    (hkg : callKey R pg = callKey R (child d b)) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm (callKey R d) q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
+        osCallPerm (callKey R d) q ∗ osGuardS t sg pg g ∗ osLogLb sg }}
       (App (Val os.model.rmdirLoop) (Val #(child d b)))
-    {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) q ∗
-        osGuardS t sg (child d b) g }} := by
+    {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗
+        os.rmAllOutP j b J h hJ0 (FsNoErrAt (child d b) → e = ENOTEMPTY) ∗ osCallPerm (callKey R d) q ∗
+        osGuardS t sg pg g }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
   iloeb as IH generalizing Hperm Hp Hst Hg
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
@@ -151,21 +191,22 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
       icases (osPathS_frac R d qd.half qd.half j).1 $$ Hp with ⟨Hp1, Hp2⟩
       icases os.osPathS_borrow R d b j J qd.half h' hb hJ $$ [Hp1 Hb] with ⟨%ε, Hpc, Hback⟩
       · iframe
-      wp_apply +noauto wp_osRmdirS_nonempty R d b j J (.except []) (DFrac.own qd.half) (DFrac.own ε)
+      wp_apply +noauto wp_osRmdirS_nonemptyW R d b j J (.except []) (DFrac.own qd.half) (DFrac.own ε)
         (DFrac.own 1) hJ' c t1 s0 q hb (by simp [NameSet.Mem]) hc CoPset.subseteq_top
-        CoPset.subseteq_top $$ Hos Hsi Hp2 Hpc HJ Hk as %e %he Hperm Hp2 Hpc HJ
+        CoPset.subseteq_top $$ Hos Hsi Hp2 Hpc HJ Hk as %e %he %hw Hperm Hp2 Hpc HJ
       icases Hback $$ Hpc with ⟨Hp1, Hb⟩
       ihave Hp := (osPathS_frac R d qd.half qd.half j).2 $$ [Hp1 Hp2]
       · iframe
       rw [Qp.half_add_half qd]
-      ihave Hst : rmAllOut j b J h' hJ0 $$ [Hb HJ]
-      · unfold rmAllOut; iexists h', hJ'; iframe; isplitr
+      ihave Hst : os.rmAllOutP j b J h' hJ0 (FsNoErrAt (child d b) → e = ENOTEMPTY) $$ [Hb HJ]
+      · unfold os.rmAllOutP; iexists h', hJ'; iframe; isplitr
         · ipureintro; exact hsub
-        ileft; ipureintro; rfl
+        ileft; ipureintro; exact ⟨rfl, hw⟩
       wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
         wp_auto
+        ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
         iapply IH $$ Hperm Hp Hst Hg HΦ
       rw [decide_eq_false he4]
       wp_auto
@@ -177,16 +218,16 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
         cases hcc : hJ'.cur !! c with
         | none => rfl
         | some _ => exact absurd ⟨c, by simp [hcc]⟩ hne
-      wp_apply +noauto wp_osRmdirSG R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg (child d b) q g hqg hs rfl hb hJ hemp
+      wp_apply +noauto wp_osRmdirSGW R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg pg q g hqg hs hkg hb hJ hemp
         CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hb HJ Hk Hg
-        as %e Hperm Hg Hp HJ Hres
+        as %e %hw Hperm Hg Hp HJ Hres
       unfold osNamesAfter
-      ihave Hst : rmAllOut j b J h' hJ0 $$ [Hres HJ]
-      · unfold rmAllOut
-        icases Hres with (⟨-, Hb⟩ | ⟨%x, Hlog, Hb⟩)
+      ihave Hst : os.rmAllOutP j b J h' hJ0 (FsNoErrAt (child d b) → e = ENOTEMPTY) $$ [Hres HJ]
+      · unfold os.rmAllOutP
+        icases Hres with (⟨%he, Hb⟩ | ⟨%x, Hlog, Hb⟩)
         · iexists h', hJ'; iframe; isplitr
           · ipureintro; exact hsub
-          ileft; ipureintro; rfl
+          ileft; ipureintro; exact ⟨rfl, fun hne => absurd (hw hne) he⟩
         · iexists _, hJ'; iframe; isplitr
           · ipureintro; exact hsub
           iright; iexists x, s0
@@ -197,6 +238,7 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
         wp_auto
+        ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
         iapply IH $$ Hperm Hp Hst Hg HΦ
       rw [decide_eq_false he4]
       wp_auto
@@ -206,8 +248,8 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
     wp_apply +noauto wp_osRmdirS_none R d b j (DFrac.own qd) (DFrac.own 1) _ t1 s0 q hb
       (fun J' h'' => by rw [os.rmDir_cur_none] at h''; cases h'') CoPset.subseteq_top
       CoPset.subseteq_top $$ Hos Hsi Hp Hb Hk as %e %he Hperm Hp Hb
-    ihave Hst : rmAllOut j b J h hJ0 $$ [Hb HJ Hlog]
-    · unfold rmAllOut; iexists _, hJ'; iframe; isplitr
+    ihave Hst : os.rmAllOutP j b J h hJ0 (FsNoErrAt (child d b) → e = ENOTEMPTY) $$ [Hb HJ Hlog]
+    · unfold os.rmAllOutP; iexists _, hJ'; iframe; isplitr
       · ipureintro; exact hsub
       iright; iexists x, s
       isplitl
@@ -217,19 +259,36 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
       wp_auto
+      ihave Hst := os.rmAllOutP_out _ _ _ _ _ _ $$ Hst
       iapply IH $$ Hperm Hp Hst Hg HΦ
     rw [decide_eq_false he4]
     wp_auto
     iapply HΦ
     iframe
 
+theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
+    (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (pg : GoString)
+    (hkg : callKey R pg = callKey R (child d b)) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
+    (hqg : q + g = 1) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
+        osCallPerm (callKey R d) q ∗ osGuardS t sg pg g ∗ osLogLb sg }}
+      (App (Val os.model.rmdirLoop) (Val #(child d b)))
+    {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) q ∗
+        osGuardS t sg pg g }} := by
+  iintro %Φ Hpre HΦ
+  wp_apply os.model.wp_rmdirLoop_dirStW d b j J R qd h hJ0 q g t sg pg hkg hb hJ hqg $$ Hpre
+    as %e ⟨Hp, Hst, Hperm, Hg⟩
+  iapply HΦ
+  iframe
+  iapply os.rmAllOutP_out $$ Hst
+
 /-- `open` loop (read-only) of the directory `j` (a spine to it): an error, or a shared directory
 fd on it. -/
-theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
+theorem os.model.wp_openLoop_spineW (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.openLoop) (Val #p))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
-        (⌜e ≠ 0⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
+        (⌜e ≠ 0 ∧ e ≠ 2⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp
@@ -259,7 +318,24 @@ theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DF
     wp_auto
     iapply HΦ
     iframe
-    ileft; ipureintro; exact he0
+    ileft; ipureintro
+    refine ⟨he0, fun h2 => ?_⟩
+    rcases hres with ⟨h0, -⟩ | ⟨-, hen, -⟩
+    · exact he0 h0
+    · exact hen h2
+
+theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
+      (App (Val os.model.openLoop) (Val #p))
+    {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
+        (⌜e ≠ 0⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
+  iintro %Φ Hpre HΦ
+  wp_apply os.model.wp_openLoop_spineW p R j dq qc $$ Hpre as %fd %e ⟨Hp, Hperm, Ho⟩
+  iapply HΦ
+  iframe
+  icases Ho with (%he | Ho)
+  · ileft; ipureintro; exact he.1
+  · iright; iexact Ho
 
 /-- `model.closeFd` of a shared directory fd. -/
 theorem os.model.wp_closeFd_dir (fd : w64) (j : Ino) (ph : DirPhS) :
@@ -287,51 +363,66 @@ theorem os.rmPresent_out (j : Ino) (b : GoString) (J : Ino) (h hJ0 : NamesH) :
   ileft; ipureintro; rfl
 
 /-- `unlink` loop on the directory `d/b` (the state `rmAllOut`): an errno, no effect. -/
-theorem os.model.wp_unlinkLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (dq : DFrac)
+theorem os.model.wp_unlinkLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (dq : DFrac)
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) qc }}
       (App (Val os.model.unlinkLoop) (Val #(child d b)))
-    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) qc }} := by
+    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗
+        os.rmAllOutP j b J h hJ0 (FsNoErrAt (child d b) → e = EISDIR) ∗ osCallPerm (callKey R d) qc }} := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hst, Hperm⟩ HΦ
   isimp only [rmAllOut] at Hst
   icases Hst with ⟨%h', %hJ', Hb, HJ, %hsub, Hor⟩
   icases Hor with (%hh | ⟨%x, %s, Hlog, %hlog⟩)
   · subst hh
     wp_apply os.model.wp_unlinkLoop_nofile d b R j dq (DFrac.own 1) h' qc hb
-      (fun i hi => by rw [hJ] at hi; cases hi) $$ [Hp Hb Hperm] as %e ⟨%he, Hp, Hb, Hperm⟩
+      (fun i hi => by rw [hJ] at hi; cases hi) $$ [Hp Hb Hperm] as %e ⟨%he, %hw, Hp, Hb, Hperm⟩
     · iframe; iframe #
     iapply HΦ
     iframe
     isplitr
     · ipureintro; exact he
-    unfold rmAllOut
+    unfold os.rmAllOutP
     iexists h', hJ'; iframe; isplitr
     · ipureintro; exact hsub
-    ileft; ipureintro; rfl
+    ileft; ipureintro; exact ⟨rfl, fun hne => hw hne ⟨J, hJ⟩⟩
   · obtain ⟨rfl, hemp⟩ := hlog
     wp_apply os.model.wp_unlinkLoop_nofile d b R j dq (DFrac.own 1) _ qc hb
       (fun i hi => by rw [os.rmDir_cur_none] at hi; cases hi) $$ [Hp Hb Hperm]
-      as %e ⟨%he, Hp, Hb, Hperm⟩
+      as %e ⟨%he, %hw, Hp, Hb, Hperm⟩
     · iframe; iframe #
     iapply HΦ
     iframe
     isplitr
     · ipureintro; exact he
-    unfold rmAllOut
+    unfold os.rmAllOutP
     iexists _, hJ'; iframe; isplitr
     · ipureintro; exact hsub
     iright; iexists x, s; iframe; ipureintro; exact ⟨rfl, hemp⟩
 
+theorem os.model.wp_unlinkLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (dq : DFrac)
+    (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗
+        osCallPerm (callKey R d) qc }}
+      (App (Val os.model.unlinkLoop) (Val #(child d b)))
+    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) qc }} := by
+  iintro %Φ Hpre HΦ
+  wp_apply os.model.wp_unlinkLoop_dirStW d b j J R dq h hJ0 qc hb hJ $$ Hpre as %e ⟨%he, Hp, Hst, Hperm⟩
+  iapply HΦ
+  iframe
+  isplitr
+  · ipureintro; exact he
+  iapply os.rmAllOutP_out $$ Hst
+
 /-- `open` loop (read-only) on the directory `d/b` (the state `rmAllOut`): an error, or a shared
 directory fd on `J`, `b` still `J`. -/
-theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
+theorem os.model.wp_openLoop_dirStW (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
         osCallPerm (callKey R d) qc }}
       (App (Val os.model.openLoop) (Val #(child d b)))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
-        ((⌜e ≠ 0⌝ ∗ rmAllOut j b J h hJ0) ∨
+        ((⌜e ≠ 0⌝ ∗ os.rmAllOutP j b J h hJ0 (e ≠ 2)) ∨
          (⌜e = 0⌝ ∗ osDirFdS fd J .idle ∗ os.rmPresent j b J h hJ0)) }} := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hst, Hperm⟩ HΦ
   isimp only [rmAllOut] at Hst
@@ -341,7 +432,7 @@ theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd 
     icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases os.osPathS_borrow R d b j J qd h' hb hJ $$ [Hp Hb] with ⟨%ε, Hpc, Hback⟩
     · iframe
-    wp_apply os.model.wp_openLoop_spine (child d b) R J (DFrac.own ε) qc $$ [Hpc Hperm]
+    wp_apply os.model.wp_openLoop_spineW (child d b) R J (DFrac.own ε) qc $$ [Hpc Hperm]
       as %fd %e ⟨Hpc, Hperm, Ho⟩
     · iframe; iframe #
     icases Hback $$ Hpc with ⟨Hp, Hb⟩
@@ -351,11 +442,11 @@ theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd 
     icases Ho with (%he | ⟨%he, Hfd⟩)
     · ileft
       isplitr
-      · ipureintro; exact he
-      unfold rmAllOut
+      · ipureintro; exact he.1
+      unfold os.rmAllOutP
       iexists h', hJ'; iframe; isplitr
       · ipureintro; exact hsub
-      ileft; ipureintro; rfl
+      ileft; ipureintro; exact ⟨rfl, he.2⟩
     · iright
       iframe
       isplitr
@@ -372,10 +463,29 @@ theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd 
     ileft
     isplitr
     · ipureintro; exact hne (os.rmDir_cur_none _ _ _ _ _ _)
-    unfold rmAllOut
+    unfold os.rmAllOutP
     iexists _, hJ'; iframe; isplitr
     · ipureintro; exact hsub
     iright; iexists x, s; iframe; ipureintro; exact ⟨rfl, hemp⟩
+
+theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
+    (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
+        osCallPerm (callKey R d) qc }}
+      (App (Val os.model.openLoop) (Val #(child d b)))
+    {{ (fd e : w64), RET (PairV #fd #e); osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
+        ((⌜e ≠ 0⌝ ∗ rmAllOut j b J h hJ0) ∨
+         (⌜e = 0⌝ ∗ osDirFdS fd J .idle ∗ os.rmPresent j b J h hJ0)) }} := by
+  iintro %Φ Hpre HΦ
+  wp_apply os.model.wp_openLoop_dirStW d b j J R qd h hJ0 qc hb hJ $$ Hpre as %fd %e ⟨Hp, Hperm, Ho⟩
+  iapply HΦ
+  iframe
+  icases Ho with (⟨%he, Hst⟩ | Ho)
+  · ileft
+    isplitr
+    · ipureintro; exact he
+    iapply os.rmAllOutP_out $$ Hst
+  · iright; iexact Ho
 
 end proof
 

@@ -921,15 +921,16 @@ theorem lisAddrs_lookup (m : GMap w64 (GoString × Bool)) (l : w64) :
     (lisAddrs m).lookup l = (m.lookup l).map Prod.fst := by
   unfold lisAddrs; rw [GMap.lookup_fmap]
 
-/-- D6. `Listen` of the valid address `a` (`addrOk`; not a wildcard, D21, which the semantics allows
-and this spec does not cover), by the holder of `a`'s listening token (`netLisTok`, taken and given
-back by an atomic update at the step, so that it may live in an invariant): a failure, or a new
-open listener at `a` (and its address, persistent). -/
+/-- D6, D21. `Listen` of `a`, a valid address (`addrOk`) or a wildcard (`listenOk`), by the holder
+of the right to listen at `a` (`lisToks`: the listening tokens of the valid addresses `a` takes,
+`a`'s alone for a valid address, `lisToks_addrOk`), taken and given back by an atomic update at the
+step, so that it may live in an invariant: a failure, or a new open listener at `a` (and its
+address, persistent). -/
 theorem wp_net_Listen (a : GoString) (Φ : val → IProp GF) :
-    ⌜addrOk a = true⌝ -∗
-    (|={E,∅}=> netLisTok netG a ∗ (netLisTok netG a ={∅,E}=∗ True)) -∗
+    ⌜listenOk a = true⌝ -∗
+    (|={E,∅}=> lisToks netG a ∗ (lisToks netG a ={∅,E}=∗ True)) -∗
     (Φ (failV .sys) ∧ ∀ l : w64, ⌜l ≠ 0⌝ -∗ netLis (netL (L := L)) l a true -∗
-      netLisAt (netL (L := L)) l a -∗ Φ (PairV (#l) (#(W64 0)))) -∗
+      netLisOn (netL (L := L)) l a -∗ Φ (PairV (#l) (#(W64 0)))) -∗
     WP (ExternalOp netExt.name "Listen" (Val (#a))) @ sk; E {{ Φ }} := by
   letI := (netL (L := L)).allG
   iintro %Hok Htok HΦ
@@ -941,7 +942,7 @@ theorem wp_net_Listen (a : GoString) (Φ : val → IProp GF) :
   unfold netLocalCtx
   icases Hl with ⟨Hlis, Hat⟩
   obtain ⟨a', Hv, -, Hcase, rfl⟩ :=
-    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, rfl, by simp [listenOk, Hok]⟩
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨a, rfl, Hok⟩
   obtain rfl := go.intoVal_inj (V := GoString) Hv
   rcases Hcase with ⟨rfl, rfl⟩ | ⟨-, l, hl0, hl, rfl, rfl⟩
   · icases HΦ with ⟨HΦ, -⟩
@@ -962,7 +963,7 @@ theorem wp_net_Listen (a : GoString) (Φ : val → IProp GF) :
     iapply wp_value'
     iapply HΦ $$ %l %hl0 [Hel]
     · unfold netLis; iexact Hel
-    · unfold netLisAt; iframe Hla; ipureintro; exact Hok
+    · unfold netLisOn; iframe Hla; ipureintro; exact Hok
 
 theorem netLocal_lookup (hL : NetLocalGS GF) (σ : NetLocal) (l : w64) (a : GoString) (o : Bool) :
     netLocalCtx hL σ -∗ netLis hL l a o -∗ ⌜σ.lis !! l = some (a, o)⌝ := by
@@ -972,10 +973,10 @@ theorem netLocal_lookup (hL : NetLocalGS GF) (σ : NetLocal) (l : w64) (a : GoSt
   iapply ghost_map_lookup $$ Hlis Hel
 
 /-- The listener `l` exists in the node's state, at `a`. -/
-theorem netLisAt_lookup (hL : NetLocalGS GF) (σ : NetLocal) (l : w64) (a : GoString) :
-    netLocalCtx hL σ -∗ netLisAt hL l a -∗ ⌜∃ o, σ.lis !! l = some (a, o)⌝ := by
+theorem netLisOn_lookup (hL : NetLocalGS GF) (σ : NetLocal) (l : w64) (a : GoString) :
+    netLocalCtx hL σ -∗ netLisOn hL l a -∗ ⌜∃ o, σ.lis !! l = some (a, o)⌝ := by
   letI := hL.allG
-  unfold netLocalCtx netLisAt
+  unfold netLocalCtx netLisOn
   iintro ⟨Hlis, Hat⟩ ⟨Hel, -⟩
   icases ghost_map_lookup $$ Hat Hel with %Hla
   ipureintro
@@ -991,7 +992,7 @@ theorem netLisAt_lookup (hL : NetLocalGS GF) (σ : NetLocal) (l : w64) (a : GoSt
 /-- D9, D17. `LisClose` of the listener `l` at `a`, by a logically atomic update over its state:
 closed, the result `LisCloseOutcome`'s (success if it was open, `closed` if not). -/
 theorem wp_net_LisClose (l : w64) (a : GoString) (Φ : val → IProp GF) :
-    netLisAt (netL (L := L)) l a -∗
+    netLisOn (netL (L := L)) l a -∗
     (|={E,∅}=> ∃ o, netLis (netL (L := L)) l a o ∗
       ∀ res, ⌜LisCloseOutcome o res false⌝ -∗ netLis (netL (L := L)) l a false ={∅,E}=∗
         Φ (#(errCode res))) -∗
@@ -1179,44 +1180,43 @@ theorem connCtx_addr [AllG GF] (γ : ConnNames) (cn : NetConn) :
   ipureintro; exact H
 
 
-/-- D7. `Accept` of the listener `l` at `a` (valid, `netLisAt`: not a wildcard, so the connections
-it takes are those dialed to `a`, `lisAccepts_addrOk`), by a logically atomic update over its state and the
-address's pending set: a failure (both unchanged), `closed` if the listener is closed and `sys` if
-it is open; or, only if the listener is open, a connection `c` pending at `a`, now accepted (taken
-out of the pending set). The update is opened only at the step that decides (a wait is a stutter,
-`wp_net_op`). -/
-theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
-    netLisAt (netL (L := L)) l a -∗
-    (|={E,∅}=> ∃ o S, netLis (netL (L := L)) l a o ∗ netPend netG a S ∗
-      ((netLis (netL (L := L)) l a o -∗ netPend netG a S ={∅,E}=∗
-          Φ (failV (if o then .sys else .closed))) ∧
-        (⌜o = true⌝ -∗ ∀ c, ⌜c ∈ S⌝ -∗ netLis (netL (L := L)) l a o -∗
-          netPend netG a (S \ {[c]}) -∗ netConnAt netG c a ={∅,E}=∗
-          Φ (PairV (#(endId c true)) (#(W64 0)))))) -∗
+/-- D7, D21. `Accept` of the listener `l` at `la` (`netLisOn`: a valid address or a wildcard), by
+logically atomic updates: a failure, by one over the listener's state, which it leaves as it was,
+`closed` if the listener is closed and `sys` if it is open; or, only if the listener is open, a
+connection `c` dialed to an address `a` the listener takes (`lisAccepts`: `la` itself if it is
+valid, any valid address with its port if it is a wildcard) and pending there, now accepted, by one
+over the listener's state and `a`'s pending set (`c` taken out of it), chosen for that `a`. An update
+is opened only at the step that decides (a wait is a stutter, `wp_net_op`). -/
+theorem wp_net_Accept (l : w64) (la : GoString) (Φ : val → IProp GF) :
+    netLisOn (netL (L := L)) l la -∗
+    ((|={E,∅}=> ∃ o, netLis (netL (L := L)) l la o ∗
+        (netLis (netL (L := L)) l la o ={∅,E}=∗ Φ (failV (if o then .sys else .closed)))) ∧
+      ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+        |={E,∅}=> ∃ o S, netLis (netL (L := L)) l la o ∗ netPend netG a S ∗
+          (⌜o = true⌝ -∗ ∀ c, ⌜c ∈ S⌝ -∗ netLis (netL (L := L)) l la o -∗
+            netPend netG a (S \ {[c]}) -∗ netConnAt netG c a ={∅,E}=∗
+            Φ (PairV (#(endId c true)) (#(W64 0))))) -∗
     WP (ExternalOp netExt.name "Accept" (Val (#l))) @ sk; E {{ Φ }} := by
   letI := (netG (G := G)).allG
   iintro #Hla HAU
-  ihave %Hok : ⌜addrOk a = true⌝ $$ []
-  · unfold netLisAt; icases Hla with ⟨-, %h⟩; ipureintro; exact h
   iapply wp_net_op "Accept" (#l) (by simp) Φ
   inext
   iintro %σ %g %e' %σ' %g' %Hst Hl Hg
-  ihave %Hll := netLisAt_lookup _ σ l a $$ Hl Hla
+  ihave %Hll := netLisOn_lookup _ σ l la $$ Hl Hla
   obtain ⟨o, Hll⟩ := Hll
   obtain ⟨l0, a0, o0, Hv, Hl0, Hcase, rfl⟩ :=
-    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨l, (a, o), rfl, Hll⟩
+    Hst.resolve_right fun ⟨hnv, _⟩ => hnv ⟨l, (la, o), rfl, Hll⟩
   obtain rfl := go.intoVal_inj (V := w64) Hv
   rw [Hll] at Hl0
   obtain ⟨rfl, rfl⟩ := Prod.mk.inj (Option.some.inj Hl0)
   rcases Hcase with ⟨ho, rfl, rfl⟩ | ⟨ho, rfl, rfl⟩ | ⟨ho, c, cn, hcn, haddr, hacc, hb, rfl, rfl⟩
-  all_goals try (have haddr := ((lisAccepts_addrOk Hok).mp haddr).symm)
   · -- a failure, the listener closed
-    imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
-    icases netLocal_lookup _ _ l a o' $$ Hl Hel with %Hll'
+    icases HAU with ⟨HAU, -⟩
+    imod HAU with ⟨%o', Hel, HΦ⟩
+    icases netLocal_lookup _ _ l la o' $$ Hl Hel with %Hll'
     rw [Hll] at Hll'
     obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hll')
-    icases HΦ with ⟨HΦ, -⟩
-    imod HΦ $$ Hel Hpend with HΦ
+    imod HΦ $$ Hel with HΦ
     subst ho
     simp only [Bool.false_eq_true, ↓reduceIte]
     imodintro
@@ -1224,30 +1224,32 @@ theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
     iapply wp_value'
     iexact HΦ
   · -- a failure, the listener open
-    imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
-    icases netLocal_lookup _ _ l a o' $$ Hl Hel with %Hll'
+    icases HAU with ⟨HAU, -⟩
+    imod HAU with ⟨%o', Hel, HΦ⟩
+    icases netLocal_lookup _ _ l la o' $$ Hl Hel with %Hll'
     rw [Hll] at Hll'
     obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hll')
-    icases HΦ with ⟨HΦ, -⟩
-    imod HΦ $$ Hel Hpend with HΦ
+    imod HΦ $$ Hel with HΦ
     subst ho
     simp only [↓reduceIte]
     imodintro
     iframe Hl Hg
     iapply wp_value'
     iexact HΦ
-  · -- the connection `c`
-    imod HAU with ⟨%o', %S, Hel, Hpend, HΦ⟩
-    icases netLocal_lookup _ _ l a o' $$ Hl Hel with %Hll'
-    rw [Hll] at Hll'
-    obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hll')
-    icases HΦ with ⟨-, Hk⟩
+  · -- the connection `c`, dialed to `cn.addr`
     unfold netCtx
     icases Hg with ⟨%nm, %pm, Hn, Hpm, %Hpure, Hconns⟩
     obtain ⟨Hdom, Hpok⟩ := Hpure
+    have hok : addrOk cn.addr = true := (Hpok.2.2 c cn hcn).1
+    icases HAU with ⟨-, HAU⟩
+    have hp : addrOk cn.addr = true ∧ lisAccepts la cn.addr := ⟨hok, haddr⟩
+    imod HAU $$ %cn.addr %hp with ⟨%o', %S, Hel, Hpend, Hk⟩
+    icases netLocal_lookup _ _ l la o' $$ Hl Hel with %Hll'
+    rw [Hll] at Hll'
+    obtain ⟨-, rfl⟩ := Prod.mk.inj (Option.some.inj Hll')
     unfold netPend
     icases ghost_map_lookup $$ Hpm Hpend with %HS
-    have hcS : c ∈ S := (Hpok.2.1 a S c HS).2 ⟨cn, hcn, haddr, hacc⟩
+    have hcS : c ∈ S := (Hpok.2.1 cn.addr S c HS).2 ⟨cn, hcn, rfl, hacc⟩
     have hc0 : c ≠ 0 := (Hpok.2.2 c cn hcn).2.1
     imod ghost_map_update (S \ {[c]}) $$ Hpm Hpend with ⟨Hpm, Hpend⟩
     icases BigSepM.bigSepM_insert_acc hcn $$ Hconns with ⟨⟨%γ, %Hγ, #Hn', Hcc⟩, Hcl⟩
@@ -1259,11 +1261,11 @@ theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
       unfold netNames
       iframe Hn'
       ipureintro
-      exact ⟨Haddr.trans haddr, hc0, hb⟩
+      exact ⟨Haddr, hc0, hb⟩
     imodintro
     iframe Hl
     isplitr [HΦ]
-    · iexists nm, pm.insert a (S \ {[c]})
+    · iexists nm, pm.insert cn.addr (S \ {[c]})
       rw [setConn_conns]
       iframe Hn Hpm
       isplitr
@@ -1273,8 +1275,7 @@ theorem wp_net_Accept (l : w64) (a : GoString) (Φ : val → IProp GF) :
           by_cases hk : c = k
           · subst hk; simp [hcn]
           · simp [hk]
-        · have := pendOk_accept (S := S) Hpok hcn (by rw [haddr]; exact HS)
-          rw [← haddr]; exact this
+        · exact pendOk_accept (S := S) Hpok hcn HS
       iapply Hcl
       iexists γ
       iframe Hn'
