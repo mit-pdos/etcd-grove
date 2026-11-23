@@ -107,14 +107,6 @@ func jsonUnmarshal(data []byte, v any) error {
 		return err
 	case events.StartViewChange:
 		return &jsoncodec.Error{Msg: "Unmarshal(non-pointer events.StartViewChange)"}
-	case *log.Log:
-		if p == nil {
-			return &jsoncodec.Error{Msg: "Unmarshal(nil *log.Log)"}
-		}
-		jdec_log_Log(data, 0, p, &err)
-		return err
-	case log.Log:
-		return &jsoncodec.Error{Msg: "Unmarshal(non-pointer log.Log)"}
 	case *log.Logs:
 		if p == nil {
 			return &jsoncodec.Error{Msg: "Unmarshal(nil *log.Logs)"}
@@ -163,6 +155,22 @@ func jsonUnmarshal(data []byte, v any) error {
 		return err
 	case events.Heartbeat:
 		return &jsoncodec.Error{Msg: "Unmarshal(non-pointer events.Heartbeat)"}
+	case *log.Log:
+		if p == nil {
+			return &jsoncodec.Error{Msg: "Unmarshal(nil *log.Log)"}
+		}
+		jdec_log_Log(data, 0, p, &err)
+		return err
+	case log.Log:
+		return &jsoncodec.Error{Msg: "Unmarshal(non-pointer log.Log)"}
+	case *[]log.Log:
+		if p == nil {
+			return &jsoncodec.Error{Msg: "Unmarshal(nil *[]log.Log)"}
+		}
+		jdec_S_log_Log(data, 0, p, &err)
+		return err
+	case []log.Log:
+		return &jsoncodec.Error{Msg: "Unmarshal(non-pointer []log.Log)"}
 	case *json.RawMessage:
 		if p == nil {
 			return &jsoncodec.Error{Msg: "Unmarshal(nil *json.RawMessage)"}
@@ -325,13 +333,6 @@ func jencAny(b []byte, v any, d uint64) ([]byte, error) {
 			return jsoncodec.AppendRaw(b, "null"), nil
 		}
 		return jenc_events_StartViewChange(b, *x, d)
-	case log.Log:
-		return jenc_log_Log(b, x, d)
-	case *log.Log:
-		if x == nil {
-			return jsoncodec.AppendRaw(b, "null"), nil
-		}
-		return jenc_log_Log(b, *x, d)
 	case log.Logs:
 		return jenc_log_Logs(b, x, d)
 	case *log.Logs:
@@ -374,6 +375,20 @@ func jencAny(b []byte, v any, d uint64) ([]byte, error) {
 			return jsoncodec.AppendRaw(b, "null"), nil
 		}
 		return jenc_events_Heartbeat(b, *x, d)
+	case log.Log:
+		return jenc_log_Log(b, x, d)
+	case *log.Log:
+		if x == nil {
+			return jsoncodec.AppendRaw(b, "null"), nil
+		}
+		return jenc_log_Log(b, *x, d)
+	case []log.Log:
+		return jenc_S_log_Log(b, x, d)
+	case *[]log.Log:
+		if x == nil {
+			return jsoncodec.AppendRaw(b, "null"), nil
+		}
+		return jenc_S_log_Log(b, *x, d)
 	case json.RawMessage:
 		return jenc_RawMessage(b, x, d)
 	case *json.RawMessage:
@@ -446,21 +461,35 @@ func jsonDepthErr() error {
 	return &jsoncodec.Error{Msg: "exceeded the maximum nesting depth"}
 }
 
-// jencRaw appends a RawMessage as real encoding/json does: null if nil (its MarshalJSON),
-// else an error if it is not one valid JSON value or nests too deep inside d arrays and
-// objects, else the value compacted (jsoncodec.AppendCompact).
+// jsonUserErr records an UnmarshalJSON method's error (real encoding/json keeps decoding
+// and returns the first error).
+func jsonUserErr(e *error, err error) {
+	if *e == nil {
+		*e = err
+	}
+}
+
+// jencValue appends a MarshalJSON method's output x as real encoding/json does: an error if
+// it is not one valid JSON value (nil and empty among them) or nests too deep inside d arrays
+// and objects, else the value compacted (jsoncodec.AppendCompact).
+func jencValue(b []byte, x []byte, d uint64) ([]byte, error) {
+	if !jsoncodec.Valid(x) {
+		return b, &jsoncodec.Error{Msg: "a MarshalJSON output that is not one valid JSON value"}
+	}
+	if d+jsoncodec.Nesting(x) > jsoncodec.MaxDepth {
+		return b, jsonDepthErr()
+	}
+	b2, _ := jsoncodec.AppendCompact(b, x)
+	return b2, nil
+}
+
+// jencRaw appends a RawMessage as real encoding/json does (its MarshalJSON: null if nil,
+// else the value, through jencValue).
 func jencRaw(b []byte, v json.RawMessage, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if !jsoncodec.Valid(v) {
-		return b, &jsoncodec.Error{Msg: "a RawMessage that is not one valid JSON value"}
-	}
-	if d+jsoncodec.Nesting(v) > jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
-	}
-	b2, _ := jsoncodec.AppendCompact(b, v)
-	return b2, nil
+	return jencValue(b, v, d)
 }
 
 // jdecRaw decodes the value at b[i:] into a RawMessage: a copy of its bytes, without the
@@ -472,7 +501,7 @@ func jdecRaw(b []byte, i uint64, p *json.RawMessage) uint64 {
 	return k
 }
 
-// jenc_events_EventType appends the encoding of a events.EventType inside d arrays and objects.
+// jenc_events_EventType appends the encoding of a events.EventType inside d arrays and objects, unaddressable.
 func jenc_events_EventType(b []byte, v events.EventType, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -492,7 +521,7 @@ func jdec_events_EventType(b []byte, i uint64, p *events.EventType, e *error) ui
 	return k
 }
 
-// jenc_events_Event appends the encoding of a events.Event inside d arrays and objects.
+// jenc_events_Event appends the encoding of a events.Event inside d arrays and objects, unaddressable.
 func jenc_events_Event(b []byte, v events.Event, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -537,8 +566,9 @@ func jdec_events_Event(b []byte, i uint64, p *events.Event, e *error) uint64 {
 }
 
 // jdecMember_events_Event decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_Event(b []byte, i uint64, key string, p *events.Event, e *error) uint64 {
 	if key == "@type" {
 		var k uint64
@@ -571,7 +601,7 @@ func jdecMember_events_Event(b []byte, i uint64, key string, p *events.Event, e 
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_uint64 appends the encoding of a uint64 inside d arrays and objects.
+// jenc_uint64 appends the encoding of a uint64 inside d arrays and objects, unaddressable.
 func jenc_uint64(b []byte, v uint64, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -591,7 +621,7 @@ func jdec_uint64(b []byte, i uint64, p *uint64, e *error) uint64 {
 	return k
 }
 
-// jenc_string appends the encoding of a string inside d arrays and objects.
+// jenc_string appends the encoding of a string inside d arrays and objects, unaddressable.
 func jenc_string(b []byte, v string, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendString(b, string(v))
 	return b, nil
@@ -611,7 +641,7 @@ func jdec_string(b []byte, i uint64, p *string, e *error) uint64 {
 	return k
 }
 
-// jenc_events_Request appends the encoding of a events.Request inside d arrays and objects.
+// jenc_events_Request appends the encoding of a events.Request inside d arrays and objects, unaddressable.
 func jenc_events_Request(b []byte, v events.Request, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -655,8 +685,9 @@ func jdec_events_Request(b []byte, i uint64, p *events.Request, e *error) uint64
 }
 
 // jdecMember_events_Request decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_Request(b []byte, i uint64, key string, p *events.Request, e *error) uint64 {
 	if key == "id" {
 		var k uint64
@@ -727,7 +758,7 @@ func jdecMember_events_Request(b []byte, i uint64, key string, p *events.Request
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_Reply appends the encoding of a events.Reply inside d arrays and objects.
+// jenc_events_Reply appends the encoding of a events.Reply inside d arrays and objects, unaddressable.
 func jenc_events_Reply(b []byte, v events.Reply, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -773,8 +804,9 @@ func jdec_events_Reply(b []byte, i uint64, p *events.Reply, e *error) uint64 {
 }
 
 // jdecMember_events_Reply decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_Reply(b []byte, i uint64, key string, p *events.Reply, e *error) uint64 {
 	if key == "id" {
 		var k uint64
@@ -867,7 +899,7 @@ func jdecMember_events_Reply(b []byte, i uint64, key string, p *events.Reply, e 
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_Prepare appends the encoding of a events.Prepare inside d arrays and objects.
+// jenc_events_Prepare appends the encoding of a events.Prepare inside d arrays and objects, unaddressable.
 func jenc_events_Prepare(b []byte, v events.Prepare, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -918,8 +950,9 @@ func jdec_events_Prepare(b []byte, i uint64, p *events.Prepare, e *error) uint64
 }
 
 // jdecMember_events_Prepare decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_Prepare(b []byte, i uint64, key string, p *events.Prepare, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -1022,7 +1055,7 @@ func jdecMember_events_Prepare(b []byte, i uint64, key string, p *events.Prepare
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_PrepareOK appends the encoding of a events.PrepareOK inside d arrays and objects.
+// jenc_events_PrepareOK appends the encoding of a events.PrepareOK inside d arrays and objects, unaddressable.
 func jenc_events_PrepareOK(b []byte, v events.PrepareOK, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1066,8 +1099,9 @@ func jdec_events_PrepareOK(b []byte, i uint64, p *events.PrepareOK, e *error) ui
 }
 
 // jdecMember_events_PrepareOK decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_PrepareOK(b []byte, i uint64, key string, p *events.PrepareOK, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -1138,7 +1172,7 @@ func jdecMember_events_PrepareOK(b []byte, i uint64, key string, p *events.Prepa
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_Commit appends the encoding of a events.Commit inside d arrays and objects.
+// jenc_events_Commit appends the encoding of a events.Commit inside d arrays and objects, unaddressable.
 func jenc_events_Commit(b []byte, v events.Commit, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1182,8 +1216,9 @@ func jdec_events_Commit(b []byte, i uint64, p *events.Commit, e *error) uint64 {
 }
 
 // jdecMember_events_Commit decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_Commit(b []byte, i uint64, key string, p *events.Commit, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -1254,7 +1289,7 @@ func jdecMember_events_Commit(b []byte, i uint64, key string, p *events.Commit, 
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_StartViewChange appends the encoding of a events.StartViewChange inside d arrays and objects.
+// jenc_events_StartViewChange appends the encoding of a events.StartViewChange inside d arrays and objects, unaddressable.
 func jenc_events_StartViewChange(b []byte, v events.StartViewChange, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1296,8 +1331,9 @@ func jdec_events_StartViewChange(b []byte, i uint64, p *events.StartViewChange, 
 }
 
 // jdecMember_events_StartViewChange decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_StartViewChange(b []byte, i uint64, key string, p *events.StartViewChange, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -1346,181 +1382,28 @@ func jdecMember_events_StartViewChange(b []byte, i uint64, key string, p *events
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_log_Log appends the encoding of a log.Log inside d arrays and objects.
-func jenc_log_Log(b []byte, v log.Log, d uint64) ([]byte, error) {
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
-	}
-	var err error
-	_ = err
-	b = append(b, '{')
-	b = jsoncodec.AppendRaw(b, "\"data\":")
-	b = jsoncodec.AppendString(b, string(v.Data))
-	b = jsoncodec.AppendRaw(b, ",\"client_id\":")
-	b = jsoncodec.AppendQuotedUint(b, uint64(v.ClientID))
-	b = jsoncodec.AppendRaw(b, ",\"request_id\":")
-	b = jsoncodec.AppendQuotedUint(b, uint64(v.RequestID))
-	return append(b, '}'), nil
-}
-
-// jdec_log_Log decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
-// encoding/json does; the first error is kept in *e. It returns the index after the value.
-func jdec_log_Log(b []byte, i uint64, p *log.Log, e *error) uint64 {
-	j, c := jsoncodec.At(b, i)
-	if c == 'n' {
-		return j + 4
-	}
-	if c != '{' {
-		jsonSetErr(e)
-		return jsoncodec.ValueEnd(b, j)
-	}
-	empty, k := jsoncodec.Empty(b, j)
-	if empty {
-		return k
-	}
-	for {
-		key, v := jsoncodec.Member(b, k)
-		k = jdecMember_log_Log(b, v, key, p, e)
-		more, k2 := jsoncodec.Next(b, k)
-		k = k2
-		if !more {
-			return k
-		}
-	}
-}
-
-// jdecMember_log_Log decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
-func jdecMember_log_Log(b []byte, i uint64, key string, p *log.Log, e *error) uint64 {
-	if key == "data" {
-		var k uint64
-		y, st, k1 := jsoncodec.String(b, i)
-		k = k1
-		if st == jsoncodec.Set {
-			p.Data = string(y)
-		} else if st == jsoncodec.TypeErr {
-			jsonSetErr(e)
-		}
-		return k
-	}
-	if key == "client_id" {
-		var k uint64
-		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
-		k = k1
-		if st == jsoncodec.Set {
-			p.ClientID = uint64(y)
-		} else if st == jsoncodec.TypeErr {
-			jsonSetErr(e)
-		}
-		return k
-	}
-	if key == "request_id" {
-		var k uint64
-		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
-		k = k1
-		if st == jsoncodec.Set {
-			p.RequestID = uint64(y)
-		} else if st == jsoncodec.TypeErr {
-			jsonSetErr(e)
-		}
-		return k
-	}
-	if jsoncodec.FoldEq(key, "data") {
-		var k uint64
-		y, st, k1 := jsoncodec.String(b, i)
-		k = k1
-		if st == jsoncodec.Set {
-			p.Data = string(y)
-		} else if st == jsoncodec.TypeErr {
-			jsonSetErr(e)
-		}
-		return k
-	}
-	if jsoncodec.FoldEq(key, "client_id") {
-		var k uint64
-		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
-		k = k1
-		if st == jsoncodec.Set {
-			p.ClientID = uint64(y)
-		} else if st == jsoncodec.TypeErr {
-			jsonSetErr(e)
-		}
-		return k
-	}
-	if jsoncodec.FoldEq(key, "request_id") {
-		var k uint64
-		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
-		k = k1
-		if st == jsoncodec.Set {
-			p.RequestID = uint64(y)
-		} else if st == jsoncodec.TypeErr {
-			jsonSetErr(e)
-		}
-		return k
-	}
-	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
-}
-
-// jenc_log_Logs appends the encoding of a log.Logs inside d arrays and objects.
+// jenc_log_Logs appends the encoding of a log.Logs by its MarshalJSON method (value receiver: always called).
 func jenc_log_Logs(b []byte, v log.Logs, d uint64) ([]byte, error) {
-	if v == nil {
-		return jsoncodec.AppendRaw(b, "null"), nil
+	x, err := v.MarshalJSON()
+	if err != nil {
+		return b, err
 	}
-	if d >= jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
-	}
-	var err error
-	_ = err
-	b = append(b, '[')
-	for i, x := range v {
-		if i > 0 {
-			b = append(b, ',')
-		}
-		b, err = jenc_log_Log(b, x, d+1)
-		if err != nil {
-			return b, err
-		}
-	}
-	return append(b, ']'), nil
+	return jencValue(b, x, d)
 }
 
 // jdec_log_Logs decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
 // encoding/json does; the first error is kept in *e. It returns the index after the value.
 func jdec_log_Logs(b []byte, i uint64, p *log.Logs, e *error) uint64 {
-	j, c := jsoncodec.At(b, i)
-	if c == 'n' {
-		*p = nil
-		return j + 4
+	j := jsoncodec.SkipSpace(b, i)
+	k := jsoncodec.ValueEnd(b, j)
+	err := p.UnmarshalJSON(b[j:k:k])
+	if err != nil {
+		jsonUserErr(e, err)
 	}
-	if c != '[' {
-		jsonSetErr(e)
-		return jsoncodec.ValueEnd(b, j)
-	}
-	empty, k := jsoncodec.Empty(b, j)
-	if empty {
-		*p = make(log.Logs, 0)
-		return k
-	}
-	if *p != nil {
-		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
-	}
-	s := make(log.Logs, 0)
-	for {
-		var x log.Log
-		i := k
-		k = jdec_log_Log(b, i, &x, e)
-		s = append(s, x)
-		more, k2 := jsoncodec.Next(b, k)
-		k = k2
-		if !more {
-			*p = s
-			return k
-		}
-	}
+	return k
 }
 
-// jenc_events_DoViewChange appends the encoding of a events.DoViewChange inside d arrays and objects.
+// jenc_events_DoViewChange appends the encoding of a events.DoViewChange inside d arrays and objects, unaddressable.
 func jenc_events_DoViewChange(b []byte, v events.DoViewChange, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1573,8 +1456,9 @@ func jdec_events_DoViewChange(b []byte, i uint64, p *events.DoViewChange, e *err
 }
 
 // jdecMember_events_DoViewChange decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_DoViewChange(b []byte, i uint64, key string, p *events.DoViewChange, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -1699,7 +1583,7 @@ func jdecMember_events_DoViewChange(b []byte, i uint64, key string, p *events.Do
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_StartView appends the encoding of a events.StartView inside d arrays and objects.
+// jenc_events_StartView appends the encoding of a events.StartView inside d arrays and objects, unaddressable.
 func jenc_events_StartView(b []byte, v events.StartView, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1750,8 +1634,9 @@ func jdec_events_StartView(b []byte, i uint64, p *events.StartView, e *error) ui
 }
 
 // jdecMember_events_StartView decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_StartView(b []byte, i uint64, key string, p *events.StartView, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -1854,7 +1739,7 @@ func jdecMember_events_StartView(b []byte, i uint64, key string, p *events.Start
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_GetState appends the encoding of a events.GetState inside d arrays and objects.
+// jenc_events_GetState appends the encoding of a events.GetState inside d arrays and objects, unaddressable.
 func jenc_events_GetState(b []byte, v events.GetState, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1898,8 +1783,9 @@ func jdec_events_GetState(b []byte, i uint64, p *events.GetState, e *error) uint
 }
 
 // jdecMember_events_GetState decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_GetState(b []byte, i uint64, key string, p *events.GetState, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -1970,7 +1856,7 @@ func jdecMember_events_GetState(b []byte, i uint64, key string, p *events.GetSta
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_NewState appends the encoding of a events.NewState inside d arrays and objects.
+// jenc_events_NewState appends the encoding of a events.NewState inside d arrays and objects, unaddressable.
 func jenc_events_NewState(b []byte, v events.NewState, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -2021,8 +1907,9 @@ func jdec_events_NewState(b []byte, i uint64, p *events.NewState, e *error) uint
 }
 
 // jdecMember_events_NewState decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_NewState(b []byte, i uint64, key string, p *events.NewState, e *error) uint64 {
 	if key == "view_num" {
 		var k uint64
@@ -2125,7 +2012,7 @@ func jdecMember_events_NewState(b []byte, i uint64, key string, p *events.NewSta
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_events_Heartbeat appends the encoding of a events.Heartbeat inside d arrays and objects.
+// jenc_events_Heartbeat appends the encoding of a events.Heartbeat inside d arrays and objects, unaddressable.
 func jenc_events_Heartbeat(b []byte, v events.Heartbeat, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -2163,13 +2050,189 @@ func jdec_events_Heartbeat(b []byte, i uint64, p *events.Heartbeat, e *error) ui
 }
 
 // jdecMember_events_Heartbeat decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_events_Heartbeat(b []byte, i uint64, key string, p *events.Heartbeat, e *error) uint64 {
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_RawMessage appends the encoding of a json.RawMessage inside d arrays and objects.
+// jenc_log_Log appends the encoding of a log.Log inside d arrays and objects, unaddressable.
+func jenc_log_Log(b []byte, v log.Log, d uint64) ([]byte, error) {
+	if d >= jsoncodec.MaxDepth {
+		return b, jsonDepthErr()
+	}
+	var err error
+	_ = err
+	b = append(b, '{')
+	b = jsoncodec.AppendRaw(b, "\"data\":")
+	b = jsoncodec.AppendString(b, string(v.Data))
+	b = jsoncodec.AppendRaw(b, ",\"client_id\":")
+	b = jsoncodec.AppendQuotedUint(b, uint64(v.ClientID))
+	b = jsoncodec.AppendRaw(b, ",\"request_id\":")
+	b = jsoncodec.AppendQuotedUint(b, uint64(v.RequestID))
+	return append(b, '}'), nil
+}
+
+// jdec_log_Log decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
+// encoding/json does; the first error is kept in *e. It returns the index after the value.
+func jdec_log_Log(b []byte, i uint64, p *log.Log, e *error) uint64 {
+	j, c := jsoncodec.At(b, i)
+	if c == 'n' {
+		return j + 4
+	}
+	if c != '{' {
+		jsonSetErr(e)
+		return jsoncodec.ValueEnd(b, j)
+	}
+	empty, k := jsoncodec.Empty(b, j)
+	if empty {
+		return k
+	}
+	for {
+		key, v := jsoncodec.Member(b, k)
+		k = jdecMember_log_Log(b, v, key, p, e)
+		more, k2 := jsoncodec.Next(b, k)
+		k = k2
+		if !more {
+			return k
+		}
+	}
+}
+
+// jdecMember_log_Log decodes the value of member key at b[i:] into its field of *p (the
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
+func jdecMember_log_Log(b []byte, i uint64, key string, p *log.Log, e *error) uint64 {
+	if key == "data" {
+		var k uint64
+		y, st, k1 := jsoncodec.String(b, i)
+		k = k1
+		if st == jsoncodec.Set {
+			p.Data = string(y)
+		} else if st == jsoncodec.TypeErr {
+			jsonSetErr(e)
+		}
+		return k
+	}
+	if key == "client_id" {
+		var k uint64
+		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
+		k = k1
+		if st == jsoncodec.Set {
+			p.ClientID = uint64(y)
+		} else if st == jsoncodec.TypeErr {
+			jsonSetErr(e)
+		}
+		return k
+	}
+	if key == "request_id" {
+		var k uint64
+		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
+		k = k1
+		if st == jsoncodec.Set {
+			p.RequestID = uint64(y)
+		} else if st == jsoncodec.TypeErr {
+			jsonSetErr(e)
+		}
+		return k
+	}
+	if jsoncodec.FoldEq(key, "data") {
+		var k uint64
+		y, st, k1 := jsoncodec.String(b, i)
+		k = k1
+		if st == jsoncodec.Set {
+			p.Data = string(y)
+		} else if st == jsoncodec.TypeErr {
+			jsonSetErr(e)
+		}
+		return k
+	}
+	if jsoncodec.FoldEq(key, "client_id") {
+		var k uint64
+		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
+		k = k1
+		if st == jsoncodec.Set {
+			p.ClientID = uint64(y)
+		} else if st == jsoncodec.TypeErr {
+			jsonSetErr(e)
+		}
+		return k
+	}
+	if jsoncodec.FoldEq(key, "request_id") {
+		var k uint64
+		y, st, k1 := jsoncodec.QuotedUint(b, i, 18446744073709551615)
+		k = k1
+		if st == jsoncodec.Set {
+			p.RequestID = uint64(y)
+		} else if st == jsoncodec.TypeErr {
+			jsonSetErr(e)
+		}
+		return k
+	}
+	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
+}
+
+// jenc_S_log_Log appends the encoding of a []log.Log inside d arrays and objects, unaddressable.
+func jenc_S_log_Log(b []byte, v []log.Log, d uint64) ([]byte, error) {
+	if v == nil {
+		return jsoncodec.AppendRaw(b, "null"), nil
+	}
+	if d >= jsoncodec.MaxDepth {
+		return b, jsonDepthErr()
+	}
+	var err error
+	_ = err
+	b = append(b, '[')
+	for i, x := range v {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		b, err = jenc_log_Log(b, x, d+1)
+		if err != nil {
+			return b, err
+		}
+	}
+	return append(b, ']'), nil
+}
+
+// jdec_S_log_Log decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
+// encoding/json does; the first error is kept in *e. It returns the index after the value.
+func jdec_S_log_Log(b []byte, i uint64, p *[]log.Log, e *error) uint64 {
+	j, c := jsoncodec.At(b, i)
+	if c == 'n' {
+		*p = nil
+		return j + 4
+	}
+	if c != '[' {
+		jsonSetErr(e)
+		return jsoncodec.ValueEnd(b, j)
+	}
+	empty, k := jsoncodec.Empty(b, j)
+	if empty {
+		*p = make([]log.Log, 0)
+		return k
+	}
+	if *p != nil {
+		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
+	}
+	s := make([]log.Log, 0)
+	for {
+		var x log.Log
+		i := k
+		k = jdec_log_Log(b, i, &x, e)
+		s = append(s, x)
+		more, k2 := jsoncodec.Next(b, k)
+		k = k2
+		if !more {
+			*p = s
+			return k
+		}
+	}
+}
+
+// jenc_RawMessage appends the encoding of a json.RawMessage inside d arrays and objects, unaddressable.
 func jenc_RawMessage(b []byte, v json.RawMessage, d uint64) ([]byte, error) {
 	return jencRaw(b, v, d)
 }

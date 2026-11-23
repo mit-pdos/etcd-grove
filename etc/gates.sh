@@ -253,7 +253,8 @@ fi
 # descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers
 # against protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
 # encoding/json, pbgen's and jsongen's random differential tests and refusals
-# (models/internal/{pbgenrand,jsongenrand}), and pbgen's codec of etcd's messages (examples/models)
+# (models/internal/{pbgenrand,jsongenrand}), and pbgen's and jsongen's codecs of etcd's types
+# (examples/models/{pbetcd,jsonetcd})
 nm=0
 : > "$tmp/nm.log"
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
@@ -268,7 +269,8 @@ done
 # jsongen: every toml with a [json] table (but in old/) is checked (the dump by reflection included);
 # jsongen's random-type differential test and refusals run in models' go test (internal/jsongenrand)
 jsoninputs="models/internal/jsondifftest/json.toml:models/internal/jsondifftest/codec:codec
-models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec"
+models/internal/jsonvsr/json.toml:models/internal/jsonvsr/codec:codec
+examples/models/jsonetcd/json.toml:examples/models/jsonetcd:jsonetcd"
 for x in $jsoninputs; do
   IFS=: read -r t o p <<< "$x"
   python3 models/json/jsongen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1

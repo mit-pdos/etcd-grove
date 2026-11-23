@@ -450,21 +450,27 @@ func jsonDepthErr() error {
 	return &jsoncodec.Error{Msg: "exceeded the maximum nesting depth"}
 }
 
-// jencRaw appends a RawMessage as real encoding/json does: null if nil (its MarshalJSON),
-// else an error if it is not one valid JSON value or nests too deep inside d arrays and
-// objects, else the value compacted (jsoncodec.AppendCompact).
+// jencValue appends a MarshalJSON method's output x as real encoding/json does: an error if
+// it is not one valid JSON value (nil and empty among them) or nests too deep inside d arrays
+// and objects, else the value compacted (jsoncodec.AppendCompact).
+func jencValue(b []byte, x []byte, d uint64) ([]byte, error) {
+	if !jsoncodec.Valid(x) {
+		return b, &jsoncodec.Error{Msg: "a MarshalJSON output that is not one valid JSON value"}
+	}
+	if d+jsoncodec.Nesting(x) > jsoncodec.MaxDepth {
+		return b, jsonDepthErr()
+	}
+	b2, _ := jsoncodec.AppendCompact(b, x)
+	return b2, nil
+}
+
+// jencRaw appends a RawMessage as real encoding/json does (its MarshalJSON: null if nil,
+// else the value, through jencValue).
 func jencRaw(b []byte, v json.RawMessage, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
-	if !jsoncodec.Valid(v) {
-		return b, &jsoncodec.Error{Msg: "a RawMessage that is not one valid JSON value"}
-	}
-	if d+jsoncodec.Nesting(v) > jsoncodec.MaxDepth {
-		return b, jsonDepthErr()
-	}
-	b2, _ := jsoncodec.AppendCompact(b, v)
-	return b2, nil
+	return jencValue(b, v, d)
 }
 
 // jdecRaw decodes the value at b[i:] into a RawMessage: a copy of its bytes, without the
@@ -476,7 +482,7 @@ func jdecRaw(b []byte, i uint64, p *json.RawMessage) uint64 {
 	return k
 }
 
-// jenc_uint8 appends the encoding of a uint8 inside d arrays and objects.
+// jenc_uint8 appends the encoding of a uint8 inside d arrays and objects, unaddressable.
 func jenc_uint8(b []byte, v uint8, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -496,7 +502,7 @@ func jdec_uint8(b []byte, i uint64, p *uint8, e *error) uint64 {
 	return k
 }
 
-// jenc_RawMessage appends the encoding of a json.RawMessage inside d arrays and objects.
+// jenc_RawMessage appends the encoding of a json.RawMessage inside d arrays and objects, unaddressable.
 func jenc_RawMessage(b []byte, v json.RawMessage, d uint64) ([]byte, error) {
 	return jencRaw(b, v, d)
 }
@@ -507,7 +513,7 @@ func jdec_RawMessage(b []byte, i uint64, p *json.RawMessage, e *error) uint64 {
 	return jdecRaw(b, i, p)
 }
 
-// jenc_p_jsondifftest_Msg appends the encoding of a p_jsondifftest.Msg inside d arrays and objects.
+// jenc_p_jsondifftest_Msg appends the encoding of a p_jsondifftest.Msg inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Msg(b []byte, v p_jsondifftest.Msg, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -552,8 +558,9 @@ func jdec_p_jsondifftest_Msg(b []byte, i uint64, p *p_jsondifftest.Msg, e *error
 }
 
 // jdecMember_p_jsondifftest_Msg decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_p_jsondifftest_Msg(b []byte, i uint64, key string, p *p_jsondifftest.Msg, e *error) uint64 {
 	if key == "@type" {
 		var k uint64
@@ -590,7 +597,7 @@ func jdecMember_p_jsondifftest_Msg(b []byte, i uint64, key string, p *p_jsondiff
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_uint64 appends the encoding of a uint64 inside d arrays and objects.
+// jenc_uint64 appends the encoding of a uint64 inside d arrays and objects, unaddressable.
 func jenc_uint64(b []byte, v uint64, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -610,7 +617,7 @@ func jdec_uint64(b []byte, i uint64, p *uint64, e *error) uint64 {
 	return k
 }
 
-// jenc_string appends the encoding of a string inside d arrays and objects.
+// jenc_string appends the encoding of a string inside d arrays and objects, unaddressable.
 func jenc_string(b []byte, v string, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendString(b, string(v))
 	return b, nil
@@ -630,7 +637,7 @@ func jdec_string(b []byte, i uint64, p *string, e *error) uint64 {
 	return k
 }
 
-// jenc_bool appends the encoding of a bool inside d arrays and objects.
+// jenc_bool appends the encoding of a bool inside d arrays and objects, unaddressable.
 func jenc_bool(b []byte, v bool, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendBool(b, bool(v))
 	return b, nil
@@ -650,7 +657,7 @@ func jdec_bool(b []byte, i uint64, p *bool, e *error) uint64 {
 	return k
 }
 
-// jenc_uint32 appends the encoding of a uint32 inside d arrays and objects.
+// jenc_uint32 appends the encoding of a uint32 inside d arrays and objects, unaddressable.
 func jenc_uint32(b []byte, v uint32, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -670,7 +677,7 @@ func jdec_uint32(b []byte, i uint64, p *uint32, e *error) uint64 {
 	return k
 }
 
-// jenc_p_jsondifftest_Item appends the encoding of a p_jsondifftest.Item inside d arrays and objects.
+// jenc_p_jsondifftest_Item appends the encoding of a p_jsondifftest.Item inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Item(b []byte, v p_jsondifftest.Item, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -710,8 +717,9 @@ func jdec_p_jsondifftest_Item(b []byte, i uint64, p *p_jsondifftest.Item, e *err
 }
 
 // jdecMember_p_jsondifftest_Item decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_p_jsondifftest_Item(b []byte, i uint64, key string, p *p_jsondifftest.Item, e *error) uint64 {
 	if key == "d" {
 		var k uint64
@@ -738,7 +746,7 @@ func jdecMember_p_jsondifftest_Item(b []byte, i uint64, key string, p *p_jsondif
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_S_p_jsondifftest_Item appends the encoding of a []p_jsondifftest.Item inside d arrays and objects.
+// jenc_S_p_jsondifftest_Item appends the encoding of a []p_jsondifftest.Item inside d arrays and objects, unaddressable.
 func jenc_S_p_jsondifftest_Item(b []byte, v []p_jsondifftest.Item, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
@@ -796,7 +804,7 @@ func jdec_S_p_jsondifftest_Item(b []byte, i uint64, p *[]p_jsondifftest.Item, e 
 	}
 }
 
-// jenc_p_jsondifftest_Body appends the encoding of a p_jsondifftest.Body inside d arrays and objects.
+// jenc_p_jsondifftest_Body appends the encoding of a p_jsondifftest.Body inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Body(b []byte, v p_jsondifftest.Body, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -847,8 +855,9 @@ func jdec_p_jsondifftest_Body(b []byte, i uint64, p *p_jsondifftest.Body, e *err
 }
 
 // jdecMember_p_jsondifftest_Body decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_p_jsondifftest_Body(b []byte, i uint64, key string, p *p_jsondifftest.Body, e *error) uint64 {
 	if key == "n" {
 		var k uint64
@@ -951,7 +960,7 @@ func jdecMember_p_jsondifftest_Body(b []byte, i uint64, key string, p *p_jsondif
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_p_jsondifftest_Kind appends the encoding of a p_jsondifftest.Kind inside d arrays and objects.
+// jenc_p_jsondifftest_Kind appends the encoding of a p_jsondifftest.Kind inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Kind(b []byte, v p_jsondifftest.Kind, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -971,7 +980,7 @@ func jdec_p_jsondifftest_Kind(b []byte, i uint64, p *p_jsondifftest.Kind, e *err
 	return k
 }
 
-// jenc_p_jsondifftest_Event appends the encoding of a p_jsondifftest.Event inside d arrays and objects.
+// jenc_p_jsondifftest_Event appends the encoding of a p_jsondifftest.Event inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Event(b []byte, v p_jsondifftest.Event, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1018,8 +1027,9 @@ func jdec_p_jsondifftest_Event(b []byte, i uint64, p *p_jsondifftest.Event, e *e
 }
 
 // jdecMember_p_jsondifftest_Event decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_p_jsondifftest_Event(b []byte, i uint64, key string, p *p_jsondifftest.Event, e *error) uint64 {
 	if key == "@kind" {
 		var k uint64
@@ -1074,7 +1084,7 @@ func jdecMember_p_jsondifftest_Event(b []byte, i uint64, key string, p *p_jsondi
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
 
-// jenc_int appends the encoding of a int inside d arrays and objects.
+// jenc_int appends the encoding of a int inside d arrays and objects, unaddressable.
 func jenc_int(b []byte, v int, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendInt(b, int64(v))
 	return b, nil
@@ -1094,7 +1104,7 @@ func jdec_int(b []byte, i uint64, p *int, e *error) uint64 {
 	return k
 }
 
-// jenc_int8 appends the encoding of a int8 inside d arrays and objects.
+// jenc_int8 appends the encoding of a int8 inside d arrays and objects, unaddressable.
 func jenc_int8(b []byte, v int8, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendInt(b, int64(v))
 	return b, nil
@@ -1114,7 +1124,7 @@ func jdec_int8(b []byte, i uint64, p *int8, e *error) uint64 {
 	return k
 }
 
-// jenc_int16 appends the encoding of a int16 inside d arrays and objects.
+// jenc_int16 appends the encoding of a int16 inside d arrays and objects, unaddressable.
 func jenc_int16(b []byte, v int16, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendInt(b, int64(v))
 	return b, nil
@@ -1134,7 +1144,7 @@ func jdec_int16(b []byte, i uint64, p *int16, e *error) uint64 {
 	return k
 }
 
-// jenc_int32 appends the encoding of a int32 inside d arrays and objects.
+// jenc_int32 appends the encoding of a int32 inside d arrays and objects, unaddressable.
 func jenc_int32(b []byte, v int32, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendInt(b, int64(v))
 	return b, nil
@@ -1154,7 +1164,7 @@ func jdec_int32(b []byte, i uint64, p *int32, e *error) uint64 {
 	return k
 }
 
-// jenc_int64 appends the encoding of a int64 inside d arrays and objects.
+// jenc_int64 appends the encoding of a int64 inside d arrays and objects, unaddressable.
 func jenc_int64(b []byte, v int64, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendInt(b, int64(v))
 	return b, nil
@@ -1174,7 +1184,7 @@ func jdec_int64(b []byte, i uint64, p *int64, e *error) uint64 {
 	return k
 }
 
-// jenc_uint appends the encoding of a uint inside d arrays and objects.
+// jenc_uint appends the encoding of a uint inside d arrays and objects, unaddressable.
 func jenc_uint(b []byte, v uint, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -1194,7 +1204,7 @@ func jdec_uint(b []byte, i uint64, p *uint, e *error) uint64 {
 	return k
 }
 
-// jenc_uint16 appends the encoding of a uint16 inside d arrays and objects.
+// jenc_uint16 appends the encoding of a uint16 inside d arrays and objects, unaddressable.
 func jenc_uint16(b []byte, v uint16, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendUint(b, uint64(v))
 	return b, nil
@@ -1214,7 +1224,7 @@ func jdec_uint16(b []byte, i uint64, p *uint16, e *error) uint64 {
 	return k
 }
 
-// jenc_p_jsondifftest_Name appends the encoding of a p_jsondifftest.Name inside d arrays and objects.
+// jenc_p_jsondifftest_Name appends the encoding of a p_jsondifftest.Name inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Name(b []byte, v p_jsondifftest.Name, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendString(b, string(v))
 	return b, nil
@@ -1234,7 +1244,7 @@ func jdec_p_jsondifftest_Name(b []byte, i uint64, p *p_jsondifftest.Name, e *err
 	return k
 }
 
-// jenc_p_jsondifftest_Flag appends the encoding of a p_jsondifftest.Flag inside d arrays and objects.
+// jenc_p_jsondifftest_Flag appends the encoding of a p_jsondifftest.Flag inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Flag(b []byte, v p_jsondifftest.Flag, d uint64) ([]byte, error) {
 	b = jsoncodec.AppendBool(b, bool(v))
 	return b, nil
@@ -1254,7 +1264,7 @@ func jdec_p_jsondifftest_Flag(b []byte, i uint64, p *p_jsondifftest.Flag, e *err
 	return k
 }
 
-// jenc_p_jsondifftest_Tree appends the encoding of a p_jsondifftest.Tree inside d arrays and objects.
+// jenc_p_jsondifftest_Tree appends the encoding of a p_jsondifftest.Tree inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_Tree(b []byte, v p_jsondifftest.Tree, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
@@ -1312,7 +1322,7 @@ func jdec_p_jsondifftest_Tree(b []byte, i uint64, p *p_jsondifftest.Tree, e *err
 	}
 }
 
-// jenc_p_jsondifftest_All appends the encoding of a p_jsondifftest.All inside d arrays and objects.
+// jenc_p_jsondifftest_All appends the encoding of a p_jsondifftest.All inside d arrays and objects, unaddressable.
 func jenc_p_jsondifftest_All(b []byte, v p_jsondifftest.All, d uint64) ([]byte, error) {
 	if d >= jsoncodec.MaxDepth {
 		return b, jsonDepthErr()
@@ -1473,8 +1483,9 @@ func jdec_p_jsondifftest_All(b []byte, i uint64, p *p_jsondifftest.All, e *error
 }
 
 // jdecMember_p_jsondifftest_All decodes the value of member key at b[i:] into its field of *p (the
-// field of that JSON name, else the one whose name equals it ignoring ASCII case; else
-// the value is skipped), as real encoding/json does; it returns the index after the value.
+// field of that JSON name, else the first, breadth-first, whose name equals it ignoring
+// case; else the value is skipped), as real encoding/json does, allocating the nil
+// embedded pointers on the field's path first; it returns the index after the value.
 func jdecMember_p_jsondifftest_All(b []byte, i uint64, key string, p *p_jsondifftest.All, e *error) uint64 {
 	if key == "I" {
 		var k uint64

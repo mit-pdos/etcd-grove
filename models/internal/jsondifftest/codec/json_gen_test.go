@@ -197,19 +197,58 @@ func jtRnd(r *rand.Rand, t reflect.Type, depth int) reflect.Value {
 		}
 		v.Set(s)
 	case reflect.Struct:
-		for i := 0; i < t.NumField(); i++ {
-			f := t.Field(i)
-			if !f.IsExported() || r.Intn(5) == 0 {
-				continue
-			}
-			v.Field(i).Set(jtRnd(r, f.Type, depth+1))
+		jtFill(r, v, depth)
+	case reflect.Pointer:
+		if depth > 3 || r.Intn(3) == 0 {
+			return v
 		}
+		p := reflect.New(t.Elem())
+		p.Elem().Set(jtRnd(r, t.Elem(), depth+1))
+		v.Set(p)
 	case reflect.Interface:
 		if x := jtAny(r, depth); x.IsValid() {
 			v.Set(x)
 		}
 	}
 	return v
+}
+
+// jtFill sets the exported fields of the struct v (each or left zero), also those promoted
+// through an unexported embedded struct (settable through it, as encoding/json sets them).
+func jtFill(r *rand.Rand, v reflect.Value, depth int) {
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		if f.Anonymous && !f.IsExported() {
+			if f.Type.Kind() == reflect.Struct {
+				jtFill(r, v.Field(i), depth+1)
+			}
+			continue
+		}
+		if !f.IsExported() || r.Intn(5) == 0 {
+			continue
+		}
+		v.Field(i).Set(jtRnd(r, f.Type, depth+1))
+	}
+}
+
+// jtCallLog, jtCallReset: set (by another test file of the package, e.g. jsongenrand's) when the
+// program's types log the calls of their JSON methods; the tests then also compare the calls
+// the real encoding/json makes with the codec's.
+var (
+	jtCallLog   func() []string
+	jtCallReset func()
+)
+
+func jtCalls(f func()) (log []string, p any) {
+	if jtCallReset != nil {
+		jtCallReset()
+	}
+	p = jtCall(f)
+	if jtCallLog != nil {
+		log = append([]string{}, jtCallLog()...)
+	}
+	return log, p
 }
 
 // jtCall runs f; a panic is returned (nil if none).
@@ -220,12 +259,12 @@ func jtCall(f func()) (p any) {
 }
 
 type jtStats struct {
-	encEqual, encErr, encPanic, decEqual, decErr, decPanic, decSyntax int
+	encEqual, encErr, encPanic, decEqual, decErr, decPanic, decSyntax, calls int
 }
 
 func (s *jtStats) log(t *testing.T) {
-	t.Logf("JSONGEN-STATS types=%d enc_equal=%d enc_err=%d enc_panic=%d dec_equal=%d dec_err=%d dec_syntax=%d dec_panic=%d",
-		len(jtTypes), s.encEqual, s.encErr, s.encPanic, s.decEqual, s.decErr, s.decSyntax, s.decPanic)
+	t.Logf("JSONGEN-STATS types=%d enc_equal=%d enc_err=%d enc_panic=%d dec_equal=%d dec_err=%d dec_syntax=%d dec_panic=%d calls=%d",
+		len(jtTypes), s.encEqual, s.encErr, s.encPanic, s.decEqual, s.decErr, s.decSyntax, s.decPanic, s.calls)
 }
 
 // jtEscaped: b has an escape sequence, a DEL or a non-ASCII byte (a string the codec does not write).
@@ -240,10 +279,11 @@ func jtEscaped(b []byte) bool {
 
 func jtCheckEncode(t *testing.T, st *jtStats, v any) {
 	t.Helper()
-	want, werr := json.Marshal(v)
-	var got []byte
-	var gerr error
-	if p := jtCall(func() { got, gerr = jsonMarshal(v) }); p != nil {
+	var want, got []byte
+	var werr, gerr error
+	wlog, _ := jtCalls(func() { want, werr = json.Marshal(v) })
+	glog, p := jtCalls(func() { got, gerr = jsonMarshal(v) })
+	if p != nil {
 		if _, ok := p.(jsoncodec.NotModelled); !ok {
 			t.Fatalf("Marshal(%#v): the codec panicked: %v", v, p)
 		}
@@ -256,6 +296,10 @@ func jtCheckEncode(t *testing.T, st *jtStats, v any) {
 	if (werr != nil) != (gerr != nil) || string(got) != string(want) {
 		t.Fatalf("Marshal(%#v):\n real  %s %v\n codec %s %v", v, want, werr, got, gerr)
 	}
+	if !reflect.DeepEqual(wlog, glog) {
+		t.Fatalf("Marshal(%#v): the methods called differ:\n real  %q\n codec %q", v, wlog, glog)
+	}
+	st.calls += len(wlog)
 	if werr != nil {
 		st.encErr++
 	} else {
@@ -344,12 +388,16 @@ func jtMutate(r *rand.Rand, b []byte, samples [][]byte) []byte {
 
 func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any) {
 	t.Helper()
-	werr := json.Unmarshal(data, a)
+	var werr error
+	wlog, _ := jtCalls(func() { werr = json.Unmarshal(data, a) })
 	if !jsoncodec.Valid(data) {
 		if werr == nil {
 			t.Fatalf("Unmarshal(%q) into %s: real accepts what the scanner rejects", data, name)
 		}
-		// the model's Unmarshal: a syntax error, nothing decoded
+		// the model's Unmarshal: a syntax error, nothing decoded, no method called
+		if len(wlog) != 0 {
+			t.Fatalf("Unmarshal(%q) into %s: the real one called methods on a syntax error: %q", data, name, wlog)
+		}
 		if !reflect.DeepEqual(a, b) {
 			t.Fatalf("Unmarshal(%q) into %s: the real one decoded on a syntax error:\n %#v", data, name, a)
 		}
@@ -357,7 +405,8 @@ func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any
 		return
 	}
 	var gerr error
-	if p := jtCall(func() { gerr = jsonUnmarshal(data, b) }); p != nil {
+	glog, p := jtCalls(func() { gerr = jsonUnmarshal(data, b) })
+	if p != nil {
 		if _, ok := p.(jsoncodec.NotModelled); !ok {
 			t.Fatalf("Unmarshal(%q) into %s: the codec panicked: %v", data, name, p)
 		}
@@ -367,6 +416,10 @@ func jtCheckDecode(t *testing.T, st *jtStats, name string, data []byte, a, b any
 	if (werr != nil) != (gerr != nil) || !reflect.DeepEqual(a, b) {
 		t.Fatalf("Unmarshal(%q) into %s:\n real  %#v %v\n codec %#v %v", data, name, a, werr, b, gerr)
 	}
+	if !reflect.DeepEqual(wlog, glog) {
+		t.Fatalf("Unmarshal(%q) into %s: the methods called differ:\n real  %q\n codec %q", data, name, wlog, glog)
+	}
+	st.calls += len(wlog)
 	if werr != nil {
 		st.decErr++
 	} else {
