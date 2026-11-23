@@ -545,32 +545,6 @@ func step(s State, in In, o Out) (bool, State) {
 	return false, s
 }
 
-// sameList reports whether a and b are the same list.
-func sameList(a []string, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-// equal reports whether a and b are the same state (as values).
-func equal(a State, b State) bool {
-	if !sameList(a.Cur, b.Cur) || len(a.Pend) != len(b.Pend) {
-		return false
-	}
-	for i := 0; i < len(a.Pend); i++ {
-		if !sameList(a.Pend[i], b.Pend[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 // initState is the map with no key set and nothing pending.
 func initState() State {
 	return State{Cur: make([]string, NKeys), Pend: make([][]string, NKeys)}
@@ -585,7 +559,11 @@ func Model() porcupine.Model {
 			ok, s := step(state.(State), input.(In), output.(Out))
 			return ok, s
 		},
-		Equal: func(a, b any) bool { return equal(a.(State), b.(State)) },
+		// Equal is always false: two histories can reach the same State whose sets of
+		// configurations differ (put a unknown then put b, or the other order: only the first
+		// allows a having taken effect before b), so a State does not determine the set porcupine's
+		// Equal must compare (dsv-epaxos's finding); false is sound and only costs caching.
+		Equal: func(a, b any) bool { return false },
 	}
 }
 

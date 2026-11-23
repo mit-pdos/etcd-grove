@@ -197,12 +197,6 @@ noncomputable def setPend [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def step [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.step"
 
-noncomputable def sameList [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.sameList"
-
-noncomputable def equal [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.equal"
-
 noncomputable def initState [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/imdea-software/swiftpaxos/examples/swiftnet.initState"
 
@@ -1970,115 +1964,9 @@ noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")) (App (Val (GoInstruction (GoLoad State.ty))) (Var "$res1")))))))))
 
-/-- sameList reports whether a and b are the same list.
-
-    go: kit.go:549:6 -/
-noncomputable def sameList.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "a"
-  (Lam "b"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "a"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "a"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "a")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "b")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "a"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "b"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-
-/-- equal reports whether a and b are the same state (as values).
-
-    go: kit.go:562:6 -/
-noncomputable def equal.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "a"
-  (Lam "b"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Seq (App (Val exceptionDo)
-  (Let "b" (App (Val (GoInstruction (GoAlloc State.ty))) (Var "b"))
-  (Let "a" (App (Val (GoInstruction (GoAlloc State.ty))) (Var "a"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$r0" (Val #(W64 0))
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.string))]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
-  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.string))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "a"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.SliceType go.string))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "b"))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
-  (App (App (App (Val (GoInstruction (FuncResolve sameList []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (Lam BAnon
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
-  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Cur"))) (Var "a")))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Cur"))) (Var "b")))
-  (App (App (App (Val (GoInstruction (FuncResolve sameList []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "a")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.string))]))) (Val #())) (Var "$a0"))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType go.string))))) (App (Val (GoInstruction (StructFieldRef State.ty go!"Pend"))) (Var "b")))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.SliceType go.string))]))) (Val #())) (Var "$a0")))))))
-  (Let "$r0" (Val #false)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))))
-  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-
 /-- initState is the map with no key set and nothing pending.
 
-    go: kit.go:575:6 -/
+    go: kit.go:549:6 -/
 noncomputable def initState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc State.ty))) (App (Val (GoInstruction (GoZeroVal State.ty))) (Val #())))
@@ -2096,7 +1984,7 @@ noncomputable def initState.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Model is the key-value map with pending puts (linkv's pending-writes store), as a porcupine
     model. Inputs are Ins, outputs Outs.
 
-    go: kit.go:581:6 -/
+    go: kit.go:555:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -2153,9 +2041,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.any))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc go.any))) (Var "a"))
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (TypeAssert State.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "a")))
-  (Let "$a1" (App (Val (GoInstruction (TypeAssert State.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "b")))
-  (App (App (App (Val (GoInstruction (FuncResolve equal []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -2173,7 +2059,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Codec is the map's codec: an input as a byte (1: a put), the key's byte and the value's bytes;
     an output as a byte (1: unknown) and the value's bytes. A get is a read.
 
-    go: kit.go:594:6 -/
+    go: kit.go:572:6 -/
 noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (Val #())))
@@ -2357,7 +2243,7 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- callTime is CallMs as a duration.
 
-    go: kit.go:632:6 -/
+    go: kit.go:610:6 -/
 noncomputable def callTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -2374,7 +2260,7 @@ noncomputable def callTime.impl [GooseExts] [GoGlobalContext] : val :=
     master, the replicas and the client nodes to start, then panics unless porcupine accepts the
     history of the clients' operations.
 
-    go: kit.go:639:6 -/
+    go: kit.go:617:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -2386,7 +2272,7 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- orch is Orch in the deployment at addrs with client request addresses caddrs.
 
-    go: kit.go:644:6 -/
+    go: kit.go:622:6 -/
 noncomputable def orch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "caddrs"
@@ -2416,7 +2302,7 @@ noncomputable def orch.impl [GooseExts] [GoGlobalContext] : val :=
     as its contract says, and client c's node waits for the configuration and starts its leader
     changes once), served at its address in ClientAddrs. It never returns.
 
-    go: kit.go:654:6 -/
+    go: kit.go:632:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -2430,7 +2316,7 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- clientNode is Client in the deployment at addrs, serving at caddr.
 
-    go: kit.go:659:6 -/
+    go: kit.go:637:6 -/
 noncomputable def clientNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "caddr"
@@ -2496,7 +2382,7 @@ noncomputable def clientNode.impl [GooseExts] [GoGlobalContext] : val :=
     built here instead of read from files), once the orchestrator has sent the configuration. It
     never returns.
 
-    go: kit.go:674:6 -/
+    go: kit.go:652:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)
@@ -2511,7 +2397,7 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
     file with no proxies and no leader, fast reads as conf says and the deployment's addresses being
     the kit's (no quorum, latency or log file: defs.LatencyConf stays "").
 
-    go: kit.go:681:6 -/
+    go: kit.go:659:6 -/
 noncomputable def nodeConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "port"
@@ -2544,7 +2430,7 @@ noncomputable def nodeConfig.impl [GooseExts] [GoGlobalContext] : val :=
     which fails forever once its connection broke) and waits RetryMs between calls (runReplica
     4 ns).
 
-    go: kit.go:699:6 -/
+    go: kit.go:677:6 -/
 noncomputable def register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ip"
   (Lam "port"
@@ -2637,7 +2523,7 @@ noncomputable def register.impl [GooseExts] [GoGlobalContext] : val :=
     dlog.Logger (dlog.New(path, false) less the log file it never writes): no output, and its Fatal
     does not exit.
 
-    go: kit.go:726:6 -/
+    go: kit.go:704:6 -/
 noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"
@@ -7147,8 +7033,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   setCur_unfold : FuncUnfold setCur [] setCur.impl
   setPend_unfold : FuncUnfold setPend [] setPend.impl
   step_unfold : FuncUnfold step [] step.impl
-  sameList_unfold : FuncUnfold sameList [] sameList.impl
-  equal_unfold : FuncUnfold equal [] equal.impl
   initState_unfold : FuncUnfold initState [] initState.impl
   Model_unfold : FuncUnfold Model [] Model.impl
   Codec_unfold : FuncUnfold Codec [] Codec.impl
@@ -7279,8 +7163,6 @@ attribute [instance] Assumptions.Conf_instance
   Assumptions.setCur_unfold
   Assumptions.setPend_unfold
   Assumptions.step_unfold
-  Assumptions.sameList_unfold
-  Assumptions.equal_unfold
   Assumptions.initState_unfold
   Assumptions.Model_unfold
   Assumptions.Codec_unfold
