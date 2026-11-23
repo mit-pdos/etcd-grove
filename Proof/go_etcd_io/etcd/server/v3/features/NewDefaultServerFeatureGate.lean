@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGat
 public import Spec.go_etcd_io.etcd.pkg.v3.featuregate.New
 public import Spec.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Add
 public import Spec.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Enabled
+public import Spec.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__GetAll
 public import Perennial.Proof.fmt.Results
 
 @[expose] public section
@@ -42,6 +43,17 @@ theorem serverFeatures_registered [GooseExts] (f : GoString) (hf : f ∈ serverF
   rcases hf with h|h|h|h|h|h|h|h|h|h <;> subst h <;>
     simp (config := { decide := true }) [serverFeatureSpecs, GMap.lookup_insert_eq_iff]
 
+/-- The gate's features (the server's and featuregate's own) make valid metric labels: ASCII names
+and `PreRelease`s. -/
+theorem serverGate_featureLabelsOk [GooseExts] :
+    featureLabelsOk (serverFeatureSpecs ∪ featuregate.defaultKnown) := by
+  apply featureLabelsOk_union
+  all_goals
+    try unfold serverFeatureSpecs
+    try unfold featuregate.defaultKnown
+    repeat (apply featureLabelsOk_insert _ _ _ (by decide) (by dsimp only; decide))
+    exact featureLabelsOk_empty
+
 /-- `CompactHashCheck` and `LeaseCheckpoint` are off by default, and nothing sets them. -/
 theorem gateValue_CompactHashCheck [GooseExts] :
     featuregate.gateValue (serverFeatureSpecs ∪ featuregate.defaultKnown) ∅ go!"CompactHashCheck" =
@@ -65,7 +77,8 @@ variable [package_sem : features.Assumptions]
 theorem features.NewDefaultServerFeatureGate.wp_proof
     (wp_New : featuregate.New.spec (GF := GF) (hG := hG))
     (wp_Add : featuregate.featureGate.Add.spec (GF := GF) (hG := hG))
-    (wp_Enabled : featuregate.featureGate.Enabled.spec (GF := GF) (hG := hG)) :
+    (wp_Enabled : featuregate.featureGate.Enabled.spec (GF := GF) (hG := hG))
+    (wp_GetAll : featuregate.featureGate.GetAll.spec (GF := GF) (hG := hG)) :
     features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) := by
   intro name lg
   wp_start as #Hpkg
@@ -95,18 +108,28 @@ theorem features.NewDefaultServerFeatureGate.wp_proof
   · ipureintro; exact Hpnn
   isplitl []
   · unfold isFeatureGate
-    iexists _
+    iexists _, (serverFeatureSpecs ∪ featuregate.defaultKnown)
     isplitr
     · ipureintro; rfl
-    iintro %f
-    imodintro
-    iintro %Φ' %hf
-    imodintro
-    iintro HΦ'
-    wp_apply (wp_Enabled p _ ∅ f (Or.inr (serverFeatures_registered f hf)))
-    · iexact Hgate
-    iapply HΦ'
-    itrivial
+    isplitr
+    · ipureintro; exact ⟨serverFeatures_registered, serverGate_featureLabelsOk⟩
+    isplitr
+    · iintro %f
+      imodintro
+      iintro %Φ' %hf
+      imodintro
+      iintro HΦ'
+      wp_apply (wp_Enabled p _ ∅ f (Or.inr hf))
+      · iexact Hgate
+      iapply HΦ'
+      itrivial
+    · iintro !> %Φ'
+      imodintro
+      iintro - HΦ'
+      wp_apply (wp_GetAll p _ ∅) as %m Hm
+      · iexact Hgate
+      iapply HΦ'
+      iexact Hm
   isplitl []
   · unfold featureIs
     iexists _
