@@ -255,5 +255,32 @@ def confAddrs : List GoString :=
    go!"127.0.0.1:7525", go!"127.0.0.1:7530", go!"127.0.0.1:7531", go!"127.0.0.1:7532",
    go!"127.0.0.1:7533", go!"127.0.0.1:7534", go!"127.0.0.1:7535"]
 
+/-! ## The kit's specs (KitProof.lean proves them) -/
+
+section kitspecs
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : github_com.despreston.go_craq.examples.craqnet.Assumptions]
+
+local notation "kpkg" => pkg_id.github_com.despreston.go_craq.examples.craqnet
+
+/-- `Codec()`: the store's codec, for the store over the protocol's names `γ`. -/
+abbrev Codec.spec : Prop :=
+  ∀ γ : CraqNames,
+  {{ isPkgInit (PROP := IProp GF) kpkg }}
+    (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Codec)) (Val #()))
+  {{ (cd : github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec), RET #cd;
+      github_com.mit_pdos.etcd_grove.examples.lib.remote.codecOk
+        (kvR (Gg := hG.goose_globalGS) γ) cd }}
+
+/-- `Gen`: a client's next input, a boxed bounded put or get. -/
+abbrev Gen.spec : Prop :=
+  ⊢ EtcdGrove.lintest.genSpec (GF := GF)
+      (functions github_com.despreston.go_craq.examples.craqnet.Gen [])
+      (fun i => iprop(∃ x : KIn, ⌜i = ivK x⌝))
+
+end kitspecs
+
 end github_com.despreston.go_craq.examples.craqnet
 end Perennial
