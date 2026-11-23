@@ -164,6 +164,40 @@ macro "odafter " c:ident : tactic => do
     simp only [Bool.false_eq_true, ite_false] at Ho
     try wp_auto))
 
+set_option hygiene false in
+/-- A section `if … { … return nil, false … }` of the Lean's continuation `K`: join after it (the
+Go returned, and the Lean's result is `none`; or it fell through, and the Lean continues with `K`). -/
+macro "odjoin " K:term:max : tactic => do
+  let r0p := Lean.mkIdent (Lean.Name.mkSimple "$res0_ptr")
+  let r1p := Lean.mkIdent (Lean.Name.mkSimple "$res1_ptr")
+  let r0 := Lean.mkIdent (Lean.Name.mkSimple "$res0")
+  let r1 := Lean.mkIdent (Lean.Name.mkSimple "$res1")
+  `(tactic| (wp_join (Q := fun v => iprop(
+    ⌜(o = none ∧ v = returnVal #()) ∨ ($K = .ok o ∧ v = executeVal)⌝ ∗
+      $r0p ↦ zero_val Loc ∗ $r1p ↦ zero_val Bool)) at next with [$r0 $r1]))
+
+macro "odjskip " h:term:max : tactic => `(tactic| (
+  try wp_auto
+  iframe
+  ipureintro
+  exact Or.inr ⟨$h, rfl⟩))
+macro "odjret " h:term:max : tactic => `(tactic| (
+  try wp_auto
+  iframe
+  ipureintro
+  exact Or.inl ⟨$h, rfl⟩))
+
+set_option hygiene false in
+macro "odjafter" : tactic => do
+  let r0 := Lean.mkIdent (Lean.Name.mkSimple "$res0")
+  let r1 := Lean.mkIdent (Lean.Name.mkSimple "$res1")
+  `(tactic| (
+    iintro ⟨%Hv, $r0:ident, $r1:ident⟩
+    clear Ho
+    rcases Hv with ⟨rfl, rfl⟩ | ⟨Ho, rfl⟩
+    · odret
+    try wp_auto))
+
 set_option maxHeartbeats 0 in
 theorem State.OnDisk.wp_proof
     (wp_w : onDisk.w.spec (GF := GF) (hG := hG))
@@ -457,6 +491,151 @@ theorem State.OnDisk.wp_proof
     · rw [decide_eq_false hvm]
       odretc (by simpa using hvm)
   odafter c
+  -- g2: `if x.adopt() { … }`
+  clear hc hel helt helf
+  unfold g2 at Ho
+  dsimp only at Ho
+  rw [hXs, hXn] at Ho
+  obtain ⟨ad, had, Ho⟩ := bind_ok Ho
+  generalize hK : g3 X (g4 X (g5 X (g6 X (succ X)))) = K at Ho
+  odjoin K
+  · odm adopt
+    wp_apply wp_adopt _ X ad $$ [Hx]
+    · iframe Hx; ipureintro; exact had
+    cases ad
+    · simp only [Bool.false_eq_true, ite_false] at Ho
+      odjskip Ho
+    simp only [ite_true] at Ho
+    obtain ⟨c1, hc1, Ho⟩ := bind_ok Ho
+    obtain ⟨hm, hhm, hmt, hmf⟩ := andM_ok hc1
+    simp only [pure_ok, Except.ok.injEq] at hhm
+    try wp_auto
+    odm hasM
+    wp_apply wp_hasM _ X $$ [Hx]
+    · iexact Hx
+    rw [hhm]
+    cases hm
+    · rw [hmf rfl] at Ho
+      simp only [Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+      odjret (by subst Ho; rfl)
+    have h1 := hmt rfl
+    obtain ⟨m, hm, h1⟩ := bind_ok h1
+    obtain ⟨mt, hmt', h1⟩ := bind_ok h1
+    obtain ⟨t1', ht1', h1⟩ := bind_ok h1
+    rw [ht1] at ht1'; cases ht1'
+    simp only [pure_ok, Except.ok.injEq] at h1
+    subst h1
+    try wp_auto
+    odm m
+    wp_apply wp_m _ X m $$ [Hx] as %gm #Hm
+    · iframe Hx; ipureintro; exact hm
+    try wp_auto
+    wp_apply wp_Msg_term gm m mt $$ [Hm] as %ut %Hut
+    · iframe Hm; ipureintro; exact hmt'
+    try wp_auto
+    odm T1
+    wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+    · iframe Hx; ipureintro; exact ht1
+    try wp_auto
+    rw [decide_w64_eq, Hut, Hu1]
+    by_cases hmt1 : mt = t1
+    case neg =>
+      rw [decide_eq_false hmt1]
+      simp only [show (mt == t1) = false by simpa using hmt1, Bool.not_false, ite_true, pure_ok,
+        Except.ok.injEq] at Ho
+      odjret (by subst Ho; rfl)
+    rw [decide_eq_true hmt1]
+    simp only [hmt1, beq_self_eq_true, Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    obtain ⟨t1', ht1', Ho⟩ := bind_ok Ho
+    rw [ht1] at ht1'; cases ht1'
+    try wp_auto
+    -- `for j := range s.Cfg.Server { if j != n && s.CurrentTerm[j] >= x.T1() { found = true; break } }`
+    ihave #Hsrv2 := Hsrv
+    iunfold strsRO at Hsrv2
+    ihave %Hsl := ownSlice_len $$ Hsrv2
+    ihave IH : iprop(∃ (i jv : w64),
+        "i" ∷ i_ptr ↦ i ∗ "j" ∷ j_ptr ↦ jv ∗ "found" ∷ found_ptr ↦ false ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z gc.Server'.len ∧
+          ∀ j, j < sint.nat i → ¬(j ≠ sint.nat n ∧ t1 ≤ s.currentTerm[j]!)⌝) $$ [i j found]
+    · iexists _, _
+      iframe
+      ipureintro
+      refine ⟨by word, by word, fun j hj => absurd hj (by simp)⟩
+    wp_for IH
+    obtain ⟨hi0, hi1, hall⟩ := Hi
+    wp_if_destruct
+    · have Hil : sint.nat i < s.cfg.server.length := by rw [Hsl.1]; word
+      obtain ⟨sv, Hsv⟩ : ∃ sv, s.cfg.server[sint.nat i]? = some sv := ⟨_, List.getElem?_eq_getElem Hil⟩
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z gc.Server'.len from ⟨hi0, Hif⟩))]
+      wp_apply wp_load_slice_index gc.Server' (sint.Z i) s.cfg.server DFrac.discard sv hi0 $$ [Hsrv2] as -
+      · isplitr
+        · iexact Hsrv2
+        ipureintro; exact Hsv
+      try wp_auto
+      have hstep : ∀ j, j < sint.nat (i + W64 1) → j ≠ sint.nat i → ¬(j ≠ sint.nat n ∧ t1 ≤ s.currentTerm[j]!) := by
+        intro j hj hji
+        rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word] at hj
+        exact hall j (by omega)
+      by_cases hin : i = n
+      · rw [decide_eq_true hin]
+        try wp_auto
+        wp_for_post
+        iframe
+        iexists _, _
+        iframe
+        ipureintro
+        refine ⟨by word, by word, fun j hj => ?_⟩
+        by_cases hji : j = sint.nat i
+        · subst hji hin; exact fun h => h.1 rfl
+        · exact hstep j hj hji
+      rw [decide_eq_false hin]
+      try wp_auto
+      icases intsRO_at g.CurrentTerm' s.currentTerm i ⟨hi0, by rw [HWf.len_currentTerm]; word⟩ $$ HCurrentTerm
+        with ⟨%ct, #Hcta, %Hct⟩
+      wp_apply wp_load_at _ _ ct hi0 $$ [Hcta]
+      · iexact Hcta
+      try wp_auto
+      odm T1
+      wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+      · iframe Hx; ipureintro; exact ht1
+      try wp_auto
+      rw [Hu1, Hct]
+      by_cases hge2 : t1 ≤ s.currentTerm[sint.nat i]!
+      · rw [decide_eq_true hge2]
+        try wp_auto
+        wp_for_post
+        have hin' : sint.nat i ≠ sint.nat n := fun h => hin (by word)
+        have hany : (List.range s.cfg.server.length).any
+            (fun j => j != sint.nat n && decide (s.currentTerm[j]! ≥ t1)) = true := by
+          rw [List.any_eq_true]
+          refine ⟨sint.nat i, List.mem_range.2 Hil, ?_⟩
+          simp only [ge_iff_le, decide_eq_true hge2, Bool.and_true]
+          simpa using hin'
+        simp only [hany, Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+        odjskip Ho
+      rw [decide_eq_false hge2]
+      try wp_auto
+      wp_for_post
+      iframe
+      iexists _, _
+      iframe
+      ipureintro
+      refine ⟨by word, by word, fun j hj => ?_⟩
+      by_cases hji : j = sint.nat i
+      · subst hji; exact fun h => hge2 h.2
+      · exact hstep j hj hji
+    · try wp_auto
+      have hil : sint.nat i = s.cfg.server.length := by rw [Hsl.1]; word
+      have hany : (List.range s.cfg.server.length).any
+          (fun j => j != sint.nat n && decide (s.currentTerm[j]! ≥ t1)) = false := by
+        rw [List.any_eq_false]
+        intro j hj
+        have := hall j (by rw [hil]; exact List.mem_range.1 hj)
+        simpa using this
+      simp only [hany, Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+      iframe; ipureintro; left; exact ⟨by subst Ho; rfl, trivial⟩
+  odjafter
+  subst hK
   done
 
 end proof
