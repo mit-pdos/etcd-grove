@@ -711,6 +711,24 @@ type connReader struct {
 	inRead  bool
 	aborted bool  // set true before conn.rwc deadline is set to past
 	remain  int64 // bytes remaining
+
+	// MODEL: failed is the model's own (not in Go's net/http): set by a read of the connection
+	// that returned an error (but the timeout abortPendingRead provokes), after which the
+	// connection reader delivers no byte (Read, backgroundRead). Go's connReader keeps no read
+	// error and reads on, and the server reads a request's head through a bufio.Reader that does
+	// not keep one either (textproto's ReadLine returns a line cut by an error without the error),
+	// so a byte after a read error would be parsed as the head's rest. Over Linux a connection's
+	// end yields no byte after a read error but a read deadline's timeout (EOF, then EOF; a reset,
+	// then EOF; a killed peer's unread input; a broken path: examples/net/semantics'
+	// TestReadEOFAfterFin, TestResetInNetwork, TestKilledWithUnreadInput, TestTimeoutOnBreak), so
+	// Go's later reads fail too; the net extension's semantics allows bytes after a read error (a
+	// broken direction's surviving bytes). After a timeout bytes may follow on Linux, so the
+	// model's claim excludes programs whose served connections have read deadlines: a Server with
+	// ReadTimeout, ReadHeaderTimeout or IdleTimeout set, or a handler's SetReadDeadline
+	// (ResponseController). After a failure a read reads the connection into a buffer of its own
+	// and returns no byte, with the connection's error or io.ErrUnexpectedEOF in place of bytes (a
+	// case Linux does not have). Over Linux without read deadlines the same behavior as Go's.
+	failed bool
 }
 
 func (cr *connReader) lock() {
@@ -745,7 +763,8 @@ func (cr *connReader) startBackgroundRead() {
 func (cr *connReader) backgroundRead() {
 	n, err := cr.rwc.Read(cr.byteBuf[:])
 	cr.lock()
-	if n == 1 {
+	// MODEL: no byte after a read error (connReader.failed).
+	if n == 1 && !cr.failed {
 		cr.hasByte = true
 		// We were past the end of the previous request's body already
 		// (since we wouldn't be in a background read otherwise), so
@@ -774,6 +793,7 @@ func (cr *connReader) backgroundRead() {
 		// Ignore this error. It's the expected error from
 		// another goroutine calling abortPendingRead.
 	} else if err != nil {
+		cr.failed = true // MODEL: connReader.failed
 		cr.handleReadErrorLocked(err)
 	}
 	cr.aborted = false
@@ -852,12 +872,24 @@ func (cr *connReader) Read(p []byte) (n int, err error) {
 		return 1, nil
 	}
 	cr.inRead = true
+	failed := cr.failed
 	cr.unlock()
-	n, err = cr.rwc.Read(p)
+	if failed {
+		// MODEL: no byte after a read error (connReader.failed): the connection read into a
+		// buffer of the model's own.
+		_, err = cr.rwc.Read(make([]byte, len(p)))
+		if err == nil {
+			err = io.ErrUnexpectedEOF
+		}
+		n = 0
+	} else {
+		n, err = cr.rwc.Read(p)
+	}
 
 	cr.lock()
 	cr.inRead = false
 	if err != nil {
+		cr.failed = true // MODEL: connReader.failed
 		cr.handleReadErrorLocked(err)
 	}
 	cr.remain -= int64(n)

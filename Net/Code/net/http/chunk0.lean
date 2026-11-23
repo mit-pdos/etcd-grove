@@ -3114,7 +3114,7 @@ noncomputable def Server.newConn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Read next request from connection.
 
-    go: server.go:1032:16 -/
+    go: server.go:1064:16 -/
 noncomputable def conn.readRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -3482,7 +3482,7 @@ noncomputable def conn.readRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType response.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: server.go:1144:20 -/
+/-- go: server.go:1176:20 -/
 noncomputable def response.Header.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -3508,7 +3508,7 @@ noncomputable def response.Header.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$res0"))))))
 
-/-- go: server.go:1202:20 -/
+/-- go: server.go:1234:20 -/
 noncomputable def response.WriteHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "code"
@@ -3684,7 +3684,7 @@ noncomputable def response.WriteHeader.impl [GooseExts] [GoGlobalContext] : val 
     bufferBeforeChunkingSize smaller and having bufio's fast-paths deal
     with this instead.
 
-    go: server.go:1670:20 -/
+    go: server.go:1702:20 -/
 noncomputable def response.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "data"
@@ -3716,7 +3716,7 @@ noncomputable def response.Write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- either dataB or dataS is non-zero.
 
-    go: server.go:1679:20 -/
+    go: server.go:1711:20 -/
 noncomputable def response.write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "lenData"
@@ -3854,7 +3854,7 @@ noncomputable def response.write.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Serve a new connection.
 
-    go: server.go:1949:16 -/
+    go: server.go:1981:16 -/
 noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ctx"
@@ -4366,7 +4366,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Hijack implements the [Hijacker.Hijack] method. Our response is both a [ResponseWriter]
     and a [Hijacker].
 
-    go: server.go:2251:20 -/
+    go: server.go:2283:20 -/
 noncomputable def response.Hijack.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam BAnon
@@ -4475,7 +4475,7 @@ noncomputable def response.Hijack.impl [GooseExts] [GoGlobalContext] : val :=
     populate named path wildcards, so r.PathValue will always return
     the empty string.
 
-    go: server.go:2670:22 -/
+    go: server.go:2702:22 -/
 noncomputable def ServeMux.Handler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "r"
@@ -4544,7 +4544,7 @@ noncomputable def ServeMux.Handler.impl [GooseExts] [GoGlobalContext] : val :=
     Otherwise it returns a Redirect or NotFound handler with the path that would match
     after the redirect.
 
-    go: server.go:2682:22 -/
+    go: server.go:2714:22 -/
 noncomputable def ServeMux.findHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "r"
@@ -4834,7 +4834,7 @@ noncomputable def ServeMux.findHandler.impl [GooseExts] [GoGlobalContext] : val 
     after appending "/" to the path. If that second match succeeds, the last
     return value is the URL to redirect to.
 
-    go: server.go:2744:22 -/
+    go: server.go:2776:22 -/
 noncomputable def ServeMux.matchOrRedirect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "host"
@@ -4944,7 +4944,7 @@ noncomputable def ServeMux.matchOrRedirect.impl [GooseExts] [GoGlobalContext] : 
 /-- ServeHTTP dispatches the request to the handler whose
     pattern most closely matches the request URL.
 
-    go: server.go:2860:22 -/
+    go: server.go:2892:22 -/
 noncomputable def ServeMux.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "w"
@@ -5023,7 +5023,7 @@ noncomputable def ServeMux.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
 
     See [ServeMux] for details on valid patterns and conflict rules.
 
-    go: server.go:2885:22 -/
+    go: server.go:2917:22 -/
 noncomputable def ServeMux.Handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "pattern"
@@ -5046,7 +5046,7 @@ noncomputable def ServeMux.Handle.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Handle registers the handler for the given pattern in [DefaultServeMux].
     The documentation for [ServeMux] explains how patterns are matched.
 
-    go: server.go:2908:6 -/
+    go: server.go:2940:6 -/
 noncomputable def Handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pattern"
   (Lam "handler"
@@ -5064,7 +5064,7 @@ noncomputable def Handle.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType ServeMux.ty) go!"register"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ServeMux.ty)))) (App (Val (GoInstruction (GlobalVarAddr DefaultServeMux))) (Val #())))) (Var "$a0")) (Var "$a1")))))))))
   (Val #()))))
 
-/-- go: server.go:2926:22 -/
+/-- go: server.go:2958:22 -/
 noncomputable def ServeMux.register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "pattern"
@@ -5088,7 +5088,7 @@ noncomputable def ServeMux.register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
   (Val #())))))
 
-/-- go: server.go:2932:22 -/
+/-- go: server.go:2964:22 -/
 noncomputable def ServeMux.registerErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "mux"
   (Lam "patstr"
@@ -5302,7 +5302,7 @@ noncomputable def ServeMux.registerErr.impl [GooseExts] [GoGlobalContext] : val 
 
     Serve always returns a non-nil error.
 
-    go: server.go:2987:6 -/
+    go: server.go:3019:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "handler"
@@ -5328,7 +5328,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- MODEL: the linkname declaration badServeHTTP (a body-less function, which goose cannot take)
     is gone: no program of the model's links to serverHandler.ServeHTTP by name.
 
-    go: server.go:3371:25 -/
+    go: server.go:3403:25 -/
 noncomputable def serverHandler.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sh"
   (Lam "rw"
@@ -5371,7 +5371,7 @@ noncomputable def serverHandler.ServeHTTP.impl [GooseExts] [GoGlobalContext] : v
     ListenAndServe always returns a non-nil error. After [Server.Shutdown] or [Server.Close],
     the returned error is [ErrServerClosed].
 
-    go: server.go:3415:18 -/
+    go: server.go:3447:18 -/
 noncomputable def Server.ListenAndServe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -5445,7 +5445,7 @@ noncomputable def Server.ListenAndServe.impl [GooseExts] [GoGlobalContext] : val
     Serve always returns a non-nil error and closes l.
     After [Server.Shutdown] or [Server.Close], the returned error is [ErrServerClosed].
 
-    go: server.go:3471:18 -/
+    go: server.go:3503:18 -/
 noncomputable def Server.Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "l"
@@ -5718,7 +5718,7 @@ noncomputable def Server.Serve.impl [GooseExts] [GoGlobalContext] : val :=
 
     ListenAndServe always returns a non-nil error.
 
-    go: server.go:3776:6 -/
+    go: server.go:3808:6 -/
 noncomputable def ListenAndServe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "handler"
@@ -9068,9 +9068,10 @@ structure connReader [GooseExts] where
   inRead' : Bool
   aborted' : Bool
   remain' : w64
+  failed' : Bool
 
 noncomputable instance connReader.zero_val [GooseExts] : ZeroVal connReader :=
-  ⟨connReader.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+  ⟨connReader.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 @[reducible] noncomputable def connReader.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"rwc" _root_.Perennial.net.Conn.ty),
@@ -9081,7 +9082,8 @@ noncomputable instance connReader.zero_val [GooseExts] : ZeroVal connReader :=
 (go.field_decl.FieldDecl go!"cond" (go.GoType.PointerType _root_.Perennial.sync.Cond.ty)),
 (go.field_decl.FieldDecl go!"inRead" go.bool),
 (go.field_decl.FieldDecl go!"aborted" go.bool),
-(go.field_decl.FieldDecl go!"remain" go.int64)]
+(go.field_decl.FieldDecl go!"remain" go.int64),
+(go.field_decl.FieldDecl go!"failed" go.bool)]
 
 @[irreducible] noncomputable def connReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   connReader.fieldsUnsealed

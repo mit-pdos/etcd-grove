@@ -901,13 +901,22 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `http.ReadResponse.spec` (`DialHTTPPath.wp_of_ReadResponse`: the CONNECT request by `Conn.Write`, `bufio.NewReader`
    of the `connectReader`, `ReadResponse`, on `connected` the whole answer delivered, so the whole request written,
    `rpcDialed`, `NewClient`; else the `"dial-http"` `*OpError`, `errAny_opErrPtr`, after `Close`).
-   *Stated, not proved*: `http.ReadResponse.spec` (`Net/Spec/net/http/ReadResponse.lean`, for a CONNECT answer).
-   Its proof needs `readTransfer` and its helpers translated (`Net/Code/net/http.toml`: `readTransfer`,
-   `transferReader.parseTransferEncoding`, `fixLength`, `fixTrailer`, `shouldClose`, `bodyAllowedForStatus`,
-   `noResponseBodyExpected`, `ParseHTTPVersion`, `badStringError`, `fixPragmaCacheControl`, `Header.{get,Del}`, and
-   textproto's `CanonicalMIMEHeaderKey`, names only today), specs of `bufio.Reader.{ReadByte,Peek,fill}` (the main
-   tree's `Spec/bufio/` has `NewReader` and `Read`), `strings.{Cut,TrimLeft}` (translated by Perennial, no spec) and
-   `strconv.Atoi` (Perennial's). The parse is a function of the stream's bytes since they are final after an error.
+   *`ReadResponse` proved* (2026-11-23, same branch; ledger 2026-11-23, "`http.ReadResponse.spec` over a reader that
+   makes progress"): `Net/Proof/net/http/` (`Results.lean` links it; `DialHTTPPath.wp`, `DialHTTP.wp` in rpc's
+   `Results.lean` without the hypothesis). The status line is read whole (then it is `statusLine`: the bytes are a prefix
+   of `connectAns`) or cut by an error (then the stream stays there: the finality law); the parse finds `"HTTP/1.0"`
+   (`proto_of_prefix`, by `decide` over the line's prefixes) or fails (`badStringError`); the header block is read over a
+   law that its bytes are a prefix of the position's `"\n"` (`modelReadMIMEHeader`, a head without header lines), read
+   whole only after a whole status line. `readTransfer` on an empty header: no error, nothing read. The spec now takes
+   `io.readerStreamNE` (no `(0, nil)` read: over a reader that has them, bufio gives up with `io.ErrNoProgress` and a cut
+   line and a later `"\n"` parse as the whole answer, its last byte unread: the post is false there); `connectReader`
+   makes progress (proved). `httpEnv` (`Net/Proof/net/http/Defs.lean`) adds `fmt`'s and `strconv`'s initialization and
+   `NoBody` (`Atoi`'s spec does not fix the number, so any status reaches `readTransfer`). bufio (main tree):
+   `fill.spec`, `Peek.spec` (`n = 1`), `ReadByte.specNE` (beside dsv-bufio's `ReadByte.spec`, which allows
+   `ErrNoProgress`; merging them, one proof with this an instance, is left), over `bufio.ownReaderBuf`
+   (`Proof/bufio/Buf.lean`). Model changes (MODEL, pending the user's review): `modelCutByte`/`modelTrimLeftByte` for
+   `strings.Cut`/`TrimLeft` (`textproto_model.go`; Perennial translates them as names only, `notes/perennial-changes.md`),
+   and the server's `connReader.failed` (below).
    *Model changes* (ledger 2026-11-23): `connectReader` (no byte after a read error, Go over Linux;
    `nonissues/go-netrpc-dialhttp-reads-answer-after-read-error.md`), `io.WriteString(conn, s)` as
    `conn.Write([]byte(s))` (`notes/perennial-changes.md`). *Translation*: net/http's `Request` and `Server` were
@@ -920,10 +929,12 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `WriteString`), `HandleHTTP` (`http.Handle` twice; the debug path's handler panics NotModelled, so its spec
    requires it never requested), and net/http's server to the hijack (`ListenAndServe`, `Serve`, `conn.serve`,
    `readRequest`, `ServeMux` dispatch, `response.Hijack` with the background read's abort): none stated yet. The
-   server's head read has the same read-after-error question as the client's: Go's `conn.serve` reads through
-   `connReader`, which does not keep an error, so the model needs the same treatment there (a read after an error
-   returns none) before the hijacked connection's position can be `W.hs a`.
-   *Left*: the server's HTTP path (`ServeHTTP`, `HandleHTTP`), `ReadResponse`'s proof (above); `ServeRequest`; `register`'s logging
+   server's head read had the same read-after-error question as the client's; settled in the model (2026-11-23, MODEL,
+   pending the user's review): `connReader.failed` (`models/net/http/server.go`), after a read error no byte (Read and
+   `backgroundRead`), Go over Linux; the model's claim excludes served connections with read deadlines (`ReadTimeout`,
+   `ReadHeaderTimeout`, `IdleTimeout`, a handler's `SetReadDeadline`). Difftests pass.
+   *Left*: the server's HTTP path (`ServeHTTP`, `HandleHTTP`, net/http's server, item 3 of the session's list);
+   `ServeRequest`; `register`'s logging
    premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
    not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
    `invalidRequest` at `()`) and `isPkgInit log` (item 5).

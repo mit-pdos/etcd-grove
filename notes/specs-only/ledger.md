@@ -25,6 +25,39 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `http.ReadResponse.spec` over a reader that makes progress; `httpEnv` widened; `connectReader.Read.spec` makes progress; `ReadByte.specNE`; the model's `modelCutByte`/`modelTrimLeftByte` and `connReader.failed` (net/http model, `ReadResponse`'s proof)
+
+- **Spec.** Changed: `Net/Spec/net/http/ReadResponse.lean` (`io.readerStreamNE` for `io.readerStream`; the
+  `net.http.Assumptions` instance), `httpEnv` (moved to `Net/Proof/net/http/Defs.lean`; adds `fmt`'s and
+  `strconv`'s initialization and `NoBody`'s value), `Net/Spec/net/rpc/connectReader__Read.lean` (post: a byte or an
+  error when `p` is not empty). New: `io.readerStreamNE` (`Proof/io/ReaderStreamNE.lean`), `bufio.ownReaderBuf`
+  (`Proof/bufio/Buf.lean`), `bufio.Reader.fill.spec`, `bufio.Reader.ReadByte.specNE` (beside dsv-bufio's
+  `ReadByte.spec`), `bufio.Reader.Peek.spec` (`n = 1`), and net/http's `modelReadLine`, `modelReadMIMEHeader` (a
+  head without header lines), `modelCutByte`, `modelTrimLeftByte`, `ParseHTTPVersion` (`"HTTP/1.0"`, `"HTTP/1.1"`),
+  `badStringError`, `readTransfer` and its helpers (an empty header), textproto's `CanonicalMIMEHeaderKey` (a key its
+  quick check accepts) and `MIMEHeader.Del`, httpguts' `HeaderValuesContainsToken` (no values).
+- **Defect.** (1) Over a reader that may return `(0, nil)`, bufio gives up with `io.ErrNoProgress` and the stream
+  goes on: a status line cut that way and a later `"\n"` parse as a whole answer with its last byte unread, so the
+  stated post (`connected` only with `connectAns` delivered) is false for a generic `io.readerStream`. (2) `Atoi`'s
+  spec does not fix the number, so `readTransfer` may see any status, including those with `NoBody`. (3) Perennial
+  translates `strings.Cut` and `strings.TrimLeft` as names only (`ReadResponse` and `parseRequestLine` call them).
+  (4) net/http's server reads a request's head through `connReader`, which keeps no read error: the same question as
+  the client's answer (ledger entry below), for item 3's head read.
+- **Evidence.** (1) Go's `bufio.Reader.fill` (`maxConsecutiveEmptyReads`); a TCP connection's `Read` of a non-empty
+  buffer never returns `(0, nil)` (the net extension's D1), nor does `connectReader`'s (proved). (2)
+  `Perennial/Spec/strconv/Atoi.lean`. (3) `Perennial/Code/strings.toml`. (4) `models/net/http/server.go`
+  (`connReader.Read`, `backgroundRead`); `examples/net/semantics`' `TestReadEOFAfterFin`, `TestResetInNetwork`,
+  `TestKilledWithUnreadInput`, `TestTimeoutOnBreak` (Linux: no byte after an error but a read deadline's timeout).
+- **Proposed change.** (1) The NE contract, met by `connectReader`; `ReadByte.specNE` proved over `fill.spec`
+  (dsv-bufio's `ReadByte.spec`, over `io.readerOk`, allows `ErrNoProgress` and cannot give it: merging the two, one
+  proof with this an instance, is left). (2) `httpEnv` holds `NoBody`. (3) MODEL: `modelCutByte`/`modelTrimLeftByte`
+  (`textproto_model.go`), Go's `Cut`/`trimLeftByte` for a one-byte separator; `notes/perennial-changes.md`. (4) MODEL:
+  `connReader.failed` (`server.go`): after a read error, no byte; the model's claim excludes programs whose served
+  connections have read deadlines (`ReadTimeout`, `ReadHeaderTimeout`, `IdleTimeout`, a handler's
+  `SetReadDeadline`). Difftests (`models/internal/rpcdifftest/run.sh`, both packages) pass.
+- **Decision.** (1)-(2) applied on branch `models-rpc-http` (2026-11-23). (3) and (4) are trusted-model changes:
+  pending the user's review.
+
 ## 2026-11-23: `DialHTTPPath.spec`, `DialHTTP.spec`, `http.ReadResponse.spec` stated; `respProto` waits for the dialer's handshake; the model's `connectReader` (net/rpc model, HTTP path)
 
 - **Spec.** New: `Net/Spec/net/rpc/DialHTTPPath.lean`, `DialHTTP.lean`, `connectReader__Read.lean`,

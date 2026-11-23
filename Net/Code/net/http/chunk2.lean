@@ -470,6 +470,8 @@ class connReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_aborted : ∀ (x : connReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connReader.underlying go!"aborted") (PairV #x #y) (Val #(({ x with aborted' := y } : connReader)))
   get_remain : ∀ (x : connReader), go.IsGoStepPureDetTagged under (StructFieldGet connReader.underlying go!"remain") #x (Val #(x.remain'))
   set_remain : ∀ (x : connReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet connReader.underlying go!"remain") (PairV #x #y) (Val #(({ x with remain' := y } : connReader)))
+  get_failed : ∀ (x : connReader), go.IsGoStepPureDetTagged under (StructFieldGet connReader.underlying go!"failed") #x (Val #(x.failed'))
+  set_failed : ∀ (x : connReader) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet connReader.underlying go!"failed") (PairV #x #y) (Val #(({ x with failed' := y } : connReader)))
   method_set : go.MethodSetIs connReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType connReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net/http.abortPendingRead", (some (go.signature.Signature [] false []))), (go!"net/http.backgroundRead", (some (go.signature.Signature [] false []))), (go!"net/http.handleReadErrorLocked", (some (go.signature.Signature [go.error] false []))), (go!"net/http.hitReadLimit", (some (go.signature.Signature [] false [go.bool]))), (go!"net/http.lock", (some (go.signature.Signature [] false []))), (go!"net/http.releaseConn", (some (go.signature.Signature [] false []))), (go!"net/http.setInfiniteReadLimit", (some (go.signature.Signature [] false []))), (go!"net/http.setReadLimit", (some (go.signature.Signature [go.int64] false []))), (go!"net/http.startBackgroundRead", (some (go.signature.Signature [] false []))), (go!"net/http.unlock", (some (go.signature.Signature [] false [])))]
 
@@ -493,6 +495,8 @@ attribute [instance] connReader.TypeAssumptions.type_repr
   connReader.TypeAssumptions.set_aborted
   connReader.TypeAssumptions.get_remain
   connReader.TypeAssumptions.set_remain
+  connReader.TypeAssumptions.get_failed
+  connReader.TypeAssumptions.set_failed
   connReader.TypeAssumptions.method_set
   connReader.TypeAssumptions.ptr_method_set
 

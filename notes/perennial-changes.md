@@ -3964,3 +3964,12 @@ Perennial's `io` translates `WriteString` as a name only, so a translated body t
 `WriteString` method (net's `*TCPConn`). The general fix: translate `io.WriteString` (its body: a type assertion to
 `io.StringWriter`, else `Write` of the string's bytes) with a spec over the writer's `Write` and `WriteString`
 contracts.
+
+## 2026-11-23: `strings.Cut` and `strings.TrimLeft` are names only (net/http model, `ReadResponse`)
+
+Perennial's `strings` translates `Cut` and `TrimLeft` as names only (see "`strings.Cut` has no model", 2026-11-08), so
+net/http's `ReadResponse` and `parseRequestLine`, which call them with a one-byte separator, were stuck. Worked around in
+the model (`models/net/http/textproto_model.go`, MODEL): `modelCutByte(s, c)` and `modelTrimLeftByte(s, c)`, Go's `Cut`
+(through `Index` of a one-byte separator, its first index) and `trimLeftByte` (what `TrimLeft` runs for a one-byte ASCII
+cutset), translated with their bodies and proved (`Net/Proof/net/http/`). The general fix: `Cut` trusted (as
+`HasPrefix`: `Index` runs `bytealg`) and `TrimLeft` translated in Perennial, with specs. Not filed yet.
