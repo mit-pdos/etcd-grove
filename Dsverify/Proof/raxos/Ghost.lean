@@ -37,8 +37,9 @@ point** (`opAU`: `remote.lin` of the kit's store `kvB`, `Kit.lean`'s `lin_opAU`;
 a get's persistent, as remote's `slotUpd`), with the caller's postcondition `Φ` of the output, in
 place of the lab's atomic update at `clientN` over its `Harness.Models` `kv` with a commit
 postcondition `Q σ σ' o`; inputs and outputs are the kit's `KIn`/`KOut`. The proxy's read counters
-are keyed by the net extension's connection numbers, with `netFresh` in place of the lab's
-`NetConn.connFresh`. (The registry's `cnt` map is kept as the lab's.)
+are keyed by the net extension's connection numbers, with `Proto.lean`'s `connFresh` (what
+`accept_lis_au` gives an accepted connection's end; exclusive, `connFresh_excl`) in place of the
+lab's `NetConn.connFresh`. (The registry's `cnt` map is kept as the lab's.)
 -/
 module
 
@@ -52,6 +53,7 @@ public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.SavedProp
 public import Perennial.Ghost.Token
 public import GooseLang.Ext.Net.Specs
+public import GooseLang.Ext.Net.Proto
 
 @[expose] public section
 
@@ -282,7 +284,7 @@ def spentLb (γ : QNames) (m : Int) : IProp GF :=
 is chosen, and then reachable with its replicas and epochs; recorders' states agree with it; every
 `init` event's token is spent (held here), and no token was issued at or above a proxy's
 frontier. -/
-def consInv (γ : QNames) : IProp GF :=
+def consInv [NetProtoGS] (γ : QNames) : IProp GF :=
   iprop(∃ (W : World) (R : GMap Int (GMap Int RecSt)) (Fr : GMap Int Int) (T : GMap (Int × Int) Unit)
       (Tix : GMap Ticket (Nat × Nat)) (Cr : GMap Ticket Unit) (Rd : GMap Nat Nat) (S : List Ticket),
     monoListAuthOwn γ.hist 1 W ∗
@@ -296,7 +298,7 @@ def consInv (γ : QNames) : IProp GF :=
       ghostMapElem γ.tick t (DFrac.own 1) ()) ∗
     ghostMapAuth γ.cred 1 Cr ∗ ([∗list] t ∈ S, ghostMapElem γ.cred t (DFrac.own 1) ()) ∗
     ghostMapAuth γ.rd 1 Rd ∗ ([∗map] cid ↦ n ∈ Rd, ghostMapElem γ.rd cid (DFrac.own (1 : Qp).half) n ∗
-      netFresh (extGlobalGS netExt) cid true) ∗
+      connFresh (Gg := G) cid true) ∗
     monoListAuthOwn γ.spent 1 S ∗
     ⌜(∀ me, (Fr !! me).isSome ↔ me ∈ serverIds) ∧
       (∀ me n, Fr !! me = some n → 1 ≤ n ∧ n ≤ S.length + 1) ∧

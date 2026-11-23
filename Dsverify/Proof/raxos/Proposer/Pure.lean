@@ -78,7 +78,7 @@ theorem sint_add_one (S : w64) : sint.Z (S + W64 1) = wrapInc (sint.Z S) := by
 section ghost
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
+variable [sem : go.Semantics] [π : NetProtoGS]
 
 /-- A step justified by a known `pstate` and the collected replies' `record` events. -/
 theorem ghost_stepR (γ : QNames) (E : CoPset) (hE : ↑consN ⊆ E) (c : QConf) (e0 : Ev)

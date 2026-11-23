@@ -106,6 +106,9 @@ named after the lab's specs, until each comes as one shared change. **All are in
   give the value (`setupgRPC`'s peer names, `NewRecorder`'s address need it). Discharge: the lab's
   proof (`Harness/Proof/strconv/Atoi.lean`) redone over Perennial's translation of
   `internal/strconv.Atoi`'s fast path (it now ranges over the bytes; the lab's stepped a loop).
+- **`fmt.Println`**: `hyp.fmt.Println.spec`, `class hyp.PrintlnHyp GF` (operands `printOk`:
+  `ArgWf` or `errAny`); Perennial leaves `fmt.Println` untranslated. The proxy's accept routine
+  prints its errors.
 - **`sort.Ints`**: `hyp.sort.Ints.spec`, `class hyp.SortHyp GF` (the lab's `wp_Ints`: a
   permutation into ascending signed order); Perennial leaves `sort.Ints` untranslated. Discharge:
   Perennial translates it, then the lab's proof over `slices.wp_Sort` applies.
@@ -294,29 +297,43 @@ named after the lab's specs, until each comes as one shared change. **All are in
     `readatleast-prefix` (`af905abba`)'s `io.ReadAtLeast`/`io.ReadFull` specs and proofs under
     `raxos.ioLt.*` (premise only at the reads made): `waitForConnections`' `io.ReadFull(conn, bs)`
     needs it (a connection's `conn_readerOk` refuses empty reads). Drop it at the pin bump.
-  * **Remaining Proxy files** (the tool-ported lab text is committed but does not build yet; not
-    imported by anything that builds): `NetPrint` (114), `NetAcceptLib` (71), `NetAccept` (207:
-    `waitForConnections_proof`: `net.Listen.wp_proof` with `listen_lis_au` on `proxyLis k`'s
-    `lisProto` (from `netProtos`), retry loop; open `inv netN` with `netTok γ k` (exclusive:
-    `netTok_excl`) to take `netOwn`; `net.Listener.Accept.wp_proof` with `accept_lis_au`
-    (gives `connEnd cn true silentProto (proxyInProto γ k) [] []` and `connFresh`; `rdCtr γ cn 0`
-    from `Ghost`'s registry for a fresh connection: the lab's `connFresh` use); `ioLt.ReadFull`
-    over `net.conn_readerOk` (`Pre := 0 < m`) for the 4-byte handshake, then
-    `bufio.NewReader.wp_proofOk` (with `bufio.preUpTo_of_pure`) to get `connectionListener.spec`'s
-    reader at `hs (21 + cl)`; the handshake's value from `protoPrefix` of `hs n`
-    (`hs_decode`)), `NetInit` (55: `Proxy.NetworkInit` = `startOutgoingLinks` + fork of
-    `waitForConnections`), then `Proxy/Results`' `NewProxy.wp_proof := newProxy_proof` and
-    `Proxy.NetworkInit.wp_proof`, and `Replica/Results`' `hNP`/`hNI` discharged.
-- **Next, in order** (ported ~19k of 37k lab lines; Replica done, Proxy's protocol side done):
-  2. `Proxy/*` rest (the network side and the constructor, above; 3.1k: `Net*` onto `Net/Spec/net/*` + `GooseLang/Ext/Net/Proto.lean`'s laws as
-     paxos's `NetProof.lean`; the writers through dsv-bufio's specs), `Codec/*` (7.3k: only the pure
+  * **The proxy's network side is done** (third Proxy session, 2026-11-23): `NetPrint`
+    (`wp_Println_ok` from the hypothesis `hyp.fmt.Println.spec`, `printOk_str_err`),
+    `NetAcceptLib` (`proxyLis_1..5`, `proxyLis_listenOk`, `hs_of_prefix`, `net_claim` over
+    `netTok`, `errAny_resErr'`/`errAny_newVar'`/`readFull_errAny`: the printed errors are
+    `errAny`, local copies of `net.rpc`'s lemmas without `net.rpc.Assumptions`), `NetAccept`
+    (`waitForConnections_of`, the library specs as parameters: `net.Listen` with `listen_lis_au`
+    on `proxyLis k`'s `lisProto`, `net_claim`, `Listener.Accept` with `accept_lis_au`,
+    `rd_alloc_top` from `connFresh`, `ioLt.ReadFull` over `net.conn_readerOk`, the handshake from
+    `recvTokL_proto`'s `protoPrefix`, `bufio.NewReader.specOk` with `preUpTo_of_pure`, `Conn.Close`
+    with `close_au` on a failed handshake), `NetInit` (`networkInit_of`); `Proxy/Results`:
+    `NewProxy.wp_proof`, `Proxy.NetworkInit.wp_proof` (composing `net`'s, `IoReadFull`'s and
+    bufio's proofs); `Replica/Results`: `hNP`/`hNI` discharged (`New.wp_proof`,
+    `Server.NetworkInit.wp_proof`, `Server.Run.wp_proof` take only hypothesis classes and
+    `Assumptions` instances). `#print axioms` of all of them: Lean's three.
+  * **`consInv`'s fresh-connection token is `Proto.lean`'s `connFresh`** (what `accept_lis_au`
+    gives), in place of the raw `netFresh`: `consInv` takes `[NetProtoGS]`; `rd_alloc`
+    (`Cons/Laws`) refutes a second allocation with `connFresh_excl` and takes `[GoGlobalContext]`;
+    `Cons/{Lemmas,Laws}`, `Smr/Laws`, `Proxy/Issue`, `Proposer/Pure` gained `[π : NetProtoGS]`.
+  * **New hypothesis** `hyp.fmt.Println.spec`, class `hyp.PrintlnHyp GF` (`Hyp.lean`; operands
+    `hyp.fmt.printOk`: `ArgWf` or `models_lab.errAny`; the lab's `wp_Println_ok`). Perennial leaves
+    `fmt.Println`/`Fprintln` untranslated. Discharge: Perennial translates them and proves this
+    from `printArg` as `Printf`'s spec (`argOk` under `%v`).
+  * Not ported: the lab's `Proxy/WireProof.lean` (`ClientBatch.Marshal`/`Unmarshal`, `Wire.lean`'s
+    specs): the proxy does not use them (it marshals into a `msgBuffer`); the kit's client will
+    (see the second Proxy session's finding: `Marshal.spec` must ask `Q` of the 8-byte length
+    prefix; `Unmarshal.spec` should take the stream fact as `unmarshalB.spec`).
+  * Import tiers: no new violation (`etc/tier-check.py`: 19 non-scratch `raxos` violations, as
+    before: 18 defs->proof, 1 defs->linking).
+- **Next, in order** (ported ~20k of 37k lab lines; Replica and Proxy done but `WireProof`):
+  2. `Codec/*` (7.3k: only the pure
      parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
      `Codec/Switch`, `Enc*`, `Dec*` mostly go; `Wire.lean`'s `ClientBatch.Marshal/Unmarshal` are
      proved from `PbHyp` and dsv-bufio), `Kit/*` (5.8k, onto remote: `Kit.lean` with `qR`,
      `lin_opAU`, `Codec.spec`, `Gen.spec`, `Orch.spec`, `Client.spec`, `Server.spec` as paxos's
      `Kit.lean`; `Orch.wp_proof` takes `Model.wp_proof`).
   3. `quepaxa_remote_robust` (`TopLevelRobustness.lean`): premises every `InitHyp`, `PbHyp`,
-     `RandHyp`, `AtoiHyp`, `GrpcHyp qv.grpc` and `MapHyp qv.map` (over the `QpVocab` instance),
+     `RandHyp`, `AtoiHyp`, `SortHyp`, `UtcHyp`, `PrintlnHyp`, `GrpcHyp qv.grpc` and `MapHyp qv.map` (over the `QpVocab` instance),
      `net.Assumptions`/`net.FieldAssumptions`/`go.BasicIntoValInj` as paxos's, all visible in
      the `.spec`; check `etc/theorem-loc.py` counts them. `etc/tcb-collections/dsv-quepaxa.txt`
      (the two trusted descriptor-table inits of `TrustedCode/raxos/{replica/src,proto/client}.lean`,

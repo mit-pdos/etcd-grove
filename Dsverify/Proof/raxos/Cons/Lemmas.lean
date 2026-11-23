@@ -19,7 +19,7 @@ open Perennial.raxos.pure
 
 namespace consLemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 

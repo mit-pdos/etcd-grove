@@ -37,6 +37,8 @@ public import GooseLang.Ext.Net.Proto
 public import Net.Proof.net.Base
 public import Perennial.Proof.context.Base
 public import Proof.math.rand.Base
+public import Perennial.Proof.fmt.Base
+public import Net.Proof.models_lab.Errors
 
 @[expose] public section
 
@@ -240,6 +242,44 @@ end sort
 class SortHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   Ints : sort.Ints.spec (GF := GF) (hG := hG)
+
+/-! ## fmt.Println -/
+
+namespace fmt
+
+section println
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- An operand `Println` may format: `nil` or a well-formed basic value (`fmt.ArgWf`: Go calls no
+method of it), or an error whose `Error()` returns some string (`models_lab.errAny`: Go's `%v` of
+an `error` calls its `Error()`). -/
+def printOk (x : GoInterface) : IProp GF :=
+  iprop(⌜∀ ii, x = interface.ok ii → Perennial.fmt.ArgWf ii⌝ ∨ models_lab.errAny x)
+
+instance printOk_persistent (x : GoInterface) : Persistent (printOk (GF := GF) x) := by
+  unfold printOk; infer_instance
+
+/-- **Hypothesis** `fmt.Println(a...)` of operands `printOk` allows returns, giving the slice
+back; the output is not modelled, nor the results (the lab's `wp_Println_ok`, proved there over
+its own model of `fmt`; Perennial leaves `fmt.Println`/`Fprintln` untranslated and has no spec).
+Discharge: Perennial translates `Fprintln`/`doPrintln` and proves this from its `printArg` (as
+`Printf`'s spec, with `argOk` under `%v`). -/
+abbrev Println.spec : Prop :=
+  ∀ (arg : GoSlice) (xs : List GoInterface) (dq : DFrac),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ □ ([∗list] x ∈ xs, printOk x) ∗ arg ↦*{dq} xs }}
+      (App (Val (@! Perennial.fmt.Println)) (Val #arg))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err); arg ↦*{dq} xs }}
+
+end println
+
+end fmt
+
+/-- The `fmt.Println` hypothesis. -/
+class PrintlnHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
+  Println : fmt.Println.spec (GF := GF) (hG := hG)
 
 /-! ## gRPC, unary -/
 

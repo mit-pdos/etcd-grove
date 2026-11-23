@@ -1,7 +1,7 @@
 /-
 Package `replica`'s results: the server's boot specs (`Replica.lean`), over the proxy's entry
-points (premises: package `proxy`'s results, `Proxy/`) and the hypotheses (`Hyp.lean`: gRPC,
-math/rand, strconv.Atoi, sync.Map).
+points' proofs (`Proxy/Results`) and the hypotheses (`Hyp.lean`: gRPC, protobuf, math/rand,
+strconv.Atoi, sort.Ints, time.UTC, fmt.Println, sync.Map).
 
 Changed against the lab: its `src_initialize'` (`raxos/replica/src`'s initialization from its
 imports', over `Replica/{Init,Inits,HarnessInit}.lean`) is the generated
@@ -34,14 +34,15 @@ variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 
 theorem New.wp_proof [MapHyp qv.map] [hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.grpc]
-    [hyp.RandHyp GF] [hyp.AtoiHyp GF] (hNP : NewProxy.spec (GF := GF) (hG := hG)) :
+    [hyp.RandHyp GF] [hyp.AtoiHyp GF] [hyp.UtcHyp GF] :
     New.spec (GF := GF) (hG := hG) :=
-  wp_New hNP
+  wp_New NewProxy.wp_proof
 
 theorem Server.NetworkInit.wp_proof [hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.grpc]
-    [hyp.RandHyp GF] [hyp.AtoiHyp GF] (hNI : Proxy.NetworkInit.spec (GF := GF) (hG := hG)) :
+    [hyp.RandHyp GF] [hyp.AtoiHyp GF] [hyp.PrintlnHyp GF] [hyp.PbHyp GF]
+    [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions] [errors.Assumptions] :
     Server.NetworkInit.spec (GF := GF) (hG := hG) :=
-  wp_Server_NetworkInit hNI
+  wp_Server_NetworkInit Proxy.NetworkInit.wp_proof
 
 theorem Server.StartProposers.wp_proof [hyp.grpc.GrpcHyp (cd := hyp.qpCodec) qv.grpc]
     [hyp.RandHyp GF] [hyp.AtoiHyp GF] :

@@ -22,7 +22,7 @@ open Perennial.raxos.pure
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 open consLemmas
@@ -301,9 +301,9 @@ theorem tix_register (γ : QNames) (E : CoPset) (hE : ↑consN ⊆ E) (t : Ticke
     iexact Hel
 
 /-- A proxy starts counting the frames it reads on a connection it accepted. -/
-theorem rd_alloc (γ : QNames) (E : CoPset) (hE : ↑consN ⊆ E)
+theorem rd_alloc [GoGlobalContext] (γ : QNames) (E : CoPset) (hE : ↑consN ⊆ E)
     (cid : Nat) :
-    ⊢@{IProp GF} inv consN (consInv γ) -∗ netFresh (extGlobalGS netExt) cid true ={E}=∗ rdCtr γ cid 0 := by
+    ⊢@{IProp GF} inv consN (consInv γ) -∗ connFresh (Gg := G) cid true ={E}=∗ rdCtr γ cid 0 := by
   iintro #Hinv Hfr
   unfold consInv
   iinv Hinv with ⟨%W, %R, %Fr, %T, %Tix, %Cr, %Rd, %S, >Hhist, >Hh, >HR, >HRs, >%HRW, >HFr, >HFrs,
@@ -313,10 +313,7 @@ theorem rd_alloc (γ : QNames) (E : CoPset) (hE : ↑consN ⊆ E)
   | some p =>
     icases BigSepM.bigSepM_lookup_acc (show get? Rd cid = some p from hRl) $$ HRds with ⟨⟨-, Hfr'⟩, -⟩
     iexfalso
-    unfold netFresh
-    icases Hfr with ⟨-, Hd⟩
-    icases Hfr' with ⟨-, Hd'⟩
-    iapply netDir_excl $$ Hd Hd'
+    iapply connFresh_excl cid true $$ [$Hfr $Hfr']
   | none =>
     imod ghost_map_insert cid 0 hRl $$ HRd with ⟨HRd, Hel⟩
     icases (ghostMapElem_halves γ.rd cid 0).1 $$ Hel with ⟨Hh1, Hh2⟩
