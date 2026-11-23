@@ -689,14 +689,14 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's accepted append, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       obtain ⟨ls', hse, hprev', hes', hcm'⟩ : ∃ ls' : LogState,
           s' = sendMsgs { ({ s with lead := m.From' } : NState) with logst := ls' }
             [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧
           ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
           ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
-        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -725,7 +725,7 @@ theorem stepBundle_traced_folAppAcc : stepBundle_traced.onRB (GF := GF) (hG := h
           [appResp id { s with lead := m.From' } m.From' false lastnewi (W64 0) (W64 0)] ∧
         ls'.prev = s.logst.prev ∧ ls'.sents ++ ls'.uents = es' ∧
         ls'.committed = accCommit s.logst.committed m.Commit' lastnewi := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf

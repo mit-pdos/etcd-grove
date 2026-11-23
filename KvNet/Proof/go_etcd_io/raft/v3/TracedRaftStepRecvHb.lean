@@ -762,10 +762,10 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
       exact ⟨fun _ _ _ => rfl, IdxFree.of_some _ hsome, IdxFree.of_some _ hsome,
         IdxFree.of_some _ hsome, fun _ _ => IdxFree.of_some _ hsome⟩
   · -- the closing wand: raft's heartbeat handling, the specification's
-    have hoty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s' := by
+    have hoty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s' := by
       intro s' hend
       have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
-        obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+        obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
         rw [hpre pvs] at h
         obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
         unfold FollowerStepResultC at hf
@@ -780,7 +780,7 @@ theorem stepBundle_traced_folHb : stepBundle_traced.on (GF := GF) (hG := hG) Fol
     iunfold stepCloseAt
     iintro %s' %B %recv %_ %hend %_ Hout
     have hse : s' = heartbeatResult id { s with lead := m.From' } m ctx := by
-      obtain ⟨pvs, h⟩ := ((hend (by rw [htr]; rfl)) hty).2.2.2 hns hnHup hnV
+      obtain ⟨pvs, h⟩ := (hend hty).2.2.2 hns hnHup hnV
       rw [hpre pvs] at h
       obtain ⟨scfg, sv, d, c', hf⟩ := h.1 hrole
       unfold FollowerStepResultC at hf

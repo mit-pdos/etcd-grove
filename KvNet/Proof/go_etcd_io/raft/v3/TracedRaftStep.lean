@@ -231,7 +231,7 @@ theorem stepClose_anyB_end {γ : RaftNames} {md : GMode} {c : CfgM} {id : w64} {
     {ents : List EntryM} {ctx : List w8} {s : NState} {R : StepG GF} {tr : Option GName} {γ' : RaftNames}
     {r : Loc} {c' : CfgM} {Φ : NState → List w64 → ServerC → List Etcdraft.Msg → Prop}
     {Λ : Option TraceEv → Prop} {bt : Bool}
-    (hty : ∀ s', (s.gh.tr.isSome → StepEnd c id m ents ctx s s') → OutTyStep s s') :
+    (hty : ∀ s', StepEnd c id m ents ctx s s' → OutTyStep s s') :
     stepClose γ md c id m ents ctx s R (fun s' => trCapB tr γ' r id c' true (Φ s') Λ) ⊢
       stepClose γ md c id m ents ctx s R
         (fun s' => iprop(⌜OutTyStep s s'⌝ ∗ ∃ bt' : Bool, ⌜bt = true → bt' = true⌝ ∗
