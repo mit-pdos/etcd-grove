@@ -37,7 +37,7 @@
 //	X.F = primitive.NewProph()                F a ghost field
 //	if C { S... } else { S... }               (no init statement; the branches, the else
 //	                                           optional or an `else if` of the same kind, hold
-//	                                           ghost statements only)
+//	                                           ghost statements only, at least one)
 //
 // and, in a composite literal, a ghost field's keyed element `F: primitive.NewProph()`; and the
 // import "github.com/goose-lang/primitive" when ORIG does not have it (ORIG must then not use the
@@ -300,7 +300,8 @@ func (c *checker) ghostStmt(s ast.Stmt) bool {
 		_, ok = c.pkg.fields[sel.Sel.Name]
 		return ok && c.readOnly(sel.X)
 	case *ast.IfStmt:
-		if s.Init != nil || !c.readOnly(s.Cond) || !c.allGhost(s.Body.List) {
+		// an if without statements is not ghost code (the original may have one)
+		if s.Init != nil || !c.readOnly(s.Cond) || !c.allGhost(s.Body.List) || !holdsStmt(s) {
 			return false
 		}
 		switch e := s.Else.(type) {
@@ -311,6 +312,20 @@ func (c *checker) ghostStmt(s ast.Stmt) bool {
 		case *ast.IfStmt:
 			return c.ghostStmt(e)
 		}
+	}
+	return false
+}
+
+// holdsStmt reports whether the if s holds a statement (in its body or its else).
+func holdsStmt(s *ast.IfStmt) bool {
+	if len(s.Body.List) > 0 {
+		return true
+	}
+	switch e := s.Else.(type) {
+	case *ast.BlockStmt:
+		return len(e.List) > 0
+	case *ast.IfStmt:
+		return holdsStmt(e)
 	}
 	return false
 }

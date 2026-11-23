@@ -52,8 +52,8 @@ assignments to anything but the helper's locals.
   declared is reported);
 - a call of a ghost helper (as above);
 - `X.F = primitive.NewProph()` for a ghost field F, X read-only;
-- `if C { ... } else { ... }` (no init; else optional or an `else if` of the same kind) holding
-  only ghost statements.
+- `if C { ... } else { ... }` (no init; else optional or an `else if` of the same kind) holding at least one statement and
+  only ghost statements (an original `if` without statements, such as gryff's `if C { // ... }`, is not ghost code).
 In a composite literal, a ghost field's keyed element `F: primitive.NewProph()` is erased.
 The import of `github.com/goose-lang/primitive` (unnamed) is erased when ORIG lacks it, and ORIG
 must then not use the name `primitive`; a file that declares local prophecies must import it.
@@ -98,7 +98,7 @@ Positive: the first rule's local prophecy with an `if`/`else`; a ghost variable 
 method calling a function, a counted loop, locals, `op=`, `++`, an `if`, `&` of a field) called at
 statement level and inside an `if`; helpers in one file called from another; a ghost field with a
 keyed literal initialization, a `X.F = NewProph()` statement and resolutions; a struct without
-ghost fields used freely.
+ghost fields used freely; an original `if` without statements kept (not erased).
 Negative (each checks its message): a helper that writes the heap, calls a non-helper, returns a
 value, recurses (through another helper), loops with `<=`, loops forever, assigns its counter,
 ranges, starts a goroutine, defines a local from a call, is an exported method, receives from a
