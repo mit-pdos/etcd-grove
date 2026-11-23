@@ -57,7 +57,7 @@ theorem Server.ServeCodec.wp_proof
   iunfold srvCodecOwn at Hown
   icases Hown with ⟨Hwerr, Hrerr, Hclosed, Hacc⟩
   iunfold rpcAccepted at Hacc
-  icases Hacc with ⟨Hsend, Hrecv, Hfresh⟩
+  icases Hacc with ⟨%w, %Hw, Hsend, Hrecv, Hfresh⟩
   ihave #Hci := sendTok_connIs $$ Hsend
   icases recvTok_keep_sentLb (Gg := hG.goose_globalGS) cn true false rfl _ _ $$ Hrecv
     with ⟨Hrecv, #Hsl⟩
@@ -77,12 +77,12 @@ theorem Server.ServeCodec.wp_proof
   imod sync.init_Mutex (srvSendInv W a cn sc) ⊤ _ $$ Hmu0 [Hwerr Hsend] with #Hmu
   · inext
     iunfold srvSendInv
-    iexists interface.nil, W.hsAns a, []
+    iexists interface.nil, w, []
     iframe Hwerr Hsend Hsl
     isplitr
     · iunfold ansRec; ileft; ipureintro; rfl
     ipureintro
-    exact ⟨by simp, by simp [respsWire, framesOf], fun _ => by simp [respsWire, framesOf]⟩
+    exact ⟨by simp, by simpa [respsWire, framesOf] using Hw, fun _ => Or.inr ⟨rfl, Hw⟩⟩
   icases typedPointsto_not_null_dup _ _ _ $$ Hwg0 with ⟨Hwg0, %Hwgnn⟩
   imod sync.init_WaitGroup (srvWgN.@"wg") wgl $$ Hwg0 with ⟨%γwg, #Hiswg, Hctr, Hwait⟩
   ihave #Hlaw := sync.tokJoin.lendLaw_false (GF := GF) srvWgN

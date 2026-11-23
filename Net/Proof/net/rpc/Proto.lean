@@ -391,6 +391,69 @@ instance rpcAddr_persistent (W : RpcWorld GF) (a : GoString) :
     Persistent (rpcAddr (Gg := Gg) W a) := by
   unfold rpcAddr; infer_instance
 
+/-! ## A listener's addresses (D21) -/
+
+/-- A listener at `la` (a valid address or a wildcard, `listenOk`) serves rpc in world `W` behind the
+handshake `hs` (the dialer's) and `hsAns` (the acceptor's answer): each valid address `a` it takes
+has its own protocols (`reqProto W a`, `respProto W a`: `rpcLisP_addr` gives its `rpcAddrP`), with
+that handshake, and the right to listen at `la` (`rpcLisP_lis`). Made once, from the addresses `la`
+takes unset (`rpcLisP_set`); at a valid `la`, `la` alone (`rpcLisP_addrOk`). Persistent. An acceptor
+of a connection dialed to `a` learns `a`'s protocols (`Server.Accept`): a wildcard's connections may
+be dialed to any of its addresses, and the world may give them different services. -/
+def rpcLisP (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) : IProp GF :=
+  iprop(lisProtoD (Gg := Gg) la (reqProto W) (respProto W) ∗ inv regN' (regInv W) ∗
+    ⌜∀ a, addrOk a = true ∧ lisAccepts la a → W.hs a = hs ∧ W.hsAns a = hsAns⌝)
+
+instance rpcLisP_persistent (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) :
+    Persistent (rpcLisP (Gg := Gg) W la hs hsAns) := by
+  unfold rpcLisP; infer_instance
+
+/-- Each valid address a listener takes serves rpc behind its handshake. -/
+theorem rpcLisP_addr (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) (a : GoString)
+    (hok : addrOk a = true) (hacc : lisAccepts la a) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢ rpcAddrP W a hs hsAns := by
+  unfold rpcLisP rpcAddrP
+  iintro ⟨#Hl, #Hreg, %Hhs⟩
+  iframe Hreg
+  isplitl
+  · iapply lisProtoD_addr la a (reqProto W) (respProto W) hok hacc $$ Hl
+  · ipureintro; exact Hhs a ⟨hok, hacc⟩
+
+/-- At a valid address, the listener's own address. -/
+theorem rpcLisP_addrOk (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8)
+    (hok : addrOk la = true) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢ rpcAddrP W la hs hsAns :=
+  rpcLisP_addr W la hs hsAns la hok ((lisAccepts_addrOk hok).2 rfl)
+
+/-- The right to listen at `la` (`net.Listen.spec`'s update). -/
+theorem rpcLisP_lis (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢
+      |={⊤,∅}=> lisToks (NG (Gg := Gg)) la ∗ (lisToks (NG (Gg := Gg)) la ={∅,⊤}=∗ True) := by
+  unfold rpcLisP
+  iintro ⟨#Hl, -, -⟩
+  iapply listen_lisD_au la (reqProto W) (respProto W) $$ Hl
+
+theorem rpcLisP_ok (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8) :
+    rpcLisP (Gg := Gg) W la hs hsAns ⊢ ⌜listenOk la = true⌝ := by
+  unfold rpcLisP
+  iintro ⟨#Hl, -, -⟩
+  iapply lisProtoD_ok la (reqProto W) (respProto W) $$ Hl
+
+/-- Set a listener's protocols once, at the boot, from the addresses `la` takes, unset: each
+address's `reqProto W a`, `respProto W a` (`lis_set_protoD`), in a world that gives every address
+`la` takes the handshake `hs`/`hsAns`. -/
+theorem rpcLisP_set (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8)
+    (hla : listenOk la = true)
+    (hhs : ∀ a, addrOk a = true ∧ lisAccepts la a → W.hs a = hs ∧ W.hsAns a = hsAns) :
+    ⊢ regCtx (Gg := Gg) -∗ inv regN' (regInv W) -∗ lisUnset la ={E}=∗
+      rpcLisP W la hs hsAns := by
+  iintro #Hctx #Hreg Hu
+  imod lis_set_protoD E la (reqProto W) (respProto W) hla $$ Hctx Hu with #Hl
+  imodintro
+  unfold rpcLisP
+  iframe Hl Hreg
+  ipureintro; exact hhs
+
 end proto
 
 end net.rpc

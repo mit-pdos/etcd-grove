@@ -26,12 +26,15 @@ reached by these).
 * the request loop (`ServerGhost.lean`: a request read is a client's, taken once; an answer
   recorded at its response's write): `sendResponse`, `service.call`, `readRequestHeader`,
   `readRequest`, `ServeCodec` (Perennial's thread-token join for its runs), `ServeConn`, `Accept`
-  (`log.Println`'s spec, `Net/Spec/log/Println.lean`).
+  (`log.Println`'s spec, `Net/Spec/log/Println.lean`; on a listener at a valid address or a
+  wildcard, at the address each connection was dialed to; `Accept.wp_addr` at a valid address);
+* the server's handler over HTTP, `ServeHTTP` (on a `CONNECT`, over the response's `hijackOk`,
+  `Net/Proof/net/http/ServerDefs.lean`).
 
 The HTTP client (`section http`): `DialHTTPPath`, `DialHTTP` and `connectReader.Read` (the model's
 reader of the CONNECT answer), over net/http's `ReadResponse` (`Net/Proof/net/http/Results.lean`).
-Not yet proved (the plan note, phase 5.2, lists what remains): the server's HTTP path
-(`ServeHTTP`, `HandleHTTP`, net/http's server).
+Not yet proved (the plan note, phase 5.2, lists what remains): `HandleHTTP` and net/http's server
+up to the hijack (which gives `ServeHTTP` its `hijackOk`).
 -/
 module
 
@@ -90,6 +93,8 @@ public import Net.Proof.net.rpc.Server__readRequestHeader
 public import Net.Proof.net.rpc.Server__readRequest
 public import Net.Proof.net.rpc.Server__ServeCodec
 public import Net.Proof.net.rpc.Server__ServeConn
+public import Net.Proof.net.rpc.Server__ServeHTTP
+public import Net.Proof.net.rpc.AcceptAddr
 public import Net.Proof.net.rpc.Server__Accept
 public import Net.Proof.net.Listener__Accept
 public import Net.Proof.log.Println
@@ -273,6 +278,15 @@ theorem Server.Accept.wp [errors.Assumptions] [log.Assumptions] :
     Server.Accept.spec (GF := GF) (hG := hG) :=
   Server.Accept.wp_proof net.Listener.Accept.wp_proof log.Println.wp Server.ServeConn.wp
 
+/-- `Server.Accept` at a valid address (`AcceptAddr.lean`), an instance of `Server.Accept.wp`. -/
+theorem Server.Accept.wp_addr [errors.Assumptions] [log.Assumptions] :
+    Server.Accept.specAddr (GF := GF) (hG := hG) :=
+  Server.Accept.spec_addr Server.Accept.wp
+
+theorem Server.ServeHTTP.wp [errors.Assumptions] [net.http.Assumptions] :
+    Server.ServeHTTP.spec (GF := GF) (hG := hG) :=
+  Server.ServeHTTP.wp_proof net.Conn.Write.wp_proof Server.ServeConn.wp
+
 end server
 
 section http
@@ -354,6 +368,8 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.ServeCodec.wp
 #print axioms Perennial.net.rpc.Server.ServeConn.wp
 #print axioms Perennial.net.rpc.Server.Accept.wp
+#print axioms Perennial.net.rpc.Server.Accept.wp_addr
+#print axioms Perennial.net.rpc.Server.ServeHTTP.wp
 #print axioms Perennial.net.rpc.connectReader.Read.wp
 #print axioms Perennial.net.rpc.DialHTTPPath.wp
 #print axioms Perennial.net.rpc.DialHTTP.wp
