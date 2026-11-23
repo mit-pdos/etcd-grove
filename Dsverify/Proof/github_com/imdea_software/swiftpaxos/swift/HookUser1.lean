@@ -54,7 +54,7 @@ theorem hook.HookUser1.wp_proof [syscall.Assumptions] [os.Assumptions] :
   · ipureintro; rfl
   iintro %sl ⟨Hsl, _⟩
   wp_auto
-  wp_apply os.signal.NotifyQuiet.wp_hyp _ _ _ Hnn $$ [$Hsig $Hsl] as -
+  wp_apply os.signal.NotifyQuietUsr1.wp_hyp _ _ _ Hnn $$ [$Hsig $Hsl] as -
   wp_apply wp_fork $$ [-HΦ]
   · wp_auto
     wp_apply wp_bag_receive γ ch (fun _ : GoInterface => iprop(False)) $$ [$Hbag] as %v HF

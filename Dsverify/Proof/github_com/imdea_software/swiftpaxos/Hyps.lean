@@ -60,9 +60,9 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
   gob_Decode : ∀ [examples.swiftnet.Assumptions], encoding.gob.Decoder.Decode.spec (GF := GF)
 
   /-- lab `Harness/Proof/math/rand.lean` `math.rand.NewSource.wp_proof` (lib/LibSpecs.lean) -/
-  math_rand_NewSource : math.rand.NewSource.spec (GF := GF)
+  math_rand_NewSource : math.rand.NewSource.labSpec (GF := GF)
   /-- lab `math.rand.New.wp_proof` -/
-  math_rand_New : ∀ [math.rand.Assumptions], math.rand.New.spec (GF := GF)
+  math_rand_New : ∀ [math.rand.Assumptions], math.rand.New.labSpec (GF := GF)
   /-- lab `math.rand.Intn.wp_proof` -/
   math_rand_Intn : math.rand.Intn.spec (GF := GF)
   /-- lab `uuid.wp_ID` (`uuid.wp_New` is the environment class `SwiftOsRandom`, below) -/
@@ -70,11 +70,11 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
 
 /-- **The environment assumption** (not a library spec; dsv-rabia's `os.signal.NoSignals`): no
 signal is sent to the deployment's processes, so the channel `hook.HookUser1` registers for
-`SIGUSR1` never receives one (`lib/LibSpecs.lean`, `os.signal.NotifyQuiet.spec`). A premise of
+`SIGUSR1` never receives one (`lib/LibSpecs.lean`, `os.signal.NotifyQuietUsr1.spec`). A premise of
 `swiftpaxos_remote_robust` beside the library hypotheses, kept apart from them. -/
 class SwiftNoSignals [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
     [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
-  notifyQuiet : os.signal.NotifyQuiet.spec (GF := GF)
+  notifyQuiet : os.signal.NotifyQuietUsr1.spec (GF := GF)
 
 /-- **The environment assumption on the OS's randomness** (not a library spec): reading
 `crypto/rand.Reader` does not fail, so `uuid.New()` (`Must(NewRandom())`, which panics when it
@@ -129,13 +129,13 @@ theorem Decoder.Decode.wp_hyp : Decoder.Decode.spec (GF := GF) := h.gob_Decode
 end encoding.gob
 
 namespace math.rand
-theorem NewSource.wp_hyp : NewSource.spec (GF := GF) := h.math_rand_NewSource
-theorem New.wp_hyp [math.rand.Assumptions] : New.spec (GF := GF) := h.math_rand_New
+theorem NewSource.wp_hyp : NewSource.labSpec (GF := GF) := h.math_rand_NewSource
+theorem New.wp_hyp [math.rand.Assumptions] : New.labSpec (GF := GF) := h.math_rand_New
 theorem Intn.wp_hyp : Intn.spec (GF := GF) := h.math_rand_Intn
 end math.rand
 
-theorem os.signal.NotifyQuiet.wp_hyp [hs : github_com.imdea_software.swiftpaxos.SwiftNoSignals GF] :
-    os.signal.NotifyQuiet.spec (GF := GF) := hs.notifyQuiet
+theorem os.signal.NotifyQuietUsr1.wp_hyp [hs : github_com.imdea_software.swiftpaxos.SwiftNoSignals GF] :
+    os.signal.NotifyQuietUsr1.spec (GF := GF) := hs.notifyQuiet
 
 namespace github_com.google.uuid
 theorem wp_New [hr : github_com.imdea_software.swiftpaxos.SwiftOsRandom GF] : New.spec (GF := GF) :=

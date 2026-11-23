@@ -10,13 +10,14 @@ is a field of `SwiftHyps` (Hyps.lean; notes/dsv-swiftpaxos.md, "Hypotheses").
   its model of `uuid`'s code); the proof uses neither, so here `New` returns some `UUID` and `ID` some `w32`.
 * `os.signal.Notify`: the lab's model never delivers a signal (its `Notify` keeps no reference to the
   channel), and `hook.HookUser1`'s proof relies on it (the channel's bag holds no message). Here that
-  is `os.signal.NotifyQuiet.spec`, **an assumption of the deployment** (no `SIGUSR1` is sent to a
+  is `os.signal.NotifyQuietUsr1.spec`, **an assumption of the deployment** (no `SIGUSR1` is sent to a
   node), not a fact of Go's `os/signal`: the separate class `SwiftNoSignals` (Hyps.lean), over the
   one signal `HookUser1` passes.
 -/
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
+public import Dsverify.Proof.math.rand.Spec
 
 @[expose] public section
 
@@ -34,33 +35,28 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 
-/-- lab `Harness/Proof/math/rand.lean` `math.rand.NewSource.spec`. -/
-abbrev math.rand.NewSource.spec : Prop :=
+/-- lab `Harness/Proof/math/rand.lean` `math.rand.NewSource.spec` (renamed: dsv-rabia's
+`Dsverify/Proof/math/rand/Spec.lean` declares `math.rand.NewSource.spec`, with its source token). -/
+abbrev math.rand.NewSource.labSpec : Prop :=
   ∀ (seed : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
       (App (Val (@! math.rand.NewSource)) (Val #seed))
     {{ (src : GoInterface), RET #src; True }}
 
-/-- lab `math.rand.New.spec`. -/
-abbrev math.rand.New.spec [math.rand.Assumptions] : Prop :=
+/-- lab `math.rand.New.spec` (renamed, as `NewSource.labSpec`). The package-level `Intn`'s spec is
+dsv-rabia's `math.rand.Intn.spec` (the lab's, the same statement). -/
+abbrev math.rand.New.labSpec [math.rand.Assumptions] : Prop :=
   ∀ (src : GoInterface),
     {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
       (App (Val (@! math.rand.New)) (Val #src))
     {{ (r : Loc), RET #r; ∃ v : math.rand.Rand, r ↦ v }}
 
-/-- lab `math.rand.Intn.spec` (the package-level `Intn`). -/
-abbrev math.rand.Intn.spec : Prop :=
-  ∀ (n : w64), 0 < sint.Z n →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
-      (App (Val (@! math.rand.Intn)) (Val #n))
-    {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
-
 /-- `signal.Notify(c, SIGUSR1)` (the fork's `hook.HookUser1`; `SIGUSR1` is the literal
 `syscall.Signal(0xa)`) in a deployment where no signal is sent: nothing. **Not a library spec**: real
 Go's `Notify` registers `c`, and the runtime sends every `SIGUSR1` the process receives on it. It is
 the environment assumption `SwiftNoSignals` (Hyps.lean), as dsv-rabia's `os.signal.NoSignals`
-(`NotifyQuiet.spec`), restricted (Upamanyu's rabia review, #24) to the signals actually passed. -/
-abbrev os.signal.NotifyQuiet.spec : Prop :=
+(`NotifyQuiet.spec`; renamed here, the statement differs), restricted (Upamanyu's rabia review, #24) to the signals actually passed. -/
+abbrev os.signal.NotifyQuietUsr1.spec : Prop :=
   ∀ (c : GoChan) (sig : GoSlice) (dq : DFrac), c ≠ chan.nil →
     {{ isPkgInit (PROP := IProp GF) pkg_id.os.signal ∗
         sig ↦*{dq} [interface.mkOk syscall.Signal.ty #(W64 10)] }}
