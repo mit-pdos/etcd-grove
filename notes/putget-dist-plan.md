@@ -293,3 +293,59 @@ end with `etcdKVAt` on the member's heap, which S2 replaces.
   threads over every execution of `n` steps, which the bridge meets with `n + 2`, and the server's specs take
   `threadBound ≤ 2 ^ 28`. An along-the-execution distributed adequacy (as the single-process
   `goose_adequacy_below`) would restore it (`notes/perennial-changes.md`, 2026-11-23).
+
+## 8. Against S2's draft signatures (2026-11-23; `notes/phase7-plan.md` on `phase7-s2-design` `0606f68248`, §"S2 draft signatures")
+
+Supersedes section 7's sketch of `PutgetStart`/`MemberBoot`/`ClientBoot` (written against the first answer:
+there is no saved predicate of the service, the agreement is on a view, `envAt` reaches the client through
+`etcdPubSpec`'s `Φ`).
+
+**The placeholder** (`Proof/.../examples/etcd/dist/putget/S2Draft.lean`, a defs module; marked PLACEHOLDER):
+his pure types `ProtoWire`, `GrpcEntry`, `GrpcSvc` verbatim, and the rest as the fields of one structure
+`S2Draft` (no axiom, no `opaque`), with his names and statements: `depSlotsCtx`/`depSlots_alloc`,
+`grpcAddrAt`, `grpc_addr_set` (spends `addrUnset a`), `EnvView`, `etcdEnvOf`, `viewRd`, `envPubTok`, `envAt`,
+`envPub_alloc`, `envPubInv`, `etcdSvc`, `kvRegsPub`, `kvRegsPub_at` (at the client's own heap). Two fields are
+our reading of his §1.3 start (marked): `envPubInv_alloc` (the token split into the invariant's half and the
+member's, `envPubHalf`) and `kvRegsPub_of_addr` (the clients' `kvRegsPub` from the address set at `etcdSvc`:
+`grpcSvcAt_of_addr` with the redefined `isGrpcRpcMd`). When his branch lands, each field becomes his
+definition or theorem and the structure goes.
+
+**The skeleton** (`Proof/.../TopLevelRobustness.lean`), all proved, no axiom, no `sorry`:
+- `putget_start` (**proved** from `S2Draft`'s fields): his start, steps 1-4: the slot map, `γE`, the
+  publication invariant at the member's `Pub`, the client address set to `etcdSvc γE cid mid`; the member's
+  share `memberShare` (`grpcAddrAt client (etcdSvc …)`, its half of the token, `envPubInv`) and the client's
+  `clientShare` (`kvRegsPub client γE cid mid`, `envPubInv`). The peer address's `addrUnset` is dropped
+  (nothing listens there).
+- `putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds) (HB : PutgetBootS2) : putget_safe.spec`
+  (**proved**): the net library's registry (`netProto_alloc`), `putget_start`, the bridge
+  (`putget_safe_of_boot`). Its hypotheses: `S2Holds` (S2's names exist, at every global ghost state:
+  `Nonempty (S2Draft putgetGF)`) and `PutgetBootS2` (`BootsS2`: the cluster id `cid` the table is fixed
+  at, and under S2's names, the member's `Pub` and each machine's `DistBootWpS` from its share at every `γE`).
+  `#print axioms`: Lean's three and five axiomatized predicates of the statement's and clientv3's vocabulary
+  (`dataDirFresh`, `envVerifyOffTok`, `prometheus.nameUnclaimed`; `grpcAddrIsRaw`, `grpcSrvCfgRaw` through
+  `client.kvRegsAt`, which S2's redefinition of `isGrpcRpcMd` removes).
+
+What is left for `putget_safe`: `S2Holds` (S2), the member's boot from `memberShare` and section 7's start
+resources (publishing `envAt γE ν` with `□ Pub ν`, his `env_publish`), the client's boot from `clientShare`
+(its first call at the `etcdPubSpec` form, then `kvRegsPub_at`), and the cluster id (`cid`: bootstrap's,
+fixed before the machines run since the table is a Lean term; a question for us: `BootFacts` gives the
+member id, not the cluster id).
+
+**From putget's side, on his open questions.**
+- **O1 (the view).** putget's client calls `Put` and `Range`, auth off: `etcdPutSpec`, `etcdRangeSpecE`,
+  `putReplied`, `rangeReplyOk`, `rangeErrReply`, `srvLogCert`, `revMinted`
+  (`Proof/go_etcd_io/etcd/client/v3/KVService.lean`, `server/v3/etcdserver/InvRequest.lean`). Of `AEnv` they
+  read `E.γs` (`srvApi.kvLogLb`), `E.γrev` (`revTok`, in `revMinted`), `E.authOn` (`putReplied`), and two
+  predicate fields: `E.Nx` (`□ E.Nx log`, in `srvLogCert` and `rangeErrReply`) and `E.Cp` (`□ E.Cp crev`, in
+  `rangeErrReply`); and the read names `γr` (`viewRd ν`). So the view needs `γs`, `γrev`, the auth mode and
+  the read names, and `Nx` and `Cp` must be definitions over names in `etcdEnvOf ν` (or saved predicates over
+  `mvcc.Log` and `Int`, as O1 says). Which they are on the member is the member's construction (`srvEnv`,
+  `env₀`): to check with him.
+- **O2 (no heap in the table).** putget is auth off, so the auth-on specs (`etcdPutSpecOn s E …`) are not in
+  putget's table: O2's suspect case does not block us. But `#check @client.etcdPutSpec` and
+  `@client.etcdRangeSpecE` (auth off) still show `[hG : HeapGS HasLC.hasLC GF]` (with `[go.Semantics]`): the
+  conjunct that uses it is to be found (candidates: `kvOpAu1`/`kvReadAu`'s atomic updates, the receipts `⧖`,
+  `revTok`). If it is only a section variable that the definitions use through a ghost-only conjunct, the
+  table's entry can be stated at any heap; if not, that conjunct moves to the server's run contract.
+- **O3** (`tree` into `ProtoMsg`): nothing on putget's side (its messages are `pbPutRequest`/`Response`,
+  `pbRangeRequest`/`Response`).
