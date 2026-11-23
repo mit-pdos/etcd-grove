@@ -18,7 +18,7 @@ namespace AntCheck
 set_option linter.unusedSimpArgs false
 
 /-- `f[t]`, where defined, is one of `f`'s pairs. -/
-theorem TermFn.get_mem {α : Type} {f : TermFn α} {t : Int} {v : α} (h : f.get t = .ok v) : (t, v) ∈ f := by
+theorem TermFn.mem_of_get {α : Type} {f : TermFn α} {t : Int} {v : α} (h : f.get t = .ok v) : (t, v) ∈ f := by
   unfold TermFn.get at h
   split at h
   · rename_i p hp
@@ -86,7 +86,7 @@ theorem ll1_within (hW : x.s.Within b E) (hN : x.ev.NumsOk) {l : TermFn (List En
 
 theorem ll1_get_within (hW : x.s.Within b E) (hN : x.ev.NumsOk) {l : TermFn (List Entry)} (h : x.ll1 = .ok l)
     {t : Int} {v : List Entry} (hg : l.get t = .ok v) : logWithin b E v :=
-  ((ll1_within hW hN h).2 _ (TermFn.get_mem hg)).2
+  ((ll1_within hW hN h).2 _ (TermFn.mem_of_get hg)).2
 
 /-- `app` holds only with entries reported. -/
 theorem app_es (h : x.app = .ok true) {es : List Entry} (he : x.es = .ok es) : es.length ≠ 0 := by
@@ -136,7 +136,7 @@ theorem L_within (hW : x.s.Within b E) (hN : x.ev.NumsOk) (hC : x.ev.ChgOk E) {l
   obtain ⟨l2, hl2, h⟩ := bind_ok h
   obtain ⟨t, -, h⟩ := bind_ok h
   split at h
-  · exact ((ll2_within hW hN hC hl2).2 _ (TermFn.get_mem h)).2
+  · exact ((ll2_within hW hN hC hl2).2 _ (TermFn.mem_of_get h)).2
   · simp only [pure_ok, Except.ok.injEq] at h
     subst h
     exact logWithin_nil _ _
