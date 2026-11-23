@@ -19,8 +19,10 @@ premises, to be discharged when each piece comes as one shared change:
   can be allocated) and the class `GrpcHyp V` of the specs `grpc.NewServer.spec`,
   `grpc.Server.RegisterService.spec`, `grpc.Server.Serve.spec`, `grpc.WithInsecure.spec`,
   `grpc.Dial.spec`, `grpc.ClientConn.Invoke.spec`, with the lab's statements (`UnarySpec`,
-  `GrpcWorld`, `handlerOk`, `decOk`, `replyOk`, `descOk`, `grpcAddr` defined as there, over the
-  vocabulary). `grpcAddr W a` is `Net/`'s `addrProto a (reqProto W a) (respProto W a)` with the
+  `GrpcWorld`, `replyOk`, `descOk`, `grpcAddr` defined as there, over the vocabulary), except
+  `handlerOk` and `decOk`: the lab's handler held the caller's deposit from the start (its model's
+  server runs a handler only on a whole request frame); here `dec` hands it over, as grpc-go runs a
+  handler on the request's headers (review #24). `grpcAddr W a` is `Net/`'s `addrProto a (reqProto W a) (respProto W a)` with the
   world's registry: the recorders' addresses get those protocols in the deployment.
 * **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.{Seed,Intn}.spec` (the
   package-level generator, safe for concurrent use; `Intn` for `0 < n` only, Go panics otherwise),
@@ -69,7 +71,9 @@ variable [sem : go.Semantics]
 def qpCodec : PbCodec GF := ⟨msg.marshalPre, msg.unmarshalPre⟩
 
 /-- **Hypothesis** `proto.Marshal(m)` of a message of the program's kinds: its encoding, or an
-error with `Ψ none` (the lab's `Marshal.spec` with its codec). -/
+error with `Ψ none` (the lab's `Marshal.spec` with its codec). Known false as stated (review #24,
+finding 2, open; notes/dsv-quepaxa.md, "Review #24"): `marshalPre`'s reps read the messages at any
+fraction, but protobuf-go stores each message's `sizeCache` and `state` while marshalling. -/
 abbrev proto.Marshal.spec : Prop :=
   ∀ (m : GoInterface) (Ψ : Option (List w8) → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ msg.marshalPre m Ψ }}
@@ -302,24 +306,41 @@ def replyOk (reply : GoInterface) (Φ : List w8 → IProp GF) : IProp GF :=
   iprop((⌜reply = interface.nil⌝ ∗ Φ []) ∨
     (⌜reply ≠ interface.nil⌝ ∗ PbCodec.marshal reply (fun o => iprop(∀ bs, ⌜o = some bs⌝ -∗ Φ bs))))
 
-/-- `dec` decodes the request bytes `bs` with the codec (persistent). -/
-def decOk (dec : GoFunc) (bs : List w8) : IProp GF :=
-  iprop(□ ∀ (v : GoInterface) (Ψ : Bool → IProp GF) (Θ : val → IProp GF),
-    PbCodec.unmarshal bs v Ψ -∗
-    ▷ (∀ err : GoInterface, ((⌜err = interface.nil⌝ ∗ Ψ true) ∨
-        (⌜err ≠ interface.nil⌝ ∗ V.handlerErr err ∗ (Ψ false ∨ PbCodec.unmarshal bs v Ψ))) -∗
+/-- `dec`, the decoding function the server hands the handler of one call with method spec `S`
+(one use: not persistent). Called on a message `v`, with the codec's premise for whatever request
+bytes arrive: `nil` once the request bytes `bs` arrived and decoded into `v` (`Ψ bs true`), and only
+then the caller's deposit `S bs Φ` for them, with `Got Φ`, the call's receipt of its continuation
+(what the reply obligation of `handlerOk` is stated for); or an error the server turns into a
+status, with `v` decoded or failed (`Ψ bs b`: gRPC checks for the end of the request stream after
+decoding) or untouched (the premise back: the request never came). grpc-go v1.84: `dec` is
+`stream.RecvMsg` (`server.go`, `wrapUnaryHandler`), which reads the request frame and unmarshals
+it with the codec (`stream.go`, `serverStream.RecvMsg`; `rpc_util.go`, `recv`). -/
+def decOk (S : UnarySpec GF) (Got : (List w8 → IProp GF) → IProp GF) (dec : GoFunc) :
+    IProp GF :=
+  iprop(∀ (v : GoInterface) (Ψ : List w8 → Bool → IProp GF) (Θ : val → IProp GF),
+    (∀ bs, PbCodec.unmarshal bs v (Ψ bs)) -∗
+    ▷ (∀ err : GoInterface,
+        ((⌜err = interface.nil⌝ ∗ ∃ (bs : List w8) (Φ : List w8 → IProp GF),
+            S bs Φ ∗ Got Φ ∗ Ψ bs true) ∨
+          (⌜err ≠ interface.nil⌝ ∗ V.handlerErr err ∗
+            ((∃ (bs : List w8) (b : Bool), Ψ bs b) ∨ ∀ bs, PbCodec.unmarshal bs v (Ψ bs)))) -∗
       Θ #err) -∗
     WP (App (Val #dec) (Val #v)) {{ Θ }})
 
 /-- The handler `h` with implementation `impl` meets `S` (persistent): called with any context, a
-decoding function of the request bytes, a nil interceptor and the caller's deposit, it returns a
-reply whose encoding gives the continuation, or an error the server turns into a status. -/
+decoding function `dec` of the call (`decOk`), for any receipt `Got`, and a nil interceptor, it
+returns a reply whose encoding gives the continuation `Φ` that `dec` handed over (`Got Φ`), or an
+error the server turns into a status. The handler holds nothing of the caller's before `dec`
+returns: grpc-go runs it as soon as the request's headers arrive (`server.go`, `processRPC` calls
+the wrapped handler before any request bytes are read), and the client sends the headers before it
+marshals the request, which can fail (`call.go`, `invoke`; `stream.go`, `clientStream.SendMsg`). -/
 def handlerOk (impl : GoInterface) (h : GoFunc) (S : UnarySpec GF) : IProp GF :=
   iprop(□ ∀ (ctx : GoInterfaceOk) (cdesc : context.ContextDesc (IProp GF)) (dec : GoFunc)
-      (bs : List w8) (Φ : List w8 → IProp GF) (Θ : val → IProp GF),
-    context.isContext ctx cdesc -∗ decOk V dec bs -∗ S bs Φ -∗
-    ▷ (∀ (reply err : GoInterface), ((⌜err = interface.nil⌝ ∗ replyOk reply Φ) ∨
-        (⌜err ≠ interface.nil⌝ ∗ V.handlerErr err)) -∗ Θ (PairV #reply #err)) -∗
+      (Got : (List w8 → IProp GF) → IProp GF) (Θ : val → IProp GF),
+    context.isContext ctx cdesc -∗ decOk V S Got dec -∗
+    ▷ (∀ (reply err : GoInterface),
+        ((⌜err = interface.nil⌝ ∗ ∃ Φ : List w8 → IProp GF, Got Φ ∗ replyOk reply Φ) ∨
+          (⌜err ≠ interface.nil⌝ ∗ V.handlerErr err)) -∗ Θ (PairV #reply #err)) -∗
     WP (App (App (App (App (Val #h) (Val #impl)) (Val #(interface.ok ctx))) (Val #dec))
       (Val #func.nil)) {{ Θ }})
 
@@ -426,10 +447,12 @@ abbrev Dial.spec : Prop :=
       opts ↦*{dq} os ∗ ⌜err = interface.nil⌝ ∗ V.isClientConn cc W a }}
 
 /-- `cc.Invoke(ctx, fm, args, reply, opts)`: `nil` after one run of the method's handler at the
-server on the encoded request, with its continuation `Φ rep` and the reply decoded into `reply`
-(`Θ rep true`); or an error, after at most one run (the deposit may be lost), with the decoding
-resource `D` back or a decoding run, failed or not (gRPC reports a trailer's error status after
-decoding the reply), and `R` (or the encoding premise, if nothing was encoded). No call options
+server whose `dec` took the encoded request with its deposit `S bs Φ` (`handlerOk`, `decOk`), with
+its continuation `Φ rep` and the reply decoded into `reply` (`Θ rep true`); or an error, after at
+most one run (the deposit may be lost; the handler may have run with no request at all, when the
+encoding fails after the headers went out), with the decoding resource `D` back or a decoding run,
+failed or not (gRPC reports a trailer's error status after decoding the reply), and `R` (or the
+encoding premise, if nothing was encoded). No call options
 (`opts` empty: QuePaxa's generated client passes none; options run arbitrary code). -/
 abbrev ClientConn.Invoke.spec : Prop :=
   ∀ (cc : Loc) (W : GrpcWorld GF) (a : GoString) (ctx : GoInterfaceOk)
@@ -486,8 +509,6 @@ variable (V : GrpcVocab GF) [cd : PbCodec GF]
 instance grpcAddr_persistent (W : GrpcWorld GF) (a : GoString) :
     Persistent (grpcAddr (Gg := hG.goose_globalGS) V W a) := by
   unfold grpcAddr; infer_instance
-instance decOk_persistent (dec : GoFunc) (bs : List w8) : Persistent (decOk V dec bs) := by
-  unfold decOk; infer_instance
 instance handlerOk_persistent (impl : GoInterface) (h : GoFunc) (S : UnarySpec GF) :
     Persistent (handlerOk V impl h S) := by
   unfold handlerOk; infer_instance

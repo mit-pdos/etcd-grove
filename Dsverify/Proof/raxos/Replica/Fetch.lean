@@ -233,7 +233,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iintro ⟨#Hpkg, #Hgc, #Hre⟩
   unfold handlerOk
   imodintro
-  iintro %ctx %cd %dec %bs %Φ %Θ #Hctx #Hdec HS HΘ
+  iintro %ctx %cd %dec %Got %Θ #Hctx Hdec HΘ
   wp_func_call
   wp_call
   wp_auto
@@ -241,11 +241,12 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   generalize «$r0_ptr» = lin at *
   iunfold decOk at Hdec
   wp_apply Hdec $$ %(interface.mkOk (go.GoType.PointerType DecideRequest.ty) #lin)
-      %(fun b => if b then iprop(∃ v,
+      %(fun bs b => if b then iprop(∃ v,
         (⌜∃ v0, (∀ s ∈ v0, strOk s) ∧ encDReq v0 = bs⌝ -∗ repDReq lin (DFrac.own 1) v) ∗
         ⌜∀ v0, (∀ s ∈ v0, strOk s) → encDReq v0 = bs → v = v0⌝) else iprop(True)) [Hin]
       as %err Herr
-  · rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
+  · iintro %bs
+    rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
     unfold unmarshalPre
     iright; iright; ileft
     iexists lin
@@ -266,7 +267,7 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     · exact absurd rfl He
   subst He
   wp_auto
-  icases Hv with ⟨%v, Hv, %Hv0⟩
+  icases Hv with ⟨%bs, %Φ, HS, HGot, %v, Hv, %Hv0⟩
   iunfold fetchSpec at HS
   icases HS with ⟨%ids, ⟨%Hbs, %Hids⟩, HΦ⟩
   ihave Hv := Hv $$ %(⟨ids, Hids, Hbs.symm⟩ : ∃ v0, (∀ s ∈ v0, strOk s) ∧ encDReq v0 = bs)
@@ -284,6 +285,8 @@ theorem fetch_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   ileft
   isplitr
   · ipureintro; rfl
+  iexists Φ
+  iframe HGot
   unfold replyOk
   iright
   isplitr
@@ -444,7 +447,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iintro ⟨#Hpkg, #Hgc, #Hre⟩
   unfold handlerOk
   imodintro
-  iintro %ctx %cd %dec %bs %Φ %Θ #Hctx #Hdec HS HΘ
+  iintro %ctx %cd %dec %Got %Θ #Hctx Hdec HΘ
   wp_func_call
   wp_call
   wp_auto
@@ -452,11 +455,12 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   generalize «$r0_ptr» = lin at *
   iunfold decOk at Hdec
   wp_apply Hdec $$ %(interface.mkOk (go.GoType.PointerType Decisions.ty) #lin)
-      %(fun b => if b then iprop(∃ v,
+      %(fun bs b => if b then iprop(∃ v,
         (⌜∃ v0, (∀ d ∈ v0, dslotOk d) ∧ encDecs v0 = bs⌝ -∗ repDecs lin (DFrac.own 1) v) ∗
         ⌜∀ v0, (∀ d ∈ v0, dslotOk d) → encDecs v0 = bs → v = v0⌝) else iprop(True)) [Hin]
       as %err Herr
-  · rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
+  · iintro %bs
+    rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
     unfold unmarshalPre
     iright; iright; iright; iright; ileft
     iexists lin
@@ -477,7 +481,7 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     · exact absurd rfl He
   subst He
   wp_auto
-  icases Hv with ⟨%v, Hv, %Hv0⟩
+  icases Hv with ⟨%bs, %Φ, HS, HGot, %v, Hv, %Hv0⟩
   iunfold informSpec at HS
   icases HS with ⟨%ds, ⟨%Hbs, %Hds⟩, #Hdecs, HΦ⟩
   ihave Hv := Hv $$ %(⟨ds, Hds, Hbs.symm⟩ : ∃ v0, (∀ d ∈ v0, dslotOk d) ∧ encDecs v0 = bs)
@@ -496,6 +500,8 @@ theorem inform_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   ileft
   isplitr
   · ipureintro; rfl
+  iexists Φ
+  iframe HGot
   unfold replyOk
   iright
   isplitr

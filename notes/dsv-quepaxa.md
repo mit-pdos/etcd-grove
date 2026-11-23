@@ -101,7 +101,9 @@ named after the lab's specs, until each comes as one shared change. **All are in
   (`Net/` `Proto`s of a gRPC address), `worldOk`, `isServer`, `srvOwn`, `srvServed`,
   `isClientConn`, `handlerErr`, with their persistence as fields), `UnarySpec`, `GrpcWorld`
   (`MS`, `reg`), and defined over it as the lab's: `grpcAddr V W a := addrProto a (reqProto W a)
-  (respProto W a) ∗ worldOk W`, `replyOk`, `decOk`, `handlerOk`, `descOk`, `encPre`. The specs
+  (respProto W a) ∗ worldOk W`, `replyOk`, `descOk`, `encPre`; `handlerOk` and `decOk` restated
+  after review #24 (the deposit `S bs Φ` comes out of `dec`'s success, with a receipt `Got Φ` the
+  reply obligation is stated for; "Review #24" below). The specs
   (the lab's statements): `NewServer.spec`, `Server.RegisterService.spec`, `Server.Serve.spec`
   (**changed for the wildcard**: the listener at `la` as `net.Listen`'s success post gives it,
   `isListener li l ∗ netLis l la true ∗ netLisOn l la`, with `lisProto la (reqProto W a)
@@ -213,15 +215,31 @@ gives the names-only functions (grpc, yaml, go-redis, ...) their bodies (the sta
 `GoGlobalContext`/`go.Semantics`, and the commands' `Assumptions` fix only the translated
 packages' unfoldings, so they do not clash with a body for a names-only function), the
 vocabulary existentially chosen by a model (`GrpcWorldHyp` holds of any vocabulary whose
-`worldOk` is fresh ghost state). Doubts: (1) `MapHyp.ivt` is about Perennial's model of
-`sync.Map` (its `internal/sync.HashTrieMap` field is an axiomatized type with `sorry` instances),
-not Go's: satisfiable only if some points-to `tp` is coherent with that model's
-`IntoValTypedUnderlying` (believed: any typed points-to over the underlying representation);
+`worldOk` is fresh ghost state). Doubts: (1) **`MapHyp.ivt` is a claim about Perennial's model
+of an opaque type, not about Go**: `sync.Map`'s field `internal/sync.HashTrieMap` is an
+axiomatized type whose `TypedPointsto`/`IntoValTypedUnderlying` instances are `sorry`, and `ivt`
+says the vocabulary's points-to `tp` is coherent with the semantics Perennial gives allocation,
+loads and stores at that type. Its satisfiability depends on that semantics at opaque types, which
+nothing here shows. Believed satisfiable: the semantics of an opaque type's memory operations is
+the untyped one over its underlying value (`Perennial.sync.Map.underlying`), and the heap's
+points-to over that representation (what goose generates for any translated struct, with
+`solve_into_val_typed_struct`) meets it; Perennial's own instances, once given, would be one.
 (2) `PbHyp` speaks of Perennial's translation of protobuf's `proto.Marshal`/`Unmarshal` (the main
 tree's), which must actually behave as the real protobuf on QuePaxa's messages (the audit of
-2026-11-23 checked the spec against Go's behaviour, not the translation's reachability);
+2026-11-23 checked the spec against Go's behaviour, not the translation's reachability); and its
+reps are still false of protobuf-go v1.36.12 (review #24, finding 2, open: "Review #24" below).
 (3) `GrpcHyp`'s `Invoke` and `Serve` describe the lab's model's behaviour (audited against
-grpc-go, "Hypotheses" above).
+grpc-go, "Hypotheses" above); `handlerOk`/`decOk` restated after review #24 to grpc-go v1.84's
+server (below). (4) **`QpVocab` is fixed before the heaps**: the statement quantifies `∀ qv :
+QpVocab remoteGF` outside the heap premises (`heapAt G L`), so a model of `qv.grpc`'s and
+`qv.map`'s predicates (`own m M`, `isClientConn`, `srvOwn`, ...) cannot mention invariants or
+ghost names allocated in a particular global ghost state `G` or heap. Believed satisfiable: each
+predicate can be a ghost-only representation whose ghost names are carried in its arguments or
+existentially inside it (`own m M` as an authoritative map element at a name stored in the
+predicate's own existential, allocated by `own_zero`'s update; the gRPC world's registry name is
+already the argument `W.reg`, allocated by `GrpcWorldHyp`), and the specs that need shared state
+(`sync.Map`'s `Load`/`Store`/`Delete`) are logically atomic, so the library's own invariant can be
+opened inside the spec rather than named by the vocabulary. Nothing here constructs such a model.
 
 `etc/theorem-loc.py quepaxa_remote_robust --no-go`: `tcb 582` lines, all statement premises
 (`tcb_premises 582`, `tcb_axioms 0`, `axioms 0`); `--list-tcb` lists the seven `InitHyp` classes
@@ -311,9 +329,72 @@ Build: `PERENNIAL_DIR=/shared/perennial-71de6f043 etc/goose.py --project dsv-que
   `models/protobuf/pbgen.py`), gRPC's unary path (the Lean half of `models/grpc`, phase 7 S2),
   `sort.Ints` (Perennial's translation + the lab's proof over `slices.wp_Sort`), `time.Time.UTC`,
   `fmt.Println`, math/rand, `sync.Map` (Perennial's `HashTrieMap` instances), the `InitHyp`s.
-- `DistBridgeLis.lean` into `Net/Statement/` if other kits need wildcards.
+- `DistBridgeLis.lean` into `Net/Statement/` if other kits need wildcards; it duplicates
+  dsv-epaxos's `Bridge.lean` (review #24, finding 4).
+- Review #24 finding 2 (`PbHyp`'s reps and `sizeCache`/`state`): open, "Review #24".
 - One go-redis version for QuePaxa and rabia (the State's "go-redis").
 - The per-function spec/proof layout and generated Links, as paxos's follow-ups.
+
+## Review #24 (Upamanyu, of f3c69b4f7a; 2026-11-23)
+
+Verdict "not ready": `GrpcHyp.handlerOk` was false of grpc-go v1.84.
+
+- **Finding 1 (high), fixed.** The old `handlerOk` handed the handler the caller's deposit
+  `S bs Φ` before `dec`. grpc-go v1.84 wraps a unary method as a stream handler
+  (`server.go:810-812`, `wrapUnaryHandler` `server.go:1281-1289`: `dec` is `stream.RecvMsg`) and
+  `processRPC` calls it as soon as the headers arrive (`server.go:1446-1450`), before any request
+  bytes; the client queues HEADERS in `newClientStream` (`call.go:70`) and only then marshals in
+  `SendMsg` (`stream.go:1072`, `prepareMsg`), which can fail (invalid UTF-8). A method with
+  `S := False` and a handler that panics before `dec` was covered as safe. Now (`Hyp.lean`):
+  `handlerOk impl h S` gives the handler the context and `decOk V S Got dec` for an arbitrary
+  receipt `Got : (List w8 → IProp) → IProp`, and asks, on a nil error, `∃ Φ, Got Φ ∗ replyOk reply
+  Φ`; `decOk` (one use, no longer persistent) takes the codec's premise for every byte string
+  (`∀ bs, unmarshal bs v (Ψ bs)`) and returns nil with `∃ bs Φ, S bs Φ ∗ Got Φ ∗ Ψ bs true`, or a
+  `handlerErr` error with `v` decoded or failed (`∃ bs b, Ψ bs b`: `serverStream.RecvMsg`
+  `stream.go:1891-1971` decodes, then reads again expecting EOF) or the premise back. Only `dec` makes
+  a `Got Φ`, so a handler can succeed only after `dec` did, and holds nothing of the caller's
+  before. `Invoke`'s statement is unchanged (its doc now says the handler may run with no request).
+  QuePaxa's three handler proofs (`Replica/Handlers.lean` `esp_handlerOk`, `Replica/Fetch.lean`
+  `fetch_handlerOk`, `inform_handlerOk`) adapted directly: the generated handlers call `dec(in)`
+  first.
+- **Finding 2 (medium), OPEN.** `PbHyp`'s reps (`Msg.lean`) hold `l ↦{dq} x` for any `dq`, but
+  `proto.Marshal` stores every message's `sizeCache` (protobuf-go v1.36.12
+  `internal/impl/encode.go:123,128`, atomically; also through gRPC's codec,
+  `encoding/proto/proto.go:51` `proto.Size` first) and its `state` on first reflection
+  (`internal/impl/pointer_unsafe.go:208`, `StoreMessageInfo`, from the generated `ProtoReflect`). The suggested
+  fix, reps of the user fields only (field by field, without `state`/`sizeCache`), was carried out
+  on the local branch `dsv-quepaxa-pbfields-wip` (a535c13b2d, not pushed: `Msg.lean`'s `fields*`
+  predicates, `iFieldsNamed`/`iFieldsOf`, `Frame` and field `AccessStrict` instances; about 25
+  proof files adapted) and stopped on two problems: (a) QuePaxa copies whole messages (16 struct
+  loads `GoLoad T` of a message type in `replica/src`: `ClientBatchStore.{Add,Get}`,
+  `Proposer.{getMaxFromResponses,handleProposeRequest}`, `Proxy.{Run,handleClientBatch,
+  proposeToIndex,executeClientBatches,handleFetchResponse}`; `*cb`, `*resp.F`, `*msg.P`), which read
+  `state` and `sizeCache` too (Perennial's `load_struct` reads every field), so a rep without those
+  fields cannot justify them; (b) a triple whose precondition leaves the runtime fields out is still
+  not true in Perennial's model if a caller can keep their points-to as a frame (Marshal writes them;
+  the frame says unchanged). A true statement needs the runtime fields owned by protobuf: an
+  invariant `inv (∃ st sc, l.state ↦ st ∗ l.sizeCache ↦ sc)` in every rep (Marshal's stores are
+  atomic, Perennial's struct loads read field by field, so a copy can open it per field), allocated
+  when a message is made (an update at every construction site) and given by `Unmarshal`; and a
+  load lemma for a message copy from `fields* ∗ inv`. Not done: it needs a decision (cost, and
+  whether a copy of a message concurrently marshalled, e.g. the proposer's `*msg.P` while slower
+  `ESP` calls still marshal `msg`, is a race to report).
+- **Finding 3 (low), recorded** in the doubts above ((1) `MapHyp.ivt`, (4) `QpVocab`).
+- **Finding 4 (low).** `origin/lean` (b6ad6a8f54) has no `robust_of_distProtoLisRB` (dsv-epaxos has
+  not landed), so `DistBridgeLis.lean` stays: a copy, apart from namespace and doc, of the first two
+  theorems of dsv-epaxos's `epaxosnet/Bridge.lean`. Whichever lands second replaces its copy by
+  the first's (or both move to `Net/Statement/`).
+- **Landing lessons (coordinator, 2026-11-23).** Duplicate declarations: every declaration of the
+  files this branch adds was compared with every declaration of the repository's `.lean` files
+  (namespaces resolved by a script); the only shared names are the names-only grpc translation
+  (`Dsverify/Code/google_golang_org/grpc{,/codes,/status}.lean` vs the main tree's `Code/...`) and
+  protobuf/grpc `Init` names, which are part copies (as `RaftNoAx/`'s); none of them is in the
+  import closure of `Dsverify/` together with its twin (checked over the closure of every
+  `Dsverify/` module), and none clashes with `origin/dsv-epaxos`'s files. No `log`, `net`,
+  `bufio`, `io`, `sort`, `time`, `fmt`, `strconv` or `io.ReadFull` spec is declared twice (QuePaxa's
+  library hypotheses live in `Perennial.raxos.hyp.*`). Link files: QuePaxa has no `Link.lean`
+  (its links are `Linked.lean` and the `Results` modules); `proof_roots.namespace()` prints
+  `Perennial.EtcdGrove.`.
 
 ## Which lab run
 

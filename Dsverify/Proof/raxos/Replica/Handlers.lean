@@ -66,7 +66,7 @@ theorem esp_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   iintro ⟨#Hpkg, #Hgc, #Hre⟩
   unfold handlerOk
   imodintro
-  iintro %ctx %cd %dec %bs %Φ %Θ #Hctx #Hdec HS HΘ
+  iintro %ctx %cd %dec %Got %Θ #Hctx Hdec HΘ
   wp_func_call
   wp_call
   wp_auto
@@ -74,10 +74,11 @@ theorem esp_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   generalize «$r0_ptr» = lin at *
   iunfold decOk at Hdec
   wp_apply Hdec $$ %(interface.mkOk (go.GoType.PointerType ProposerMessage.ty) #lin)
-      %(fun b => if b then iprop(∃ v,
+      %(fun bs b => if b then iprop(∃ v,
         (⌜∃ v0, pmOk v0 ∧ encPM v0 = bs⌝ -∗ repPM lin (DFrac.own 1) v) ∗
         ⌜∀ v0, pmOk v0 → encPM v0 = bs → v = v0⌝) else iprop(True)) [Hin] as %err Herr
-  · rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
+  · iintro %bs
+    rw [show (PbCodec.unmarshal (GF := GF)) = unmarshalPre from rfl]
     unfold unmarshalPre
     ileft
     iexists lin
@@ -98,7 +99,7 @@ theorem esp_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
     · exact absurd rfl He
   subst He
   wp_auto
-  icases Hv with ⟨%v, Hv, %Hv0⟩
+  icases Hv with ⟨%bs, %Φ, HS, HGot, %v, Hv, %Hv0⟩
   iunfold espSpec at HS
   icases HS with ⟨%m, ⟨%Hbs, %Hmok⟩, #Hfacts, HΦ⟩
   ihave Hv := Hv $$ %(⟨m, Hmok, Hbs.symm⟩ : ∃ v0, pmOk v0 ∧ encPM v0 = bs)
@@ -117,6 +118,8 @@ theorem esp_handlerOk (γ : QNames) (k : Nat) (gc re : Loc) :
   ileft
   isplitr
   · ipureintro; rfl
+  iexists Φ
+  iframe HGot
   unfold replyOk
   iright
   isplitr
