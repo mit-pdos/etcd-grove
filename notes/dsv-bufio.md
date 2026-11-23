@@ -169,3 +169,47 @@ New: `bufio.ownBufReaderE`, `bufio.ownBufReaderE_fact`, `bufio.ownBufReader_fact
 ok. `#print axioms` of every new or changed theorem: `propext`, `Classical.choice`, `Quot.sound` (or a
 subset). `etc/tier-check.py --check`: ok. Not built: the other importers of `Proto.lean` (228 modules:
 a theorem added, no statement changed) and of the WAL `Link`.
+
+## Round 2 of the review on #24 (2026-11-23)
+
+Upamanyu: ready to land once N1 and N2 are settled.
+
+- **N1 (the WAL `Link.lean` "edited by hand").** It is exactly what `etc/gen-link.py --walfs` produces:
+  `gen-link.py --walfs --check` passes on the branch and on `origin/lean` (`6f6bf7d881`), and with
+  N4 the file is regenerated, not edited. The earlier note that the check "fails on unmodified
+  `lean`" was an environment mistake: without `LAKE_OPTS=--packages=.lake/package-overrides.json`
+  (`etc/gates.sh` sets it from `LAKE_PACKAGES`) `etc/proof_roots.py` resolves Perennial to
+  `.lake/packages/perennial`, which a worktree on a shared Perennial checkout does not have; the
+  scanner then misses Perennial's `Link.lean` results, reports 27 root proofs "with a binder of no
+  known kind" and generates 51 results fewer, on `lean` as on the branch. With Perennial found, no
+  root proof is skipped and both checks exit 0.
+- **N2.** The `.claude/skills/spec/PRINCIPLES.md` edit is reverted on this branch (Upamanyu proposes
+  the text to the user separately).
+- **N4.** `bufio.NewReader.specE` (`Spec/bufio/NewReaderOk.lean`: `ownBufReaderE` at any `Eb`, `szOk`,
+  `⌜szOk 4096⌝`), proved once (`bufio.NewReader.wp_proofE`, `Proof/bufio/NewReaderOk.lean`, from
+  `NewReaderSize.specE`); `wp_proofOk` (at `errE E`) and the WAL's `wp_proof` (`Proof/bufio/NewReader.lean`)
+  are its instances, without unfolding the body. WAL `Link`: `bufio.wp_NewReaderE` added,
+  `bufio.wp_NewReader` from it.
+- **N5.** `Spec/bufio/Writer__WriteByte.lean`'s header cites `bufio.go:702-703`.
+- **N6.** `net.connReader_proto` no longer takes `[bufio.Assumptions]`; `bufio.wand_pure_persistent` is
+  listed for Perennial (`notes/perennial-changes.md`, the dsv-bufio entry).
+- **N3.** Perennial `readatleast-prefix` (`af905abba`): `io.ReadAtLeast.spec`'s premise is now
+  `(ys.length : Int) < sint.Z min ∧ ys.length < xs.length → Pre …` (with `min > len(buf)`, the
+  `ErrShortBuffer` path, the first version asked `Pre _ 0`); `ReadFull`'s proof uses the second conjunct.
+
+**Follow-ups (after landing).**
+- Retire `bufio.ownReader` (the WAL's view, `Spec/bufio/Reader__Read.lean`, `OwnReaderE.lean`), and
+  `szOk` with it (it exists only for that view): move the WAL's callers (`fileutil.NewFileBufReader`,
+  the decoder) onto `ownBufReader`.
+- The WAL specs' remaining premises outside the triple (R3): `bufio.NewReader.spec`'s Lean implication
+  `ri.ty ≠ *bufio.Reader →` and `bufio.Reader.Read.spec`'s `io.readerStream … -∗ (□ bound) -∗` before the
+  triple, into the preconditions as in the generic specs (with the WAL's callers).
+
+**Checked** (2026-11-23, round 2). `lake build` of `Proof.bufio.{NewReaderOk,NewReader,Writer__WriteByte}`,
+`Net.Proof.net.ConnIo` and the WAL `Link` (3442 jobs): ok. `#print axioms` of `bufio.NewReader.wp_proofE`,
+`wp_proofOk`, `wp_proof`, `walfs.bufio.wp_NewReaderE`, `walfs.bufio.wp_NewReader`, `net.connReader_proto`:
+`propext`, `Classical.choice`, `Quot.sound`. `etc/gen-link.py --walfs --check` (with
+`LAKE_OPTS=--packages=.lake/package-overrides.json`), `etc/tier-check.py --check`: ok. Perennial
+`af905abba`: `Perennial.Proof.io.{ReadAtLeast,ReadFull,Link}` built, both proofs' axioms Lean's three.
+Not built: the WAL `Link`'s importers (`WalTester/.../wal/Link`, `etcdserver.RnNewStorageLinked`; no
+statement they use changed).

@@ -85,10 +85,12 @@ theorem tmpClaims_walTmpsRes (j : Ino) (b b' : GoString) (hb : b ∈ walTmps) (h
     unfold tmpClaim
     iintro ⟨⟨%h1, H1, -⟩, ⟨%h2, H2, -⟩⟩
     iexfalso
-    iapply osNames_only_excl j b h1 h2
-    iframe H1 H2
+    rw [osNames_of_ne _ _ (by simp : NameSet.only [b] ≠ .only []),
+      osNames_of_ne _ _ (by simp : NameSet.only [b] ≠ .only [])]
+    icases gElem_valid_2 _ _ _ _ _ _ _ $$ H1 H2 with %hv
+    exact (qTmp_two hv.1).elim
   · unfold walTmpsRes
-    simp only [walTmps, List.mem_cons, List.mem_nil_iff, or_false] at hb hb' ⊢
+    simp only [walTmps, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hb hb' ⊢
     rcases hb with rfl | rfl <;> rcases hb' with rfl | rfl
     · exact absurd rfl e
     · iintro ⟨H0, H1⟩; iframe H0 H1; iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro

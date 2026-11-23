@@ -26,10 +26,10 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions]
 
 theorem Main.wp_proof (wp_boot : Boot.spec (GF := GF) (hG := hG)) : Main.spec (GF := GF) (hG := hG) := by
-  intro W e γ o od hf hpath hr
+  intro W e γ o od hf hpath hr hfs
   wp_start as ⟨Hrun⟩
   wp_auto
-  wp_apply (wp_boot W e γ o od (W64 0) (W64 40) hf hpath hr) $$ [Hrun] as %st -
+  wp_apply (wp_boot W e γ o od (W64 0) (W64 40) hf hpath hr hfs) $$ [Hrun] as %st -
   · iframe
   iapply HΦ; itrivial
 

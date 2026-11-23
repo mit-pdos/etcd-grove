@@ -4,7 +4,8 @@ Package initialization of `os`
 
 Its fact (`Proof/os/PkgInit.lean`): `Stderr` holds a fixed `*File`, which raft's
 initializer loads (`defaultLogger`), `ErrExist` a non-nil error, `ErrNotExist` an
-`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's). `os` is this repository's translation (project bboltfs's): its
+`*errorString`, `ErrInvalid` some error, `ErrClosed` one `fmt` formats (io/fs's), `checkWrapErr`
+`false`. `os` is this repository's translation (project bboltfs's): its
 initializer initializes its imports and runs its variables' translated initializers (`errors.New`
 errors, io/fs's and internal/poll's error variables, `sync.OnceValue`, function values) and the
 trusted models of the standard streams' (`TrustedCode/os.lean`: `Stdin`, `Stdout` nothing, `Stderr`
@@ -99,14 +100,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of dirBufPool))
-  ihave #FS : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrInvalid) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrPermission) e DFrac.discard) ∗ (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗ (∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)) : IProp GF) $$ []
+  ihave #FS : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrInvalid) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrPermission) e DFrac.discard) ∗ (∃ e : GoInterface, ⌜e ≠ interface.nil⌝ ∗ typedPointsto (globalAddr _root_.Perennial.io.fs.ErrExist) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.io.fs.ErrNotExist) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard ∗ typedPointsto (globalAddr _root_.Perennial.internal.oserror.ErrNotExist) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard) ∗ (∃ e : GoInterface, EtcdGrove.fmtErrorOk e ∗ typedPointsto (globalAddr _root_.Perennial.io.fs.ErrClosed) e DFrac.discard)) : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd2
-  icases FS with ⟨⟨%fe1, #F1⟩, ⟨%fe2, #F2⟩, ⟨%fe3, %hfe3, #F3⟩, ⟨%fe4, #F4⟩, ⟨%fe5, #F5ok, #F5⟩⟩
-  ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard)) : IProp GF) $$ []
+  icases FS with ⟨⟨%fe1, #F1⟩, ⟨%fe2, #F2⟩, ⟨%fe3, %hfe3, #F3⟩, ⟨%fe4, #F4, #F4o⟩, ⟨%fe5, #F5ok, #F5⟩⟩
+  ihave #PL : (iprop((∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrNoDeadline) e DFrac.discard) ∗ (∃ e : GoInterface, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrDeadlineExceeded) e DFrac.discard) ∗ (∃ x : Loc, typedPointsto (globalAddr _root_.Perennial.internal.poll.ErrFileClosing) (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) DFrac.discard)) : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hd5
-  icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩⟩
+  icases PL with ⟨⟨%pe1, #P1⟩, ⟨%pe2, #P2⟩, ⟨%pe3, #P3⟩⟩
   repeat (first
-    | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+    | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩
     | (wp_func_call; wp_call)
     | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto)
     | wp_auto)
@@ -129,7 +130,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   -- Stderr: its trusted initializer
   wp_apply wp_Stderr_init as ⟨%stderr, HStderr⟩
   repeat (first
-    | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+    | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩
     | (set_option maxRecDepth 20000 in
        wp_apply _root_.Perennial.sync.wp_OnceValue as %_ -)
     | (rw [recv_eq_func_mk BAnon BAnon]; wp_auto)
@@ -146,7 +147,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_call
   try wp_auto
   repeat (first
-    | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ #_
+    | wp_apply _root_.Perennial.errors.wp_New_errorString as %_ ⟨#_, #_⟩
     | (set_option maxRecDepth 20000 in wp_apply _root_.Perennial.sync.wp_OnceValue as %_ -)
     | (wp_func_call; wp_apply wp_runtime_args_impl as %_ ⟨%_, _, _⟩)
     | wp_auto)
@@ -160,6 +161,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HErrNotExist
   ipersist HErrInvalid
   ipersist HErrClosed
+  ipersist HcheckWrapErr
   iframe Hown
   imodintro
   isplitr

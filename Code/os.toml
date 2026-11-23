@@ -45,7 +45,12 @@ translate = ["!*", "O_RDONLY", "O_WRONLY", "O_RDWR", "O_APPEND", "O_CREATE", "O_
   "noReadFrom.ReadFrom", "noWriteTo.WriteTo",
   "File.writeTo", "getPollFDAndNetwork", "isUnixOrTCP", "tryLimitedReader",
   "File.checkValid", "File.wrapErr", "File.SyscallConn", "newRawConn",
-  "wrapSyscallError", "NewSyscallError", "SyscallError.Error", "SyscallError.Unwrap"]
+  "wrapSyscallError", "NewSyscallError", "SyscallError.Error", "SyscallError.Unwrap",
+  # (2026-11-22, `io.CopyFiles.spec`'s proof) the promoted methods the dispatch calls on its wrapper
+  # structs (method-set wrappers: `MethodUnfold`s that resolve through the embedded `*File`):
+  # `genericReadFrom`'s loop reads `fileWithoutWriteTo` and writes `fileWithoutReadFrom`, and
+  # `spliceToFile`'s `getPollFDAndNetwork` calls `fileWithoutWriteTo`'s `SyscallConn`
+  "fileWithoutWriteTo.Read", "fileWithoutWriteTo.SyscallConn", "fileWithoutReadFrom.Write"]
 # what the models use: errors.New, io.EOF, fs.PathError and FileInfo, syscall.Errno
 imports = ["!*", "errors", "io", "io/fs", "syscall", "sync", "internal/poll"]
 # The functions and methods minibolt calls, modeled by the Linux file extension fsExt

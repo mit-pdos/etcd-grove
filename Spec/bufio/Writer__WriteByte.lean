@@ -1,7 +1,7 @@
 /-
 `(*bufio.Writer).WriteByte(c)` (Go 1.27.3 `bufio.go`) over a writer by the `io.Writer` contract
 (`bufio.ownBufWriter`), with `□ Q (sent ++ pend ++ [c])` when the writer is healthy
-(`⌜err = nil⌝ -∗ …`: with a sticky error Go returns it at once, `bufio.go:691-692`): accepts `c`
+(`⌜err = nil⌝ -∗ …`: with a sticky error Go returns it at once, `bufio.go:702-703`): accepts `c`
 when it returns `nil`, nothing otherwise (a full buffer is flushed first, which may send a prefix
 of it); the error returned is the writer's sticky error after. With a sticky error it changes
 nothing and returns it; with room in the buffer (`pend.length + 1 ≤ sz`) a healthy writer sends

@@ -117,42 +117,42 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, h5, h1, h6, True.intro⟩
-  have h8 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h5, True.intro⟩
-  have h9 : GetIsPkgInitProp pkg_id.io (getIsPkgInit (GF := GF)) := by
-    refine And.intro ?_ ?_
-    · rfl
-    exact ⟨h0, h5, True.intro⟩
-  have h10 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
+  have h8 : GetIsPkgInitProp pkg_id.internal.oserror (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h0, True.intro⟩
+  have h9 : GetIsPkgInitProp pkg_id.syscall (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h5, h0, h8, True.intro⟩
+  have h10 : GetIsPkgInitProp pkg_id.io (getIsPkgInit (GF := GF)) := by
+    refine And.intro ?_ ?_
+    · rfl
+    exact ⟨h0, h5, True.intro⟩
   have h11 : GetIsPkgInitProp pkg_id.io.fs (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h10, h0, h9, True.intro⟩
+    exact ⟨h6, h8, h0, h10, True.intro⟩
   have h12 : GetIsPkgInitProp pkg_id.internal.syscall.unix (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h8, True.intro⟩
+    exact ⟨h9, True.intro⟩
   have h13 : GetIsPkgInitProp pkg_id.internal.poll (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h12, h5, h8, h0, True.intro⟩
+    exact ⟨h12, h5, h9, h0, True.intro⟩
   have h14 : GetIsPkgInitProp pkg_id.os (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h9, h11, h5, h8, h13, h0, True.intro⟩
+    exact ⟨h10, h11, h5, h9, h13, h0, True.intro⟩
   have h15 : GetIsPkgInitProp pkg_id.net (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h7, h0, h8, h14, h6, h9, h13, True.intro⟩
+    exact ⟨h7, h0, h9, h14, h6, h10, h13, True.intro⟩
   have h16 : GetIsPkgInitProp pkg_id.fmt (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h9, h5, True.intro⟩
+    exact ⟨h0, h10, h5, True.intro⟩
   have h17 : GetIsPkgInitProp pkg_id.«unsafe» (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -176,7 +176,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h22 : GetIsPkgInitProp pkg_id.strings (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h20, h9, h5, True.intro⟩
+    exact ⟨h20, h10, h5, True.intro⟩
   have h23 : GetIsPkgInitProp pkg_id.cmp (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -216,7 +216,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h32 : GetIsPkgInitProp pkg_id.encoding.binary (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h9, h30, h31, h24, h5, True.intro⟩
+    exact ⟨h0, h10, h30, h31, h24, h5, True.intro⟩
   have h33 : GetIsPkgInitProp pkg_id.github_com.goose_lang.primitive (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -260,7 +260,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h43 : GetIsPkgInitProp pkg_id.bytes (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h9, True.intro⟩
+    exact ⟨h0, h10, True.intro⟩
   have h44 : GetIsPkgInitProp pkg_id.math.big (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -268,11 +268,11 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h45 : GetIsPkgInitProp pkg_id.crypto.rand (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h9, h44, True.intro⟩
+    exact ⟨h10, h44, True.intro⟩
   have h46 : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h29, h16, h9, h42, h14, h5, h7, h43, h45, h30, h44, h24, h36, h34, h35, h32, h22, True.intro⟩
+    exact ⟨h0, h29, h16, h10, h42, h14, h5, h7, h43, h45, h30, h44, h24, h36, h34, h35, h32, h22, True.intro⟩
   have h47 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvnet (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

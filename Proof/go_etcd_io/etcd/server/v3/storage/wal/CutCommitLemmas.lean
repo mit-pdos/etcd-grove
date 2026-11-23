@@ -207,7 +207,15 @@ theorem walsNamed_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
           exact ⟨g.ino, (Option.some.inj he).symm⟩
         · rw [GMap.lookup_insert_ne _ _ hbe] at he
           exact hsn.2 b e' hb he
-    refine ⟨fun hj'' hWc => ?_, fun m' hr => ?_⟩
+    refine ⟨fun hj'' hWc => ?_, fun m' hr => ?_, fun N' hj'' hm => ?_⟩
+    rotate_left 2
+    · have h3 := (hNm dir' lay hl).2.2
+      rcases mem_replClaim_cases hm with he | ⟨hm', -⟩
+      · rw [Prod.mk.injEq, Prod.mk.injEq] at he
+        obtain ⟨-, rfl, rfl⟩ := he
+        exact (h3 _ _ hcl).log x e _ (fun b hb _ hw J => by
+          rw [hbt b hb hw, GMap.lookup_insert_eq]; simp)
+      · exact h3 N' hj'' hm'
     · obtain ⟨X', hX', hm, -⟩ := hWc
       rcases mem_replClaim_cases hm with he | ⟨hm', hne⟩
       · simp only [Prod.mk.injEq] at he
@@ -242,7 +250,7 @@ theorem walsNamed_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
           simpa using hi
       · have hr' : RegionCrashed cl n m' :=
           (regionCrashed_iff _ _ _).2 ⟨K, regionCrashedK_unlog cl n m' K lay.j _ hj x e _ hK hx⟩
-        obtain ⟨h1, h2, h3⟩ := (hNm dir' lay hl).2 m' hr'
+        obtain ⟨h1, h2, h3⟩ := (hNm dir' lay hl).2.1 m' hr'
         refine ⟨fun g' hg' => ?_, h2, fun i hi => ?_⟩
         · rcases List.mem_append.1 hg' with hg' | hg'
           · exact h1 g' (List.mem_append_left _ hg')
@@ -260,12 +268,16 @@ theorem walsNamed_cut {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} {s
           · exact List.mem_append_right _ (List.mem_append_left _ hg'')
   · rw [GMap.lookup_insert_ne _ _ (Ne.symm hdd)] at hl'
     have hjne : lay'.j ≠ lay.j := walsOk_dir_ne hW hexcl hd hl rfl hdd hl'
-    obtain ⟨h1, h2⟩ := hNm dir' lay' hl'
-    refine ⟨fun hj'' hWc => ?_, fun m' hr => ?_⟩
+    obtain ⟨h1, h2, h3⟩ := hNm dir' lay' hl'
+    refine ⟨fun hj'' hWc => ?_, fun m' hr => ?_, fun N' hj'' hm => ?_⟩
     · obtain ⟨X', hX', hm, hcoh''⟩ := hWc
       rcases mem_replClaim_cases hm with he | ⟨hm', -⟩
       · simp only [Prod.mk.injEq] at he; exact absurd he.1 hjne
       · exact h1 hj'' ⟨X', hX', hm', hcoh''⟩
+    rotate_left
+    · rcases mem_replClaim_cases hm with he | ⟨hm', -⟩
+      · rw [Prod.mk.injEq] at he; exact absurd he.1 hjne
+      · exact h3 N' hj'' hm'
     · rcases regionCrashed_cut hr hcl hcoh hs hbt hcur hothers with hr' | hr'
       · rw [← entsOf_treeDel_ne m' bt hjne]; exact h2 _ hr'
       · exact h2 m' hr'

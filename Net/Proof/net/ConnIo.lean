@@ -231,7 +231,7 @@ theorem conn_writerOk (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
   · iright; imodintro; iexists k; iexact HE
 
 /-- See the file header (review C2 on #24: the kits' `ownReader_proto`, without unfolding). -/
-theorem connReader_proto [_root_.Perennial.bufio.Assumptions] (br : Loc) (ri : GoInterfaceOk)
+theorem connReader_proto (br : Loc) (ri : GoInterfaceOk)
     (Pre : List w8 → Nat → Prop) (cn : Nat) (s : Bool) (P : Proto GF)
     (E : List w8 → GoInterface → IProp GF) (R : List w8) :
     EtcdGrove.bufio.ownBufReader br ri Pre (recvTokL (Gg := hG.goose_globalGS) cn s P) E R ⊢

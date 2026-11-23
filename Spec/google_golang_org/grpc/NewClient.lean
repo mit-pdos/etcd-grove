@@ -30,17 +30,19 @@ options set (`unaryIcsOf ds`: the last `WithUnaryInterceptor`'s) and no default 
 (`grpcConn`), or an error (an unparsable target, no transport credentials, ...). Since the auth
 plan's C1 (2026-10-28): given the contract `Q` of the per-RPC credentials the options add
 (`perRPCCredsOk`, for each of `credsOfDial ds`), what they return to the connection's attempts
-(`connCredsOk`; every attempt is after the dial, so after the contract holds). -/
+(`connCredsOk`; every attempt is after the dial, so after the contract holds). Since 2026-11-23
+(#24's S2 signatures): the credentials' contract holds for the resources of a family `Ok`, and the
+connection's calls take one of them from their callers (`grpcConn … Ok`). -/
 abbrev grpc.NewClient.spec : Prop :=
   ∀ (target : GoString) (sl : GoSlice) (ds : List GrpcDialOpt) (rb : GoInterface)
-    (scheme : GoString) (addrs : List GoString) (Q : GrpcMd → IProp GF),
+    (scheme : GoString) (addrs : List GoString) (Ok : IProp GF → Prop) (Q : GrpcMd → IProp GF),
   dialOk ds rb →
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc ∗ dialOptsAt sl ds ∗
       grpcResolverAt rb scheme addrs ∗ ⌜(scheme ++ go!"://") <+: target⌝ ∗
-      [∗list] pc ∈ credsOfDial ds, perRPCCredsOk pc Q }}
+      [∗list] pc ∈ credsOfDial ds, perRPCCredsOk pc Ok Q }}
     (App (App (Val (@! google_golang_org.grpc.NewClient)) (Val #target)) (Val #sl))
   {{ (conn : Loc) (err : GoInterface), RET (PairV #conn #err);
-      (⌜err = GoInterface.nil⌝ ∗ grpcConn conn addrs (unaryIcsOf ds) [] ∗
+      (⌜err = GoInterface.nil⌝ ∗ grpcConn conn addrs (unaryIcsOf ds) [] Ok ∗
           connCredsOk conn (credsOfDial ds) Q) ∨
         ⌜err ≠ GoInterface.nil⌝ }}
 
