@@ -3947,6 +3947,11 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
   callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
   WAL uses its own `Spec/io/ReadFull.lean`.
+- **dsv-epaxos (2026-11-23).** `replica.serveConn` calls `io.ReadFull(conn, b[n:n+1])` on the
+  `net.Conn` itself. Workaround: `Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/replica/IoReadFull.lean`
+  copies `readatleast-prefix`'s two specs and proofs verbatim under the names `ioReadAtLeastPre`,
+  `ioReadFullPre` (over the same translated `io` code, proved, no axiom); drop it for Perennial's on the
+  pin bump that has the change.
 
 ## 2026-11-23: `make([]byte, size)` at sizes Go refuses (dsv-bufio, #24 review W6; a question)
 
