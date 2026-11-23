@@ -40,7 +40,12 @@ MODULE_MODELS = {
     "gods": ("github.com/emirpasic/gods", "v1.18.1"),
     "uuid": ("github.com/google/uuid", "v1.3.1"),
     "concurrent-map": ("github.com/orcaman/concurrent-map", "v1.0.0"),
+    "protobuf-go": ("google.golang.org/protobuf", "v1.36.12"),
 }
+
+# Module models that keep only their changed packages: the others are the module's, unchanged
+# (protobuf-go/gomodel.py assembles the module), so no package is dropped.
+PARTIAL_MODELS = {"protobuf-go"}
 
 
 def go_files(d):
@@ -130,7 +135,9 @@ def main():
         for rel, kind, add, dele in rows:
             print(f"{rel:<{w}}  {kind:<7}  +{add:<6} -{dele}")
         print(f"{len(rows)} files differ: +{tot_add} -{tot_del} lines")
-        if a.model.strip("/") in MODULE_MODELS:
+        if a.model.strip("/") in PARTIAL_MODELS:
+            print("(the module's other packages are taken unchanged: the model keeps only its changed packages)")
+        elif a.model.strip("/") in MODULE_MODELS:
             dropped = dropped_packages(a.model.strip("/"))
             print(f"{len(dropped)} upstream package directories are not in the model (the packages no "
                   f"program here reaches, or no longer reaches through the model)")
