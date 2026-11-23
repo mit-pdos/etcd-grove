@@ -116,7 +116,47 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, eighth session; resume here)
+## State (2026-11-23, ninth session; resume here)
+
+Read with the eighth session's state below (accurate where this does not say otherwise).
+
+**Done (pushed).**
+- **The codec switch.** `MSync` is no longer listed in `examples/swiftnet/rpc.toml` (it goes
+  through the real `encoding/gob`, never net/rpc), so the generated `rpc_gen.go` is dsv-epaxos's
+  up to type numbers (epaxos t84/t86/t88/t90 = here t79/t81/t83/t85; checked by `diff` after
+  renaming). dsv-epaxos's rpc codec proofs were ported mechanically (sed renames):
+  `Spec/.../examples/swiftnet/RpcWire.lean` (pure: `netrpcw.encRegisterArgs` …, rpcgen's bytes),
+  `Proof/.../examples/swiftnet/NetRpc/{Codec,CodecProof,CodecSrv,CodecSrvProof}.lean` (`swiftCodec`
+  (was `RpcgenCodec.lean`, deleted), `tagOk`, `CodecLaws`/`swiftCodecLaws`, `SrvCodecLaws`/
+  `swiftSrvCodecLaws`, `ArgFacts`/`swiftArgFacts`, `decLen`/`swiftDecLen`; epaxos's `rpcReady` dropped).
+  New: `NetRpc/CodecCli{,Proof}.lean` (`CliCodecLaws`/`swiftCliCodecLaws`: `enc_GetLeaderArgs`,
+  `enc_GetReplicaListArgs`, `dec_GetLeaderReply`, `dec_GetReplicaListReply`, with `wp_rpcDec_t15`
+  ([]bool), `t12`, `t8`, `decGRL`/`decGLR` and their `_enc` lemmas). All build, no `sorry`.
+- **`sp.KitVal.encode` is rpcgen's bytes** (Spec/swift/Wire.lean: each listed value's `netrpcw.enc*`;
+  `MSync`'s case is only `GobFmt`'s size measure, `cU64 17 ++ SyncWire.cEnc`, as before).
+- **`kitCodec`'s `enc`/`dec`/`rcv` are `swiftCodec`'s** (Spec/.../swiftnet/Codec.lean; `call`/`methods`
+  are still the lab's, used only by the lab's `rcvrOk`). `KitLike` has `enc_eq`/`dec_eq`/`call_eq`/
+  `methods_eq` and `enc_sw`/`dec_sw` (`swiftCodec`'s transformer is `C`'s); the lab's `decT`/
+  `dec_intro` are gone.
+- **Callers on the per-type lemmas:** `client/Client__callMaster` (GetReplicaList, GetLeader:
+  `rlTheta`/`glTheta` are now `dec_*`'s outcome; `tagOk` from the answer `rlPhi`/`glPhi`) and
+  `master/RunLoop` (`wp_call_btl`: `dec_BtlReply` + `mergeI32`; `wp_call_ping`: its answer `Φ` is now
+  `⌜msg ≠ [] ∨ rep = encPingReply⌝`, for `tagOk`). The lab's injectivity lemmas `grl_inj`,
+  `nodes_body_bound`, `merge_grl` (ConnectSpecs) and `master.btl_decode` (RunDefs) are gone.
+- **The operation cap (kit Go, not the fork):** `op` runs under `Sys.opMu` (remote.ServeClient may
+  hand the system to concurrent callers) and answers `Out{Unknown: true}` past `MaxOps = 1000`
+  operations (`ops` counter), for the proof's `2^10` sequence-number bound. Retranslated; `go test`
+  (TestModel, TestRPC*, TestGenCodec, TestDeployment) passes.
+
+**Kit build (`sw-build36.log`, after the codec switch):** the only failures are the lab kit
+(`examples.swiftnet.*`: Interface, OrchGen, codec/{Prim,RoundTrip}, CodecFns, ServersLink, …),
+the missing lab files (`netrpc.rpc.LocalRegister`, `encoding.gob.SetCodec` ×2) and `client.Link`
+(lab kit imports) — as before; nothing outside the lab kit broke. Tier violations of the kit:
+**262** by `etc/tier-check.py | grep` over the kit's modules (defs→proof 148, proof→proof 95,
+defs→linking 15, proof→linking 4); none involves a file changed this session (the eighth
+session's 257 was counted differently).
+
+## State (2026-11-23, eighth session; superseded where the ninth says so)
 
 Read with the seventh session's state below (accurate where this does not say otherwise).
 
