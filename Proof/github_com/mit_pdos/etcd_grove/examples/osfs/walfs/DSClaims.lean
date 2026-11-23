@@ -766,6 +766,114 @@ theorem ds_crash (Q : OsState → OsState → Prop) (L L' : GooseLocalGS GF) (R 
 
 end crash
 
+/-! ## The rename onto `wal`, with the invariant -/
+
+theorem rename_writes_tgt (j : Ino) (bs bt : GoString) (n : Node) (old : Option Node) :
+    (MetaOp.rename j bs j bt n old).Writes j bt := by
+  left; simp [MetaOp.slots]
+
+section rename
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext] [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+
+/-- The program's half after the rename: as before (the rename failed, `seg`'s claim still the
+program's), or with `J`'s `seg` tracked, half of its claim given to the invariant. -/
+def dsRenamed (j : Ino) (γ : GName) (k J : Ino) (hw hs : NamesH) (e : w64) : IProp GF :=
+  iprop((⌜e ≠ 0⌝ ∗ dsHalf (L := L) j γ (some k) true hw none ∗
+      osNames (L := L) J sN (DFrac.own 1) hs) ∨
+    ∃ hw', dsHalf (L := L) j γ (some k) true hw' (some (J, hs)) ∗ ⌜hw'.cur !! walB = some (.dir J)⌝)
+
+/-- **`rename(2)` of `d/wal.tmp` (the directory `J`, whose `seg` is the key's file `k`) onto the
+absent `d/wal`**, `d` the directory `j`, by a call holding the whole call permission, begun after
+`J`'s claim's last change: the invariant opened around it; when it takes effect, `J`'s `seg` is
+tracked (`dinv_rename`). The step's atomicity is an argument (`Proof/os/CrashFile.lean`'s
+`fsOp_atomic` gives it). -/
+theorem wp_dsRename
+    [hat : ∀ v, Language.Atomic (↑Stuckness.NotStuck) (ExternalOp fsExt.name "Rename" (Val v))]
+    (R : Roots) (d : GoString) (dq : DFrac) (j J k : Ino) (γ : GName)
+    (hw hs : NamesH) (t s0 : Nat) (hT : hw.cur !! wtB = some (.dir J)) (hA : hw.cur !! walB = none)
+    (hseg : hs.cur !! segB = some (.file k)) (hcoh : HistCoh hs J sN) (hst : hs.next ≤ s0)
+    (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ dsInv (L := L) j γ -∗ osPathS (L := L) R d dq j -∗
+      dsHalf (L := L) j γ (some k) true hw none -∗ osNames (L := L) J sN (DFrac.own 1) hs -∗
+      osCallS (L := L) t s0 (child d wtB) 1 -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) 1 -∗ osPathS (L := L) R d dq j -∗
+        dsRenamed (L := L) j γ k J hw hs e -∗ Φ (#e)) -∗
+      WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV t)
+        (PairV (#(child d wtB)) (#(child d walB)))))) {{ Φ }} := by
+  iintro #Hos #Hsh #Hinv Hp Hh HJ Hc HΦ
+  iapply (wp_atomic (E2 := (⊤ : CoPset) \ ↑dsN))
+  unfold dsInv
+  imod inv_acc (E := ⊤) (show ↑dsN ⊆ (⊤ : CoPset) from CoPset.subseteq_top) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  icases Hi with ⟨%ko1, %mg1, %hw1, %hsO1, >Hh1, >%hD, >Hk⟩
+  icases dsHalf_agree (L := L) j γ _ _ _ _ _ _ _ _ $$ Hh Hh1 with ⟨%he, Hh, Hh1⟩
+  obtain ⟨rfl, rfl, rfl, rfl⟩ := he
+  unfold dsHalf
+  icases Hh with ⟨Hv, Hw, -⟩
+  icases Hh1 with ⟨Hv1, Hw1, -⟩
+  have hfr := osNames_frac (L := L) j wN (1 : Qp).half (1 : Qp).half hw
+  rw [Qp.half_add_half] at hfr
+  ihave Hw := hfr.2 $$ [Hw Hw1]
+  · iframe Hw Hw1
+  imodintro
+  iapply wp_osRenameDirS R d wtB walB j J wN dq hw t s0 wtB_ok walB_ok wN_wt wN_wal wt_ne_wal hT hA
+    dsN_disj dsN_shN $$ Hos Hsh Hp Hw Hc
+  iintro %e Hperm Hp Ha
+  unfold osNamesAfter
+  icases Ha with (⟨%hne, Hw⟩ | ⟨%x, -, Hw⟩)
+  · -- no effect
+    icases hfr.1 $$ Hw with ⟨Hw, Hw1⟩
+    imod Hclose $$ [Hv1 Hw1 Hk] with -
+    · inext; iexists (some k), true, hw, none; iframe Hv1 Hw1 Hk
+      isplitl []
+      · unfold osClaims jcl; iapply BigSepL.bigSepL_nil.2; iempintro
+      ipureintro; exact hD
+    imodintro
+    iapply HΦ $$ Hperm Hp
+    unfold dsRenamed dsHalf
+    ileft
+    iframe Hv Hw HJ
+    isplitl []
+    · ipureintro; exact hne
+    unfold osClaims jcl; iapply BigSepL.bigSepL_nil.2; iempintro
+  · -- the rename logged
+    let c := <[walB := Node.dir J]> (GMap.delete wtB hw.cur)
+    let en : LogEntry := ⟨.rename j wtB j walB (.dir J) none, s0⟩
+    have hfr' := osNames_frac (L := L) j wN (1 : Qp).half (1 : Qp).half (hw.log x en (restrictN wN c))
+    rw [Qp.half_add_half] at hfr'
+    icases hfr'.1 $$ Hw with ⟨Hw, Hw1⟩
+    have hfs := osNames_frac (L := L) J sN (1 : Qp).half (1 : Qp).half hs
+    rw [Qp.half_add_half] at hfs
+    icases hfs.1 $$ HJ with ⟨HJ, HJ1⟩
+    imod ghostVar_update_halves ((some k), true, hw.log x en (restrictN wN c), some (J, hs)) γ _ _
+      $$ Hv Hv1 with ⟨Hv, Hv1⟩
+    have hcw : restrictN wN c !! walB = some (.dir J) := by
+      rw [restrictN_lookup _ _ _ wN_wal]; simp [c]
+    have hD' : DInv j (some k) ((hw.log x en (restrictN wN c)).restrict j wO) (some (J, hs)) := by
+      rw [restrict_log_writes hw j wO x en _ walB wO_wal (rename_writes_tgt j wtB walB _ _)]
+      refine dinv_rename hD (by rw [restrict_cur _ _ _ _ wO_wal]; exact hA) x en _
+        (rename_writes_tgt j wtB walB _ _) (by rw [restrictN_lookup _ _ _ wO_wal]; exact hcw)
+        hcoh hseg hst
+    imod Hclose $$ [Hv1 Hw1 HJ1 Hk] with -
+    · inext; iexists (some k), true, (hw.log x en (restrictN wN c)), (some (J, hs))
+      iframe Hv1 Hw1 Hk
+      isplitl [HJ1]
+      · unfold osClaims jcl; iapply BigSepL.bigSepL_singleton.2; iexact HJ1
+      ipureintro; exact hD'
+    imodintro
+    iapply HΦ $$ Hperm Hp
+    unfold dsRenamed dsHalf
+    iright
+    iexists (hw.log x en (restrictN wN c))
+    iframe Hv Hw
+    isplitl [HJ]
+    · unfold osClaims jcl; iapply BigSepL.bigSepL_singleton.2; iexact HJ
+    ipureintro; exact hcw
+
+end rename
+
 end DS
 end osfs_walfs
 end EtcdGrove
