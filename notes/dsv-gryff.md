@@ -531,11 +531,34 @@ per client) needs a per-client bound and remote's spec gives none; (c) `EncIn` i
 8 bytes): with `byte(x.Op)` it was not injective on every `In` and `Check.spec`'s `codecOk` asks
 `DecIn (encIn i) = iv i` for every input.
 
-**Work split this session** (forks of the sixth agent, in this worktree; the agent commits): F1 H1;
-F2 X/Bridge, X/Final, B/Handler, B/Tables, B/BootLem, then H2..H3; F4 the Rpc layer + Server/Deploy;
-F5 N/ConnErr, N/NetSpecs, N/Serve, N/ClientConn, Replica2/SpecsN; F6 N/WaitPeers, ConnSlots,
-Connect, Boot. Status per file: `git log` and the list at the end of this section (updated at each
-commit).
+**Work split this session** (forks of the sixth agent, in this worktree; the agent commits): F1 H1
+(28 of 32 + H2/Env committed `8fddf553b8`; Send, Icoord, GCoord, GParti rechecking); F2 X/Bridge,
+X/Final, B/Handler, B/Tables, B/BootLem, then H2..H3; F4 the Rpc layer + Server/Deploy (DONE,
+`bb34bf947c`); F5 N/ConnErr, N/NetSpecs, N/Serve, N/ClientConn, Replica2/SpecsN; F6 N/WaitPeers,
+ConnSlots, Connect, Boot; F7 Shares (Net/remote form) + Server/{Master*, RawServer, RegisterProof,
+ServeProof, MasterBoot, SpecsDefs, SpecsReq} + B/{Register, Registry, Rcvr, Init}; F8 the kit's
+specs (KitSpecs/KitProof: Codec, Gen, Orch, Client, opMaybe) + Client/*. After them: Replica2/Link,
+B/NewReplica, Server/Specs, B/Boot, Server/Boot(Iface), the start (StartInit/Start over remote's
+start, as paxos's TopLevelRobustness), Mains, Linked, the statement, the TCB collection.
+
+**The Rpc layer as built (F4):** `Rpc/Defs` (rpcgen's bytes `encRegArgs`, …; addresses
+`masterRpcAddr = 127.0.0.1:7501`, listeners `masterRpcLis = ":7501"`, `replicaRpcLis k =
+":850(2+k)"`; `masterSvc δ R := withErr (masterSvc0 δ R)`, `replicaSvc := withErr replicaSvc0`;
+`rpcServicesDef` per wildcard listener), `Rpc/Codec` (`gryffCodec`, `CodecLaws`, `RcvLaws`),
+`Rpc/CodecProof` (`gryffCodecLaws`, `gryffRcvLaws`, proved), `Rpc/RpcHttpHyps` (`class RpcHttpHyp
+GF`, data-carrying as swiftpaxos's: `rpcLisP` (+`_addr`, `_lis`, `_set`), `handlerOk`, `muxHas`,
+`defaultServer`(+`_init`), `muxFree` (a path is registered once: Go panics on a second
+`HandleHTTP`), `Server_ServeHTTP_spec`, `Server_HandleHTTP_spec`, `HandleHTTP_spec` (both at
+`defaultRPCPath`, consuming `muxFree`), `Register_spec`, `ServeMux_ServeHTTP_spec`, `Serve_spec`;
+`rpcBootRes` and `class RpcBootHyp GF` (`wp_init_own`: net/rpc's initializer, owned, gives
+`codecUnset`, the codec mutex, `invalidRequest ↦□`, `muxFree defaultRPCPath`, once per machine:
+Upamanyu's C2)).
+
+**Hypotheses so far (each a premise of the statement, no instance):** `wire.BufioSpecs`,
+`wire.BinaryVarintHyps` (+ `errOverflowVar`), `netN.StringsIndexHyp`, `SortSliceHyp`
+(`Lib/SortHyps.lean`, sort.Slice on `[]int32` with `<`: Go's result is the unique sorted
+permutation), `RpcHttpHyp`, `RpcBootHyp`, the `InitHyp`s (`net.rpc`, `net.http`, `math.rand`), and
+the Net/remote spec bundles discharged at linking (`netN.NetConnSpecs`, …).
 
 ## Which lab run
 
