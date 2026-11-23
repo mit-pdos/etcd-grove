@@ -287,21 +287,42 @@ func (p *parser) msg(raw json.RawMessage, name string) check.Msg {
 	if !p.obj(raw, name, &o) {
 		return check.Msg{}
 	}
-	m := check.Msg{
-		Type:    p.strf(o, "type", "msg.type"),
-		From:    p.strf(o, "from", "msg.from"),
-		To:      p.strf(o, "to", "msg.to"),
-		Term:    p.intf(o, "term", "msg.term"),
-		Index:   p.intf(o, "index", "msg.index"),
-		LogTerm: p.intf(o, "logTerm", "msg.logTerm"),
-		Commit:  p.intf(o, "commit", "msg.commit"),
-		Reject:  p.boolf(o, "reject", "msg.reject"),
-		Hint:    p.intf(o, "hint", "msg.hint"),
-	}
-	if e, ok := o["entries"]; ok {
-		m.Entries = p.entries(e, "msg.entries")
-	} else {
-		p.fail("no field msg.entries")
+	// A field the message lacks is absent (Has), an error only where the binding reads it.
+	var m check.Msg
+	for k, v := range o {
+		switch k {
+		case "type":
+			m.Type = p.strv(v, "msg.type")
+			m.Has |= check.MFType
+		case "from":
+			m.From = p.strv(v, "msg.from")
+			m.Has |= check.MFFrom
+		case "to":
+			m.To = p.strv(v, "msg.to")
+			m.Has |= check.MFTo
+		case "term":
+			m.Term = p.intv(v, "msg.term")
+			m.Has |= check.MFTerm
+		case "index":
+			m.Index = p.intv(v, "msg.index")
+			m.Has |= check.MFIndex
+		case "logTerm":
+			m.LogTerm = p.intv(v, "msg.logTerm")
+			m.Has |= check.MFLogTerm
+		case "entries":
+			m.Entries = p.entries(v, "msg.entries")
+			m.Has |= check.MFEntries
+		case "commit":
+			m.Commit = p.intv(v, "msg.commit")
+			m.Has |= check.MFCommit
+		case "reject":
+			var b bool
+			if err := json.Unmarshal(v, &b); err != nil {
+				p.fail("msg.reject: not a boolean")
+			}
+			m.Reject = b
+			m.Has |= check.MFReject
+		}
 	}
 	return m
 }

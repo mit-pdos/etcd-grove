@@ -8,13 +8,13 @@ package check
 
 // VoteFact is B 63-65.
 func VoteFact(m Msg) Fact {
-	return Fact{Type: "vote", Src: m.From, Term: m.Term, LastLogIndex: m.Index, LastLogTerm: m.LogTerm}
+	return Fact{Type: "vote", Src: m.from(), Term: m.term(), LastLogIndex: m.index(), LastLogTerm: m.logTerm()}
 }
 
 // ToAppendFact is B 68-71 `AppendFact(m)`.
 func ToAppendFact(m Msg) AppendFact {
-	return AppendFact{Src: m.From, Dst: m.To, Term: m.Term, PrevLogIndex: m.Index, PrevLogTerm: m.LogTerm,
-		Entries: m.Entries, Commit: m.Commit}
+	return AppendFact{Src: m.from(), Dst: m.to(), Term: m.term(), PrevLogIndex: m.index(), PrevLogTerm: m.logTerm(),
+		Entries: m.entries(), Commit: m.commit()}
 }
 
 // AckFact is B 73.
@@ -23,25 +23,25 @@ func AckFact(src, dst string, t, k int) Fact {
 }
 
 // IsReq is B 75 `IsReq(m) == m.type \in {"app", "hb", "snap"}`.
-func IsReq(m Msg) bool { return m.Type == "app" || m.Type == "hb" || m.Type == "snap" }
+func IsReq(m Msg) bool { return m.typ() == "app" || m.typ() == "hb" || m.typ() == "snap" }
 
 // SnapOk is B 80-83.
 func SnapOk(ll TermLogs, m Msg) bool {
-	if m.Type != "snap" {
+	if m.typ() != "snap" {
 		return true
 	}
-	return ll.Has(m.Term) && m.Index <= len(ll.Get(m.Term)) && TermAt(ll.Get(m.Term), m.Index) == m.LogTerm
+	return ll.Has(m.term()) && m.index() <= len(ll.Get(m.term())) && TermAt(ll.Get(m.term()), m.index()) == m.logTerm()
 }
 
 // ReqFactIn is B 85-91.
 func ReqFactIn(ll TermLogs, m Msg) AppendFact {
-	if m.Type == "snap" {
+	if m.typ() == "snap" {
 		var es []Entry
-		if ll.Has(m.Term) {
-			es = SubSeq(ll.Get(m.Term), 1, m.Index)
+		if ll.Has(m.term()) {
+			es = SubSeq(ll.Get(m.term()), 1, m.index())
 		}
-		return AppendFact{Src: m.From, Dst: m.To, Term: m.Term, PrevLogIndex: 0, PrevLogTerm: 0, Entries: es,
-			Commit: m.Index}
+		return AppendFact{Src: m.from(), Dst: m.to(), Term: m.term(), PrevLogIndex: 0, PrevLogTerm: 0, Entries: es,
+			Commit: m.index()}
 	}
 	return ToAppendFact(m)
 }
@@ -228,12 +228,12 @@ func (s *State) Boot(n int, ev *Event) (*State, bool) {
 // Recv is B 199-204.
 func (s *State) Recv(n int, ev *Event) (*State, bool) {
 	m := ev.msg()
-	if m.To != s.Cfg.Server[n] {
+	if m.to() != s.Cfg.Server[n] {
 		return nil, false
 	}
 	ns := s.clone()
 	ns.Pending = setMsgs(s.Pending, n, []Msg{m})
-	if IsReq(m) && m.Term >= s.CurrentTerm[n] {
+	if IsReq(m) && m.term() >= s.CurrentTerm[n] {
 		if !(SnapOk(s.LedLog, m) && s.Sendable(ReqFactIn(s.LedLog, m))) {
 			return nil, false
 		}
@@ -538,7 +538,7 @@ func (x onDisk) snaps() bool    { return x.w().has(FSnap) }
 func (x onDisk) bat() bool      { return !x.w().has(FEntries) }
 
 func (x onDisk) isApp() bool {
-	return x.bat() && x.hasM() && x.m().Type == "app" && x.m().Term == x.T1()
+	return x.bat() && x.hasM() && x.m().typ() == "app" && x.m().term() == x.T1()
 }
 
 func (x onDisk) below() bool { return x.isApp() && x.fm().PrevLogIndex < x.s.CommitIndex[x.n] }
@@ -614,7 +614,7 @@ func (x onDisk) acks() bool {
 	if x.stores() && x.leads() {
 		return true
 	}
-	if x.moved() && !x.leads() && x.hasM() && (x.m().Type == "app" || x.m().Type == "snap") {
+	if x.moved() && !x.leads() && x.hasM() && (x.m().typ() == "app" || x.m().typ() == "snap") {
 		return true
 	}
 	return x.takes() || x.below()
@@ -683,7 +683,7 @@ func (s *State) OnDisk(n int, q QItem, more bool, ro []string, ld []LeaderRec, l
 		return nil, false
 	}
 	if x.adopt() {
-		if !(x.hasM() && x.m().Term == x.T1()) {
+		if !(x.hasM() && x.m().term() == x.T1()) {
 			return nil, false
 		}
 		found := false
@@ -703,7 +703,7 @@ func (s *State) OnDisk(n int, q QItem, more bool, ro []string, ld []LeaderRec, l
 			return nil, false
 		}
 		if !x.elect() {
-			if !(x.hasM() && x.m().Type == "vote" && x.m().From == w.vote() && x.m().Term == x.T1() &&
+			if !(x.hasM() && x.m().typ() == "vote" && x.m().from() == w.vote() && x.m().term() == x.T1() &&
 				factsHas(s.Msgs, VoteFact(x.m())) && s.UpToDate(VoteFact(x.m()), n)) {
 				return nil, false
 			}
@@ -711,8 +711,8 @@ func (s *State) OnDisk(n int, q QItem, more bool, ro []string, ld []LeaderRec, l
 	}
 	// The entries.
 	if x.snaps() {
-		if !(!x.leads() && x.hasM() && x.m().Type == "snap" && x.stores() && w.snap().Index == x.m().Index &&
-			w.snap().Term == x.m().LogTerm && w.commit() == x.m().Index) {
+		if !(!x.leads() && x.hasM() && x.m().typ() == "snap" && x.stores() && w.snap().Index == x.m().index() &&
+			w.snap().Term == x.m().logTerm() && w.commit() == x.m().index()) {
 			return nil, false
 		}
 	}
@@ -722,10 +722,10 @@ func (s *State) OnDisk(n int, q QItem, more bool, ro []string, ld []LeaderRec, l
 				return nil, false
 			}
 		} else {
-			if !(x.hasM() && (x.m().Type == "app" || x.m().Type == "snap") && x.m().Term == x.T1()) {
+			if !(x.hasM() && (x.m().typ() == "app" || x.m().typ() == "snap") && x.m().term() == x.T1()) {
 				return nil, false
 			}
-			if x.m().Type == "snap" && !x.snaps() {
+			if x.m().typ() == "snap" && !x.snaps() {
 				return nil, false
 			}
 			if !(SnapOk(ll, x.m()) && SendableIn(ld, ll, ch, tl, x.f())) {
@@ -763,7 +763,7 @@ func (s *State) OnDisk(n int, q QItem, more bool, ro []string, ld []LeaderRec, l
 				return nil, false
 			}
 		} else {
-			if !(x.hasM() && IsReq(x.m()) && x.m().Term == x.T1()) {
+			if !(x.hasM() && IsReq(x.m()) && x.m().term() == x.T1()) {
 				return nil, false
 			}
 			if !(SnapOk(ll, x.m()) && SendableIn(ld, ll, ch, tl, x.f())) {
@@ -772,7 +772,7 @@ func (s *State) OnDisk(n int, q QItem, more bool, ro []string, ld []LeaderRec, l
 			if !(w.commit() <= x.f().Commit) {
 				return nil, false
 			}
-			if x.m().Type == "app" || x.m().Type == "snap" {
+			if x.m().typ() == "app" || x.m().typ() == "snap" {
 				if !(s.PrevOk(n, x.f()) && (x.stores() || s.HasFirst(n, x.f(), len(x.f().Entries)))) {
 					return nil, false
 				}
@@ -1035,41 +1035,41 @@ func (s *State) Send(n int, ev *Event) (*State, bool) {
 		cast = s.Undo[n].Votes
 	}
 	dur := s.Undo[n] == nil || s.Undo[n].Made
-	if !(m.From == me || isForwarded(m.Type)) {
+	if !(m.from() == me || isForwarded(m.typ())) {
 		return nil, false
 	}
-	if !(s.Cfg.Server.Has(m.To) && m.To != me) {
+	if !(s.Cfg.Server.Has(m.to()) && m.to() != me) {
 		return nil, false
 	}
 	ns := s.clone()
 	if !(late || bt) {
 		ns.Undo = setPre(s.Undo, n, nil)
 	}
-	if m.Type == "vote" {
+	if m.typ() == "vote" {
 		if bt {
 			if !(dur && (factsHas(s.Msgs, VoteFact(m)) || factsHas(mine, VoteFact(m)))) {
 				return nil, false
 			}
-		} else if !(m.Term == s.CurrentTerm[n] && factsHas(s.Msgs, VoteFact(m))) {
+		} else if !(m.term() == s.CurrentTerm[n] && factsHas(s.Msgs, VoteFact(m))) {
 			return nil, false
 		}
 		return ns, true
 	}
-	if m.Type == "voteresp" {
-		if !m.Reject {
-			v := VoteRec{Voter: me, Term: m.Term, Cand: m.To}
+	if m.typ() == "voteresp" {
+		if !m.reject() {
+			v := VoteRec{Voter: me, Term: m.term(), Cand: m.to()}
 			if !(votesHas(s.Votes, v) || votesHas(cast, v)) {
 				return nil, false
 			}
 			if bt && !dur {
 				return nil, false
 			}
-			ns.Msgs = factsAdd(s.Msgs, Fact{Type: "grant", Src: me, Dst: m.To, Term: m.Term})
+			ns.Msgs = factsAdd(s.Msgs, Fact{Type: "grant", Src: me, Dst: m.to(), Term: m.term()})
 		}
 		return ns, true
 	}
 	if IsReq(m) {
-		if !(bt || (m.Term == s.CurrentTerm[n] && s.Role[n] == Leader)) {
+		if !(bt || (m.term() == s.CurrentTerm[n] && s.Role[n] == Leader)) {
 			return nil, false
 		}
 		if !(SnapOk(s.LedLog, m) && s.Sendable(ReqFactIn(s.LedLog, m))) {
@@ -1077,15 +1077,15 @@ func (s *State) Send(n int, ev *Event) (*State, bool) {
 		}
 		return ns, true
 	}
-	if m.Type == "appresp" {
-		if m.Reject {
+	if m.typ() == "appresp" {
+		if m.reject() {
 			return ns, true
 		}
 		if bt {
-			if m.Index == 0 {
+			if m.index() == 0 {
 				return ns, true
 			}
-			if !(s.Undo[n] != nil && dur && factsHas(s.Undo[n].Acks, AckFact(me, m.To, m.Term, m.Index))) {
+			if !(s.Undo[n] != nil && dur && factsHas(s.Undo[n].Acks, AckFact(me, m.to(), m.term(), m.index()))) {
 				return nil, false
 			}
 			return ns, true
@@ -1096,13 +1096,13 @@ func (s *State) Send(n int, ev *Event) (*State, bool) {
 		} else {
 			c = s.Pending[n]
 		}
-		if len(c) != 0 && IsReq(c[0]) && c[0].Term < s.CurrentTerm[n] {
-			if !(m.Index == 0 && m.Term == s.CurrentTerm[n]) {
+		if len(c) != 0 && IsReq(c[0]) && c[0].term() < s.CurrentTerm[n] {
+			if !(m.index() == 0 && m.term() == s.CurrentTerm[n]) {
 				return nil, false
 			}
 			return ns, true
 		}
-		if m.Index == 0 {
+		if m.index() == 0 {
 			return ns, true
 		}
 		if len(c) == 0 {
@@ -1111,39 +1111,39 @@ func (s *State) Send(n int, ev *Event) (*State, bool) {
 		cm := msgSeqHead(c)
 		f := ReqFactIn(s.LedLog, cm)
 		last := f.PrevLogIndex + len(f.Entries)
-		if !((cm.Type == "app" || cm.Type == "snap") && SnapOk(s.LedLog, cm) && s.Sendable(f)) {
+		if !((cm.typ() == "app" || cm.typ() == "snap") && SnapOk(s.LedLog, cm) && s.Sendable(f)) {
 			return nil, false
 		}
-		if !(m.To == cm.From && m.Term == cm.Term && s.CurrentTerm[n] == cm.Term) {
+		if !(m.to() == cm.from() && m.term() == cm.term() && s.CurrentTerm[n] == cm.term()) {
 			return nil, false
 		}
-		if m.Index == last && s.PrevOk(n, f) && s.HasFirst(n, f, len(f.Entries)) {
-			ns.Msgs = factsAdd(s.Msgs, AckFact(me, cm.From, cm.Term, last))
+		if m.index() == last && s.PrevOk(n, f) && s.HasFirst(n, f, len(f.Entries)) {
+			ns.Msgs = factsAdd(s.Msgs, AckFact(me, cm.from(), cm.term(), last))
 			old := s.Confirmed[n]
 			idx := last
-			if old.Term == cm.Term {
+			if old.Term == cm.term() {
 				idx = Max(old.Index, last)
 			}
-			ns.Confirmed = setConfirmed(s.Confirmed, n, Confirmed{Term: cm.Term, Index: idx})
+			ns.Confirmed = setConfirmed(s.Confirmed, n, Confirmed{Term: cm.term(), Index: idx})
 			return ns, true
 		}
-		if !(f.PrevLogIndex < s.CommitIndex[n] && m.Index == s.CommitIndex[n]) {
+		if !(f.PrevLogIndex < s.CommitIndex[n] && m.index() == s.CommitIndex[n]) {
 			return nil, false
 		}
-		ns.Msgs = factsAdd(s.Msgs, AckFact(me, cm.From, cm.Term, s.CommitIndex[n]))
+		ns.Msgs = factsAdd(s.Msgs, AckFact(me, cm.from(), cm.term(), s.CommitIndex[n]))
 		return ns, true
 	}
-	if m.Type == "hbresp" {
+	if m.typ() == "hbresp" {
 		t := s.CurrentTerm[n]
 		if bt {
 			t = s.EffTerm(n)
 		}
-		if !(t <= m.Term) {
+		if !(t <= m.term()) {
 			return nil, false
 		}
 		return ns, true
 	}
-	if isUnmodelled(m.Type) {
+	if isUnmodelled(m.typ()) {
 		return ns, true
 	}
 	return nil, false

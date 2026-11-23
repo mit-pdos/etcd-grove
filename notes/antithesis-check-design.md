@@ -220,15 +220,28 @@ The pinned Goose (Perennial `9c3b81f3`) translates the package without error or 
 
 **Differential test** (`go test`, no Java; fixtures from `testdata/gen-fixtures.sh` and
 `testdata/gen-fuzz.py`, which run TLC through their `streamcheck.py`): verdict kind, event index and
-violated properties must equal TLC's. Results in `notes/STATUS.md`'s entry of 2026-11-23 and the
-branch's report; at this writing all agree (recorded traces 14/14, mutations 60/60 at TLC's index,
-simulator streams 144/144 in twelve modes, plus a larger uncommitted batch and random
-perturbations).
+violated properties must equal TLC's (for TLC's ERROR, the kind only). At 2026-11-23, every one
+agrees:
+
+| Source | Streams | TLC's verdicts | Go agrees |
+|---|---|---|---|
+| Antithesis's recorded traces (`traces/`) | 14 | 14 ACCEPTED | 14 |
+| their validator mutations (`mutate.py`), at TLC's event | 60 | 59 REJECTED, 1 VIOLATED (`ReadIndexStale`) | 60 |
+| simulator, 12 modes x 12 seeds (default, empty, five, parallel, async, async+snap+reads, snap+reads, batch+forward, member, prevote, async+nohold, split entries-hardstate) | 144 | 130 ACCEPTED, 14 REJECTED (12 E1 `nohold`, 2 split) | 144 |
+| random perturbations of the traces (`gen-fuzz.py`) | 257 | 145 ACCEPTED, 97 REJECTED, 15 ERROR | 257 |
+| uncommitted larger batch (`MODES=more`, 30 seeds a mode, 24 modes incl. member-empty/async/batch, checkquorum, transfer, inflight+snapstatus, stepdown, the three splits) | 416 at this writing | | 416 |
+
+The perturbations found one real difference, fixed: a reported message's fields must be read
+lazily (TLC accepts a vote message without `entries` because nothing reads it).
 
 A self-mutation check of the transcription (flip one guard, rerun the test) caught 13 of 23
 mutants with the traces, mutations and simulator streams alone; the survivors were guards no honest
-stream fails (GC's trigger, `Boot`'s `~u.made`, `Net`'s `low`, `ApplyBeyondCommit`, ...). The random
-perturbations (`gen-fuzz.py`) are there to reach those guards.
+stream fails (GC's trigger, `Boot`'s `~u.made`, `Net`'s `low`, `ApplyBeyondCommit`, ...), and adding the 257
+perturbations killed none of them (rerun 2026-11-23: the same nine survive among the 21 still
+applicable). So for those guards (`OnDisk`'s "no new term while leading", `Boot`'s `~u.made`,
+`Net`'s `low`, GC's trigger and the ack-covering rule, `HasFirst` in `OnDisk`, `ApplyBeyondCommit`,
+`UpToDate`, `BootInit`'s `confirmed`) the evidence is review against the cited lines, not the
+differential test; targeted negative streams for them are a cheap follow-up.
 
 ## 8. Questions for the user
 
@@ -250,7 +263,8 @@ Recommend exactly that; read index next (cheapest: `ReadGiven` only checks the i
 
 **Q4. The checker's fidelity outside honest streams.** Where TLC stops with an evaluation error the
 Go checker panics (`Run`) or says ERROR (`Check`); on a node name outside `Server` it errors where TLC
-might reject. Both only matter for malformed streams, and either outcome makes `Main` panic.
+might reject; a log entry lacking a field is an error at its report where TLC would compare it
+unequal later. Both only matter for malformed streams, and either outcome makes `Main` panic.
 Recommend accepting this.
 
 **Q5. API.** (a) `RawNode` (recommended, §6) or (b) the node API.

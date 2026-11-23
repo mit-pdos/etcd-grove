@@ -2,7 +2,11 @@ package check
 
 // Msg is a reported message, `{type, from, to, term, index, logTerm, entries, commit, reject, hint}`
 // (antithesis-fm/rawnode/node.go's package comment). Every field is always reported.
+//
+// Has says which fields the report has (MF* bits): reading an absent one is an EvalError, as in
+// TLC. A message the harness builds has them all (MFAll).
 type Msg struct {
+	Has     uint32
 	Type    string
 	From    string
 	To      string
@@ -14,6 +18,36 @@ type Msg struct {
 	Reject  bool
 	Hint    int
 }
+
+// The fields of a reported message, as bits of Msg.Has.
+const (
+	MFType uint32 = 1 << iota
+	MFFrom
+	MFTo
+	MFTerm
+	MFIndex
+	MFLogTerm
+	MFEntries
+	MFCommit
+	MFReject
+	MFAll = MFType | MFFrom | MFTo | MFTerm | MFIndex | MFLogTerm | MFEntries | MFCommit | MFReject
+)
+
+func (m Msg) need(f uint32) {
+	if m.Has&f == 0 {
+		evalError("a field the message does not have")
+	}
+}
+
+func (m Msg) typ() string      { m.need(MFType); return m.Type }
+func (m Msg) from() string     { m.need(MFFrom); return m.From }
+func (m Msg) to() string       { m.need(MFTo); return m.To }
+func (m Msg) term() int        { m.need(MFTerm); return m.Term }
+func (m Msg) index() int       { m.need(MFIndex); return m.Index }
+func (m Msg) logTerm() int     { m.need(MFLogTerm); return m.LogTerm }
+func (m Msg) entries() []Entry { m.need(MFEntries); return m.Entries }
+func (m Msg) commit() int      { m.need(MFCommit); return m.Commit }
+func (m Msg) reject() bool     { m.need(MFReject); return m.Reject }
 
 // SnapRef is a report's `snap`: `{index, term}`.
 type SnapRef struct {
