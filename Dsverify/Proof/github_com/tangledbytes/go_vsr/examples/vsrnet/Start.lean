@@ -72,7 +72,7 @@ theorem vr_start :
     VsrWire.addrs $$ Hreg Hsv with #Hpv
   imod addrs_set_proto (Gg := G) ⊤ (fun _ => confProto γ) (fun _ => ackProto) cfgAddrs
     $$ Hreg Hscf with #Hpcf
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) (RBase.svc (kvR γ.gn)))
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (kvR γ.gn)) a)
     (fun _ => repP (Gg := G) (RBase.svc (kvR γ.gn))) clientAddrs $$ Hreg Hsc with #Hpc
   have hv : absOwn (G := G) γ (fun _ => none) ⊢
       (kvR (Gg := G) γ.gn).sysState (kvR (Gg := G) γ.gn).B.init := .rfl
