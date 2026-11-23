@@ -120,6 +120,8 @@ section register
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [examples.swiftnet.Assumptions] [net.FieldAssumptions]
+variable [net.rpc.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpAddr netDistGF]
+  [H : RpcHttpHyp netDistGF]
 
 /-- `register(ip, port, maddr)` (runReplica's registration, retried): from replica node `k`
 of the configuration `c` (`k < c.n`), at the master's rpc address with its service: the
@@ -130,7 +132,7 @@ abbrev register.spec : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF)
         pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet ∗
       conf.is γ c ∗ ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
-      net.rpc.rpcAddr γ.W masterAddr ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk }}
+      rpcHttp γ.W masterAddr ∗ net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk }}
     (App (App (App (Val (@! examples.swiftnet.register)) (Val #ip)) (Val #port))
       (Val #masterAddr))
   {{ (id : w64) (nl : GoSlice) (nodes : List GoString) (fr : Bool), RET (PairV #id #nl);
