@@ -170,13 +170,72 @@ instance authpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.api.v3.authpb :=
   build_get_is_pkg_init_wf
 
+-- (phase 7 S2 core, 2026-11-23) grpc's `internal` (names only but its variable
+-- `FromOutgoingContextRaw`), before `metadata`, whose `init` sets that variable
+namespace google_golang_org.grpc.internal
+
+/-- The namespace of `FromOutgoingContextRaw`'s invariant. -/
+def fromOutRawN : Namespace := nroot.@"grpcInternalFromOutgoingContextRaw"
+
+/-- The type of `metadata.fromOutgoingContextRaw`, `func(context.Context) (metadata.MD, [][]string,
+bool)`: what `metadata`'s `init` converts it from and grpc's `metadataFromOutgoingContextRaw` asserts. -/
+abbrev fromOutRawTy : go.GoType :=
+  go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false
+    [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, go.GoType.SliceType (go.GoType.SliceType go.string), go.bool])
+
+/-- `metadata.fromOutgoingContextRaw` as an `any`: what `metadata`'s `init` stores in
+`FromOutgoingContextRaw`. -/
+abbrev fromOutRawAny : GoInterface :=
+  interface.mkOk fromOutRawTy #(functions _root_.Perennial.google_golang_org.grpc.metadata.fromOutgoingContextRaw [])
+
+/-- **`FromOutgoingContextRaw`'s invariant** (phase 7 S2 core, 2026-11-23). Two states. *Held*: the
+cell, with a value that is `fromOutRawAny` once the counter `γS` is past `0` (it is `0` until
+`metadata`'s `init` stores, which then raises it), and the whole of the ghost variable `γI`.
+*Lent*: a package initializer's exclusive package state (`ownGoState σ`, the program's half of the
+package map with the authority of the initialized packages) and half of `γI` at `σ`. A package
+initializer, which holds its `ownGoState`, takes the cell out by lending its package state (so no
+other holder of a package state can take it meanwhile: two `ownGoState`s conflict), reads or writes
+it with plain (non-atomic) loads and stores, and puts it back, getting its own package state back
+(`γI`'s halves agree). Readers and writers are package initializers only: `metadata`'s `init` (the
+store) and grpc's `metadataFromOutgoingContextRaw` (the type assertion's load). -/
+def fromOutRawInv (γI γS : GName) : IProp GF :=
+  iprop((∃ (v : GoInterface) (n : Nat) (x : GMap GoString Bool),
+      globalAddr _root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw ↦ v ∗ ghost_var γI (DFrac.own 1) x ∗
+      monoNatAuthOwn γS 1 n ∗ ⌜n = 0 ∨ v = fromOutRawAny (GF := GF)⌝) ∨
+    (∃ σ : GMap GoString Bool, ownGoState σ ∗ ghost_var γI (DFrac.own (1 : Qp).half) σ))
+
+/-- `internal`'s package fact: `FromOutgoingContextRaw`'s invariant, at some ghost names. -/
+def internalInit : IProp GF :=
+  iprop(∃ γI γS : GName, inv fromOutRawN (fromOutRawInv γI γS))
+
+instance internalInit_persistent : Persistent (internalInit (GF := GF)) := by
+  unfold internalInit; infer_instance
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal :=
+  define_is_pkg_init internalInit
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.internal
+
 -- `google.golang.org/grpc/metadata` (types and names only), before `grpc`, which imports it
 -- (unit W-W: grpc's `ClientStream`/`ServerStream` name `metadata.MD`; moved here from
 -- `server/v3/auth/Base.lean`)
 namespace google_golang_org.grpc.metadata
 
+/-- **`metadata`'s package fact** (phase 7 S2 core, 2026-11-23; until then `True`): its `init` has
+stored `fromOutgoingContextRaw` in `internal.FromOutgoingContextRaw` for good (`internal`'s invariant,
+its counter past `0`). What grpc's `metadataFromOutgoingContextRaw` reads. -/
+def metadataInit : IProp GF :=
+  iprop(∃ γI γS : GName,
+    inv google_golang_org.grpc.internal.fromOutRawN (google_golang_org.grpc.internal.fromOutRawInv γI γS) ∗
+    monoNatLbOwn γS 1)
+
+instance metadataInit_persistent : Persistent (metadataInit (GF := GF)) := by
+  unfold metadataInit; infer_instance
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init metadataInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.metadata :=
   build_get_is_pkg_init_wf
 

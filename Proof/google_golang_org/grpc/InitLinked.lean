@@ -14,6 +14,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.credentials.Init
+public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.internal.grpcsync.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
@@ -63,22 +64,24 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := Bool) EnableTracing _ as HEnableTracing
+  wp_apply wp_GlobalAlloc (V := GoFunc) metadataFromOutgoingContextRaw _ as HmetadataFromOutgoingContextRaw
   wp_apply wp_GlobalAlloc (V := GoSlice) http2ErrConvTab _ as Hhttp2ErrConvTab
   wp_apply wp_GlobalAlloc (V := GoInterface) errHeaderListTooLarge _ as HerrHeaderListTooLarge
   wp_apply wp_GlobalAlloc (V := GoInterface) errMalformedFrame _ as HerrMalformedFrame
   wp_apply wp_GlobalAlloc (V := GoSlice) transportFailureCodes _ as HtransportFailureCodes
   wp_apply wp_GlobalAlloc (V := GoInterface) errStreamDone _ as HerrStreamDone
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrClientConnClosing _ as HErrClientConnClosing
-  wp_apply (_root_.Perennial.google_golang_org.grpc.internal.grpcsync.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.internal.grpcsync.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.peer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
-      EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.resolver.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (_root_.Perennial.google_golang_org.grpc.keepalive.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+      EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.metadata.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.credentials.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.resolver.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.keepalive.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.internal.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
       EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (_root_.Perennial.google_golang_org.grpc.status.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
@@ -111,9 +114,17 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %shttp2ErrConvTab ⟨Shttp2ErrConvTab, -⟩
   try wp_auto
   wp_apply (opaqueInitsOk logger.init (by mem_tac))
+  -- translated initializer of metadataFromOutgoingContextRaw))
+  try wp_auto
+  ihave #Hmdi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.metadata.metadataInit (hG := hG) : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hd13
+  wp_apply (EtcdGrove.grpcInternal.wp_load_fromOutRaw (hG := hG) _ _) $$ [Hmdi Hown] as Hown
+  · iframe Hown Hmdi
+  try wp_auto
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   wp_apply (initFuncsOk init.«1» (by mem_tac))
   wp_apply (initFuncsOk init.«2» (by mem_tac))
+  -- translated initializer of _root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw))
   ipersist HEnableTracing
   iframe Hown
   imodintro

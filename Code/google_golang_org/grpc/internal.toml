@@ -1,0 +1,22 @@
+# (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) Names only, but the variable
+# `FromOutgoingContextRaw` (`var FromOutgoingContextRaw any`, `internal.go`, no initializer):
+# `metadata`'s `init` sets it to `metadata.fromOutgoingContextRaw`, and grpc's
+# `metadataFromOutgoingContextRaw` asserts its type (`stream.go:53`), both translated. Nothing
+# else of the package is translated with a body.
+translate = ["!*", "FromOutgoingContextRaw"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports (its interfaces, which name no
+# other package; `HealthChecker` names `context` and `connectivity`, not imported: axiomatized)
+translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
+# reference to one from translated code, so no verified code reads them.
+[[skip]]
+names = ["KeepaliveMinPingTime", "KeepaliveMinServerPingTime", "GRPCResolverSchemeExtraMetadata",
+  "UserSetDefaultScheme", "TimeAfterFunc", "NewStreamWaitingForResolver",
+  "AsyncReporterCleanupDelegate"]
+reason = """
+Literals: constants, constant expressions (`10 * time.Second`) and function literals (built, not
+called), with no call. Each terminates, cannot panic and has no effect beyond its variable."""

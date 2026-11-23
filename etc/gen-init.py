@@ -1411,6 +1411,23 @@ _G['before'].update({
         'try wp_auto'],
 })
 _G['imports'].append('Proof.google_golang_org.grpc.status.Error')
+# (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(...))`
+# (`stream.go:53`; until then a goose `[[skip]]`): the load through `internal`'s invariant gives
+# `metadata.fromOutgoingContextRaw` (`metadata`'s fact: its `init` stored it), whose type is the asserted one
+_G['doc'] = _G['doc'].replace('''runs the untranslated initializers of its other variables''', '''runs the
+translated initializer of `metadataFromOutgoingContextRaw` (the type assertion of
+`internal.FromOutgoingContextRaw`, which `metadata`'s fact says holds `metadata.fromOutgoingContextRaw`:
+`grpc/internal/FromOutRaw.lean`, `wp_load_fromOutRaw`; phase 7 S2 core, 2026-11-23, until then a goose
+`[[skip]]`), runs the untranslated initializers of its other variables''')
+_G['alloc_types']['metadataFromOutgoingContextRaw'] = 'GoFunc'
+_G['before']['metadataFromOutgoingContextRaw'] = [
+    'try wp_auto',
+    'ihave #Hmdi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.metadata.metadataInit (hG := hG) : IProp GF) $$ []',
+    '· iapply isPkgInit_access $$ {Hd:google_golang_org.grpc.metadata}',
+    'wp_apply (EtcdGrove.grpcInternal.wp_load_fromOutRaw (hG := hG) _ _) $$ [Hmdi Hown] as Hown',
+    '· iframe Hown Hmdi',
+    'try wp_auto']
+_G['imports'].append('Proof.google_golang_org.grpc.internal.FromOutRaw')
 
 # (sweep repairs 1, B5, 2026-11-08) the default gate's registration: `features`' `init`
 SPECIAL['k8s_io.apiserver.pkg.features'] = dict(
@@ -3398,15 +3415,44 @@ which the trust-boundary axiom `initFuncsOk` says returns.''',
     alloc_types={'strToCode': 'Loc'},
     before={'strToCode': map_lit_steps('Hsc', 'GoString', 'w32', 'go.string', f'{_GC}.Code.ty', 17)},
 )
+# (phase 7 S2 core, 2026-11-23, notes/phase7-plan.md §0a) grpc's `internal` (names only but
+# `FromOutgoingContextRaw`): its fact is the cell's invariant (`internalInit`, `cache/v3/Base.lean`;
+# the laws in `Proof/google_golang_org/grpc/internal/FromOutRaw.lean`)
+_GI = 'google_golang_org.grpc.internal'
+SPECIAL[_GI] = dict(
+    doc='''Its fact (`internalInit`, `cache/v3/Base.lean`): `FromOutgoingContextRaw`'s invariant
+(`fromOutRawInv`), which a package initializer holding its package state opens for a plain load or
+store of the cell (`grpc/internal/FromOutRaw.lean`). Its initializer allocates `FromOutgoingContextRaw`
+(`var FromOutgoingContextRaw any`, `internal.go`, no initializer: it holds `nil`) and puts the cell in
+the invariant; its other variables with initializers are goose `[[skip]]`s (literals), the rest names
+only.''',
+    alloc_types={'FromOutgoingContextRaw': 'GoInterface'},
+    imports=['Proof.google_golang_org.grpc.internal.FromOutRaw'],
+    finish=['imod (EtcdGrove.grpcInternal.fromOutRaw_alloc (hG := hG) _) $$ HFromOutgoingContextRaw with #Hfact']
+        + FIN_PRE[:6],
+)
 _GM = 'google_golang_org.grpc.metadata'
 SPECIAL[_GM] = dict(
-    doc='''Its fact is `True`. Its initializer allocates `loggableMetadataKeys`, initializes its imports, runs
-its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
-2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its untranslated `init` function
-(it sets `internal.FromOutgoingContextRaw`, another package's variable), which the trust-boundary
-axiom `initFuncsOk` says returns.''',
+    doc='''Its fact (`metadataInit`, `cache/v3/Base.lean`; phase 7 S2 core, 2026-11-23, until then `True`):
+its `init` has stored `fromOutgoingContextRaw` in `internal.FromOutgoingContextRaw` for good (the counter of
+`internal`'s invariant past `0`). Its initializer allocates `loggableMetadataKeys`, initializes its imports,
+runs its variable's translated initializer, a map literal of the keys `MD.String` prints (prove-grpcext,
+2026-11-20; until then the trust-boundary axiom `opaqueInitsOk`), and its translated `init` function
+(phase 7 S2 core, 2026-11-23; until then the trust-boundary axiom `initFuncsOk`), which stores
+`fromOutgoingContextRaw`, converted to `any`, in `internal.FromOutgoingContextRaw`, another package's
+variable: through `internal`'s invariant, lending the initializer's package state
+(`grpc/internal/FromOutRaw.lean`, `wp_store_fromOutRaw`).''',
     alloc_types={'loggableMetadataKeys': 'Loc'},
     before={'loggableMetadataKeys': map_lit_steps('Hlk', 'GoString', 'Bool', 'go.string', 'go.bool', 10)},
+    imports=['Proof.google_golang_org.grpc.internal.FromOutRaw'],
+    # (phase 7 S2 core) `init()` (`metadata.go:33`): the store through `internal`'s invariant
+    after={'init.«0»': [
+        'ihave #Hfi : (_root_.Perennial.go_etcd_io.etcd.cache.v3.google_golang_org.grpc.internal.internalInit (hG := hG) : IProp GF) $$ []',
+        '· iapply isPkgInit_access $$ {Hd:google_golang_org.grpc.internal}',
+        'wp_apply (EtcdGrove.grpcInternal.wp_store_fromOutRaw (hG := hG) _ _) $$ [Hfi Hown] as ⟨Hown, #Hfact⟩',
+        '· iframe Hown Hfi',
+        'try wp_auto']},
+    finish=FIN_PRE[:6],
 )
 _GL = 'google_golang_org.grpc.grpclog'
 SPECIAL[_GL] = dict(

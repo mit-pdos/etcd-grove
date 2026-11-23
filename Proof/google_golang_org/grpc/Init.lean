@@ -11,7 +11,11 @@ translated initializers of `errMalformedFrame`, `errStreamDone` and `errHeaderLi
 (`errors.New` of a constant: Perennial's `errors.wp_New_errorString`), `ErrClientConnClosing`
 (`status.Error` of `codes.Canceled` and a constant: `status.Error.wp_proof`) and the slice literals of
 codes `transportFailureCodes` and `http2ErrConvTab` (phase 7 S2 core, 2026-11-23: until then not
-translated, goose `[[skip]]`), runs the untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
+translated, goose `[[skip]]`), runs the
+translated initializer of `metadataFromOutgoingContextRaw` (the type assertion of
+`internal.FromOutgoingContextRaw`, which `metadata`'s fact says holds `metadata.fromOutgoingContextRaw`:
+`grpc/internal/FromOutRaw.lean`, `wp_load_fromOutRaw`; phase 7 S2 core, 2026-11-23, until then a goose
+`[[skip]]`), runs the untranslated initializers of its other variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated `init`
 functions, which the trust-boundary axiom `initFuncsOk` says return. (Until 2026-11-19 the cell
 came from the trust-boundary axiom `DefaultBackoffConfig_init`.) No translated code writes
@@ -28,6 +32,7 @@ public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.credentials.Init
+public import Proof.google_golang_org.grpc.internal.Init
 public import Proof.google_golang_org.grpc.internal.grpcsync.Init
 public import Proof.google_golang_org.grpc.keepalive.Init
 public import Proof.google_golang_org.grpc.metadata.Init
@@ -37,6 +42,7 @@ public import Proof.google_golang_org.grpc.stats.Init
 public import Proof.google_golang_org.grpc.status.Init
 public import Proof.net.Init
 public import Perennial.Proof.errors.NewVar
+public import Proof.google_golang_org.grpc.internal.FromOutRaw
 
 @[expose] public section
 

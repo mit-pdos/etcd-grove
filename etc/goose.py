@@ -567,6 +567,9 @@ PROJECTS = [
             # (phase 7 S2, 2026-11-22) types only: `grpcsync.Event`, the type of `grpc.Server`'s
             # `quit`/`done` fields
             "google.golang.org/grpc/internal/grpcsync",
+            # (phase 7 S2 core, 2026-11-23) names only but the variable `FromOutgoingContextRaw`,
+            # which `metadata`'s `init` sets and grpc's `metadataFromOutgoingContextRaw` asserts
+            "google.golang.org/grpc/internal",
             # the types of protobuf messages' fields (protoimpl.MessageState, ...)
             "google.golang.org/protobuf/runtime/protoimpl",
             "google.golang.org/protobuf/internal/impl",

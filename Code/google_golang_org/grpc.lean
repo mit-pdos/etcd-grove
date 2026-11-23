@@ -172,6 +172,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_codes_Assumption : _root_.Perennial.google_golang_org.grpc.codes.Assumptions
   import_status_Assumption : _root_.Perennial.google_golang_org.grpc.status.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
+  import_internal_Assumption : _root_.Perennial.google_golang_org.grpc.internal.Assumptions
   import_keepalive_Assumption : _root_.Perennial.google_golang_org.grpc.keepalive.Assumptions
   import_resolver_Assumption : _root_.Perennial.google_golang_org.grpc.resolver.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
@@ -334,6 +335,7 @@ attribute [instance] Assumptions.BackoffConfig_instance
   Assumptions.import_codes_Assumption
   Assumptions.import_status_Assumption
   Assumptions.import_sync_Assumption
+  Assumptions.import_internal_Assumption
   Assumptions.import_keepalive_Assumption
   Assumptions.import_resolver_Assumption
   Assumptions.import_net_Assumption

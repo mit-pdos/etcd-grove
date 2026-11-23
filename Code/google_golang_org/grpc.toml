@@ -33,7 +33,10 @@ translate = ["!*", "EnableTracing", "WaitForReady", "MaxCallSendMsgSize", "MaxCa
   # initializers (until then `[[skip]]`): `errors.New` of constants, `status.Error` of a constant
   # code and message, slice literals of the codes
   "errMalformedFrame", "errStreamDone", "errHeaderListTooLarge", "ErrClientConnClosing",
-  "transportFailureCodes", "http2ErrConvTab"]
+  "transportFailureCodes", "http2ErrConvTab",
+  # (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw`, the type assertion of
+  # `internal.FromOutgoingContextRaw`, which `metadata`'s translated `init` sets (`metadata`'s fact)
+  "metadataFromOutgoingContextRaw"]
 imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.org/grpc/peer",
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
@@ -45,7 +48,9 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   # (phase 7 S2 core, 2026-11-23) the frame writers' `binary.BigEndian.AppendUint32`
   "encoding/binary",
   # (phase 7 S2 core, 2026-11-23) the translated initializers' `status.Error` and codes
-  "google.golang.org/grpc/codes", "google.golang.org/grpc/status"]
+  "google.golang.org/grpc/codes", "google.golang.org/grpc/status",
+  # (phase 7 S2 core, 2026-11-23) `metadataFromOutgoingContextRaw`'s `internal.FromOutgoingContextRaw`
+  "google.golang.org/grpc/internal"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
@@ -67,14 +72,6 @@ Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`
 function values (built, not called) and other package variables' values or addresses, with no call.
 Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
 has no effect beyond its variable."""
-
-[[skip]]
-names = ["metadataFromOutgoingContextRaw"]
-reason = """
-`internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type
-assertion of a function value that `metadata`'s `init` (run before this package's, which imports it)
-has set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect
-beyond the variable."""
 
 [[skip]]
 names = ["errIllegalHeaderWrite", "statusOK"]

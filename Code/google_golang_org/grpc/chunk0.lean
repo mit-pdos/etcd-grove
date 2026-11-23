@@ -7,6 +7,7 @@ public import Perennial.Code.io
 public import Code.google_golang_org.grpc.codes
 public import Code.google_golang_org.grpc.status
 public import Perennial.Code.sync
+public import Code.google_golang_org.grpc.internal
 public import Code.google_golang_org.grpc.keepalive
 public import Code.google_golang_org.grpc.resolver
 public import Net.Code.net
@@ -846,6 +847,9 @@ opaque logger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalServerOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.globalServerOptions"
+
+noncomputable def metadataFromOutgoingContextRaw [GooseExts] [GoGlobalContext] : GoString :=
+  go!"google.golang.org/grpc.metadataFromOutgoingContextRaw"
 
 noncomputable def EnableTracing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc.EnableTracing"
@@ -2424,10 +2428,6 @@ has no effect beyond its variable.
 a constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond
 its variable.
 - `_@server.go:1014` (`var _ http.Handler = (*Server)(nil)`): An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.
-- `metadataFromOutgoingContextRaw` (`var metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bo … [sha256:c5234af11967de4d]`): `internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type
-assertion of a function value that `metadata`'s `init` (run before this package's, which imports it)
-has set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect
-beyond the variable.
 - `emptyMethodConfig` (`var emptyMethodConfig = serviceconfig.MethodConfig{}`): Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,
 function values (built, not called) and other package variables' values or addresses, with no call.
 Each terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and
@@ -2472,7 +2472,6 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc.defaultServerOptions", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var defaultServerOptions = serverOptions{ maxConcurrentStreams: math.MaxUint32, maxReceiveMessageSize: defaultServerMaxR … [sha256:aa3dcd153a10a22e]"⟩,
   ⟨"google.golang.org/grpc.ErrServerStopped", "Their initializers call, besides literals of constants and other variables' values: `errors.New` of\na constant allocates an `*errorString`. So each terminates, cannot panic and has no effect beyond\nits variable.", "var ErrServerStopped = errors.New(\"grpc: the server has been stopped\")"⟩,
   ⟨"google.golang.org/grpc._@server.go:1014", "An interface check: a nil pointer converted to `http.Handler`. No call, no panic, no effect.", "var _ http.Handler = (*Server)(nil)"⟩,
-  ⟨"google.golang.org/grpc.metadataFromOutgoingContextRaw", "`internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))`: the type\nassertion of a function value that `metadata`'s `init` (run before this package's, which imports it)\nhas set to `fromOutgoingContextRaw`, of that type, so it succeeds: no call, no panic, no effect\nbeyond the variable.", "var metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bo … [sha256:c5234af11967de4d]"⟩,
   ⟨"google.golang.org/grpc.emptyMethodConfig", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call.\nEach terminates, cannot panic (its sizes, indices and keys are constants the compiler checks) and\nhas no effect beyond its variable.", "var emptyMethodConfig = serviceconfig.MethodConfig{}"⟩,
   ⟨"google.golang.org/grpc._@stream_interfaces.go:169", "An interface check: a nil pointer converted to `ServerStreamingClient[string]`. No call, no panic,\nno effect.", "var _ ServerStreamingClient[string] = (*GenericClientStream[int, string])(nil)"⟩,
   ⟨"google.golang.org/grpc._@stream_interfaces.go:170", "An interface check: a nil pointer converted to `ClientStreamingClient[int, string]`. No call, no\npanic, no effect.", "var _ ClientStreamingClient[int, string] = (*GenericClientStream[int, string])(nil)"⟩,
@@ -2482,12 +2481,14 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"google.golang.org/grpc._@stream_interfaces.go:213", "An interface check: a nil pointer converted to `BidiStreamingServer[int, string]`. No call, no\npanic, no effect.", "var _ BidiStreamingServer[int, string] = (*GenericServerStream[int, string])(nil)"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc where
-  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.sync, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.internal.grpcsync]
+  pkgImportedPkgs := [pkg_id.time, pkg_id.context, pkg_id.io, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.sync, pkg_id.google_golang_org.grpc.internal, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.resolver, pkg_id.net, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.stats, pkg_id.google_golang_org.grpc.metadata, pkg_id.encoding.binary, pkg_id.google_golang_org.grpc.peer, pkg_id.google_golang_org.grpc.internal.grpcsync]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2558,6 +2559,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.codes.Code.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v2"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v3"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v4"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v5"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v6"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v7"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v8"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v9"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v10"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v11"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v12"))), (KeyedElement none (ElementExpression _root_.Perennial.google_golang_org.grpc.codes.Code.ty (Var "$v13")))]))))))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (TypeAssert (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, (go.GoType.SliceType (go.GoType.SliceType go.string)), go.bool]))))) (App (Val (GoInstruction (GoLoad go.any))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.google_golang_org.grpc.internal.FromOutgoingContextRaw))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -2566,6 +2569,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve init.«1» []))) (Val #())) (Val #()))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, (go.GoType.SliceType (go.GoType.SliceType go.string)), go.bool]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr metadataFromOutgoingContextRaw))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val logger.init) (Val #()))))))
   (App (Val doExecute)
@@ -2592,6 +2597,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.google_golang_org.grpc.status.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.google_golang_org.grpc.internal.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.keepalive.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2622,6 +2629,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc errHeaderListTooLarge go.error)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc http2ErrConvTab (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.codes.Code.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc metadataFromOutgoingContextRaw (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [_root_.Perennial.google_golang_org.grpc.metadata.MD.ty, (go.GoType.SliceType (go.GoType.SliceType go.string)), go.bool])))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc EnableTracing go.bool)) (Val #()))))))))
 
