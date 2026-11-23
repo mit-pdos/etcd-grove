@@ -1306,3 +1306,54 @@ run (no axiom added or removed).
 - Lean's `repeat` follows only the first goal; after `wp_if_destruct` use `repeat'`.
 - A theorem of a section with `[package_sem : X.Assumptions]` takes it even when unused (`internal.oserror.isInit_access`).
 - `wp_start` unfolds the called function; to apply another spec to the call (`errors.wp_Is`), `iintro %Φ pre HΦ`.
+
+# Handoff (branch `wal-safe-errors`, 2026-11-22, session 13 of etcd-grove-03's delegates): on `lean` at Perennial `9c3b81f30`; `hasPrefix` discharged
+
+**State.** `wal-safe` (`0cfda4d071`: `Format`'s `Local` precondition, `time.Now.specLoc`) and `lean` `82950b71a3`
+(Perennial pin `9c3b81f30`: perennial#677's errors facts, #685's `stringslite.HasPrefix`) merged. Builds against
+`/shared/tmp/manifest-9c3b.json` (Perennial worktree `/shared/perennial-9c3b81f30`). `TOpen` holds only
+`unmarshalWalRecordE` (`proto.UnmarshalWalRecordE.spec`, a trust boundary); `Hinit_wp` stays a hypothesis (the
+registry work, B-4).
+
+**The merge.**
+- Package initializers: lean's form of `wp_New_errorString`'s post (`⟨#_, #E⟩`, the cell dropped) everywhere but
+  `walpb`'s `ErrCRCMismatch` (its message cell, this branch's fact) and `internal/poll`'s `ErrFileClosing`
+  (`ipersist` kept, the `*errorString` fact); `os`/`io.fs`'s `ErrNotExist` facts are this branch's. All regenerated
+  by `etc/gen-init.py` (`PERENNIAL_DIR=/shared/perennial-9c3b81f30`).
+- `renameWAL`: this branch's proof (the rename's error branch unreachable under the no-fs-error premise, so no
+  `errors.AsType` callee and no `renameWALUnlock`); lean's `errors.AsTypeMatch` (#29) stays, unused by the WAL.
+- `errors.IsPathErrnoNotExist.spec` moved on `lean` (kvnet) to `Spec/errors/IsPathErrnoNotExist.lean`; the proof
+  imports it there (it imported the WAL's `ExistCallees`, which made KvNet's copy of `durable`'s Link reach the
+  WAL's `fileutil`: `copy-part` refused).
+
+**`hasPrefix`.** `filepathlite.IsAbs.wp_proof` takes Perennial's `internal.stringslite.HasPrefix.spec` (the same
+statement, with `[internal.stringslite.Assumptions]`); the WAL Link passes Perennial's
+`internal.stringslite.wp_HasPrefix`. `Spec/internal/stringslite/HasPrefix.lean` is gone; the tester's `Adequacy`
+takes `[internal.stringslite.Assumptions]` (in `tMain_linked`'s section and `etcd_wal_crash_safety_bounded`).
+
+**Side effect on kvnet (another session's part).** `durable`'s Link now links `tryRead` with the proof of
+`errors.IsPathErrnoNotExist.spec`, so kvnet's regenerated Link's `wp_RunNode` has no `h_errors_IsPathErrnoNotExist`.
+`ReplicaLinked.lean` no longer passes `h_err` (and takes `[errors.Assumptions]`); `kvReplica_wp`/`kvRep_gen` and
+kvnet's top level keep the now unused hypothesis, for kvnet's owner to drop (its #677 closure).
+
+**Second lean merge** (`2dce8dc601`: #31 `errors.IsCtxErr` proved, #32's `initFuncsOk` retirements incl. walpb's
+protobuf packages): clean; every generator unchanged after it.
+
+**Fixes the full build found** (outside the WAL cone): `SpecPlan/Spec/PkgInit/syscall.lean` regenerated
+(`etc/gen-specs-pkginit.py`: syscall now imports errors and oserror, for `Errno.Is`); Net `wire/Pkg.lean`'s and
+kvnet `TopPkg.lean`'s `poll_access` read the first two conjuncts of `internal/poll`'s fact, which has a third since
+session 10 (`ErrFileClosing` an `*errorString`).
+
+**Gates** (against manifest-9c3b): tier-check, gen-init/gen-link (every mode)/copy-part/gen-raft-tla/gen-specs-pkginit
+`--check`, bounds-check, `goose.py --check` of `etcd`, `walfs`, `etcd-wal`, `durable` (with `--perennial
+/shared/perennial-9c3b81f30`; `go` is `/usr/local/go/bin`, not on the agent's `PATH`).
+
+**Next.** `etcd-grove#15`: land (the coordinator). Then: crc32 (`crc32-hooks2`, upamanyus) touches `DecDefs`,
+`decoder__decodeRecord` and the WAL Link: merge, regenerate the Link. kvnet's owner can drop `h_err`. Left for the
+closed theorem: `Hinit_wp` (B-4, the registry), `unmarshalWalRecordE` (trust boundary, the user's).
+
+**Build and trust base.** Full `lake build` against manifest-9c3b green (24912 jobs). `etc/tcb-report.py --check`:
+matches `etc/tcb-baseline.txt` (390 axioms, 0 sorries; unchanged: session 11 had already edited the baselines for
+`time.Time.Format.wp_proofBroken` and the `HardState.Reset` model, and `HasPrefix` was a hypothesis, not an axiom).
+Collections: all 54 match after `wal-tester.txt`'s update (`fmt.ErrorfStrs.wp_proof` no longer reached,
+`time.Time.Format.wp_proofBroken` recorded).
