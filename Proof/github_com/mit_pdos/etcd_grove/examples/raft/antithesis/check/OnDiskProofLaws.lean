@@ -174,6 +174,16 @@ theorem anyM_drop_end {α : Type} {xs : List α} {f : α → EvalM Bool} {r : Bo
   · rfl
   · simp [anyM] at h
 
+/-- `u9` (the safety checks) always returns a successor. -/
+theorem u9_isSome {t1 : Int} {ns : State} {r : Option State} (h : u9 x t1 ns = .ok r) : ∃ s', r = some s' := by
+  unfold u9 at h
+  obtain ⟨_, h⟩ := v1_ok h
+  obtain ⟨_, h⟩ := v2_ok h
+  obtain ⟨_, _, _, h⟩ := v3_ok h
+  obtain ⟨_, h⟩ := v4_ok h
+  obtain ⟨_, _, _, _, rfl⟩ := v5_ok' h
+  exact ⟨_, rfl⟩
+
 /-- `votes` after `u3`, as one term (the vote where `voted`, B 401). -/
 def votes3 (x : OnDisk) (t1 : Int) (voted : Bool) : List VoteRec :=
   if voted then lset.add x.s.votes { voter := x.s.cfg.server[x.n]!, term := t1, cand := x.w.vote.getD [] }

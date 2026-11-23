@@ -394,6 +394,7 @@ theorem State.OnDisk.wp_proof
   rw [onDisk_eq] at Ho
   dsimp only at Ho
   rw [← hX] at Ho
+  have Ho0 := Ho
   wp_auto
   odm w
   wp_apply wp_w _ X $$ [Hx] as %pw #Hw
@@ -2267,6 +2268,8 @@ theorem State.OnDisk.wp_proof
     wp_join_done
   -- v1: `viol := vi; if x.adv() && !Comparable(ch, x.newC()) { viol = violAdd(viol, "CommitSafety") }`
   generalize hS7 : ({ { S6 with chain := c1 } with termLen := tl' } : State) = S7 at Ho ⊢
+  obtain ⟨sF, hoF⟩ := OnDiskProofLaws.u9_isSome Ho
+  have hSF : StoresFit X := (chain_some (hoF ▸ Ho0)).2
   unfold u9 at Ho
   obtain ⟨cs, hcs, Ho⟩ := OnDiskProofLaws.v1_ok' Ho
   have hvil := HW.2.2.2.2.2.2.2.2.2.2
@@ -2414,6 +2417,126 @@ theorem State.OnDisk.wp_proof
       subst this
       wp_join_done
       iexists _; iframe; simp only [Bool.false_eq_true, ite_false]; iexact Hvl1
+  -- v3: `l1 := x.L1(); l0 := x.L0(); changed := !EntriesEqual(l1, l0); if changed {
+  --   for b := range s.Cfg.Server { if b != n && !Matching(l1, s.Log[b]) { viol = violAdd(viol, "LogMatching"); break } } }`
+  have hv2l : (viol2.length : Int) ≤ vi.length + 2 := by
+    cases ad2
+    · rw [had2f rfl]; omega
+    · obtain ⟨lc, -, rfl⟩ := had2t rfl
+      have := OnDiskProofLaws.setAddIf_len lc (if cs then setAdd vi go!"CommitSafety" else vi) go!"LeaderCompleteness"
+      omega
+  obtain ⟨l1v, ee, v3v, hl1v, hee, Ho, hee_t, hee_f⟩ := OnDiskProofLaws.v3_ok'' Ho
+  rw [hXs, hXn] at hee_f
+  have hl1w := (L1_within HW hSF hl1v).1
+  odm L1
+  wp_apply wp_L1 _ X l1v $$ [Hx] as %gl1 #Hgl1
+  · iframe Hx; ipureintro; exact hl1v
+  try wp_auto
+  odm L0
+  wp_apply wp_L0 _ X $$ [Hx] as %gl0 #Hgl0
+  · iexact Hx
+  try wp_auto
+  wp_apply wp_EntriesEqual gl1 l1v gl0 X.L0 ee $$ [Hgl1 Hgl0]
+  · iframe Hgl1 Hgl0; ipureintro; exact hee
+  try wp_auto
+  try ipersist l1
+  try ipersist l0
+  try ipersist changed
+  wp_join (v := executeVal) iprop(∃ vl, viol_ptr ↦ vl ∗ strsRO vl v3v) at next with [viol] as ⟨%vl3, viol, #Hvl3⟩
+  · cases ee
+    case true =>
+      rw [hee_t rfl]
+      try wp_auto
+      wp_join_done
+      iexists _; iframe; iexact Hvl2
+    obtain ⟨lm, hlm, rfl⟩ := hee_f rfl
+    try wp_auto
+    ihave #Hsrv3 := Hsrv
+    iunfold strsRO at Hsrv3
+    ihave %Hsl3 := ownSlice_len $$ Hsrv3
+    ihave IH : iprop(∃ (i bv : w64), "i" ∷ i_ptr ↦ i ∗ "b" ∷ b_ptr ↦ bv ∗ "viol" ∷ viol_ptr ↦ vl2 ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z gc.Server'.len ∧
+          anyM ((List.range s.cfg.server.length).drop (sint.nat i))
+            (fun b => andM (pure (b != sint.nat n)) (notM (matching l1v (s.log[b]!)))) = .ok lm⌝) $$ [i b viol]
+    · iexists _, _
+      iframe
+      ipureintro
+      refine ⟨by word, by word, ?_⟩
+      rw [show sint.nat (W64 0) = 0 by word, List.drop_zero]; exact hlm
+    wp_for IH
+    obtain ⟨hi0, hi1, hany⟩ := Hi
+    wp_if_destruct
+    · have Hil : sint.nat i < s.cfg.server.length := by rw [Hsl3.1]; word
+      obtain ⟨sv, Hsv⟩ : ∃ sv, s.cfg.server[sint.nat i]? = some sv := ⟨_, List.getElem?_eq_getElem Hil⟩
+      rw [ite_eq_left_of_eq_true _ _ (eq_true (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z gc.Server'.len from ⟨hi0, Hif⟩))]
+      wp_apply wp_load_slice_index gc.Server' (sint.Z i) s.cfg.server DFrac.discard sv hi0 $$ [Hsrv3] as -
+      · isplitr
+        · iexact Hsrv3
+        ipureintro; exact Hsv
+      try wp_auto
+      obtain ⟨y, hy, hyt, hyf⟩ := OnDiskProofLaws.anyM_drop_step (by rw [List.length_range]; exact Hil) hany
+      simp only [List.getElem_range] at hy
+      obtain ⟨gb, hgb, hgbt, hgbf⟩ := andM_ok hy
+      simp only [pure_ok, Except.ok.injEq] at hgb
+      have hcont : y = false → ∀ bv : w64,
+          (i_ptr ↦ (i + W64 1) ∗ b_ptr ↦ bv ∗ viol_ptr ↦ vl2 : IProp GF) ⊢ iprop(∃ (i bv : w64),
+            "i" ∷ i_ptr ↦ i ∗ "b" ∷ b_ptr ↦ bv ∗ "viol" ∷ viol_ptr ↦ vl2 ∗
+            "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z gc.Server'.len ∧
+              anyM ((List.range s.cfg.server.length).drop (sint.nat i))
+                (fun b => andM (pure (b != sint.nat n)) (notM (matching l1v (s.log[b]!)))) = .ok lm⌝) := by
+        intro hy0 bv
+        iintro ⟨Hi, Hb, Hv⟩
+        iexists _, bv
+        iframe Hi Hb Hv
+        ipureintro
+        refine ⟨by word, by word, ?_⟩
+        rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word]; exact hyf hy0
+      by_cases hin : i = n
+      · rw [decide_eq_true hin]
+        have hgb' : gb = false := by rw [← hgb, hin]; simp
+        try wp_auto
+        wp_for_post
+        iframe
+        iapply hcont (hgbf hgb')
+        iframe
+      rw [decide_eq_false hin]
+      have hgb' : gb = true := by
+        rw [← hgb]; have : sint.nat i ≠ sint.nat n := fun h => hin (by word)
+        simpa using this
+      have h2 := hgbt hgb'
+      unfold notM at h2
+      obtain ⟨mt, hmt, h2⟩ := bind_ok h2
+      simp only [pure_ok, Except.ok.injEq] at h2
+      try wp_auto
+      icases logsRO_at g.Log' s.log i ⟨hi0, by rw [HWf.len_log]; word⟩ $$ HLog with ⟨%lgi, #Hlgia, #Hlgi⟩
+      wp_apply wp_load_at _ _ lgi hi0 $$ [Hlgia]
+      · iexact Hlgia
+      try wp_auto
+      wp_apply wp_Matching gl1 l1v lgi (s.log[sint.nat i]!) mt $$ [Hgl1 Hlgi]
+      · iframe Hgl1 Hlgi; ipureintro; exact ⟨hmt, by omega⟩
+      cases mt
+      · have hlm' : lm = true := hyt (by rw [← h2]; try rfl)
+        subst hlm'
+        try wp_auto
+        wp_apply wp_violAdd vl2 _ _ $$ [Hvl2] as %vl #Hvl
+        · iframe Hvl2; ipureintro; omega
+        try wp_auto
+        wp_for_post
+        try wp_auto
+        wp_join_done
+        iexists _; iframe; simp only [ite_true]; iexact Hvl
+      · try wp_auto
+        wp_for_post
+        iframe
+        iapply hcont (by rw [← h2]; try rfl)
+        iframe
+    · try wp_auto
+      have hil : sint.nat i = s.cfg.server.length := by rw [Hsl3.1]; word
+      rw [hil] at hany
+      have := OnDiskProofLaws.anyM_drop_end (xs := List.range s.cfg.server.length) (by rwa [List.length_range])
+      subst this
+      wp_join_done
+      iexists _; iframe; simp only [Bool.false_eq_true, ite_false]; iexact Hvl2
   done
 
 end proof
