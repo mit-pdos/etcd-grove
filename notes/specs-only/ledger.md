@@ -25,6 +25,36 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: six server-side trust-boundary axioms -- their errors' `deadlineExceededError`s hold `deadlineExceededError{}` (errors-is-deadline, #31)
+
+- **Spec.** Five axioms whose posts promise `applyErrIs`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Base.lean`). The first four promise it directly,
+  `NewAuthStore` through its auth checks' `authApplyErrIs`:
+  - `leasehttp.RenewHTTP.spec`
+  - `EtcdServer.leaseTimeToLive.spec`
+  - `EtcdServer.rangeStream.spec`
+  - `proto.MarshalIRR.spec`
+  - `auth.NewAuthStore.spec`
+
+  And `bcrypt.GenerateFromPassword.spec`, whose non-pointer error `UserAdd` makes an `applyErrIs`
+  (`applyErrIs_valLeaf`). No spec-plan counterparts.
+- **Defect.** Too weak for `togRPCError`'s `errors.Is(err, context.DeadlineExceeded)`, which every
+  handler error reaches (`srvErrIs` ⊇ `applyErrIs`). Perennial's `errors.Is` needs the tree's errors
+  of the target's type to hold a value of it (`errors.ComparableErr`), and the model does not type
+  interface values.
+- **Evidence.** `errors.IsDeadlineExceeded.spec`'s `⌜deTyped S⌝` (entry below), at `togRPCError`'s
+  tree for `context.DeadlineExceeded` (`applyErrIs_treeDE`).
+- **Proposed change.** `applyErrIs`'s tree (and `errTreeOk`) gains `deTyped S`. This strengthens what
+  the five axioms post, and their docstrings say so. Go's typing makes it true of every Go error:
+  `deadlineExceededError` is a field-less struct, whose only value is `deadlineExceededError{}`.
+  `bcrypt.GenerateFromPassword`'s non-pointer branch gains `ei.ty ≠ deadlineExceededError.ty`: it
+  is an `InvalidCostError`, a named type of bcrypt's own. The proved constructors of `applyErrIs`
+  discharge it: `nil`; pointer leaves; `%w` wraps; `applyErrIs_valLeaf`, which takes
+  `deTypedErr e`, given by the context errors (`deadlineExceeded_deTypedErr`) and bcrypt's new
+  conjunct.
+- **Decision.** Accepted by the coordinator under the user's approval of the same typing class
+  (2026-11-23); review requested on #31.
+
 ## 2026-11-23: grpc's `ctxErrsErr` (and the client's `ctxErrClient`) -- an error of type `deadlineExceededError` holds `deadlineExceededError{}` (errors-is-deadline, #31)
 
 - **Spec.** `ctxErrsErr` (`Proof/google_golang_org/grpc/InvGrpc.lean`, the trust boundary's contract
@@ -69,12 +99,9 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   - Client's `contextErrToGRPCErr`: `ctxErrLeaf` carries it, from `ctxErrsErr`'s new conjunct
     (entry above).
   - The post is unchanged.
-- **Decision.** Pending. The spec change is internal: premises both callers meet, and the axiom
-  `errors.IsDeadlineExceeded.wp_proof` is retired. The server's side is blocked, though. `applyErrIs`
-  gaining `deTyped` strengthens what five trust-boundary axioms post (`leasehttp.RenewHTTP`,
-  `EtcdServer.leaseTimeToLive`, `EtcdServer.rangeStream`, `proto.MarshalIRR`, `auth.NewAuthStore`).
-  And `UserAdd` needs `bcrypt.GenerateFromPassword`'s post to type its non-pointer error. All six
-  are true of Go by typing, but they need the user's approval (#31, upamanyus-agent 2026-11-23).
+- **Decision.** Accepted (internal: premises both callers meet; the spec stops being a trust
+  boundary, and the axiom `errors.IsDeadlineExceeded.wp_proof` is retired), upamanyus-agent
+  2026-11-23. The server's side needs the typing fact of six trust-boundary axioms (entry above).
 
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 

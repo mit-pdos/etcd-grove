@@ -323,7 +323,7 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
         GoInterface.ok.inj Hx
       isplitl []
       · ipureintro
-        refine ⟨rfl, Or.inl rfl, Htc.2, Hlc.2.2.1, fun h => ?_⟩
+        refine ⟨rfl, Or.inl rfl, ⟨Htc.2, Hlc.2.2.1⟩, fun h => ?_⟩
         rw [hx] at h
         exact absurd h (_root_.Perennial.context.deadlineExceededError_ne_ptr _).symm
       · rw [hx]; iapply errorMsgIs_errorString $$ Hcell
@@ -340,7 +340,7 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
           #(zero_val _root_.Perennial.context.deadlineExceededError) := GoInterface.ok.inj HtyD
       isplitl []
       · ipureintro
-        exact ⟨rfl, Or.inr rfl, Htd.2, Hld.2.1, fun _ => by rw [hd]; rfl⟩
+        exact ⟨rfl, Or.inr rfl, ⟨Htd.2, Hld.2.1⟩, fun _ => by rw [hd]⟩
       · rw [hd]; iapply errorMsgIs_deadline
 
 end proofs

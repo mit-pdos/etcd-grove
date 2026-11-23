@@ -48,7 +48,12 @@ never written again) and `InvalidCostError` (an `int`: `Error()` formats the val
 `Error() string` (`*errorString.Error`, `InvalidCostError.Error`, bcrypt.go:52, 87).
 (prove-authcrypto, 2026-11-21) With an error the hash is `nil`: both error returns are
 `return nil, err` (bcrypt.go:96-102); `authStore.selectPassword`'s proof returns it, with its
-`b ↦*□ bs`. -/
+`b ↦*□ bs`. (errors-is-deadline, 2026-11-23) The non-pointer error is not of type
+`context.deadlineExceededError`. Go's typing makes this true: it is an `InvalidCostError`, a named
+type of bcrypt's own (`type InvalidCostError int`, bcrypt.go). The model does not type interface values, and the server's
+`togRPCError` compares the error with `context.DeadlineExceeded`, so the fact is stated
+(`errors.IsDeadlineExceeded`'s `deTyped`, through `applyErrIs`). It was accepted by the coordinator
+under the user's approval of the same typing class (2026-11-23), and review was requested on #31. -/
 abbrev bcrypt.GenerateFromPassword.spec : Prop :=
   ∀ (pw : GoSlice) (p : List w8) (dp : DFrac) (cost : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.golang_org.x.crypto.bcrypt ∗ pw ↦*{dp} p }}
@@ -61,7 +66,8 @@ abbrev bcrypt.GenerateFromPassword.spec : Prop :=
           (methodSet ei.ty !! go!"Format" = none ∧
             methodSet ei.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) ∧
           (_root_.Perennial.errors.IsPointerError ei ∨
-            ((∀ T, ei.ty ≠ go.GoType.PointerType T) ∧ SafeMapKey (GF := GF) go.error err))⌝ ∗
+            ((∀ T, ei.ty ≠ go.GoType.PointerType T) ∧ SafeMapKey (GF := GF) go.error err ∧
+              ei.ty ≠ _root_.Perennial.context.deadlineExceededError.ty))⌝ ∗
           (∃ m : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
             WP (App (Val #(methods ei.ty go!"Error" ei.v)) (Val #())) {{ Φ }}) ∗ ⌜h = slice.nil⌝) ∨
         ⌜err = GoInterface.nil⌝ ∗ ∃ hs : List w8, h ↦* hs) }}
