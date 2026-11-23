@@ -4,7 +4,7 @@ mutex over `srvSendInv` (nothing written, no answer recorded); `wg` a new thread
 (`sync.tokJoin` at `srvWgN`, no lending: `lendLaw_false`). **The loop's invariant**: the reader's
 resources (`rdrOwn`), the join's adder, the reader's thread token. **An iteration**
 (`readRequest`): a read failure ends the loop; an error with the request taken is answered at once
-(`sendResponse`, with `errCont`'s `Φ [] msg` for the error's message, not empty) and the request
+(`sendResponse`, with `errCont`'s `Φ [] msg` for the error's message, the server's own) and the request
 freed; a request ready to run is added to the join (`Add(1)` with the thread token) and runs in a
 goroutine (`service.call`, `wp_fork_tok_self`: the token of the `go` statement comes back to the
 reader, the goroutine exits with the slot's). **After the loop**: `Wait`, then the codec's `Close`
@@ -172,16 +172,17 @@ theorem Server.ServeCodec.wp_proof
     rw [decide_eq_false hreq]
     wp_auto
     ihave #HeNE' := HeNE
-    iunfold errNE at HeNE'
+    iunfold errSrv at HeNE'
     icases HeNE' with ⟨%ei, %Hei, -, #HW⟩
     cases Hei
     wp_bind (App (Val #(methods _ go!"Error" _)) (Val #()))
     iapply HW
     inext
-    iintro %msg %hmsg
+    iintro %msg %hsrv
+    have hmsg : msg ≠ [] := srvErrMsg_ne msg hsrv
     iapply fupd_wp
     iunfold errCont at Hcont
-    imod Hcont $$ %msg %hmsg with HΦa
+    imod Hcont $$ %msg %hsrv with HΦa
     imodintro
     wp_auto
     wp_apply wp_sendResponse s γs C W a sc t cn la ra _ req _

@@ -42,9 +42,10 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc mvcc.api
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-! ## 2. The server's names and its store invariant -/
 
@@ -104,6 +105,16 @@ omit package_sem in
 instance histLb_timeless (γr : ReadNames) (on : Bool) (γs : KVSNames) (L : mvcc.Log) :
     Timeless (histLb (GF := GF) γr on γs L) := by
   unfold histLb; infer_instance
+
+end defs
+
+section defsHeap
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 /-- **The server's store invariant**, at `kvsN` (outside `↑mvccN` and v3rpc's `wsN`): the client's
 state `σ` of the store `kv`, its writer's halves at `σ`, the committed and the notified logs'
@@ -223,7 +234,7 @@ theorem histLb_pure (hrb : receiptBound GF ≤ 2 ^ 62) (γr : ReadNames) (on : B
   refine ⟨logWf'_of_prefix hp.1 hp.2, ?_, logSmall_of_prefix hp.1 hs, hA.2.prefix hp.1⟩
   unfold mvcc.logCh at hlen Hm; omega
 
-end defs
+end defsHeap
 
 /-! ## 3b. G3: the sender's update, from `kvStoreInv`
 
@@ -478,11 +489,33 @@ abbrev histLb_model.law : Prop :=
     □ (∀ r : w64, ⌜sint.Z r < L.length⌝ -∗
         ∃ A : List EntryModel, srvRLogLb γr.raft A ∗ ⌜sint.Z r < (kvModelM on γr.kv A).length⌝)
 
+end server
+
+section serverG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **`NewServer.spec`'s mvcc-related premises, restated**: the store-state names fresh. -/
 def newServerStoreFreshA (γs : KVSNames) : IProp GF :=
   iprop(ghostVar γs.st 1 (([[], []] : mvcc.Log), (none : Option (List mvcc.Change))) ∗
     ghostVar γs.cr 1 (-1 : Int) ∗ monoListAuthOwn γs.slog 1 ([[], []] : mvcc.Log) ∗
     monoListAuthOwn γs.nlog 1 ([[], []] : mvcc.Log))
+
+end serverG1
+
+section server
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
 
 /-- **The boot's store** (inside `NewServer`): after `mvccW_alloc`, `backend.New` at `mvccW gx`,
 `bootBackend.law` (`mvccImage_fresh.law`'s update, the open law) and `mvcc.New`, the store invariant

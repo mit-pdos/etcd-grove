@@ -307,6 +307,16 @@ instance authPublishM_persistent (M : auth.AuthMode) (stl : Loc) :
     Persistent (authPublishM (GF := GF) M stl) := by
   cases M <;> unfold authPublishM <;> infer_instance
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A published index whose recorded state is `st`, in the mode `M`** (E3t; persistent): in the
 mode `on γa`, a lower bound `i` of the published index (`auth.authPubLb`) at which the history
 records `st` (`auth.authStateAt`); `True` in the other modes. What the apply thread hands the waiter
@@ -324,6 +334,16 @@ instance authPubAt_persistent (M : auth.AuthMode) (st : auth.AuthState) :
 instance authPubAt_timeless (M : auth.AuthMode) (st : auth.AuthState) :
     Timeless (authPubAt (GF := GF) M st) := by
   cases M <;> unfold authPubAt <;> (try unfold auth.authPubLb auth.authStateAt) <;> infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- A published index's lower bound, forgetting its state. -/
 theorem authPubLbM_of_pubAt (γa : auth.AuthNames) (st : auth.AuthState) :

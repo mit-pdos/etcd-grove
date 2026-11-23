@@ -186,7 +186,11 @@ theorem read.Read.LinearizableReadNotify.wp_proof
           icombine Hcv HeD gives %Hce
           cases Hce
           obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
-          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
+          -- (errors-is-deadline) `DeadlineExceeded`'s value is `deadlineExceededError{}`
+          ihave #PctxD : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+          · iPkgInit
+          ihave %HdeD := deadlineExceeded_deTypedErr _ $$ PctxD HeD
+          ihave #Ha := applyErrIs_valLeaf _ hl hIs hty hkey hG hF HdeD $$ HDm
           ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
           · iPkgInit
           iapply HΦ; iunfold readReader; iframe Hrr Ha

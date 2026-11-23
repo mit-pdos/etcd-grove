@@ -200,6 +200,23 @@ def shadows_perennial(mod):
         os.path.join(PERENNIAL, "Perennial", *mod.split(".")) + ".lean")
 
 
+# (net-swap, etcd-dist D2, 2026-11-22) the part `Net/`'s `net` is also the main tree's: its modules
+# (the translation's and `Net/{Spec,Proof}/net/`'s, not `net/http`, `net/rpc`, `net/textproto` nor the
+# part's `Init` over its own initializer copies) do not make a module one of the part's.
+def shared_net(m):
+    if m in ("Net.Code.net", "Net.TrustedCode.net", "Net.GeneratedProof.net", "Net.ManualProof.net"):
+        return True
+    # (2026-11-23) `Net/Statement/`: the distributed statements' vocabulary, over Perennial and the net
+    # extension only (no copy of the main tree's modules): putget's distributed theorem imports it
+    if m.startswith("Net.Statement."):
+        return True
+    for d in ("Net.Spec.net.", "Net.Proof.net."):
+        if m.startswith(d):
+            rest = m[len(d):]
+            return not rest.startswith(("http", "rpc", "textproto")) and rest != "Init"
+    return False
+
+
 def parts_reached(mod):
     """The part roots whose modules `mod` imports, transitively, and the local translations it
     imports that shadow Perennial's (`shadows_perennial`)."""
@@ -209,7 +226,7 @@ def parts_reached(mod):
         if m in seen:
             continue
         seen.add(m)
-        if m.split(".")[0] in PART_ROOTS:
+        if m.split(".")[0] in PART_ROOTS and not shared_net(m):
             reached.add(m.split(".")[0])
         if shadows_perennial(m):
             reached.add(m)

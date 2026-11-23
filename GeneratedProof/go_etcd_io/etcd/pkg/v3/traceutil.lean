@@ -3,6 +3,8 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.go_opentelemetry_io.otel.trace
+public import GeneratedProof.go_opentelemetry_io.otel.trace.noop
 public import GeneratedProof.go_uber_org.zap
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
@@ -205,7 +207,7 @@ noncomputable instance Trace_access_load_startTime (l : Loc) (v : go_etcd_io.etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance Trace_access_store_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (startTime' : time.Time) :
+noncomputable instance Trace_access_store_startTime (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.Trace) (startTime' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) v.startTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.Trace go!"startTime" l) startTime' (DFrac.own 1))
@@ -297,7 +299,7 @@ noncomputable instance step_access_load_time (l : Loc) (v : go_etcd_io.etcd.pkg.
  by
   solve_pointsto_access_struct
 
-noncomputable instance step_access_store_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (time' : time.Time) :
+noncomputable instance step_access_store_time (l : Loc) (v : go_etcd_io.etcd.pkg.v3.traceutil.step) (time' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) v.time' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.traceutil.step go!"time" l) time' (DFrac.own 1))

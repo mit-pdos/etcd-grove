@@ -155,6 +155,17 @@ def srvRdCall (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp 
   iprop(mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s ∗ committedAtLeast γr c ∗
     srvReadReader s γr ∗ E.RD)
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **A linearizable read of `log` after the committed index `c`** (persistent; 2026-10-13, the
 request path's unit 4b): the read index (`readIndexOk`: the applied index reached some index at
 least `c`), and `log` extends the log applied through some index `ci₀ ≥ c` (`appliedLogAt`: the
@@ -167,6 +178,17 @@ def readLogOk (γr : ReadNames) (c : w64) (log : mvcc.Log) : IProp GF :=
 instance readLogOk_persistent (γr : ReadNames) (c : w64) (log : mvcc.Log) :
     Persistent (readLogOk (GF := GF) γr c log) := by
   unfold readLogOk; infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
 
 /-- **A successful `Range` of `o`** with the response `resp`: the txn package's answer with no
 error (`rangeResult`: the server's selection of the state at the revision read) at a certified
@@ -368,7 +390,11 @@ theorem applyErrIs_of_isCtxErr :
     icombine Hcv HeD gives %Hce
     subst Hce
     obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
-    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
+    -- (errors-is-deadline) `DeadlineExceeded`'s value is `deadlineExceededError{}`
+    ihave #PctxD : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+    · iPkgInit
+    ihave %HdeD := deadlineExceeded_deTypedErr _ $$ PctxD HeD
+    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF HdeD $$ HDm
 
 /-- **`rangeKeys`' context error (and its `%w` wrappings) is one the gRPC layer can take**
 (`applyErrIs`; errorf-wrap, 2026-11-06, in place of `applyErrIs_errorf`, which learnt from

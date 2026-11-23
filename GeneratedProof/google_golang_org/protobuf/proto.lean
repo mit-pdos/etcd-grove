@@ -54,7 +54,7 @@ noncomputable instance UnmarshalOptions_access_load_NoUnkeyedLiterals (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnmarshalOptions_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance UnmarshalOptions_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -193,7 +193,7 @@ noncomputable instance MarshalOptions_access_load_NoUnkeyedLiterals (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance MarshalOptions_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance MarshalOptions_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -362,7 +362,7 @@ noncomputable instance «struct#69fc66c6_access_load_NoUnkeyedLiterals» (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#69fc66c6_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance «struct#69fc66c6_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))

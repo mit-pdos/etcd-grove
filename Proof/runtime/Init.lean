@@ -2,16 +2,22 @@
 Package initialization of `runtime`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
+Its fact (Perennial's `runtime.isInit`, `Perennial/Proof/runtime/Base.lean`): `buildVersion`,
+which `Version` returns, holds some string, read-only for good. Its initializer runs the trusted
+model of `buildVersion`'s initialization (Perennial's `TrustedCode/runtime.lean`: it allocates the
+variable and stores an arbitrary string, the linker's; Perennial's `runtime.wp_buildVersion_init`,
+whose cell is made persistent here), initializes its imports, runs the untranslated
 initializers of its variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return. (Until Perennial
+`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated.)
 
 And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
 `"linux"` and `"amd64"`), as the repository's other platform facts
 assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
-extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
+extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, whose fact says nothing of
+`GOOS`/`GOARCH`, so the
 packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).
 -/
@@ -196,6 +202,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
+  -- buildVersion: its trusted initializer
+  wp_apply _root_.Perennial.runtime.wp_buildVersion_init as ⟨%bv, Hbv⟩
   wp_apply (_root_.Perennial.internal.runtime.atomic.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.internal.runtime.sys.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk cgo_yield.init (by mem_tac))
@@ -301,8 +310,15 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (initFuncsOk init.«6» (by mem_tac))
   wp_apply (initFuncsOk init.«7» (by mem_tac))
   wp_apply (initFuncsOk init.«8» (by mem_tac))
+  ipersist Hbv
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  iexists _
+  iexact Hbv
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

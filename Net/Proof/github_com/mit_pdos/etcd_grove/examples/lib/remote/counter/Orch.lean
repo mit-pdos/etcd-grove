@@ -44,7 +44,7 @@ theorem Orch.wp_proof
     (wp_Check : remote.Check.spec (GF := GF) (hG := hG) (St := w64) (I := Bool) (O := w64)) :
     Orch.spec (GF := GF) (hG := hG) := by
   intro γs γp addrs addrL hlen hrb
-  wp_start as ⟨#Haddrs, #Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Haddrs, #Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -60,9 +60,9 @@ theorem Orch.wp_proof
     have := Hal.1; rw [hlen] at this; word
   wp_apply wp_Check (cR γs) cS γp m addrs addrL cd _ (W64 20) d hE hL (cS_pendDec γs) (cR_encOut_inj γs)
     (fun st => cR_timeless γs st) hrb (by rw [hlen']; decide) (by decide)
-    (by rw [hlen']; decide) $$ [Hlib]
+    (by rw [hlen']; decide) 60 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := GF)
         (functions github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Gen [])
         (fun x => iprop(∃ i, ⌜x = (cR (GF := GF) γs).iv i⌝)) from wp_Gen)

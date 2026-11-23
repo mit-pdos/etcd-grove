@@ -70,7 +70,7 @@ noncomputable instance AlarmStore_access_load_mu (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmStore_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (mu' : sync.Mutex) :
+noncomputable instance AlarmStore_access_store_mu (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"mu" l) mu' (DFrac.own 1))
@@ -102,7 +102,7 @@ noncomputable instance AlarmStore_access_load_be (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance AlarmStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (be' : go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend) :
+noncomputable instance AlarmStore_access_store_be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore) (be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.AlarmBackend) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) v.be' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.AlarmStore go!"be" l) be' (DFrac.own 1))

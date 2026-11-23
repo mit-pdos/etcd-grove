@@ -1,12 +1,13 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/all`: the one closed etcd theorem over the operational semantics, from `Main`'s triple
+# `etcd/all`: the single-process closed etcd theorem over the operational semantics, from `Main`'s triple
 
-`etcd_adequate_of` (`notes/etcd-unified-scope.md` §3.2; `AdequacyLinked.lean` applies it to
-`etcd_all.wp_Main`, `Results.lean` restates it as `etcd_safe`): every real execution of
+`etcd_adequate_of` (`notes/etcd-unified-scope.md` §3.2; `Results.lean` applies it to
+`etcd_all.wp_Main` as `etcd_safe_single_process`; over the net extension since 2026-11-23,
+`notes/single-process-restore.md`): every real execution of
 `etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅` (`TopLevelDefs.lean`: the
 package's initialization, then `Main` with the five member counts, the three workloads and the two
-schedules built as slice literals) from a fresh state with one thread, of `n` steps along which fewer
+schedules built as slice literals) from a fresh state with one thread and a network with no connection, of `n` steps along which fewer
 than `2 ^ 28` threads are live, with `n + 1 ≤ 2 ^ 48`: if the main thread has finished, its result is
 `#()`; no thread is stuck; no thread has ended in a panic.
 
@@ -16,7 +17,7 @@ distinctness is `Disjoint.lean`'s. The proof of the body: `etcdall`'s `wp_initia
 schedules' slice literals, and `Main`'s triple, here a hypothesis (`hMain`), so that this module does
 not import the eleven drivers' linked results (split from `AdequacyLinked.lean`).
 
-Its premises are `etcd_robust.spec`'s (`Spec/.../examples/etcd/all/TopLevelRobustness.lean`) at one `n`;
+Its premises are `etcd_robust_single_process.spec`'s (`Spec/.../examples/etcd/all/TopLevelRobustness.lean`) at one `n`;
 `Hlow` (the condition of idutil's trusted model) is not used by the proof and is stated in
 `Results.lean`.
 -/
@@ -29,7 +30,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.Disjoint
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.all.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 
@@ -46,8 +47,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
 
@@ -58,7 +59,7 @@ instance etcdGF_gooseGpreS : GooseGpreS etcdGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨etcdGF_allG⟩, ⟨etcdGF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨etcdGF_allG⟩, ⟨etcdGF_allG⟩, ⟨etcdGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := etcdGF_allG
 
@@ -126,7 +127,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.all.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [log.NewModel]
+    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     (hMain : ∀ hG : HeapGS .hasLC etcdGF,
       etcd_all.Main.spec (GF := etcdGF) (hG := etcdHeapAt hG lctx))
     (Hctx : ∀ hG : HeapGS .hasLC etcdGF, ContextReadErrs (GF := etcdGF) (hG := etcdHeapAt hG lctx))
@@ -215,7 +216,8 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_restartN.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) k₅ n ids₅ ps₅ ctxs₅ boot₅)
     (HpremR : ∀ hG : HeapGS .hasLC etcdGF,
       ⊢ etcd_restart1.premises (GF := etcdGF) (hG := etcdHeapAt hG lctx) n rId ctxsR bootR)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcdDirs k₁ k₂ k₃ k₄ k₅))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -229,6 +231,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
   refine etcd_adequate_members_below (GF := etcdGF) (hbody := rfl) (HWal := HWal) (hn := by omega)
     (hmsL := etcd_all.etcdStarts_names_len k₁ k₂ k₃ k₄ k₅)
     (hAsLit := etcd_all.etcdAddrs_lit k₁ k₂ k₃ k₄ k₅ hk₁ (by omega) (by omega) (by omega) (by omega))
+    (hAsOk := etcd_all.etcdAddrs_ok k₁ k₂ k₃ k₄ k₅ hk₁ (by omega) (by omega) (by omega) (by omega))
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.all.initialize'
     (App (App (App (App (App (App (App (App (App (App (App (App (App
       (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.all.Main))
@@ -243,7 +246,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_all.etcdDirs_nodup k₁ k₂ k₃ k₄ k₅ hk₁ (by omega) (by omega) (by omega) (by omega))
     (etcd_all.etcdStarts k₁ k₂ k₃ k₄ k₅) (etcd_all.etcdBridges k₁)
     (etcd_all.etcdAddrs_perm k₁ k₂ k₃ k₄ k₅) (etcd_all.etcdDirs_perm k₁ k₂ k₃ k₄ k₅)
-    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC etcdGF := etcdHeapAt hG lctx
   haveI := Hctx hG

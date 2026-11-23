@@ -11,7 +11,7 @@ public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
 public import GeneratedProof.google_golang_org.grpc.stats
 public import Perennial.GeneratedProof.io
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
@@ -56,7 +56,7 @@ noncomputable instance BackoffConfig_access_load_MaxDelay (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance BackoffConfig_access_store_MaxDelay (l : Loc) (v : google_golang_org.grpc.BackoffConfig) (MaxDelay' : time.Duration) :
+noncomputable instance BackoffConfig_access_store_MaxDelay (l : Loc) (v : google_golang_org.grpc.BackoffConfig) (MaxDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.BackoffConfig go!"MaxDelay" l) v.MaxDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.BackoffConfig go!"MaxDelay" l) MaxDelay' (DFrac.own 1))
@@ -290,7 +290,7 @@ noncomputable instance connectOptions_access_load_TransportCredentials (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectOptions_access_store_TransportCredentials (l : Loc) (v : google_golang_org.grpc.connectOptions) (TransportCredentials' : google_golang_org.grpc.credentials.TransportCredentials) :
+noncomputable instance connectOptions_access_store_TransportCredentials (l : Loc) (v : google_golang_org.grpc.connectOptions) (TransportCredentials' : _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.connectOptions go!"TransportCredentials" l) v.TransportCredentials' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.connectOptions go!"TransportCredentials" l) TransportCredentials' (DFrac.own 1))
@@ -306,7 +306,7 @@ noncomputable instance connectOptions_access_load_CredsBundle (l : Loc) (v : goo
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectOptions_access_store_CredsBundle (l : Loc) (v : google_golang_org.grpc.connectOptions) (CredsBundle' : google_golang_org.grpc.credentials.Bundle) :
+noncomputable instance connectOptions_access_store_CredsBundle (l : Loc) (v : google_golang_org.grpc.connectOptions) (CredsBundle' : _root_.Perennial.google_golang_org.grpc.credentials.Bundle) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.connectOptions go!"CredsBundle" l) v.CredsBundle' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.connectOptions go!"CredsBundle" l) CredsBundle' (DFrac.own 1))
@@ -322,7 +322,7 @@ noncomputable instance connectOptions_access_load_KeepaliveParams (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectOptions_access_store_KeepaliveParams (l : Loc) (v : google_golang_org.grpc.connectOptions) (KeepaliveParams' : google_golang_org.grpc.keepalive.ClientParameters) :
+noncomputable instance connectOptions_access_store_KeepaliveParams (l : Loc) (v : google_golang_org.grpc.connectOptions) (KeepaliveParams' : _root_.Perennial.google_golang_org.grpc.keepalive.ClientParameters) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.connectOptions go!"KeepaliveParams" l) v.KeepaliveParams' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.connectOptions go!"KeepaliveParams" l) KeepaliveParams' (DFrac.own 1))
@@ -859,7 +859,7 @@ noncomputable instance addrHealth_access_load_dialStart (l : Loc) (v : google_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance addrHealth_access_store_dialStart (l : Loc) (v : google_golang_org.grpc.addrHealth) (dialStart' : time.Time) :
+noncomputable instance addrHealth_access_store_dialStart (l : Loc) (v : google_golang_org.grpc.addrHealth) (dialStart' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.addrHealth go!"dialStart" l) v.dialStart' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.addrHealth go!"dialStart" l) dialStart' (DFrac.own 1))
@@ -920,7 +920,7 @@ noncomputable instance dialResult_access_load_conn (l : Loc) (v : google_golang_
  by
   solve_pointsto_access_struct
 
-noncomputable instance dialResult_access_store_conn (l : Loc) (v : google_golang_org.grpc.dialResult) (conn' : net.Conn) :
+noncomputable instance dialResult_access_store_conn (l : Loc) (v : google_golang_org.grpc.dialResult) (conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.dialResult go!"conn" l) v.conn' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.dialResult go!"conn" l) conn' (DFrac.own 1))
@@ -936,7 +936,7 @@ noncomputable instance dialResult_access_load_authInfo (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance dialResult_access_store_authInfo (l : Loc) (v : google_golang_org.grpc.dialResult) (authInfo' : google_golang_org.grpc.credentials.AuthInfo) :
+noncomputable instance dialResult_access_store_authInfo (l : Loc) (v : google_golang_org.grpc.dialResult) (authInfo' : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.dialResult go!"authInfo" l) v.authInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.dialResult go!"authInfo" l) authInfo' (DFrac.own 1))
@@ -1103,7 +1103,7 @@ noncomputable instance callHdr_access_load_Creds (l : Loc) (v : google_golang_or
  by
   solve_pointsto_access_struct
 
-noncomputable instance callHdr_access_store_Creds (l : Loc) (v : google_golang_org.grpc.callHdr) (Creds' : google_golang_org.grpc.credentials.PerRPCCredentials) :
+noncomputable instance callHdr_access_store_Creds (l : Loc) (v : google_golang_org.grpc.callHdr) (Creds' : _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.callHdr go!"Creds" l) v.Creds' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.callHdr go!"Creds" l) Creds' (DFrac.own 1))

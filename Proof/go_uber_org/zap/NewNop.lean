@@ -41,7 +41,7 @@ theorem zap.NewNop.wp_proof : zap.NewNop.spec (GF := GF) (hG := hG) := by
   iapply wp_fupd
   wp_apply EtcdGrove.zap_wp_NewNop_init $$ Hdeps as %l ⟨%v, Hl, %Hv⟩
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hl
-  obtain ⟨⟨w, hc⟩, hd, ha, hp, hf⟩ := Hv
+  obtain ⟨hc, hd, ha, hp, hf⟩ := Hv
   iStructNamed Hl
   ipersist core
   ipersist development
@@ -50,16 +50,14 @@ theorem zap.NewNop.wp_proof : zap.NewNop.spec (GF := GF) (hG := hG) := by
   ipersist onFatal
   imodintro
   iapply HΦ
-  unfold zapLoggerOk zap.loggerRaw zap.nopLogger
+  unfold zapLoggerOk zap.nopLogger
   isplitr
   · ipureintro
     exact Hnn
   imodintro
-  ileft
   rw [hc, hd, ha, hp, hf] at *
   isplitl []
-  · iexists w
-    iexact core
+  · iexact core
   isplitl []
   · iexact development
   isplitl []

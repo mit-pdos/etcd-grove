@@ -73,7 +73,7 @@ theorem serveConn.wp_proof
     imodintro
     itrivial
   ihave Hrecv := recvTok_L $$ Hrecv
-  wp_apply (lc := 3) wp_readFrame _ cn true a (reqP S) [] eof ed $$ [Hrecv]
+  wp_apply (lc := 3) wp_readFrame _ cn true a (reqP S a) [] eof ed $$ [Hrecv]
     as %b %ok ⟨%got, Hrecv, Hres⟩
   · iframe Hc Heof Hed Hrecv
   icases Hres with (%Hok | ⟨%bd, %Hbd, Hb⟩)
@@ -96,14 +96,14 @@ theorem serveConn.wp_proof
   -- the request: the frame of the input of the connection's slot
   ihave Hrecv := recvTokL_later $$ Hrecv
   imod (lc_fupd_elim_later (GF := GF) (E := ⊤)
-    (P := recvTok (Gg := hG.goose_globalGS) cn true (reqP (Gg := hG.goose_globalGS) S)
+    (P := recvTok (Gg := hG.goose_globalGS) cn true (reqP (Gg := hG.goose_globalGS) S a)
       ([] ++ frame bd))) $$ Hlc1 Hrecv with Hrecv
   icases recvTok_proto $$ Hrecv with ⟨-, #Hpp⟩
   rw [List.nil_append]
   have hbd : bd.length < 2 ^ 63 := by
     have : bd.length ≤ 2 ^ 20 := Hbl
     omega
-  icases req_read S cn bd hbd $$ Hpp with ⟨%γ, %i, %Ψ, %Hbi, #Hso, #Hsi⟩
+  icases req_read S a cn bd hbd $$ Hpp with ⟨%γ, %i, %Ψ, %Hbi, #Hso, #Hsi⟩
   subst Hbi
   wp_auto
   wp_apply HDecIn $$ %i %b %(DFrac.own 1) [Hb] as %x %good %Hx
@@ -126,20 +126,20 @@ theorem serveConn.wp_proof
   obtain rfl := Hx rfl
   -- claim the slot's update, and run `op` with it
   -- (the laws' updates are over the global ghost state's invariants, those of `hG` up to unfolding)
-  ihave Hcl : (|={⊤}=> S.upd i Ψ ∗
+  ihave Hcl : (|={⊤}=> S.upd i Ψ ∗ budUnit (Gg := hG.goose_globalGS) a ∗
       runTok (Gg := hG.goose_globalGS) (O := O) γ : IProp GF) $$ [Hfresh Hlc2]
-  · iapply slot_claim S ⊤ CoPset.subseteq_top γ i Ψ $$ Hsi Hfresh Hlc2
-  imod Hcl with ⟨Hlin, Hrun⟩
+  · iapply slot_claim S ⊤ CoPset.subseteq_top a γ i Ψ $$ Hsi Hfresh Hlc2
+  imod Hcl with ⟨Hlin, Hu, Hrun⟩
   iunfold svcOp at Hop
   wp_auto
-  wp_apply Hop $$ %sys %i %Ψ [Htok Hlin] as %v ⟨Htok, Hv⟩
-  · iframe Htok Hlin
+  wp_apply Hop $$ %sys %i %Ψ [Htok Hlin Hu] as %v ⟨Htok, Hv⟩
+  · iframe Htok Hlin Hu
   -- the reply: an output the slot records (`slot_done`), or the input's unknown output
   ihave Hr : (|={⊤}=> □ repP (Gg := hG.goose_globalGS) S cn ([] ++ frame (S.encOut v)) ∗
       ⌜S.outOk v⌝ : IProp GF) $$ [Hv Hrun Hlc3]
   · icases Hv with (⟨%o, %Hvo, HΨ⟩ | %Hvu)
     · ihave Hd : (|={⊤}=> doneLb (Gg := hG.goose_globalGS) γ o : IProp GF) $$ [Hrun HΨ Hlc3]
-      · iapply slot_done S ⊤ CoPset.subseteq_top γ i Ψ o $$ Hsi Hrun HΨ Hlc3
+      · iapply slot_done S ⊤ CoPset.subseteq_top a γ i Ψ o $$ Hsi Hrun HΨ Hlc3
       imod Hd with #Hdone
       imodintro
       isplit

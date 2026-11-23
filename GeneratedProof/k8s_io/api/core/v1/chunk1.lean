@@ -1079,7 +1079,7 @@ noncomputable instance PersistentVolumeList_access_load_TypeMeta (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance PersistentVolumeList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1095,7 +1095,7 @@ noncomputable instance PersistentVolumeList_access_load_ListMeta (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance PersistentVolumeList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -1153,7 +1153,7 @@ noncomputable instance PersistentVolumeClaimList_access_load_TypeMeta (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimList) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance PersistentVolumeClaimList_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimList) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimList go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimList go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1169,7 +1169,7 @@ noncomputable instance PersistentVolumeClaimList_access_load_ListMeta (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PersistentVolumeClaimList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimList) (ListMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance PersistentVolumeClaimList_access_store_ListMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimList) (ListMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimList go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimList go!"ListMeta" l) ListMeta' (DFrac.own 1))
@@ -1333,7 +1333,7 @@ noncomputable instance VolumeHealthStatus_access_load_LastTransitionTime (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance VolumeHealthStatus_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.VolumeHealthStatus) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance VolumeHealthStatus_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.VolumeHealthStatus) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.VolumeHealthStatus go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.VolumeHealthStatus go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -1407,7 +1407,7 @@ noncomputable instance PodVolumeHealth_access_load_LastTransitionTime (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance PodVolumeHealth_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.PodVolumeHealth) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance PodVolumeHealth_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.PodVolumeHealth) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodVolumeHealth go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PodVolumeHealth go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))

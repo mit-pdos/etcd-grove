@@ -20,7 +20,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]
-  [TH : TreemapHyp GF]
+  [TH : StateTreemap GF]
 
 omit [state.Assumptions] in
 /-- `a[i] = v'` for a byte array `a` of 20 elements at `p`. -/

@@ -118,7 +118,7 @@ noncomputable instance Client_access_load_Timeout (l : Loc) (v : net.http.Client
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_Timeout (l : Loc) (v : net.http.Client) (Timeout' : time.Duration) :
+noncomputable instance Client_access_store_Timeout (l : Loc) (v : net.http.Client) (Timeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Client go!"Timeout" l) v.Timeout' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Client go!"Timeout" l) Timeout' (DFrac.own 1))
@@ -180,7 +180,7 @@ noncomputable instance ClientConn_access_load_stateHookMu (l : Loc) (v : net.htt
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientConn_access_store_stateHookMu (l : Loc) (v : net.http.ClientConn) (stateHookMu' : sync.Mutex) :
+noncomputable instance ClientConn_access_store_stateHookMu (l : Loc) (v : net.http.ClientConn) (stateHookMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.ClientConn go!"stateHookMu" l) v.stateHookMu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.ClientConn go!"stateHookMu" l) stateHookMu' (DFrac.own 1))
@@ -393,7 +393,7 @@ noncomputable instance Cookie_access_load_Expires (l : Loc) (v : net.http.Cookie
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cookie_access_store_Expires (l : Loc) (v : net.http.Cookie) (Expires' : time.Time) :
+noncomputable instance Cookie_access_store_Expires (l : Loc) (v : net.http.Cookie) (Expires' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Cookie go!"Expires" l) v.Expires' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Cookie go!"Expires" l) Expires' (DFrac.own 1))
@@ -1291,7 +1291,7 @@ noncomputable instance maxBytesReader_access_load_r (l : Loc) (v : net.http.maxB
  by
   solve_pointsto_access_struct
 
-noncomputable instance maxBytesReader_access_store_r (l : Loc) (v : net.http.maxBytesReader) (r' : io.ReadCloser) :
+noncomputable instance maxBytesReader_access_store_r (l : Loc) (v : net.http.maxBytesReader) (r' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.maxBytesReader go!"r" l) v.r' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.maxBytesReader go!"r" l) r' (DFrac.own 1))
@@ -1488,7 +1488,7 @@ noncomputable instance Response_access_load_Body (l : Loc) (v : net.http.Respons
  by
   solve_pointsto_access_struct
 
-noncomputable instance Response_access_store_Body (l : Loc) (v : net.http.Response) (Body' : io.ReadCloser) :
+noncomputable instance Response_access_store_Body (l : Loc) (v : net.http.Response) (Body' : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.Response go!"Body" l) v.Body' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.Response go!"Body" l) Body' (DFrac.own 1))

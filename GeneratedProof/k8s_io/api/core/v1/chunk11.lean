@@ -90,7 +90,7 @@ noncomputable instance ReplicationControllerCondition_access_load_LastTransition
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicationControllerCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.ReplicationControllerCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance ReplicationControllerCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.ReplicationControllerCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ReplicationControllerCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ReplicationControllerCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -165,7 +165,7 @@ noncomputable instance ReplicationController_access_load_TypeMeta (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicationController_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ReplicationController) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance ReplicationController_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ReplicationController) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ReplicationController go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ReplicationController go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -181,7 +181,7 @@ noncomputable instance ReplicationController_access_load_ObjectMeta (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ReplicationController_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ReplicationController) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance ReplicationController_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ReplicationController) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ReplicationController go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ReplicationController go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
@@ -742,7 +742,7 @@ noncomputable instance ServicePort_access_load_TargetPort (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServicePort_access_store_TargetPort (l : Loc) (v : k8s_io.api.core.v1.ServicePort) (TargetPort' : k8s_io.apimachinery.pkg.util.intstr.IntOrString) :
+noncomputable instance ServicePort_access_store_TargetPort (l : Loc) (v : k8s_io.api.core.v1.ServicePort) (TargetPort' : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ServicePort go!"TargetPort" l) v.TargetPort' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ServicePort go!"TargetPort" l) TargetPort' (DFrac.own 1))
@@ -1005,7 +1005,7 @@ noncomputable instance PreferAvoidPodsEntry_access_load_EvictionTime (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance PreferAvoidPodsEntry_access_store_EvictionTime (l : Loc) (v : k8s_io.api.core.v1.PreferAvoidPodsEntry) (EvictionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance PreferAvoidPodsEntry_access_store_EvictionTime (l : Loc) (v : k8s_io.api.core.v1.PreferAvoidPodsEntry) (EvictionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PreferAvoidPodsEntry go!"EvictionTime" l) v.EvictionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.PreferAvoidPodsEntry go!"EvictionTime" l) EvictionTime' (DFrac.own 1))
@@ -1114,7 +1114,7 @@ noncomputable instance NodeCondition_access_load_LastHeartbeatTime (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeCondition_access_store_LastHeartbeatTime (l : Loc) (v : k8s_io.api.core.v1.NodeCondition) (LastHeartbeatTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance NodeCondition_access_store_LastHeartbeatTime (l : Loc) (v : k8s_io.api.core.v1.NodeCondition) (LastHeartbeatTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeCondition go!"LastHeartbeatTime" l) v.LastHeartbeatTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeCondition go!"LastHeartbeatTime" l) LastHeartbeatTime' (DFrac.own 1))
@@ -1130,7 +1130,7 @@ noncomputable instance NodeCondition_access_load_LastTransitionTime (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance NodeCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.NodeCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance NodeCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.NodeCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -1352,7 +1352,7 @@ noncomputable instance NamespaceCondition_access_load_LastTransitionTime (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance NamespaceCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.NamespaceCondition) (LastTransitionTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance NamespaceCondition_access_store_LastTransitionTime (l : Loc) (v : k8s_io.api.core.v1.NamespaceCondition) (LastTransitionTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NamespaceCondition go!"LastTransitionTime" l) v.LastTransitionTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.NamespaceCondition go!"LastTransitionTime" l) LastTransitionTime' (DFrac.own 1))
@@ -1426,7 +1426,7 @@ noncomputable instance Binding_access_load_TypeMeta (l : Loc) (v : k8s_io.api.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Binding_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Binding) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance Binding_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Binding) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Binding go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Binding go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1442,7 +1442,7 @@ noncomputable instance Binding_access_load_ObjectMeta (l : Loc) (v : k8s_io.api.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Binding_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Binding) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance Binding_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Binding) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Binding go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Binding go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
@@ -1499,7 +1499,7 @@ noncomputable instance SerializedReference_access_load_TypeMeta (l : Loc) (v : k
  by
   solve_pointsto_access_struct
 
-noncomputable instance SerializedReference_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.SerializedReference) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance SerializedReference_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.SerializedReference) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.SerializedReference go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.SerializedReference go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1570,7 +1570,7 @@ noncomputable instance Event_access_load_TypeMeta (l : Loc) (v : k8s_io.api.core
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Event) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance Event_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Event) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1586,7 +1586,7 @@ noncomputable instance Event_access_load_ObjectMeta (l : Loc) (v : k8s_io.api.co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Event) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance Event_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Event) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))
@@ -1666,7 +1666,7 @@ noncomputable instance Event_access_load_FirstTimestamp (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_FirstTimestamp (l : Loc) (v : k8s_io.api.core.v1.Event) (FirstTimestamp' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance Event_access_store_FirstTimestamp (l : Loc) (v : k8s_io.api.core.v1.Event) (FirstTimestamp' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"FirstTimestamp" l) v.FirstTimestamp' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"FirstTimestamp" l) FirstTimestamp' (DFrac.own 1))
@@ -1682,7 +1682,7 @@ noncomputable instance Event_access_load_LastTimestamp (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_LastTimestamp (l : Loc) (v : k8s_io.api.core.v1.Event) (LastTimestamp' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance Event_access_store_LastTimestamp (l : Loc) (v : k8s_io.api.core.v1.Event) (LastTimestamp' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"LastTimestamp" l) v.LastTimestamp' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"LastTimestamp" l) LastTimestamp' (DFrac.own 1))
@@ -1730,7 +1730,7 @@ noncomputable instance Event_access_load_EventTime (l : Loc) (v : k8s_io.api.cor
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_EventTime (l : Loc) (v : k8s_io.api.core.v1.Event) (EventTime' : k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime) :
+noncomputable instance Event_access_store_EventTime (l : Loc) (v : k8s_io.api.core.v1.Event) (EventTime' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.MicroTime) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"EventTime" l) v.EventTime' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.Event go!"EventTime" l) EventTime' (DFrac.own 1))
@@ -1977,7 +1977,7 @@ noncomputable instance LimitRange_access_load_TypeMeta (l : Loc) (v : k8s_io.api
  by
   solve_pointsto_access_struct
 
-noncomputable instance LimitRange_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRange) (TypeMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance LimitRange_access_store_TypeMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRange) (TypeMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRange go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRange go!"TypeMeta" l) TypeMeta' (DFrac.own 1))
@@ -1993,7 +1993,7 @@ noncomputable instance LimitRange_access_load_ObjectMeta (l : Loc) (v : k8s_io.a
  by
   solve_pointsto_access_struct
 
-noncomputable instance LimitRange_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRange) (ObjectMeta' : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance LimitRange_access_store_ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.LimitRange) (ObjectMeta' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRange go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.LimitRange go!"ObjectMeta" l) ObjectMeta' (DFrac.own 1))

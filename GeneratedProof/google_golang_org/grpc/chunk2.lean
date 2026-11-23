@@ -11,7 +11,7 @@ public import GeneratedProof.google_golang_org.grpc.peer
 public import GeneratedProof.google_golang_org.grpc.resolver
 public import GeneratedProof.google_golang_org.grpc.stats
 public import Perennial.GeneratedProof.io
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc
@@ -456,7 +456,7 @@ noncomputable instance PerRPCCredsCallOption_access_load_Creds (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance PerRPCCredsCallOption_access_store_Creds (l : Loc) (v : google_golang_org.grpc.PerRPCCredsCallOption) (Creds' : google_golang_org.grpc.credentials.PerRPCCredentials) :
+noncomputable instance PerRPCCredsCallOption_access_store_Creds (l : Loc) (v : google_golang_org.grpc.PerRPCCredsCallOption) (Creds' : _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) Creds' (DFrac.own 1))

@@ -36,10 +36,12 @@ theorem wp_main (wp_Orch : counter.Orch.spec (GF := GF) (hG := hG)) (γs : GName
         remoteAddr (Gg := hG.goose_globalGS) (cR (GF := GF) γs) go!"127.0.0.1:7303" ∗
         mapCtx (Gg := hG.goose_globalGS) (I := Bool) ∗
         pendCtx (Gg := hG.goose_globalGS) (cR (GF := GF) γs) (cS (GF := GF)) γp ∗
-        pendLib (Gg := hG.goose_globalGS) (cS (GF := GF)) γp (cS (GF := GF)).M.init }}
+        pendLib (Gg := hG.goose_globalGS) (cS (GF := GF)) γp (cS (GF := GF)).M.init ∗
+        budUnits (Gg := hG.goose_globalGS) go!"127.0.0.1:7302" 60 ∗
+        budUnits (Gg := hG.goose_globalGS) go!"127.0.0.1:7303" 60 }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Ha0, #Ha1, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨#Ha0, #Ha1, #Hmap, #Hpend, Hlib, Hb0, Hb1⟩
   ihave #Hcp : (isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter) $$ []
   · iPkgInit
@@ -49,9 +51,17 @@ theorem wp_main (wp_Orch : counter.Orch.spec (GF := GF) (hG := hG)) (γs : GName
   iintro %sl ⟨Hsl, -⟩
   imod ownSlice_persist $$ Hsl with #Hsl
   (try wp_auto)
-  wp_apply wp_Orch γs γp _ [go!"127.0.0.1:7302", go!"127.0.0.1:7303"] rfl hrb $$ [Hlib]
+  ihave Hbud : ([∗list] a ∈ [go!"127.0.0.1:7302", go!"127.0.0.1:7303"],
+      budUnits (Gg := hG.goose_globalGS) a 60 : IProp GF) $$ [Hb0 Hb1]
+  · iapply BigSepL.bigSepL_cons.2
+    iframe Hb0
+    iapply BigSepL.bigSepL_cons.2
+    iframe Hb1
+    iapply BigSepL.bigSepL_nil.2
+    iempintro
+  wp_apply wp_Orch γs γp _ [go!"127.0.0.1:7302", go!"127.0.0.1:7303"] rfl hrb $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     iapply BigSepL.bigSepL_nil.2
     iempintro
   iapply HΦ

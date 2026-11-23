@@ -1,0 +1,21 @@
+# (zap-z1, 2026-11-23) names only: what `zap.Logger.check`'s caller and stack annotation call (no proof
+# reaches them: a `NewNop` logger adds neither).
+translate = ["!*"]
+# `runtime`: the type of a stack's frames (`runtime.Frame`, which `check` names)
+imports = ["!*", "runtime"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
+
+# --- skipped package variables (mit-pdos/etcd-grove#23) ---
+# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`). goose refuses a
+# reference to one from translated code, so no verified code reads them; each reason says why not
+# running the initializer is unobservable.
+[[skip]]
+names = ["_stackPool"]
+reason = """
+Its initializer calls, besides a function literal (built, not called): zap's `pool.New`, which
+allocates a `Pool` around a `sync.Pool` literal (`internal/pool/pool.go`; proved,
+`Proof/go_uber_org/zap/internal/pool/New.lean`). So it terminates, cannot panic and has no effect
+beyond its variable."""
+# --- end of skipped package variables ---

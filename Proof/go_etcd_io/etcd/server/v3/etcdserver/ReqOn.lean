@@ -274,6 +274,16 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
       ⧖ (mvcc.logCh y'.log) ∗ ⌜mvcc.LogWf' y'.log ∧ y'.log.length + 3 ≤ 2 ^ 63⌝ ∗
       grantArM E ar rq out ∗ revokeArM E ar rq out)
 
+end defs
+
+section defsHF
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
 E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
 prefix `L` (`L ++ [e]`), and the mode-`on` model's auth state after it published (`authPubAt`: a
@@ -290,6 +300,16 @@ def pubAfterM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRMo
 instance pubAfterM_persistent (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
     (L : List EntryModel) : Persistent (pubAfterM (GF := GF) on E ρ rq' L) := by
   cases on <;> unfold pubAfterM <;> infer_instance
+
+end defsHF
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- **An `Authenticate`'s answer, as `raftRequest` reports it, in the auth mode `on`** (C1's A3,
 2026-10-28): `True` off (and at an auth mode other than `.on`); on, unless the request is not an
@@ -530,7 +550,7 @@ def hdrBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) (tok : Option GoString)
   match on with
   | false => iprop(True)
   | true => iprop(⌜hm.username = (zeroValDef : GoString)⌝ ∨
-      principalBound s E.authMode tok
+      principalBound (srvTLSId s) E.authMode tok
         (some (go_etcd_io.etcd.server.v3.auth.AuthInfo.mk hm.username hm.authRevision)))
 
 instance hdrBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (tok : Option GoString)
@@ -545,7 +565,7 @@ def infoBoundM (on : Bool) (s : Loc) (E : apply.AEnv GF) (tok : Option GoString)
   match on with
   | false => iprop(True)
   | true => iprop(⌜info.Username' = (zeroValDef : GoString)⌝ ∨
-      principalBound s E.authMode tok (some info))
+      principalBound (srvTLSId s) E.authMode tok (some info))
 
 instance infoBoundM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :

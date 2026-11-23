@@ -87,6 +87,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_auto
   iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) Consensus_ServiceDesc _ as HConsensus_ServiceDesc
+  wp_call  -- File_replica_src_consensus_proto: its trusted initializer does nothing
+  wp_call  -- file_replica_src_consensus_proto_rawDescOnce: its trusted initializer does nothing
   wp_apply (_root_.Perennial.raxos.proto.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd25⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd24⟩

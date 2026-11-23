@@ -29,6 +29,13 @@ initialization runs, probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the 
 theorem's one new premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on
 disk, the roots well formed), so it says that the program runs on a real file system. Until then the
 extensions were `TrivialExt.lean`'s `[idIssueExt]`.
+
+**Over the net extension** (2026-11-23, etcd-grove#28, `notes/single-process-restore.md`): retired at the
+net swap (tag `single-process-final`) and restored under the `_single_process` name over
+`[idIssueExt, fsExt, netExt]` (`lib/etcdstart/NetExts.lean`'s `etcdNetExts`): `net.Listen` is the net
+extension's since the swap; the addresses' listening tokens come from its start resources
+(`leaseexpiryNAddrs_ok`: every port below `32768`), the statement takes `[net.FieldAssumptions]` and the
+network's initial state (`Hg : extsInitGlobal g`).
 -/
 module
 
@@ -37,7 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Ma
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NetExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.TopLevelDefs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.InitLinked
 
@@ -54,8 +61,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
 
@@ -67,9 +74,21 @@ instance putgetNGF_gooseGpreS : GooseGpreS putgetNGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨putgetNGF_allG⟩, ⟨putgetNGF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨putgetNGF_allG⟩, ⟨putgetNGF_allG⟩, ⟨putgetNGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putgetNGF_allG
+
+/-! ## The addresses are valid for the net extension -/
+
+/-- **The program's addresses are valid for the net extension** (`Net.addrOk`, 2026-11-23: the
+single-process theorem over `etcdNetExts` takes their listening tokens from the extension's start):
+every port is `127.0.0.1:<p>` with `p` below `32768` (`addr_port`), below Linux's ephemeral range
+(`addrOk_loopback`). -/
+theorem etcd_leaseexpiryN.leaseexpiryNAddrs_ok (k : Nat) (hk : k ≤ 1000) :
+    ∀ a ∈ etcd_leaseexpiryN.leaseexpiryNAddrs k, Net.addrOk a = true := by
+  intro a ha
+  obtain ⟨b, i, hb, hi, rfl⟩ := etcd_leaseexpiryN.addr_port k a ha
+  exact addrOk_loopback _ (by simp [W64]; omega) (by simp [W64]; omega)
 
 /-! ## The closed theorem -/
 
@@ -83,7 +102,7 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [log.NewModel]
+    [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
     (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
@@ -100,7 +119,7 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseexpiryN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState)
+    (σ : state) (g : GlobalState) (Hg : extsInitGlobal g)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_leaseexpiryN.leaseexpiryNDirs k))
@@ -113,13 +132,14 @@ theorem etcd_leaseexpiryN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine etcd_adequate_members_below (GF := putgetNGF) (hmsL := etcd_leaseexpiryN.startAddrs_names_len k) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseexpiryN.leaseexpiryNAddrs_lit k hk)
+    (hAsOk := etcd_leaseexpiryN.leaseexpiryNAddrs_ok k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_leaseexpiryN.leaseexpiryNAddrs k)
     (etcd_leaseexpiryN.leaseexpiryNAddrs_nodup k hk) (etcd_leaseexpiryN.leaseexpiryNDirs k)
     (etcd_leaseexpiryN.leaseexpiryNDirs_nodup k hk) (etcd_leaseexpiryN.startAddrs k) []
     (etcd_leaseexpiryN.leaseexpiryNAddrs_perm k) (etcd_leaseexpiryN.leaseexpiryNDirs_perm k)
-    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     (2 ^ 28) n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetNGF := heapAtN hG lctx
   haveI := Hctx hG

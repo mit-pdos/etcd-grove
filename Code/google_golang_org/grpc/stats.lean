@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.context
-public import Code.net
+public import Net.Code.net
 public import Perennial.Code.time
 public import Code.google_golang_org.grpc.metadata
 public import Perennial.Golang.Defn

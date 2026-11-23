@@ -55,7 +55,7 @@ noncomputable instance RangeStreamResponse_access_load_state (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance RangeStreamResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (state' : google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance RangeStreamResponse_access_store_state (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"state" l) v.state' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.RangeStreamResponse go!"state" l) state' (DFrac.own 1))
@@ -143,7 +143,7 @@ noncomputable instance kVClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance kVClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance kVClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.kVClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.kVClient go!"cc" l) cc' (DFrac.own 1))
@@ -206,7 +206,7 @@ noncomputable instance watchClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance watchClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.watchClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.watchClient go!"cc" l) cc' (DFrac.own 1))
@@ -269,7 +269,7 @@ noncomputable instance leaseClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd
  by
   solve_pointsto_access_struct
 
-noncomputable instance leaseClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance leaseClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.leaseClient go!"cc" l) cc' (DFrac.own 1))
@@ -332,7 +332,7 @@ noncomputable instance clusterClient_access_load_cc (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance clusterClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance clusterClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.clusterClient go!"cc" l) cc' (DFrac.own 1))
@@ -395,7 +395,7 @@ noncomputable instance maintenanceClient_access_load_cc (l : Loc) (v : go_etcd_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance maintenanceClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance maintenanceClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.maintenanceClient go!"cc" l) cc' (DFrac.own 1))
@@ -458,7 +458,7 @@ noncomputable instance authClient_access_load_cc (l : Loc) (v : go_etcd_io.etcd.
  by
   solve_pointsto_access_struct
 
-noncomputable instance authClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (cc' : google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance authClient_access_store_cc (l : Loc) (v : go_etcd_io.etcd.api.v3.etcdserverpb.authClient) (cc' : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) v.cc' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.authClient go!"cc" l) cc' (DFrac.own 1))

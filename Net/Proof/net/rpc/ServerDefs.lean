@@ -18,12 +18,14 @@ deposits' arguments are of that type; the reader holds the request's deposit whe
 body, `req_guard`); and, from the deposit `Sm args Φ` and a decoding of `args` into `argv`
 (`Θ args true`), the call obligation `callObl`: `NewReply()` returns a `replyv`, and `Call(rcvr, argv, replyv)` returns
 `nil` with the encoding of `replyv` into the answer `Φ eb ""`, or an error with its message `msg`
-(`errMsg`) and `Φ [] msg` (the encoding again if `msg` is `""`: Go then sends the reply, `callRet`).
+(`errMsg`) and `Φ [] msg` (the encoding again if `msg` is `""`: Go then sends the reply, `callRet`),
+or an error whose message is any string (`models_lab.errAny`) with that answer for every message.
 
-**Error answers** (`errOk S`, persistent): the server answers with an error message (not empty)
-a request it does not run: its body did not read or decode, or its method is not registered; the
-deposit gives the continuation's `Φ [] msg` then. Go's net/rpc does send these errors, so a
-client's continuation must accept them.
+**Error answers** (`errOk S`, persistent): the server answers with one of its own error messages
+(`srvErrMsg`, `Errs.lean`) a request it does not run: its body did not read or decode, or its
+method is not registered; the deposit gives the continuation's `Φ [] msg` then. Go's net/rpc does
+send these errors, so a client's continuation must accept them; but only them: a service's own
+error messages (a method's `Call`'s, `callRet`) mean what its spec says.
 
 **Receivers** (`rcvrIs C rcvr S nm np rp`, persistent): what reflection tells `register` (the
 `*Receiver` `rp` the codec's `Receiver(rcvr)` returns, `C.rcv rcvr`, `Codec.lean`): the type's name
@@ -96,11 +98,17 @@ abbrev MSpec (GF : BundledGFunctors) := List w8 → (List w8 → GoString → IP
 
 /-- What a method's `Call` returns (`e`), for its reply `replyv` and continuation `Φ`: `nil` and
 the encoding of the reply into `Φ eb ""`; or an error with message `msg`, `Φ [] msg` (the
-encoding of the reply if `msg` is `""`, which Go sends as a success). -/
+encoding of the reply if `msg` is `""`, which Go sends as a success); or an error whose `Error()`
+is any string (`models_lab.errAny`, e.g. a net/rpc client's error the method forwards), with the
+same answer for every message it may return: the server calls `Error()` once
+(`service.call`), so the method promises only "some message" (non-empty: `Φ [] msg`; empty: Go
+sends the reply as a success). -/
 def callRet (C : CodecSpec GF) (replyv : GoInterface) (Φ : List w8 → GoString → IProp GF)
     (e : GoInterface) : IProp GF :=
   iprop((⌜e = interface.nil⌝ ∗ C.enc replyv (fun eb => Φ eb [])) ∨
     (∃ msg : GoString, errMsg e msg ∗
+      (if msg = [] then C.enc replyv (fun eb => Φ eb []) else Φ [] msg)) ∨
+    (models_lab.errAny e ∗ ∀ msg : GoString,
       (if msg = [] then C.enc replyv (fun eb => Φ eb []) else Φ [] msg)))
 
 /-- The call obligation of the method `v` of `rcvr` on the argument `argv`, for the continuation
@@ -138,10 +146,11 @@ instance methodOk_persistent (C : CodecSpec GF) (rcvr : GoInterface) (Sm : MSpec
     Persistent (methodOk (GF := GF) C rcvr Sm mm) := by
   unfold methodOk; infer_instance
 
-/-- The service spec `S` accepts error answers (persistent; see the file header). -/
+/-- The service spec `S` accepts the server's own error answers (persistent; see the file
+header). -/
 def errOk (S : MethodSpec GF) : IProp GF :=
   iprop(□ ∀ (m : GoString) (args : List w8) (Φ : List w8 → GoString → IProp GF) (msg : GoString),
-    ⌜msg ≠ []⌝ -∗ S m args Φ ={⊤}=∗ Φ [] msg)
+    ⌜srvErrMsg msg⌝ -∗ S m args Φ ={⊤}=∗ Φ [] msg)
 
 instance errOk_persistent (S : MethodSpec GF) : Persistent (errOk S) := by
   unfold errOk; infer_instance
@@ -315,15 +324,15 @@ def ansRes (C : CodecSpec GF) (errmsg : GoString) (reply : GoInterface)
     (Φ : List w8 → GoString → IProp GF) : IProp GF :=
   if errmsg = [] then C.enc reply (fun eb => Φ eb []) else Φ [] errmsg
 
-/-- The continuation's error answers: `Φ [] msg` for a message not empty (the deposit spent by
-the service's `errOk`). -/
+/-- The continuation's error answers: `Φ [] msg` for one of the server's own error messages (the
+deposit spent by the service's `errOk`). -/
 def errCont (Φ : List w8 → GoString → IProp GF) : IProp GF :=
-  iprop(∀ msg : GoString, ⌜msg ≠ []⌝ ={⊤}=∗ Φ [] msg)
+  iprop(∀ msg : GoString, ⌜srvErrMsg msg⌝ ={⊤}=∗ Φ [] msg)
 
-/-- A sticky read error of the server codec (persistent): an error with a message not empty
-(`errNE`), and a pointer (which `==` compares). -/
+/-- A sticky read error of the server codec (persistent): an error with a read error's message
+(`errSrv`, `rdErrMsg`), and a pointer (which `==` compares). -/
 def rdErr (e : GoInterface) : IProp GF :=
-  iprop(errNE e ∗ ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝)
+  iprop(errSrv e ∗ ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝)
 
 instance rdErr_persistent (e : GoInterface) : Persistent (rdErr (GF := GF) e) := by
   unfold rdErr; infer_instance

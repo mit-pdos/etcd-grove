@@ -159,10 +159,10 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-! ### Read errors -/
 
-theorem rdErr_newVar (X msg : GoString) (e : GoInterface) (hm : msg ≠ []) :
+theorem rdErr_newVar (X msg : GoString) (e : GoInterface) (hm : srvErrMsg msg) :
     errors.newVar (GF := GF) X msg ⊢ globalAddr X ↦□ e -∗ rdErr e := by
   iintro #Hv #He
-  ihave #Hn := errNE_newVar X msg e hm $$ Hv He
+  ihave #Hn := errSrv_newVar X msg e hm $$ Hv He
   iunfold errors.newVar at Hv
   icases Hv with ⟨%x, #Hx, -⟩
   icombine He Hx gives %Heq
@@ -180,17 +180,19 @@ theorem rdErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
       (⌜err = ef⌝ ∨ readErr la ra eof ueof ed first got err) ⊢ rdErr err := by
   iintro ⟨#HefV, #Hef, #Hio, #Heof, #Hueof, #HE⟩
   icases HE with (%He | #HE)
-  · subst He; iapply rdErr_newVar _ _ _ (by simp) $$ HefV Hef
+  · subst He
+    iapply rdErr_newVar _ go!"rpc: malformed frame" _ (srvErrMsg_rd _ (Or.inl rfl)) $$ HefV Hef
   iunfold readErr at HE
   icases HE with (⟨%He, -⟩ | %He | ⟨%k, #HE⟩)
   · subst He
     ihave #HEOF := io.eof_of_init $$ Hio
-    iapply rdErr_newVar _ _ _ (by simp) $$ HEOF Heof
+    iapply rdErr_newVar _ go!"EOF" _ (srvErrMsg_rd _ (Or.inr (Or.inl rfl))) $$ HEOF Heof
   · subst He
     ihave #Hi := io.isInit_access $$ Hio
     icases Hi with ⟨-, -, -, -, -, #HU, -⟩
-    iapply rdErr_newVar _ _ _ (by simp) $$ HU Hueof
-  · ihave #Hn := errNE_resErr $$ HE
+    iapply rdErr_newVar _ go!"unexpected EOF" _ (srvErrMsg_rd _ (Or.inr (Or.inr (Or.inl rfl))))
+      $$ HU Hueof
+  · ihave #Hn := errSrv_resErr_read $$ HE
     ihave %Hnet := net.resErr_netErr _ _ _ _ _ _ _ $$ HE
     obtain ⟨-, Hne⟩ := Hnet
     obtain ⟨pe, rfl⟩ := Hne (by simp)
@@ -198,14 +200,15 @@ theorem rdErr_read (la ra eof ueof ed ef : GoInterface) (first : Bool) (got : Li
     iframe Hn
     ipureintro; exact ⟨_, pe, rfl⟩
 
-/-- `err.Error()` of a sticky read error: some message. -/
+/-- `err.Error()` of a sticky read error: one of the server's own messages. -/
 theorem wp_rdErr_Error (T : go.GoType) (l : Loc) (Φ : val → IProp GF) :
-    rdErr (interface.mkOk (go.GoType.PointerType T) #l) ⊢ ▷ (∀ msg : GoString, ⌜msg ≠ []⌝ -∗ Φ #msg) -∗
+    rdErr (interface.mkOk (go.GoType.PointerType T) #l) ⊢
+      ▷ (∀ msg : GoString, ⌜srvErrMsg msg⌝ -∗ Φ #msg) -∗
       WP (App (Val #(methods (go.GoType.PointerType T) go!"Error" #l)) (Val #())) {{ Φ }} := by
   iintro Hr HΦ
   iunfold rdErr at Hr
   icases Hr with ⟨#Hn, -⟩
-  iunfold errNE at Hn
+  iunfold errSrv at Hn
   icases Hn with ⟨%e, %He, -, #HW⟩
   cases He
   iapply HW $$ HΦ

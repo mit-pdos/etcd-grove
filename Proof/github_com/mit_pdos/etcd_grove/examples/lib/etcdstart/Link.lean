@@ -30,9 +30,14 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartS
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServerMode
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Add
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__Enabled
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.featureGate__GetAll
+public import Proof.go_etcd_io.etcd.pkg.v3.featuregate.New
 public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
+public import Proof.maps.Copy
 public import Proof.google_golang_org.grpc.model.Serve
 public import Proof.google_golang_org.grpc.model.acceptRun
 public import Proof.google_golang_org.grpc.model.acceptRunConns
@@ -40,6 +45,8 @@ public import Proof.google_golang_org.grpc.model.finishStream
 public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.strconv.FormatUint
+public import Proof.go_uber_org.zap.NewNop
+public import Net.Proof.net.Listen
 public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.context.Link
@@ -67,6 +74,18 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 theorem wp_Attempted :
     EtcdGrove.etcdstart.Attempted.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.Attempted.wp_proof
+
+theorem zap.wp_NewNop :
+    EtcdGrove.zap.NewNop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.NewNop.wp_proof
+
+theorem maps.wp_Copy :
+    EtcdGrove.maps.Copy.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.maps.Copy.wp_proof
+
+theorem featuregate.featureGate.wp_Enabled :
+    EtcdGrove.featuregate.featureGate.Enabled.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.featuregate.featureGate.Enabled.wp_proof
 
 theorem wp_Check :
     EtcdGrove.etcdstart.Check.spec (GF := GF) (hG := hG) :=
@@ -103,9 +122,21 @@ theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.WithTimeoutBackground.wp_proof
 
+theorem featuregate.wp_New :
+    EtcdGrove.featuregate.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.featuregate.New.wp_proof zap.wp_NewNop
+
+theorem featuregate.featureGate.wp_Add :
+    EtcdGrove.featuregate.featureGate.Add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.featuregate.featureGate.Add.wp_proof maps.wp_Copy
+
+theorem featuregate.featureGate.wp_GetAll :
+    EtcdGrove.featuregate.featureGate.GetAll.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.featuregate.featureGate.GetAll.wp_proof maps.wp_Copy
+
 theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
+  EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof featuregate.wp_New featuregate.featureGate.wp_Add featuregate.featureGate.wp_Enabled featuregate.featureGate.wp_GetAll
 
 theorem wp_newServerMode [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.newServerMode.spec (GF := GF) (hG := hG) :=
@@ -151,11 +182,11 @@ theorem wp_NewClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcdstart.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewClient.wp_proof wp_NewClients
 
-theorem net.wp_Listen :
+theorem net.wp_Listen [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.net.Listen.wp_proof
+  EtcdGrove.net.Listen.wp_proof _root_.Perennial.net.Listen.wp_proof
 
-theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.NewMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.NewMember.wp_proof wp_newServer net.wp_Listen EtcdServer.wp_RaftHandler
 
@@ -187,7 +218,7 @@ theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.Server.Serve.wp_proof grpc.model.wp_Serve
 
-theorem wp_Serve [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_Serve [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.Serve.wp_proof grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.grpcCfgOk_of_startedM_law_holds client.raftKV_serverM_law_holds
 
@@ -195,11 +226,11 @@ theorem wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartCompactingServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartCompactingServer.wp_proof wp_newServerMode EtcdServer.wp_Start
 
-theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start
 
-theorem wp_StartMembers [go_etcd_io.etcd.cache.v3.Assumptions] :
+theorem wp_StartMembers [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.StartMembers.spec (GF := GF) (hG := hG) :=
   EtcdGrove.etcdstart.StartMembers.wp_proof wp_NewMember EtcdServer.wp_Start
 

@@ -33,8 +33,8 @@ open Iris Iris.BI go_etcd_io.raft.v3 etcdstart
 
 section pure
 
-attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet
 
 /-! ## Groups -/
 
@@ -176,6 +176,36 @@ theorem etcdAddrs_lit (k₁ k₂ k₃ k₄ k₅ : Nat) (hk₁ : k₁ ≤ 1000) (
   · exact etcd_leaseN.leaseNAddrs_lit k₄ hk₄ a ha
   · exact (show ∀ x ∈ (leasecatchupAddrs : List GoString), netAddrLit x = true by decide) a ha
   · exact etcd_restartN.restartNAddrs_lit k₅ hk₅ a ha
+
+/-- `127.0.0.1:<p>` is valid for the net extension (`Net.addrOk`) for a port `1 ≤ p < 32768`. -/
+theorem addrOf_ok (p : Nat) (h1 : 1 ≤ p) (h2 : p < 32768) : Net.addrOk (addrOf p) = true :=
+  addrOk_loopback _ (by simp [W64]; omega) (by simp [W64]; omega)
+
+/-- **Every address of the program is valid for the net extension** (`Net.addrOk`: every port is
+below `32768`, Linux's ephemeral range; 2026-11-23, the listening tokens of the net extension's start). -/
+theorem etcdAddrs_ok (k₁ k₂ k₃ k₄ k₅ : Nat) (hk₁ : k₁ ≤ 1000) (hk₂ : k₂ ≤ 1000)
+    (hk₃ : k₃ ≤ 1000) (hk₄ : k₄ ≤ 1000) (hk₅ : k₅ ≤ 1000) :
+    ∀ a ∈ etcdAddrs k₁ k₂ k₃ k₄ k₅, Net.addrOk a = true := by
+  intro a ha
+  rw [etcdAddrs_groups] at ha
+  obtain ⟨g, hg, ha⟩ := List.mem_flatMap.1 ha
+  simp only [addrGroups, List.mem_cons, List.mem_nil_iff, or_false] at hg
+  rcases hg with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · obtain ⟨b, i, hb, hi, rfl⟩ := etcd_txnlinfaultsN.addr_port k₁ a ha
+    exact addrOf_ok (b + i) (by omega) (by omega)
+  · exact (show ∀ x ∈ (linkv3pAddrs : List GoString), Net.addrOk x = true by decide) a ha
+  · exact (show ∀ x ∈ kvLitAddrs, Net.addrOk x = true by decide) a ha
+  · obtain ⟨b, i, hb, hi, rfl⟩ := etcd_authN.addr_port k₂ a ha
+    exact addrOf_ok (b + i) (by omega) (by omega)
+  · obtain ⟨b, i, hb, hi, rfl⟩ := etcd_authlease.addr_port k₃ a ha
+    exact addrOf_ok (b + i) (by omega) (by omega)
+  · obtain ⟨b, i, hb, hi, rfl⟩ := etcd_leaseN.addr_port k₄ a ha
+    exact addrOf_ok (b + i) (by omega) (by omega)
+  · exact (show ∀ x ∈ (leasecatchupAddrs : List GoString), Net.addrOk x = true by decide) a ha
+  · obtain ⟨m, hm, rfl⟩ := List.mem_map.1 ha
+    obtain ⟨i, hi, hp, -⟩ := etcd_restartN.member_port k₅ m hm
+    rw [hp]
+    exact addrOf_ok (14000 + i) (by omega) (by omega)
 
 /-! ## Data directories: prefixes -/
 

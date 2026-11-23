@@ -35,6 +35,7 @@ module
 
 public import Proof.google_golang_org.protobuf.proto.PbSchema
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalEncDecode
+public import Proof.google_golang_org.protobuf.proto.Wire
 
 @[expose] public section
 
@@ -90,6 +91,48 @@ def recOf (r : WalRec) : RecC :=
 
 /-- **The record bytes the WAL writes** (`WalCodec.encRec`). -/
 def walRecEnc (r : WalRec) : List w8 := recEnc (recOf r)
+
+/-! ## The decoding (protobuf stage S2, mit-pdos/etcd-grove#37) -/
+
+/-- **`proto.Unmarshal` into a `walpb.Record`** (over `Wire.lean`'s decoder at `recSchema`): what
+`GetType()` (`int64(v)`: the varint's low 64 bits), `GetCrc()` (`uint32(v)`: its low 32 bits) and
+`Data` (the last record's bytes; nil, read as `[]`, if none) then return, or `none` where it returns
+an error. Checked against protobuf-go by `RecordWireVectors.lean`. -/
+def recDecodeRaw (bs : List w8) : Option WalRec :=
+  (Wire.decode recSchema bs).map fun p =>
+    ⟨BitVec.ofNat 64 ((Wire.lastVarint p.1 1).getD 0), BitVec.ofNat 32 ((Wire.lastVarint p.1 2).getD 0),
+      (Wire.lastLen p.1 3).getD []⟩
+
+/-- A record's fields as `Wire.lean`'s records. -/
+def recRecs (c : RecC) : List (Nat × Wire.FVal) :=
+  Wire.optF 1 (fun v => .varint (uint.nat v)) c.typ ++ Wire.optF 2 (fun v => .varint (uint.nat v)) c.crc ++
+    Wire.optF 3 .len c.data
+
+theorem recEnc_wire (c : RecC) : recEnc c = Wire.encode (recRecs c) c.uf := by
+  rcases c with ⟨t, k, d, u⟩
+  cases t <;> cases k <;> cases d <;>
+    simp [recEnc, recRecs, Wire.encode, Wire.optF, optVarintField, optBytesField, Wire.encFields,
+      Wire.record, Wire.tag, Wire.FVal.wt, Wire.FVal.payload]
+
+/-- **The record round trip**: `Unmarshal(Marshal(r))` reads the fields as set (an absent one as
+zero), for unknown fields as the decoder leaves them. -/
+theorem recDecodeRaw_enc (c : RecC) (hu : ufWire recSchema c.uf)
+    (hd : ∀ d, c.data = some d → d.length < 2 ^ 64) : recDecodeRaw (recEnc c) = some c.model := by
+  have hok : ∀ p ∈ recRecs c, Wire.RecOk recSchema p := by
+    intro p hp
+    rcases c with ⟨t, k, d, u⟩
+    simp only [recRecs, Wire.optF, List.mem_append] at hp
+    rcases hp with (hp | hp) | hp
+    · cases t <;> simp at hp; subst hp
+      exact ⟨by simp, by simp, rfl, by simp [Wire.FVal.Fits, uint.nat]; omega⟩
+    · cases k <;> simp at hp; subst hp
+      exact ⟨by simp, by simp, rfl, by simp [Wire.FVal.Fits, uint.nat]; omega⟩
+    · cases h : d <;> simp [h] at hp; subst hp
+      exact ⟨by simp, by simp, rfl, hd _ h⟩
+  rw [recEnc_wire, recDecodeRaw, Wire.decode_encode hok hu]
+  rcases c with ⟨t, k, d, u⟩
+  cases t <;> cases k <;> cases d <;>
+    simp [recRecs, Wire.optF, Wire.lastVarint, Wire.lastLen, RecC.model, uint.nat]
 
 /-! ## Size and model -/
 

@@ -8,7 +8,7 @@ public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver
 public import GeneratedProof.go_uber_org.zap
-public import GeneratedProof.net
+public import Net.GeneratedProof.net
 public import GeneratedProof.net.http
 public import Perennial.GeneratedProof.sync
 public import Perennial.GeneratedProof.time
@@ -72,7 +72,7 @@ noncomputable instance raftSwap_access_load_h (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance raftSwap_access_store_h (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (h' : net.http.Handler) :
+noncomputable instance raftSwap_access_store_h (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap) (h' : _root_.Perennial.net.http.Handler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"h" l) v.h' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.raftSwap go!"h" l) h' (DFrac.own 1))
@@ -147,7 +147,7 @@ noncomputable instance member_access_load_peer (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance member_access_store_peer (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (peer' : go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+noncomputable instance member_access_store_peer (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member) (peer' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"peer" l) v.peer' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restartN.member go!"peer" l) peer' (DFrac.own 1))

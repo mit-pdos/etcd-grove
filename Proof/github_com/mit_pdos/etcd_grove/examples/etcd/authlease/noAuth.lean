@@ -64,7 +64,7 @@ theorem noAuth.wp_proof
   ihave #Hout : metadata.outMD ci (akOut who) $$ []
   · unfold akOut; iexact Hout0
   (try wp_auto)
-  wp_apply (wp_Grant lp conn [addr] (etcdLeaseGrantSpecOn s E ρ (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
+  wp_apply (wp_Grant lp conn [addr] (etcdLeaseGrantSpecOn (srvTLSId s) E ρ (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
       ci (akOut who) cd grantTTLv) as %r %err Hr
   · iframe #
     iapply (grant_attempt_refuted s E ρ (mvcc.api.mvccLeases E.γ) γa who conn _ n grantTTLv Qg _ hout)
@@ -87,7 +87,7 @@ theorem noAuth.wp_proof
   ihave #Hout : metadata.outMD ci (akOut who) $$ []
   · unfold akOut; iexact Hout0
   (try wp_auto)
-  wp_apply (wp_Revoke lp conn [addr] (etcdLeaseRevokeSpecOn s E ρ) (fun _ => iprop(|={⊤}=> False))
+  wp_apply (wp_Revoke lp conn [addr] (etcdLeaseRevokeSpecOn (srvTLSId s) E ρ) (fun _ => iprop(|={⊤}=> False))
       ci (akOut who) cd id) as %r %err Hr
   · iframe #
     iapply (revoke_attempt_refuted s E ρ γa who conn _ n id Qr _ hout)
@@ -113,7 +113,7 @@ theorem noAuth.wp_proof
   · unfold akOut; iexact Hout0
   (try wp_auto)
   ihave #Hnil := leaseOptsAt_nil (GF := GF)
-  wp_apply (wp_TimeToLive lp conn [addr] (etcdLeaseTTLSpecMd s E (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
+  wp_apply (wp_TimeToLive lp conn [addr] (etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s (mvcc.api.mvccLeases E.γ)) E (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
       ci (akOut who) cd id slice.nil []) as %r %err Hr
   · iframe #
     iapply (ttl_attempt_refuted s E (mvcc.api.mvccLeases E.γ) γa who conn _ n ml _ _ hout)
@@ -143,7 +143,7 @@ theorem noAuth.wp_proof
   ihave #Hopts := leaseOptsAt_one (GF := GF) _ f (fun _ => true) $$ [Hslo Hf]
   · iframe #
   (try wp_auto)
-  wp_apply (wp_TimeToLive lp conn [addr] (etcdLeaseTTLSpecMd s E (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
+  wp_apply (wp_TimeToLive lp conn [addr] (etcdLeaseTTLSpecMd (srvTLSId s) (leaseTTLRow s (mvcc.api.mvccLeases E.γ)) E (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
       ci (akOut who) cd id _ [fun _ => true]) as %r %err Hr
   · iframe #
     iapply (ttl_attempt_refuted s E (mvcc.api.mvccLeases E.γ) γa who conn _ n ml _ _ hout)
@@ -163,7 +163,7 @@ theorem noAuth.wp_proof
   ihave #Hout : metadata.outMD ci (akOut who) $$ []
   · unfold akOut; iexact Hout0
   (try wp_auto)
-  wp_apply (wp_Leases lp conn [addr] (etcdLeaseLeasesSpecMd s E (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
+  wp_apply (wp_Leases lp conn [addr] (etcdLeaseLeasesSpecMd (srvTLSId s) E (mvcc.api.mvccLeases E.γ)) (fun _ => iprop(|={⊤}=> False))
       ci (akOut who) cd) as %r %err Hr
   · iframe #
     iapply (leases_attempt_refuted s E (mvcc.api.mvccLeases E.γ) γa who conn _ n ml _ hout)

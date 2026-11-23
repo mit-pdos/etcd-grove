@@ -15,6 +15,7 @@ public import Dsverify.Spec.github_com.imdea_software.swiftpaxos_epaxos.examples
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Link
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Mains
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.State.KeyComparator
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.orch.PkgTable
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.orch.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.client0.PkgTable
@@ -128,7 +129,7 @@ theorem clientAddrs_eq : clientAddrs = epClientAddrs := rfl
 
 /-- **The EPaxos kit, closed** (see the statement's file). -/
 theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 fsem bvi hri hhi hji htm ra rh hb1 hb2 hb3 hb4 hb5 hb6 σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 fsem bvi hri hhi htm ra rh hb1 hb2 hb3 hb4 hb5 hb6 σ g threads
   refine robust_of_distProtoLisRBT (GF := remoteGF) epAddrs epLas (system σ) g threads (2 ^ 31 - 1)
     epLas_pairwise epLas_disj ?_
   intro G π hrb
@@ -139,8 +140,8 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
   unfold epLas
   icases BigSepL.bigSepL_cons.1 $$ Hl with ⟨Hml, -⟩
   imod ep_start (G := G) $$ Hreg Hss Hml with ⟨%γ, %W, %HW, Hown, Hmr, Hrr, #Hci⟩
-  imod mapCtx_alloc (Gg := G) (I := EIn) ⊤ with ⟨%ρ, #Hmap⟩
-  imod addrs_set_proto (Gg := G) ⊤ (fun _ => reqP (Gg := G) (RBase.svc (epR γ)))
+  imod mapCtx_alloc (Gg := G) (I := EIn) ⊤ clientAddrs 6 (by decide) with ⟨%ρ, -, #Hmap, Hbud⟩
+  imod addrs_set_proto (Gg := G) ⊤ (fun a => reqP (Gg := G) (RBase.svc (epR γ)) a)
     (fun _ => repP (Gg := G) (RBase.svc (epR γ))) epClientAddrs $$ Hreg Hsc with #Hpc
   have hv : own_state (G := G) γ (kvScan w8).init ⊢
       (epR (Gg := G) γ).sysState (epR (Gg := G) γ).B.init := .rfl
@@ -176,7 +177,7 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
   icases BigSepL.bigSepL_cons.1 $$ Hrr with ⟨Hr5, Hrr⟩
   icases BigSepL.bigSepL_cons.1 $$ Hrr with ⟨Hr6, -⟩
   imodintro
-  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (epR γ) a) ∗ mapCtx (Gg := G) (I := EIn) ∗ pendCtx (Gg := G) (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init)
+  iexists fun i => if i = 0 then iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G) (epR γ) a) ∗ mapCtx (Gg := G) (I := EIn) ∗ pendCtx (Gg := G) (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G) (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G) a 6)
       else if i = 1 then iprop(clientInvs (G := G) γ ∗ remoteAddr (Gg := G) (epR γ) (clientAddrs.getD 0 []) ∗ mapCtx (Gg := G) (I := EIn))
       else if i = 2 then iprop(clientInvs (G := G) γ ∗ remoteAddr (Gg := G) (epR γ) (clientAddrs.getD 1 []) ∗ mapCtx (Gg := G) (I := EIn))
       else if i = 3 then iprop(clientInvs (G := G) γ ∗ remoteAddr (Gg := G) (epR γ) (clientAddrs.getD 2 []) ∗ mapCtx (Gg := G) (I := EIn))
@@ -203,8 +204,9 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
     letI hG : HeapGS .hasLC remoteGF := ⟨G', ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
     letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
-    letI : encoding.json.InitHyp remoteGF := hji G' hG.goose_localGS
-    letI : TreemapHyp remoteGF := htm G' hG.goose_localGS
+    letI : StateTreemap remoteGF :=
+      StateTreemap.ofGods (htm G' hG.goose_localGS)
+        github_com.imdea_software.swiftpaxos_epaxos.state.keyComparator_cmpOk
     letI : RpcHttpHyp remoteGF := rh G' hG.goose_localGS π
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
     have hb' : threadBound remoteGF ≤ 2 ^ 31 ∧ receiptBound remoteGF ≤ 2 ^ 64 := by
@@ -216,12 +218,12 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
       iapply wp_bootR cmd.orch.initialize' cmd.orch.main _ cmd.orch.getIsPkgInit iprop(True)
-          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (epR γ) a) ∗ mapCtx (Gg := G') (I := EIn) ∗ pendCtx (Gg := G') (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init))
+          (init_of_gen _ _ _ (cmd.orch.wp_initialize' _ cmd.orch.getIsPkgInit_wf)) (P := iprop(([∗list] a ∈ clientAddrs, remoteAddr (Gg := G') (epR γ) a) ∗ mapCtx (Gg := G') (I := EIn) ∗ pendCtx (Gg := G') (epR γ) (epS0 (GF := remoteGF)) γp ∗ pendLib (Gg := G') (epS0 (GF := remoteGF)) γp (epS0 (GF := remoteGF)).M.init ∗ [∗list] a ∈ clientAddrs, budUnits (Gg := G') a 6))
           (by
-            iintro %Φ ⟨#Hpkg, ⟨#Has, #Hm, #Hp, Hlib⟩, -⟩ HΦ
-            iapply (cmd.orch.wp_main EtcdGrove.dsvepaxos.wp_Orch γ γp hrb') $$ [Hlib] HΦ
+            iintro %Φ ⟨#Hpkg, ⟨#Has, #Hm, #Hp, Hlib, Hbud⟩, -⟩ HΦ
+            iapply (cmd.orch.wp_main EtcdGrove.dsvepaxos.wp_Orch γ γp hrb') $$ [Hlib Hbud] HΦ
             iframe #
-            iframe Hlib) $$ HP Hgs
+            iframe Hlib Hbud) $$ HP Hgs
     | 1, hm =>
       cases hm
       dsimp only
@@ -454,10 +456,10 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
             iexact Hr) $$ HP Hgs
   · simp only [system]
     iapply BigSepL.bigSepL_cons.2
-    isplitl [Hlib]
+    isplitl [Hlib Hbud]
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]
       iframe #
-      iframe Hlib
+      iframe Hlib Hbud
     iapply BigSepL.bigSepL_cons.2
     isplitl []
     · simp only [Nat.zero_add, Nat.reduceAdd, Nat.reduceEqDiff, ↓reduceIte]

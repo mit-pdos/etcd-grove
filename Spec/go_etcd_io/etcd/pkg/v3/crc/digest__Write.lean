@@ -2,7 +2,9 @@
 `d.Write(p)` on a `*digest` (`pkg/v3/crc`, translated with its body) whose table is the Castagnoli
 table: the digest's CRC advanced over `p` (`crc32c`), returning `len(p), nil`; `p` is only read, at
 any fraction. Over `crc32.Update`'s spec. Proved in
-`Proof/go_etcd_io/etcd/pkg/v3/crc/digest__Write.lean`. Lean-first.
+`Proof/go_etcd_io/etcd/pkg/v3/crc/digest__Write.lean`. Lean-first. (crc32-hooks2, 2026-11-22:
+`crc32.Update` reads `hash/crc32`'s package state since its `update` is translated, etcd-grove#14,
+hence the premise `isPkgInit hash/crc32`.)
 -/
 module
 
@@ -29,7 +31,8 @@ variable [go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 /-- See the file header. -/
 abbrev go_etcd_io.etcd.pkg.v3.crc.digest.Write.spec : Prop :=
   ∀ (l : Loc) (c : w32) (tab : Loc) (s : GoSlice) (bs : List w8) (dq : DFrac),
-  {{ (l ↦ go_etcd_io.etcd.pkg.v3.crc.digest.mk c tab : IProp GF) ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.hash.crc32 ∗
+      (l ↦ go_etcd_io.etcd.pkg.v3.crc.digest.mk c tab : IProp GF) ∗
       tab ↦□ hash.crc32.castagnoliTableArr ∗ s ↦*{dq} bs }}
     (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.pkg.v3.crc.digest.ty @!! go!"Write")) (Val #s))
   {{ RET (PairV #s.len #interface.nil);

@@ -7,7 +7,8 @@ otherwise). A header: the request it is, taken (`req_hdr`: three later credits, 
 fact's and `req_hdr`'s two), its deposit and `srvServes`'s registration of its service; the loop
 finds its last dot (`lastDotIdx_of`, `lastDotIdx_some`: the deposit's `splitSM`), the service is
 found under `mapLock` (the registry's ghost map agrees), then the method in the service's map:
-found, `methodTypeIs`; not, an `errors.New` error (`errNE`) and the deposit spent on `errOk`.
+found, `methodTypeIs`; not, an `errors.New` error of a server message (`errSrv`) and the deposit
+spent on `errOk`.
 -/
 module
 
@@ -315,7 +316,7 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
       isplitr
       · ipureintro; simp [interface.mkOk]
       isplitr
-      · iapply errNE_errorString x _ (by simp) $$ HN
+      · iapply errSrv_errorString x _ (srvErrMsg_method _) $$ HN
       iunfold errCont
       iintro %msg %hmsg
       iapply HerrOk' $$ %m %r.body %Φc %msg %hmsg HS

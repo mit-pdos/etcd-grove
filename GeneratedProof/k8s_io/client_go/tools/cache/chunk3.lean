@@ -271,7 +271,7 @@ noncomputable instance threadSafeMap_access_load_lock (l : Loc) (v : k8s_io.clie
  by
   solve_pointsto_access_struct
 
-noncomputable instance threadSafeMap_access_store_lock (l : Loc) (v : k8s_io.client_go.tools.cache.threadSafeMap) (lock' : sync.RWMutex) :
+noncomputable instance threadSafeMap_access_store_lock (l : Loc) (v : k8s_io.client_go.tools.cache.threadSafeMap) (lock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.threadSafeMap go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.threadSafeMap go!"lock" l) lock' (DFrac.own 1))

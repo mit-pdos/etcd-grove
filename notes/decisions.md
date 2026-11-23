@@ -42015,3 +42015,91 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
 
 *Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
 `ccDecodeV1` (still opaque: nothing needed it).
+
+## The protobuf boundary's stage S2: `msgEncC`, `msgDecode`, `recDecode` concrete, `irrDecode`'s `AuthUserGrantRole` concrete; `msgEncC_ok`, `recEncC_ok`, `apply.irrDecode_utf8` theorems (2026-11-23 · #37 · branch `proto-s2`)
+
+**2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37; stacked on stage S1)**
+
+**What was trusted.**
+- `msgEncC` (a `raftpb.Message`'s encoding, rafthttp's `PerTypeMessage.lean`), `msgDecode` (its decoding, raft's `PbMessage.lean`) and `recDecode` (a `walpb.Record`'s decoding, `wal/walpb/PbRecord.lean`) were `opaque`.
+- Three axioms said something about them:
+  - `msgEncC_ok`: the round trip and the length of a `Message`'s encoding;
+  - `recEncC_ok`: the round trip of `recEnc`, already a Lean function;
+  - `apply.irrDecode_utf8`: a decoded `InternalRaftRequest`'s `AuthUserGrantRole.role` is valid UTF-8, over the opaque `irrDecode`.
+
+**Decision.**
+- **`Wire.lean`** gains `decodeMerged`: a singular message field's occurrences, merged as `consumeMessageInfo` merges them, which is their records concatenated.
+- **`PbWireRaft.lean`** gains `Message`'s codec:
+  - raw encoders `csEncRaw`, `metaEncRaw`, `snapEncRaw`, `msgEncRaw`, each taking its sub-messages already encoded;
+  - decoders `csDecodeD`, `metaDecodeD`, `snapDecodeD`, `msgDecodeD`, with:
+    - unpacked and packed repeated `uint64`s, a packed record that does not parse failing the message;
+    - merged singular sub-messages;
+    - a `bool` read as non-zero;
+    - `responses` decoded (their failure fails the message) and counted;
+    - protobuf-go's recursion depth: `msgDecodeRaw = msgDecodeD 10000`, each sub-message one level, an empty one included.
+  - round-trip theorems at each level (`msgDecodeD_enc` and the others).
+- **The definitions over them.**
+  - `msgEncC` is `msgEncRaw` composed over `MsgC`, responses included.
+  - `msgDecode` is `msgDecodeRaw` mapped to `MsgWire`.
+  - `msgEncC_ok` is a theorem, its statement unchanged.
+- **`walpb.Record`.**
+  - `WalPbWire.lean` gains `recDecodeRaw`: `int64` read as the low 64 bits, `uint32` as the low 32.
+  - `recDecode` is `recDecodeRaw`, and `recEncC_ok` is a theorem.
+- **`irrDecode` is now a hybrid.** Decoding the whole `InternalRaftRequest` into `IRRModel` would have meant a Lean decoder for every request type (the transactions, the lease and auth requests, ...), well beyond this stage. Only what the axiom needs is concrete:
+  - `apply.irrDecode bs` is `irrDecodeRest bs` (opaque, every field but one) with its `authUserGrantRole` replaced by `IrrWire.irrUgrDecodeRaw bs`, and `none` unless both succeed.
+  - `irrUgrDecodeRaw` is protobuf-go's reading of field 1104 as a Lean function:
+    - the top-level records are read with only field 1104 declared, every other record skipped as `ConsumeFieldValue` skips it;
+    - the `AuthUserGrantRoleRequest` occurrences are merged;
+    - every `string` record must be valid UTF-8 (`utf8ValidB`, Go's `utf8.Valid`), and the last one wins.
+  - **Why the hybrid is sound.** Wherever protobuf-go's `Unmarshal` succeeds, the reader succeeds too and reads the same field: every other field's coder reads the same bytes the skip does, and fails only where the skip fails or later. So the axioms naming `irrDecode` (`proto.MarshalIRR`, `pbutil.MustUnmarshalMessage`'s premise) stay true with `irrDecodeRest` taken to be protobuf-go's decoder.
+  - **The theorem.** `irrDecode_utf8` follows from the definition (`IrrWire.irrUgrDecodeRaw_utf8`).
+
+**What it changes in the trust base.**
+- Three axioms left it (`etc/tcb-baseline.txt` and the collections).
+- Nothing became weaker.
+- **Trusted specs that now say more** (D3):
+  - `proto.MarshalPb`/`UnmarshalPb` at `Message`, and rafthttp's codecs through `MsgWireOk`/`MsgEnc`: protobuf-go's bytes are `msgEncC`'s, and its `Unmarshal` fails exactly where `msgDecodeRaw` says `none`, and otherwise agrees with it;
+  - `proto.UnmarshalWalRecord` and the WAL decoder's spec: the same at `walpb.Record`, with `recDecodeRaw`;
+  - `proto.MarshalIRR` and `MustUnmarshalMessage`: their `irrDecode` includes the concrete `AuthUserGrantRole` reader, and claims agreement only where protobuf-go succeeds.
+- **The claims are pinned** to protobuf-go v1.36.12, `examples/go.mod`'s pin; protobuf-go documents that its output may change between versions.
+- **No map fields** (D3 caution, kaashoek's review on #37): checked in the `.proto` sources at the pins (`raftpb/raft.proto`, `walpb/record.proto`, `etcdserverpb/raft_internal.proto` and `rpc.proto`, `membershippb`, `versionpb`): none has a `map<` field, so the encodings are deterministic.
+
+**Evidence.** `examples/pbschema/wirevectors_s2_test.go` writes three `#guard` modules from protobuf-go v1.36.12, with fixed seeds. `etc/gates.sh` checks them, and the build runs the guards.
+- **`MessageWireVectors.lean`, 1055 guards.**
+  - 150 `Marshal`s of random `Message`s, as the composed raw encoders. They cover every presence combination, enums out of range, entries, a snapshot with or without metadata and conf state, responses, and unknown fields at every level.
+  - 80 re-encodings (D2, kaashoek's note on #37): a message decoded from records with unknown fields interleaved at every level, then `Marshal`ed. protobuf-go writes the known fields in field-number order and the unknown fields, kept in arrival order, after them, and the Lean encoder of the decoded content gives the same bytes (`encode ks uf = encFields ks ++ uf`).
+  - 823 `Unmarshal` outcomes, covering every getter, the conf state's lists and the number of responses, or the error. Inputs:
+    - those encodings;
+    - encodings with unknown fields interleaved;
+    - adversarial encodings, including packed conf states;
+    - mutations of all of these;
+    - edge cases: merged snapshots, metadata and conf states, unparsable packed lists, bools 2 and 5, empty and invalid entries, responses nested 300 deep.
+- **`TestMessageDepthLimit`, in Go only.** It checks that 10000 nested messages decode and 10001 do not, with an entry or a conf state counting as a level. The Lean decoder's cost is quadratic in the nesting, so the guards stop at 300.
+- **`RecordWireVectors.lean`, 578 guards.** `recEnc` against `Marshal`, `recDecodeRaw` against `Unmarshal` (including int64/uint32 truncation), and 69 decoded records with interleaved unknown fields re-encoded (D2).
+- **`IrrWireVectors.lean`, 504 guards.**
+  - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
+  - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
+- **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.
+
+## Two protobuf enums' `String` trusted over their name tables; etcdserver's `expvar` inits trusted no-ops (2026-11-23 · claim #39 · branch `etcd-small-3`)
+
+**Decision.** `etcdserverpb.AlarmType.String` and `mvccpb.Event_EventType.String` follow raftpb's
+`MessageType.String` (Q9, 2026-11-09): trusted models (`TrustedCode/go_etcd_io/etcd/api/v3/{etcdserverpb,
+mvccpb}.lean`) that look the value up in the generated `_name` table, else `strconv.Itoa`, as protobuf-go's
+`EnumStringOf` does (neither enum declares `allow_alias`); the tables are translated (no longer `[[skip]]`) and
+held read-only by the packages' facts (`etcdserverpb.alarmTypeNames` in `etcdserverpbInit`, a new
+`mvccpbInit` with `mvccpb.eventTypeNames`, `cache/v3/Base.lean`). Their specs are unchanged and proved over
+the models (`AlarmType.String`'s ASCII post from the table's names and `fmtInt`'s digits); the pointer calls
+step through goose's `ptr_String_unfold`. Evidence: `examples/premisefix/enumstring` (the real methods
+against the model, by value and through a pointer, and the tables against the descriptors). So that the
+model's `strconv.Itoa` is initialized, protobuf's `internal/impl` (which imports `strconv` in Go, for
+`EnumStringOf`) now has `strconv` among its translated imports. Trust base: −2 axioms
+(`etcdserverpb.AlarmType.String.wp_proof`, `mvccpb.Event_EventType.StringPtr.wp_proof`), +2 trusted models.
+
+etcdserver's `init.1`/`init.2` (`expvar.Publish` of `"raft.status"`, `"file_descriptor_limit"`) are trusted
+no-op models (`TrustedCode/go_etcd_io/etcd/server/v3/etcdserver.lean`: `Publish` panics only on a reused
+name; the closures run only when `expvar`'s registry is served, which no translated code or example does).
+`init.0` (the metrics' registration) is not: it calls `runtime.Version`, which Perennial does not name
+(`notes/perennial-changes.md`, 2026-11-23), so `initFuncsOk` stays, narrowed to `init.«0»`. The plan for it
+(etcdserver into `PRE_RES`, its 19 names added to the closed theorems' `namesUnclaimed` lists) was approved
+by the coordinator under the user's delegation; review requested (#39).
