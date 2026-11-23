@@ -168,6 +168,10 @@ inMem__ld1: inMem__wins inMem__T leadersAdd
 inMem__ll1: inMem__wins inMem__T TermLogs__With
 inMem__lc1: inMem__wins inMem__T TermConfs__With
 inMem__ll2: inMem__app inMem__ll1 inMem__T inMem__es TermLogs__Has TermLogs__Get TermLogs__With Concat
+inMem__L: inMem__ll2 inMem__T TermLogs__Has TermLogs__Get
+inMem__newC: inMem__L inMem__c SubSeq
+inMem__cmt: inMem__leads inMem__c inMem__known inMem__L inMem__T TermAt
+inMem__ok: inMem__T inMem__leads inMem__wins inMem__snapsM inMem__ll1 inMem__lc1 inMem__L inMem__c inMem__es inMem__app inMem__cmt Event__by Event__role Event__snap Event__has Event__first validBy TermLogs__Has TermLogs__Get TermConfs__Get State__Granted State__Acked State__OneWaiting State__AllSwitched IsQuorum RecordedIn IsConf Legal
 
 # W4a (onDisk's methods)
 onDisk__w:
