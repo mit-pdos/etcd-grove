@@ -279,7 +279,7 @@ noncomputable instance Config_access_load_EncoderConfig (l : Loc) (v : go_uber_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_EncoderConfig (l : Loc) (v : go_uber_org.zap.Config) (EncoderConfig' : go_uber_org.zap.zapcore.EncoderConfig) :
+noncomputable instance Config_access_store_EncoderConfig (l : Loc) (v : go_uber_org.zap.Config) (EncoderConfig' : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"EncoderConfig" l) v.EncoderConfig' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Config go!"EncoderConfig" l) EncoderConfig' (DFrac.own 1))
@@ -456,7 +456,7 @@ noncomputable instance Logger_access_load_core (l : Loc) (v : go_uber_org.zap.Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_core (l : Loc) (v : go_uber_org.zap.Logger) (core' : go_uber_org.zap.zapcore.Core) :
+noncomputable instance Logger_access_store_core (l : Loc) (v : go_uber_org.zap.Logger) (core' : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"core" l) v.core' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"core" l) core' (DFrac.own 1))
@@ -504,7 +504,7 @@ noncomputable instance Logger_access_load_onPanic (l : Loc) (v : go_uber_org.zap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_onPanic (l : Loc) (v : go_uber_org.zap.Logger) (onPanic' : go_uber_org.zap.zapcore.CheckWriteHook) :
+noncomputable instance Logger_access_store_onPanic (l : Loc) (v : go_uber_org.zap.Logger) (onPanic' : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onPanic" l) v.onPanic' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onPanic" l) onPanic' (DFrac.own 1))
@@ -520,7 +520,7 @@ noncomputable instance Logger_access_load_onFatal (l : Loc) (v : go_uber_org.zap
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_onFatal (l : Loc) (v : go_uber_org.zap.Logger) (onFatal' : go_uber_org.zap.zapcore.CheckWriteHook) :
+noncomputable instance Logger_access_store_onFatal (l : Loc) (v : go_uber_org.zap.Logger) (onFatal' : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onFatal" l) v.onFatal' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"onFatal" l) onFatal' (DFrac.own 1))
@@ -552,7 +552,7 @@ noncomputable instance Logger_access_load_errorOutput (l : Loc) (v : go_uber_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_errorOutput (l : Loc) (v : go_uber_org.zap.Logger) (errorOutput' : go_uber_org.zap.zapcore.WriteSyncer) :
+noncomputable instance Logger_access_store_errorOutput (l : Loc) (v : go_uber_org.zap.Logger) (errorOutput' : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"errorOutput" l) v.errorOutput' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"errorOutput" l) errorOutput' (DFrac.own 1))
@@ -568,7 +568,7 @@ noncomputable instance Logger_access_load_addStack (l : Loc) (v : go_uber_org.za
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_addStack (l : Loc) (v : go_uber_org.zap.Logger) (addStack' : go_uber_org.zap.zapcore.LevelEnabler) :
+noncomputable instance Logger_access_store_addStack (l : Loc) (v : go_uber_org.zap.Logger) (addStack' : _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addStack" l) v.addStack' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"addStack" l) addStack' (DFrac.own 1))
@@ -600,7 +600,7 @@ noncomputable instance Logger_access_load_clock (l : Loc) (v : go_uber_org.zap.L
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.Logger) (clock' : go_uber_org.zap.zapcore.Clock) :
+noncomputable instance Logger_access_store_clock (l : Loc) (v : go_uber_org.zap.Logger) (clock' : _root_.Perennial.go_uber_org.zap.zapcore.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.Logger go!"clock" l) clock' (DFrac.own 1))
@@ -680,7 +680,7 @@ noncomputable instance nopCloserSink_access_load_WriteSyncer (l : Loc) (v : go_u
  by
   solve_pointsto_access_struct
 
-noncomputable instance nopCloserSink_access_store_WriteSyncer (l : Loc) (v : go_uber_org.zap.nopCloserSink) (WriteSyncer' : go_uber_org.zap.zapcore.WriteSyncer) :
+noncomputable instance nopCloserSink_access_store_WriteSyncer (l : Loc) (v : go_uber_org.zap.nopCloserSink) (WriteSyncer' : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.nopCloserSink go!"WriteSyncer" l) v.WriteSyncer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.nopCloserSink go!"WriteSyncer" l) WriteSyncer' (DFrac.own 1))
@@ -722,7 +722,7 @@ noncomputable instance sinkRegistry_access_load_mu (l : Loc) (v : go_uber_org.za
  by
   solve_pointsto_access_struct
 
-noncomputable instance sinkRegistry_access_store_mu (l : Loc) (v : go_uber_org.zap.sinkRegistry) (mu' : sync.Mutex) :
+noncomputable instance sinkRegistry_access_store_mu (l : Loc) (v : go_uber_org.zap.sinkRegistry) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_uber_org.zap.sinkRegistry go!"mu" l) mu' (DFrac.own 1))

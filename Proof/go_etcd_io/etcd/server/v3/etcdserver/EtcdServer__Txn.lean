@@ -227,7 +227,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       rw [Hfi]
       (try wp_auto)
       wp_apply HEn $$ [] as %en -
-      · ipureintro; simp [serverFeatures]
+      · ipureintro; exact HKs _ (by simp [serverFeatures])
       (try wp_auto)
       wp_apply hKV s w.kv $$ []
       · iframe #
@@ -489,7 +489,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       rw [Hfi]
       (try wp_auto)
       wp_apply HEn $$ [] as %en -
-      · ipureintro; simp [serverFeatures]
+      · ipureintro; exact HKs _ (by simp [serverFeatures])
       (try wp_auto)
       wp_apply hKV s w.kv $$ []
       · iframe #
@@ -760,7 +760,7 @@ theorem EtcdServer.Txn.wp_proof
   iunfold srvReqFieldsAtM at Hv
   icases Hv with ⟨-, -, -, -, -, -, #Hfgf, #Hfg, -⟩
   iunfold isFeatureGate at Hfg
-  icases Hfg with ⟨%fi, %Hfi, #HEn⟩
+  icases Hfg with ⟨%fi, %K, %Hfi, ⟨%HKs, -⟩, #HEn, -⟩
   ihave #Hle' := Hle
   ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ $$ Hle
   iunfold apply.isApplyLessor at Hle'

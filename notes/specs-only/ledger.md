@@ -197,8 +197,14 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   predicate (`EtcdServer__{FeatureEnabled,NewUberApplier,Txn}`, `NewServer`, `NewServerR`) take one more
   component. Made after `NewDefaultServerFeatureGate` is proved (until then the change strengthens that
   axiom's post, a trust-boundary spec).
-- **Decision.** Pending: waits for `NewDefaultServerFeatureGate`'s proof (blocked on `maps.Clone`,
-  `notes/perennial-changes.md`).
+- **Decision.** Accepted by the coordinator; review requested on #36. Made on `featuregate-4`
+  (2026-11-23), after featuregate-3 proved `NewDefaultServerFeatureGate`: `isFeatureGate fg` is now
+  `∃ fi K, fg = ok fi ∗ ⌜serverFeatures ⊆ dom K ∧ featureLabelsOk K⌝ ∗ □ Enabled(f) for f ∈ dom K ∗
+  □ GetAll() returns a fresh m ↦$ K` (`featureLabelsOk K`: each name and `PreRelease` valid UTF-8).
+  `featuregate.featureGate.GetAll` translated and proved (over `maps.Copy`); `NewDefaultServerFeatureGate`
+  gives the new components (`K = serverFeatureSpecs ∪ defaultKnown`, ASCII literals);
+  `addFeatureGateMetrics.spec` unchanged, now proved (the axiom retired); the five proofs take the
+  extra components.
 
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
@@ -5392,6 +5398,51 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above; callers updated (`readRequest`'s and `ReadRequestBody`'s proofs). The client
   is unchanged. At-most-once and the other guarantees unchanged.
 - **Decision.** Applied (branch `models-rpc-server`); closes the previous entry's open item.
+## 2026-11-23: `semver.Version.String.spec` takes a points-to and returns the exact rendering (prove-ps2-semstr)
+
+- **Spec.** `Spec/github_com/Masterminds/semver/v3/Version__String.lean`: the pre gains `v ↦{dq} x` (any
+  fraction, given back) in place of `⌜v ≠ null⌝`; the post is `RET #(semver.render x)` (`major.minor.patch` in
+  decimal, Perennial's `fmt.decimal`, then `-pre`/`+metadata` if not empty: `Proof/.../semver/v3/Str.lean`) in
+  place of some `s` with `semverStr s`, which `semver.semverStr_render` derives. SpecPlan's
+  `Semver.Version.String.spec` (`verAt v a`, `render a`) is the same at `dq = DFrac.discard`.
+- **Defect.** The trust-boundary axiom owned nothing of `*v` (only `v ≠ null`): unprovable of the real body,
+  which reads the struct (`version.go:340`), and too weak against a concurrent writer.
+- **Evidence.** `Version.String` translated with its body and proved over Perennial's `fmt.Fprintf` spec and
+  `bytes.Buffer`'s `Write`/`String` (`Proof/.../semver/v3/Version__String.lean`; Perennial branch
+  `bytes-buffer-string`: `Buffer.String` translated and proved, `bytes.Buffer.writeSpec`).
+- **Proposed change.** As above, under the approved ownership-premise rule (2026-11-21). Callers: `New` (its fresh
+  version), rafthttp's `checkVersionCompatibility`/`checkClusterCompatibilityFromHeader`/`checkStreamSupport` and
+  `ClusterVersionSet` (their read-only `↦□`) discharge it. `EtcdServer.start` does not: `s.ClusterVersion()`'s
+  contract (`clusterVersionOk`, from `bootstrap`'s `clusterVersionMono`, in `bootOk`) gives only `v ≠ null`.
+  Proposed: that contract's non-`nil` result comes with `∃ x, v ↦ x` (owned; true of Go: `RaftCluster.Version()`
+  returns `semver.MustParse(c.version.String())`, a fresh version, `cluster.go:580-587`).
+- **Decision.** Pending the user: the `clusterVersionMono` change strengthens `bootstrapContract`, a premise
+  of the top-level theorems (`bootPremise`), so it is a top-level statement change; prepared on the branch,
+  not landed.
+## 2026-11-23: the cluster's version slot; `Hcvm`, `Hclok` and `isCluster`'s `Version`/`ID` rows proved (prove-ps2-bootstage1, #34 stage 1)
+
+- **Spec.** `membership.rcLockInv c γcv` (`Proof/.../api/membership/Defs.lean`) gains the version slot
+  `rcVerSlot c γcv` (`notes/bootstrap-proof-plan.md` §7.1 I1): `c.version` is nil with the counter `γcv` at 0,
+  or read-only (`vp ↦□ x`, its rendering parsing: `semverValid (semver.render x)`) with the counter at 1;
+  `isRaftCluster c := ∃ γcv, isRaftClusterV c γcv` (the arity kept), `isRaftClusterG` likewise.
+  `rcLockInv_boot` (I2) builds it from `c.version ↦ nil`. New: `RaftCluster.Version.spec` (proved). `bootOk`
+  and `bootOkR` lose `Hclok` (`lease.clusterOk`) and `Hcvm` (`clusterVersionMono`), and `Hisc` becomes
+  `clusterApplyRest` (`clusterApplyOk` without the `Version`/`ID` rows: `apply.isClusterRest`), all three
+  proved of `Hrc`/`Hcid` (`ClusterLaws.lean`). `clusterVersionMono`/`clusterVersionOk`/`EtcdServer.ClusterVersion`'s
+  non-nil result and `isCluster`'s `Version` row now give `∃ x, v ↦□ x`. `memBucketsOk`'s and
+  `clusterImageOk_restModel`'s docstrings widened: the image's `cluster` bucket holds a version once the
+  cluster's is set (what `Recover`'s axiom needs to keep the slot).
+- **Defect.** The cluster's `Version()` contracts were trusted rows of the bootstrap contract, and gave no
+  ownership of the result, so `semver.Version.String` and `LessThan` (which read it) could not take a
+  points-to without growing the top-level premise (#18's ruling).
+- **Evidence.** `RaftCluster.Version` translated with its body (`cluster.go:580-587`) and proved over
+  `MustParse` and the proved `String` (`Proof/.../membership/RaftCluster__Version.lean`).
+- **Proposed change.** As above. The top-level premise change: `bootPremise`'s `bootOk`/`bootOkR` lose `Hclok`,
+  `Hcvm` and `Hisc`'s `Version`/`ID` rows (now lemmas); `Hrc`'s lock invariant gains the slot, nil at boot
+  (the approved interim claim, #34 decision 2). `SetVersion`, `UpdateAttributes`, `SetDowngradeInfo` stay
+  trusted rows (`isClusterRest`); `Recover` stays an axiom (JSON, #24).
+- **Decision.** The interim claim approved by Upamanyu on #34 (decision 2); the deviations from §7.1 posted on
+  #34 (D1-D3) before landing.
 
 ## 2026-11-23: `remote.ServeClient`'s `newClient` is a persistent triple, and no call budget reaches the far side (#28, #24)
 

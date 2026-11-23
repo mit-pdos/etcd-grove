@@ -266,7 +266,7 @@ noncomputable instance dialOptions_access_load_timeout (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance dialOptions_access_store_timeout (l : Loc) (v : google_golang_org.grpc.dialOptions) (timeout' : time.Duration) :
+noncomputable instance dialOptions_access_store_timeout (l : Loc) (v : google_golang_org.grpc.dialOptions) (timeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.dialOptions go!"timeout" l) v.timeout' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.dialOptions go!"timeout" l) timeout' (DFrac.own 1))
@@ -442,7 +442,7 @@ noncomputable instance dialOptions_access_load_idleTimeout (l : Loc) (v : google
  by
   solve_pointsto_access_struct
 
-noncomputable instance dialOptions_access_store_idleTimeout (l : Loc) (v : google_golang_org.grpc.dialOptions) (idleTimeout' : time.Duration) :
+noncomputable instance dialOptions_access_store_idleTimeout (l : Loc) (v : google_golang_org.grpc.dialOptions) (idleTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.dialOptions go!"idleTimeout" l) v.idleTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.dialOptions go!"idleTimeout" l) idleTimeout' (DFrac.own 1))
@@ -620,7 +620,7 @@ noncomputable instance callInfo_access_load_creds (l : Loc) (v : google_golang_o
  by
   solve_pointsto_access_struct
 
-noncomputable instance callInfo_access_store_creds (l : Loc) (v : google_golang_org.grpc.callInfo) (creds' : google_golang_org.grpc.credentials.PerRPCCredentials) :
+noncomputable instance callInfo_access_store_creds (l : Loc) (v : google_golang_org.grpc.callInfo) (creds' : _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"creds" l) v.creds' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.callInfo go!"creds" l) creds' (DFrac.own 1))
@@ -976,7 +976,7 @@ noncomputable instance serverOptions_access_load_creds (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverOptions_access_store_creds (l : Loc) (v : google_golang_org.grpc.serverOptions) (creds' : google_golang_org.grpc.credentials.TransportCredentials) :
+noncomputable instance serverOptions_access_store_creds (l : Loc) (v : google_golang_org.grpc.serverOptions) (creds' : _root_.Perennial.google_golang_org.grpc.credentials.TransportCredentials) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"creds" l) v.creds' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"creds" l) creds' (DFrac.own 1))
@@ -1184,7 +1184,7 @@ noncomputable instance serverOptions_access_load_keepaliveParams (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverOptions_access_store_keepaliveParams (l : Loc) (v : google_golang_org.grpc.serverOptions) (keepaliveParams' : google_golang_org.grpc.keepalive.ServerParameters) :
+noncomputable instance serverOptions_access_store_keepaliveParams (l : Loc) (v : google_golang_org.grpc.serverOptions) (keepaliveParams' : _root_.Perennial.google_golang_org.grpc.keepalive.ServerParameters) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"keepaliveParams" l) v.keepaliveParams' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"keepaliveParams" l) keepaliveParams' (DFrac.own 1))
@@ -1200,7 +1200,7 @@ noncomputable instance serverOptions_access_load_keepalivePolicy (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverOptions_access_store_keepalivePolicy (l : Loc) (v : google_golang_org.grpc.serverOptions) (keepalivePolicy' : google_golang_org.grpc.keepalive.EnforcementPolicy) :
+noncomputable instance serverOptions_access_store_keepalivePolicy (l : Loc) (v : google_golang_org.grpc.serverOptions) (keepalivePolicy' : _root_.Perennial.google_golang_org.grpc.keepalive.EnforcementPolicy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"keepalivePolicy" l) v.keepalivePolicy' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"keepalivePolicy" l) keepalivePolicy' (DFrac.own 1))
@@ -1296,7 +1296,7 @@ noncomputable instance serverOptions_access_load_connectionTimeout (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance serverOptions_access_store_connectionTimeout (l : Loc) (v : google_golang_org.grpc.serverOptions) (connectionTimeout' : time.Duration) :
+noncomputable instance serverOptions_access_store_connectionTimeout (l : Loc) (v : google_golang_org.grpc.serverOptions) (connectionTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"connectionTimeout" l) v.connectionTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.grpc.serverOptions go!"connectionTimeout" l) connectionTimeout' (DFrac.own 1))

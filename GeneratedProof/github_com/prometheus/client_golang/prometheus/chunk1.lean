@@ -666,7 +666,7 @@ noncomputable instance constNativeHistogram_access_load_Histogram (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance constNativeHistogram_access_store_Histogram (l : Loc) (v : github_com.prometheus.client_golang.prometheus.constNativeHistogram) (Histogram' : github_com.prometheus.client_model.go.Histogram) :
+noncomputable instance constNativeHistogram_access_store_Histogram (l : Loc) (v : github_com.prometheus.client_golang.prometheus.constNativeHistogram) (Histogram' : _root_.Perennial.github_com.prometheus.client_model.go.Histogram) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.constNativeHistogram go!"Histogram" l) v.Histogram' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.prometheus.client_golang.prometheus.constNativeHistogram go!"Histogram" l) Histogram' (DFrac.own 1))

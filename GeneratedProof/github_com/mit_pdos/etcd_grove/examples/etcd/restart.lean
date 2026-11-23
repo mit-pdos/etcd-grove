@@ -72,7 +72,7 @@ noncomputable instance raftSwap_access_load_h (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance raftSwap_access_store_h (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap) (h' : net.http.Handler) :
+noncomputable instance raftSwap_access_store_h (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap) (h' : _root_.Perennial.net.http.Handler) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap go!"h" l) v.h' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restart.raftSwap go!"h" l) h' (DFrac.own 1))
@@ -147,7 +147,7 @@ noncomputable instance member_access_load_peer (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance member_access_store_peer (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restart.member) (peer' : go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+noncomputable instance member_access_store_peer (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.etcd.restart.member) (peer' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restart.member go!"peer" l) v.peer' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.etcd.restart.member go!"peer" l) peer' (DFrac.own 1))

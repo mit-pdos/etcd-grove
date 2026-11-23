@@ -98,7 +98,7 @@ noncomputable instance TypedItemExponentialFailureRateLimiter_access_load_failur
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedItemExponentialFailureRateLimiter_access_store_failuresLock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T')) (failuresLock' : sync.Mutex) :
+noncomputable instance TypedItemExponentialFailureRateLimiter_access_store_failuresLock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T')) (failuresLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T') go!"failuresLock" l) v.failuresLock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T') go!"failuresLock" l) failuresLock' (DFrac.own 1))
@@ -130,7 +130,7 @@ noncomputable instance TypedItemExponentialFailureRateLimiter_access_load_baseDe
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedItemExponentialFailureRateLimiter_access_store_baseDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T')) (baseDelay' : time.Duration) :
+noncomputable instance TypedItemExponentialFailureRateLimiter_access_store_baseDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T')) (baseDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T') go!"baseDelay" l) v.baseDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T') go!"baseDelay" l) baseDelay' (DFrac.own 1))
@@ -146,7 +146,7 @@ noncomputable instance TypedItemExponentialFailureRateLimiter_access_load_maxDel
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedItemExponentialFailureRateLimiter_access_store_maxDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T')) (maxDelay' : time.Duration) :
+noncomputable instance TypedItemExponentialFailureRateLimiter_access_store_maxDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T')) (maxDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T') go!"maxDelay" l) v.maxDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemExponentialFailureRateLimiter T') go!"maxDelay" l) maxDelay' (DFrac.own 1))
@@ -190,7 +190,7 @@ noncomputable instance TypedItemFastSlowRateLimiter_access_load_failuresLock {T'
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedItemFastSlowRateLimiter_access_store_failuresLock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T')) (failuresLock' : sync.Mutex) :
+noncomputable instance TypedItemFastSlowRateLimiter_access_store_failuresLock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T')) (failuresLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T') go!"failuresLock" l) v.failuresLock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T') go!"failuresLock" l) failuresLock' (DFrac.own 1))
@@ -238,7 +238,7 @@ noncomputable instance TypedItemFastSlowRateLimiter_access_load_fastDelay {T' : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedItemFastSlowRateLimiter_access_store_fastDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T')) (fastDelay' : time.Duration) :
+noncomputable instance TypedItemFastSlowRateLimiter_access_store_fastDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T')) (fastDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T') go!"fastDelay" l) v.fastDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T') go!"fastDelay" l) fastDelay' (DFrac.own 1))
@@ -254,7 +254,7 @@ noncomputable instance TypedItemFastSlowRateLimiter_access_load_slowDelay {T' : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedItemFastSlowRateLimiter_access_store_slowDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T')) (slowDelay' : time.Duration) :
+noncomputable instance TypedItemFastSlowRateLimiter_access_store_slowDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T')) (slowDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T') go!"slowDelay" l) v.slowDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedItemFastSlowRateLimiter T') go!"slowDelay" l) slowDelay' (DFrac.own 1))
@@ -351,7 +351,7 @@ noncomputable instance TypedWithMaxWaitRateLimiter_access_load_maxDelay {T' : Ty
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedWithMaxWaitRateLimiter_access_store_maxDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedWithMaxWaitRateLimiter T')) (maxDelay' : time.Duration) :
+noncomputable instance TypedWithMaxWaitRateLimiter_access_store_maxDelay {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedWithMaxWaitRateLimiter T')) (maxDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedWithMaxWaitRateLimiter T') go!"maxDelay" l) v.maxDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedWithMaxWaitRateLimiter T') go!"maxDelay" l) maxDelay' (DFrac.own 1))
@@ -443,7 +443,7 @@ noncomputable instance TypedDelayingQueueConfig_access_load_Clock {T' : Type} [T
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedDelayingQueueConfig_access_store_Clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedDelayingQueueConfig T')) (Clock' : k8s_io.utils.clock.WithTicker) :
+noncomputable instance TypedDelayingQueueConfig_access_store_Clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedDelayingQueueConfig T')) (Clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedDelayingQueueConfig T') go!"Clock" l) v.Clock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedDelayingQueueConfig T') go!"Clock" l) Clock' (DFrac.own 1))
@@ -521,7 +521,7 @@ noncomputable instance delayingType_access_load_clock {T' : Type} [TypedPointsto
  by
   solve_pointsto_access_struct
 
-noncomputable instance delayingType_access_store_clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.delayingType T')) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance delayingType_access_store_clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.delayingType T')) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.delayingType T') go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.delayingType T') go!"clock" l) clock' (DFrac.own 1))
@@ -553,7 +553,7 @@ noncomputable instance delayingType_access_load_stopOnce {T' : Type} [TypedPoint
  by
   solve_pointsto_access_struct
 
-noncomputable instance delayingType_access_store_stopOnce {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.delayingType T')) (stopOnce' : sync.Once) :
+noncomputable instance delayingType_access_store_stopOnce {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.delayingType T')) (stopOnce' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.delayingType T') go!"stopOnce" l) v.stopOnce' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.delayingType T') go!"stopOnce" l) stopOnce' (DFrac.own 1))
@@ -569,7 +569,7 @@ noncomputable instance delayingType_access_load_heartbeat {T' : Type} [TypedPoin
  by
   solve_pointsto_access_struct
 
-noncomputable instance delayingType_access_store_heartbeat {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.delayingType T')) (heartbeat' : k8s_io.utils.clock.Ticker) :
+noncomputable instance delayingType_access_store_heartbeat {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.delayingType T')) (heartbeat' : _root_.Perennial.k8s_io.utils.clock.Ticker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.delayingType T') go!"heartbeat" l) v.heartbeat' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.delayingType T') go!"heartbeat" l) heartbeat' (DFrac.own 1))
@@ -659,7 +659,7 @@ noncomputable instance waitFor_access_load_readyAt {T' : Type} [TypedPointsto (G
  by
   solve_pointsto_access_struct
 
-noncomputable instance waitFor_access_store_readyAt {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.waitFor T')) (readyAt' : time.Time) :
+noncomputable instance waitFor_access_store_readyAt {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.waitFor T')) (readyAt' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.waitFor T') go!"readyAt" l) v.readyAt' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.waitFor T') go!"readyAt" l) readyAt' (DFrac.own 1))
@@ -746,7 +746,7 @@ noncomputable instance defaultQueueMetrics_access_load_clock {T' : Type} [TypedP
  by
   solve_pointsto_access_struct
 
-noncomputable instance defaultQueueMetrics_access_store_clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.defaultQueueMetrics T')) (clock' : k8s_io.utils.clock.Clock) :
+noncomputable instance defaultQueueMetrics_access_store_clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.defaultQueueMetrics T')) (clock' : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.defaultQueueMetrics T') go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.defaultQueueMetrics T') go!"clock" l) clock' (DFrac.own 1))
@@ -1075,7 +1075,7 @@ noncomputable instance TypedQueueConfig_access_load_Clock {T' : Type} [TypedPoin
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedQueueConfig_access_store_Clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedQueueConfig T')) (Clock' : k8s_io.utils.clock.WithTicker) :
+noncomputable instance TypedQueueConfig_access_store_Clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedQueueConfig T')) (Clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedQueueConfig T') go!"Clock" l) v.Clock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedQueueConfig T') go!"Clock" l) Clock' (DFrac.own 1))
@@ -1158,7 +1158,7 @@ noncomputable instance Typed_access_load_dirty {t' : Type} [TypedPointsto (GF :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Typed_access_store_dirty {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (dirty' : (k8s_io.apimachinery.pkg.util.sets.Set' t')) :
+noncomputable instance Typed_access_store_dirty {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (dirty' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' t')) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"dirty" l) v.dirty' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"dirty" l) dirty' (DFrac.own 1))
@@ -1174,7 +1174,7 @@ noncomputable instance Typed_access_load_processing {t' : Type} [TypedPointsto (
  by
   solve_pointsto_access_struct
 
-noncomputable instance Typed_access_store_processing {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (processing' : (k8s_io.apimachinery.pkg.util.sets.Set' t')) :
+noncomputable instance Typed_access_store_processing {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (processing' : (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Set' t')) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"processing" l) v.processing' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"processing" l) processing' (DFrac.own 1))
@@ -1254,7 +1254,7 @@ noncomputable instance Typed_access_load_unfinishedWorkUpdatePeriod {t' : Type} 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Typed_access_store_unfinishedWorkUpdatePeriod {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (unfinishedWorkUpdatePeriod' : time.Duration) :
+noncomputable instance Typed_access_store_unfinishedWorkUpdatePeriod {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (unfinishedWorkUpdatePeriod' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"unfinishedWorkUpdatePeriod" l) v.unfinishedWorkUpdatePeriod' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"unfinishedWorkUpdatePeriod" l) unfinishedWorkUpdatePeriod' (DFrac.own 1))
@@ -1270,7 +1270,7 @@ noncomputable instance Typed_access_load_clock {t' : Type} [TypedPointsto (GF :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Typed_access_store_clock {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (clock' : k8s_io.utils.clock.WithTicker) :
+noncomputable instance Typed_access_store_clock {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"clock" l) v.clock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"clock" l) clock' (DFrac.own 1))
@@ -1286,7 +1286,7 @@ noncomputable instance Typed_access_load_wg {t' : Type} [TypedPointsto (GF := GF
  by
   solve_pointsto_access_struct
 
-noncomputable instance Typed_access_store_wg {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (wg' : sync.WaitGroup) :
+noncomputable instance Typed_access_store_wg {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (wg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"wg" l) v.wg' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"wg" l) wg' (DFrac.own 1))
@@ -1318,7 +1318,7 @@ noncomputable instance Typed_access_load_stopOnce {t' : Type} [TypedPointsto (GF
  by
   solve_pointsto_access_struct
 
-noncomputable instance Typed_access_store_stopOnce {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (stopOnce' : sync.Once) :
+noncomputable instance Typed_access_store_stopOnce {t' : Type} [TypedPointsto (GF := GF) t'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.Typed t')) (stopOnce' : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"stopOnce" l) v.stopOnce' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.Typed t') go!"stopOnce" l) stopOnce' (DFrac.own 1))
@@ -1410,7 +1410,7 @@ noncomputable instance TypedRateLimitingQueueConfig_access_load_Clock {T' : Type
  by
   solve_pointsto_access_struct
 
-noncomputable instance TypedRateLimitingQueueConfig_access_store_Clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedRateLimitingQueueConfig T')) (Clock' : k8s_io.utils.clock.WithTicker) :
+noncomputable instance TypedRateLimitingQueueConfig_access_store_Clock {T' : Type} [TypedPointsto (GF := GF) T'] (l : Loc) (v : (k8s_io.client_go.util.workqueue.TypedRateLimitingQueueConfig T')) (Clock' : _root_.Perennial.k8s_io.utils.clock.WithTicker) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedRateLimitingQueueConfig T') go!"Clock" l) v.Clock' (DFrac.own 1))
       (typedPointsto (structFieldRef (k8s_io.client_go.util.workqueue.TypedRateLimitingQueueConfig T') go!"Clock" l) Clock' (DFrac.own 1))

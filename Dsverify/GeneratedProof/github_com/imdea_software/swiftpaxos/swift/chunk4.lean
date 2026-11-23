@@ -163,7 +163,7 @@ noncomputable instance Client_access_load_SQ (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_SQ (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.Client) (SQ' : github_com.imdea_software.swiftpaxos.replica.QuorumI) :
+noncomputable instance Client_access_store_SQ (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.Client) (SQ' : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumI) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.Client go!"SQ" l) v.SQ' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.Client go!"SQ" l) SQ' (DFrac.own 1))
@@ -179,7 +179,7 @@ noncomputable instance Client_access_load_FQ (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Client_access_store_FQ (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.Client) (FQ' : github_com.imdea_software.swiftpaxos.replica.QuorumI) :
+noncomputable instance Client_access_store_FQ (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.Client) (FQ' : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumI) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.Client go!"FQ" l) v.FQ' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.Client go!"FQ" l) FQ' (DFrac.own 1))
@@ -1122,7 +1122,7 @@ noncomputable instance DelayLog_access_load_fastestSlowD (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance DelayLog_access_store_fastestSlowD (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.DelayLog) (fastestSlowD' : time.Duration) :
+noncomputable instance DelayLog_access_store_fastestSlowD (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.DelayLog) (fastestSlowD' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.DelayLog go!"fastestSlowD" l) v.fastestSlowD' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.DelayLog go!"fastestSlowD" l) fastestSlowD' (DFrac.own 1))
@@ -1413,7 +1413,7 @@ noncomputable instance recEntry_access_load_cmd (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance recEntry_access_store_cmd (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.recEntry) (cmd' : github_com.imdea_software.swiftpaxos.state.Command) :
+noncomputable instance recEntry_access_store_cmd (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.recEntry) (cmd' : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.recEntry go!"cmd" l) v.cmd' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.recEntry go!"cmd" l) cmd' (DFrac.own 1))

@@ -223,9 +223,9 @@ omit package_sem in
 /-- `%q` of the context's bytes, lent read-only. -/
 private theorem context_args (cs : GoSlice) (bs : List w8) :
     cs ↦*□ bs ⊢
-      _root_.Perennial.fmt.bytesOwn (GF := GF) DFrac.discard (fun _ => some bs)
+      _root_.Perennial.fmt.bytesOwn (GF := GF) DFrac.discard (fun _ => some (_root_.Perennial.fmt.Lent.bytes bs))
         [interface.mkOk (go.GoType.SliceType go.byte) #cs] ∗
-      _root_.Perennial.fmt.argsOkB (GF := GF) (fun _ => some bs) _root_.Perennial.fmt.methodVerbs
+      _root_.Perennial.fmt.argsOkB (GF := GF) (fun _ => some (_root_.Perennial.fmt.Lent.bytes bs)) _root_.Perennial.fmt.methodVerbs
         go!" context:%q" [interface.mkOk (go.GoType.SliceType go.byte) #cs] := by
   iintro #Hcs
   isplitl

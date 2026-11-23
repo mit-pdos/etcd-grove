@@ -49,7 +49,7 @@ noncomputable instance sequencer_access_load_mu (l : Loc) (v : net.textproto.seq
  by
   solve_pointsto_access_struct
 
-noncomputable instance sequencer_access_store_mu (l : Loc) (v : net.textproto.sequencer) (mu' : sync.Mutex) :
+noncomputable instance sequencer_access_store_mu (l : Loc) (v : net.textproto.sequencer) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.sequencer go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.sequencer go!"mu" l) mu' (DFrac.own 1))
@@ -124,7 +124,7 @@ noncomputable instance Pipeline_access_load_mu (l : Loc) (v : net.textproto.Pipe
  by
   solve_pointsto_access_struct
 
-noncomputable instance Pipeline_access_store_mu (l : Loc) (v : net.textproto.Pipeline) (mu' : sync.Mutex) :
+noncomputable instance Pipeline_access_store_mu (l : Loc) (v : net.textproto.Pipeline) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.textproto.Pipeline go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.textproto.Pipeline go!"mu" l) mu' (DFrac.own 1))

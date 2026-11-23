@@ -769,7 +769,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
     iunfold ownRec at Hrec
     icases Hrec with ⟨%v, Hrv, #Ht, #Hc, Hrdata⟩
     iunfold ownDecCrc at Hdc
-    icases Hdc with ⟨%lc, %tab, %Hh, Hlc, #Htab⟩
+    icases Hdc with ⟨%lc, %tab, %Hh, Hlc, #Htab, #Hc32⟩
     subst Hh
     wp_auto
     wp_apply HWrite lc c tab v.Data' r.data (DFrac.own 1) $$ [Hlc Hrdata] as ⟨Hlc, Hrdata⟩
@@ -809,7 +809,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       · iunfold ownDecCrc
         iexists lc, tab
         iframe
-        iframe Htab
+        iframe Htab Hc32
         ipureintro; rfl
       iapply ownFbr_intro
       iframe
@@ -881,7 +881,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.decoder.decodeRecord.wp_proof
       iunfold ownDecCrc
       iexists lc, tab
       iframe
-      iframe Htab
+      iframe Htab Hc32
       ipureintro; rfl
 
 end proof

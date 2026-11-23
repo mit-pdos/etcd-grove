@@ -2214,7 +2214,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] :
     mvcc.api.mvccApi_watchableStore_HashStorage_wp_api schema.wp_NewAuthBackend v3compactor.wp_New
     EtcdServer.wp_restoreAlarms EtcdServer.wp_NewUberApplier
     EtcdServer.wp_getTxPostLockInsideApplyHook backend.backend.wp_SetTxPostLockInsideApplyHook
-    config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID
+    config.ServerConfig.wp_PeerDialTimeout membership.RaftCluster.wp_ID membership.RaftCluster.wp_Version
     rafthttp.Transport.wp_Start rafthttp.Transport.wp_AddRemote rafthttp.Transport.wp_AddPeer
     rafthttp.peer.wp_stop rafthttp.remote.wp_stop mvcc.api.mvccApi_watchableStore_Close_wp_api
     schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket

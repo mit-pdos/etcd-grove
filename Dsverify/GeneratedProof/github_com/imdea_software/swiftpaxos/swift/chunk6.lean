@@ -196,7 +196,7 @@ noncomputable instance commandStaticDesc_access_load_cmd (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance commandStaticDesc_access_store_cmd (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.commandStaticDesc) (cmd' : github_com.imdea_software.swiftpaxos.state.Command) :
+noncomputable instance commandStaticDesc_access_store_cmd (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.commandStaticDesc) (cmd' : _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Command) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.commandStaticDesc go!"cmd" l) v.cmd' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.commandStaticDesc go!"cmd" l) cmd' (DFrac.own 1))
