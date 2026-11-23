@@ -5260,3 +5260,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above; callers updated (`readRequest`'s and `ReadRequestBody`'s proofs). The client
   is unchanged. At-most-once and the other guarantees unchanged.
 - **Decision.** Applied (branch `models-rpc-server`); closes the previous entry's open item.
+
+## 2026-11-23: `remote.ServeClient`'s `newClient` is a persistent triple, and no call budget reaches the far side (#28, #24)
+
+- **Spec.** `Net/Spec/.../lib/remote/ServeClient.lean`: the premise `{{ True }} newClient(c) {{ sys, RET #sys;
+  tok sys }}` (persistent). `Net/Proof/.../lib/remote/Defs.lean`: `reqP S`, `svcOp S tok op`, `opMaybe R tok op`
+  carried no bound on the number of calls a node serves.
+- **Defect.** (1) `ServeClient` calls `newClient` once, but the triple's `□` forbids it to consume anything, so the
+  client machine's system cannot hold exclusive per-client state (VR's request numbers and ghost state; rabia's
+  kit worked around it with a mutex). (2) The kits rely on a per-client operation budget (rabia's `SeqBudget`,
+  VR's request numbers), but nothing told a client machine it serves at most `ops`-many calls.
+- **Evidence.** `ServeClient`'s proof uses the premise once (`wp_apply HnewClient`). The orchestrator makes
+  `ops` operations per client (`perclient.Run`), each at most `ReadTries` attempts (`Do`), one connection each.
+- **Proposed change.** (a) The premise becomes the caller's one-shot WP `∀ Φ, ▷ (∀ sys, tok sys -∗ Φ #sys) -∗
+  WP newClient(c) {{ Φ }}`. (b) Call budgets in ghost state (`notes/remote-port-plan.md`, "`ServeClient`'s
+  one-shot `newClient` and call budgets"): `RemoteGS.bud`, a unit `budUnit a` per call in `reqP S a`'s slot,
+  handed to `svcOp S a`/`opMaybe R a`; `budUsed_add` bounds the count; `Check`/`Run` take `nb ≥ ops * readTries`
+  units per client address. Go unchanged.
+- **Decision.** Approved by the user (Upamanyu agreed on #24); applied on branch `remote-serveclient` for review on #28.

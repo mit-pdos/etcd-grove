@@ -31,9 +31,9 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient.Assumptions]
 
 theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
-    fun σ S inOk libState clockVal Eapp Eclk n γ apply gen clock id ops lr clients HEapp HEclk Hid
+    fun σ S inOk libState P clockVal Eapp Eclk n γ apply gen clock id ops lr clients HEapp HEclk Hid
       Hidc => by
-  wp_start as ⟨#Happly, #Hgen, #Hclock, #Hinv, Htok, Htt⟩
+  wp_start as ⟨#Happly, #Hgen, #Hclock, #Hinv, Htok, Hcalls, Htt⟩
   wp_auto
   ihave Hnil := ownSlice_nil (V := Operation) (GF := GF) (DFrac.own 1)
   ihave Hcap := ownSliceCap_nil (V := Operation) (GF := GF)
@@ -42,11 +42,14 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
       "i" ∷ i_ptr ↦ i ∗ "history" ∷ history_ptr ↦ hsl ∗ "Hh" ∷ hsl ↦* hc ∗
       "Hcap" ∷ ownSliceCap Operation hsl (DFrac.own 1) ∗
       "Htok" ∷ clientTok γ (sint.nat id) (Lc, lr') ∗ "Htt" ∷ threadTok ∗
+      "Hcalls" ∷ calls (P (sint.nat id)) (sint.nat ops - sint.nat i) ∗
       "%Hok" ∷ ⌜ClientOk id hc Lc⌝ ∗
       "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ (Lc.length : Int) = sint.Z i ∧
         (sint.Z i = 0 ∨ sint.Z i ≤ sint.Z ops)⌝ ∗
-      "#Hio" ∷ opsIoOk S hc : IProp GF) $$ [i history Hnil Hcap Htok Htt]
+      "#Hio" ∷ opsIoOk S hc : IProp GF) $$ [i history Hnil Hcap Htok Htt Hcalls]
   · iexists W64 0, slice.nil, [], [], lr
+    rw [show sint.nat ops - sint.nat (W64 0) = sint.nat ops by
+      rw [show sint.nat (W64 0) = 0 from rfl, Nat.sub_zero]]
     iframe
     unfold named opsIoOk
     isplitr
@@ -61,13 +64,17 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
     iempintro
   wp_for HI
   wp_if_destruct
-  · iunfold genSpec at Hgen
+  · have Hlt : sint.Z i < sint.Z ops := by simpa [intoVal_eq_iff] using Hif
+    rw [show sint.nat ops - sint.nat i = (sint.nat ops - sint.nat (i + W64 1)) + 1 by
+      have := Hi.1; word, calls_succ]
+    icases Hcalls with ⟨HP, Hcalls⟩
+    iunfold genSpec at Hgen
     wp_apply (lc := 1) Hgen as %input #Hin
     · ipureintro; exact Hid
     wp_apply (lc := 2) wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id) (Lc, lr')
       HEclk $$ [$Hclock $Hinv $Hlc1 $Htok] as %call ⟨Htok, %Hcall⟩
-    wp_apply (lc := 1) wp_apply_commit_id S inOk libState clockVal Eapp n γ apply clients id
-      (sint.nat id) (Lc, call) input HEapp ⟨Hid, Hidc⟩ $$ [$Happly $Hin $Htt $Hinv $Hlc1 $Hlc2 $Htok]
+    wp_apply (lc := 1) wp_apply_commit_id S inOk libState P clockVal Eapp n γ apply clients id
+      (sint.nat id) (Lc, call) input HEapp ⟨Hid, Hidc⟩ $$ [$Happly $Hin $Htt $HP $Hinv $Hlc1 $Hlc2 $Htok]
       as %output %τ ⟨Htok, %Hτ, #Hioo, Htt⟩
     wp_apply wp_clock_read S.M libState clockVal Eclk n γ clock (sint.nat id)
       (Lc ++ [((input, output), τ)], call) HEclk $$ [$Hclock $Hinv $Hlc1 $Htok]
@@ -80,7 +87,6 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
     wp_auto
     wp_apply wp_slice_append $$ [$Hh $Hcap $Hsl2] as %hsl' ⟨Hh, Hcap, -⟩
     wp_for_post
-    have Hlt : sint.Z i < sint.Z ops := by simpa using Hif
     iframe
     iexists (i + W64 1), hsl', _, Lc ++ [((input, output), τ)], ret
     iframe
@@ -96,7 +102,7 @@ theorem runClient.wp_proof : runClient.spec (GF := GF) (hG := hG) :=
     unfold opsIoOk
     iapply BigSepL.bigSepL_snoc.2
     iframe # ∗
-  · have Hge : ¬ sint.Z i < sint.Z ops := by simpa using Hif
+  · have Hge : ¬ sint.Z i < sint.Z ops := by simpa [intoVal_eq_iff] using Hif
     iapply HΦ
     iexists hc, Lc, lr'
     iframe

@@ -56,7 +56,8 @@ abbrev Orch.spec [RemoteGS] : Prop :=
       ([∗list] a ∈ clientAddrs, remoteAddr (Gg := hG.goose_globalGS) (epR γ) a) ∗
       mapCtx (Gg := hG.goose_globalGS) (I := EIn) ∗
       pendCtx (Gg := hG.goose_globalGS) (epR γ) (epS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (epS0 (GF := GF)) γp (epS0 (GF := GF)).M.init }}
+      pendLib (Gg := hG.goose_globalGS) (epS0 (GF := GF)) γp (epS0 (GF := GF)).M.init ∗
+      [∗list] a ∈ clientAddrs, budUnits (Gg := hG.goose_globalGS) a 6 }}
     (App (Val (@! github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Orch)) (Val #()))
   {{ RET #(); True }}
 
