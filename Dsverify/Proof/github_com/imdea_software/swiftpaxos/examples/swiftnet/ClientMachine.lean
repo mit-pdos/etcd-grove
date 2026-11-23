@@ -262,7 +262,7 @@ theorem clientNode.wp_proof (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) 
   · iapply opMaybe_svcOp
     unfold opMaybe
     iintro %sys %i %Ψ
-    iintro !> %Φr ⟨%Hsys, Hupd⟩ HΦr
+    iintro !> %Φr ⟨%Hsys, Hupd, -⟩ HΦr
     subst Hsys
     wp_auto
     wp_apply wp_op s i Ψ $$ [$Hupd] as %o Ho
@@ -280,7 +280,7 @@ theorem clientNode.wp_proof (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) 
       iexists w
       iframe HΨ
       ipureintro; rfl
-  · iintro !> %Φr - HΦr
+  · iintro %Φr HΦr
     wp_auto
     iapply HΦr
     ipureintro; rfl

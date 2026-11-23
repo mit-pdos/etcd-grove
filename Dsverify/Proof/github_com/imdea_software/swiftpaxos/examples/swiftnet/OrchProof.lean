@@ -73,7 +73,7 @@ theorem Orch.wp_proof
     Orch.spec (hG := hG) := by
   intro γ γk γp hrb
   rw [pendCtx_swS, pendLib_swS]
-  wp_start as ⟨Hw, #Hcom, #Hra, #Hmap, #Hpend, Hlib⟩
+  wp_start as ⟨Hw, #Hcom, #Hra, #Hmap, #Hpend, Hlib, Hbud⟩
   ihave #Hcc : context.isClosedchanInit (GF := netDistGF) $$ []
   · iapply context.isClosedchanInit_of_init
     iPkgInit
@@ -98,9 +98,9 @@ theorem Orch.wp_proof
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
   wp_apply wp_Check (swRK γk) swS γp m addrs clientAddrs cd _ _ d pendN_sw lintestN_sw
     (swS_pendDec _ _) (swR_encOut_inj _ _) (fun st => sysK_timeless γk st) hrb
-    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) $$ [Hlib]
+    (by rw [hlen']; decide) (by decide) (by rw [hlen']; decide) 24 (by decide) $$ [Hlib Hbud]
   · iframe #
-    iframe Hlib
+    iframe Hlib Hbud
     iapply (show ⊢ EtcdGrove.lintest.genSpec (GF := netDistGF)
         (functions github_com.imdea_software.swiftpaxos.examples.swiftnet.Gen [])
         (fun x => iprop(∃ i, ⌜x = (swRK (G := hG.goose_globalGS) γk).iv i⌝)) from wp_Gen)
