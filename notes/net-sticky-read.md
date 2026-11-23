@@ -1,6 +1,11 @@
-# Sticky read errors in the net extension's semantics (plan, for sign-off)
+# Sticky read errors in the net extension's semantics
 
-Status: **proposed, not implemented** (2026-11-23). The decision (the user's, on etcd-grove#24,
+Status (2026-11-23, branch `net-sticky-read`): **the semantics change and its laws are
+implemented** (approved by the user on etcd-grove#24, option (A)); **`rerr`'s removal is not done
+yet** (see "Implemented", at the end, for what it still needs). Below, the plan as it was signed
+off, then what was implemented and how it differs.
+
+Plan (2026-11-23): The decision (the user's, on etcd-grove#24,
 2026-11-23): "fix it once in the net extension's semantics, not with per-call-site wrappers,
 provided Linux gives no bytes after a read error". This note has the evidence that Linux gives
 none (but after a read deadline's timeout), the exact rule, the Lean changes, and what happens to
@@ -251,3 +256,72 @@ relation (only the pattern fixes in `Stream`/`Decide`).
   `Dsverify/`, the single-process theorems).
 * **The wrappers' proofs**: `rerr`'s removal touches the rpc server's reader invariant and five
   specs; the `errFrame` case is the open question there.
+
+## Implemented (2026-11-23, branch `net-sticky-read`)
+
+**Trusted** (`GooseLang/Ext/Net/Impl.lean`, v3.5): `ReadAvail`'s `sys` clause is
+`d.status = .cut ∧ d.bytes = [] ∧ r = .err .sys ∧ d' = d`, as planned; D1's prose and the version
+history say why. `examples/net/semantics/doc.go`'s "Sticky read errors" rows are D1 v3.5's
+evidence, with a v3.5 paragraph. `etc/gates.sh` runs the loopback sticky tests (`net-sticky`; the
+network-namespace one needs root and skips there).
+
+**Proved, pure** (`Stream.lean`): `NetDir.dead`, `readOutcome_dead_of`, `readOutcome_dead`,
+`writeOutcome_dead`, `closeOutcome_dead`, `closeWriteOutcome_dead`, and `closeOutcome_rdl`,
+`deadlineOutcome_w_rdl`, `deadlineOutcome_closed`, `readOutcome_closed_of`, `readOutcome_closed`,
+`readOutcome_no_timeout`. `Decide.lean`'s `readAvailB` and `cut_unique`, `Tests.lean`'s patterns
+and three new examples (no `sys` with bytes unread; a cut keeping nothing, then `sys`; a dead
+direction reads EOF or `sys` again). The conformance checker (`model.py`, `lazy.py`, `replay.py`'s
+witness builder: a `sys` read cuts keeping nothing; `test_break_prefix_reset_eof` now `[0]`; a new
+negative test `test_bytes_after_sys_read_error`); its unit tests and `go test ./net/conform/check/`
+(the 15 recorded runs) pass.
+
+**`Proto.lean`** (proved; differs from the plan where marked):
+
+* `ConnPNames` gains `x s` (a direction's dead counter, `monoNat`), `d s` (an end's read deadline,
+  a ghost variable) and `c s` (an end's closed counter, `monoNat`; **not in the plan**). `dirSt`
+  keeps `1 ≤ x → d.dead`, `endSt` (now with `γ`) a half of `d s` at `st.rdl` and `1 ≤ c →
+  st.closed`. `reg_open_full` exposes all of it; `reg_open` keeps its shape, its closer also asking
+  that the read deadline is kept, a dead direction stays dead and a closed end closed.
+* `readDead cn s` (persistent): **the direction towards `s` is dead, or the end `s` is closed**
+  (the plan had only the first). A served connection's reader gets `closed` if the end is closed,
+  and the proofs have no exclusive knowledge that it is not; `closed` is sticky too (D3), so it is
+  a reason a read returns nothing more, and the law covers it.
+* `rdlTok cn s b` (exclusive): the end's read deadline is `b`; it holds `regCtx`. **Given by
+  variants of the laws**, `dial_rdl_au`, `accept_rdl_au`, `accept_shared_rdl_au` (and internally
+  `accept_au_at`, `accept_shared_au_at`, `pendRes_take`, `conn_register`), not by `dial_au`/
+  `accept_*au`, whose statements are unchanged (they are derived from the variants, dropping the
+  token), so that their twenty-odd users do not change.
+* `read_dead_au cn s P R n b`: from `recvTokL ∗ rdlTok cn s b`, `read_au`'s update, which also
+  gives the token back, `st.rdl = b` in its outcome fact, and `⌜r = .eof ∨ r = .err .sys ∨ r = .err
+  .closed⌝ -∗ readDead cn s`. `read_after_dead_au`: from `recvTokL ∗ readDead`, the update whose
+  result keeps the reader where it was and returns no byte. `read_au` is unchanged.
+* `deadline_au cn s k set b`: **takes `rdlTok cn s b` instead of `connIs`** and gives back
+  `rdlTok cn s st'.rdl`; `deadline_w_au` (new): the write deadline (kind 2) with `connIs` only, as
+  it leaves the read deadline as it is. Users: lib/remote's `attempt` (`dial_rdl_au`) and
+  `serveConn` (its spec takes `rdlTok cn true false`, which `Serve` gets from `accept_rdl_au`);
+  paxos's `writeFrame` (`deadline_w_au`) and `readLoop` (its spec takes `rdlTok cn true false`, kept
+  as `∃ b, rdlTok` in the loop; `acceptLoop` uses `accept_rdl_au`). No top-level statement changed.
+
+**Not done: `rerr`'s removal** (`models/net/rpc/codec.go`). What it needs, found while starting
+it:
+
+1. **The failing read's fact through the frame readers.** `readFull`/`readFrame` and the codec's
+   four read specs take an update returning `P (got ++ r.got)`, which forgets `r`; the server needs
+   `readDead` exactly when a read failed. Proposed: a parameter `F` (the update returns
+   `P (got ++ r.got) ∗ (⌜∀ bs, r ≠ .bytes bs⌝ -∗ F)` and the error post gives `F`); the client's
+   callers pass `F := True` (`Client__input`'s `rd_acc` wrapped once).
+2. **`errFrame`.** Go's gob reads on after a too-long message (its `recvMessage` sets `errBadCount`,
+   reset by the next `Decode`), from inside it; `ServeCodec` ends the loop at a header's error but
+   reads on after a body's (`keepReading`), so Go then parses the frame's payload as frames, which
+   no proof can follow. Following Go is therefore not provable; excluding such frames by the
+   protocol needs `reqOk` to bound a request's header and body by `maxFrameN` (today `< 2^63`), and
+   a model client cannot know that of `Encode`'s bytes without a check: proposed, the model's
+   `clientCodec.WriteRequest` returns `errFrame` without writing for a frame longer than `maxFrame`
+   (gob's encoder also refuses a message of `tooBig` bytes, but leaves the header it already
+   encoded in its buffer for the next flush, which the model would not model: a gap the package doc
+   would state), and `reqUpd`'s premise gives the bound. A decision for the user.
+3. Then as planned: `rdrOwn`'s failed branch `recvTok … R ∗ readDead cn true`, the reader's
+   `rdlTok cn true false` (`rpcAccepted`, from `accept_shared_rdl_au` in `Server.Accept`), the five
+   specs and `newServerCodec`; `models/internal/rpcdifftest/run.sh`; `models/README.md`'s net/rpc
+   row; `nonissues/go-netrpc-server-reads-on-after-body-read-error.md` closed.
+

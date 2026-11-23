@@ -51,6 +51,15 @@ listener or any other: the same, for the address the connection was dialed to), 
 write meeting the protocol), `read_au` (`Conn.Read.spec`), `close_au`, `closeWrite_au`,
 `deadline_au`, `sockopt_au`, `lisClose_au`.
 
+**Sticky reads and read deadlines** (D1 v3.5, `notes/net-sticky-read.md`): `readDead cn s`
+(persistent: the end `s` reads nothing more, its direction dead or the end closed), from
+`read_dead_au` (`read_au` with the end's `rdlTok`, when the read returns EOF, `sys` or `closed`),
+and `read_after_dead_au` (a read then returns no byte); `rdlTok cn s b` (exclusive: the end's read
+deadline is `b`), given by `dial_rdl_au`, `accept_rdl_au` and `accept_shared_rdl_au` (`dial_au` and
+the `accept_*au` laws are the same without it), taken and given back by `deadline_au`; with
+`b = false` a read does not time out (`readOutcome_no_timeout`). `deadline_w_au` sets the write
+deadline only, without the token.
+
 **How it is built.** The connections' states are in one invariant (`regInv`, timeless): for each
 connection `cn` the library knows, with its ghost names `γ` (a persistent entry `connElem cn γ`),
 both ends' states (`netEnd`) and both directions' (`netDir`), with what each direction's writer
