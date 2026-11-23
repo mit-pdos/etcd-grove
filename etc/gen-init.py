@@ -1210,7 +1210,9 @@ after initializing its imports (`serviceconfig`, `attributes`: types only).''',
 )
 
 _VERS = ['V3_0', 'V3_1', 'V3_2', 'V3_3', 'V3_4', 'V3_5', 'V3_6', 'V3_7', 'V3_8', 'V3_9', 'V4_0']
-_SEMVER_NEW = 'EtcdGrove.semver.New.wp_proof EtcdGrove.semver.Version.String.wp_proof'
+_SEMVER_NEW = ('EtcdGrove.semver.New.wp_proof (EtcdGrove.semver.Version.String.wp_proof '
+               '_root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String '
+               '_root_.Perennial.fmt.wp_Fprintf)')
 def semver_new_steps(x):
     """`x = *semver.New(...)`: `semver.New`'s spec (a read-only version), then the load."""
     return ['try wp_auto',
@@ -1235,6 +1237,7 @@ versions (`V3_0 = *semver.New(3, 0, 0, "", "")`, ...: `semver.New`'s spec, prove
                              'try wp_auto']),
     imports=['Proof.github_com.Masterminds.semver.v3.New',
              'Proof.github_com.Masterminds.semver.v3.Version__String',
+             'Perennial.Proof.bytes.Link',
              'Proof.github_com.Masterminds.semver.v3.NewVersion',
              'Proof.github_com.Masterminds.semver.v3.Version__Major',
              'Proof.github_com.Masterminds.semver.v3.Version__Minor'],

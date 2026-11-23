@@ -56,7 +56,6 @@ axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom schema.MustUnsafeGetAllLeases.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom semver.NewVersion.wp_proof
-axiom semver.Version.String.wp_proof
 axiom sort.SliceIsSorted.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof

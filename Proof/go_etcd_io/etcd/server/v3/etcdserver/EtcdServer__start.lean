@@ -325,7 +325,7 @@ theorem EtcdServer.start.wp_proof
       start_info
       wp_join_done
     -- known: the log line with the cluster's id and version, and the gauge
-    icases Hcvr with (%Hcv0 | ⟨-, #Hcvk⟩)
+    icases Hcvr with (%Hcv0 | ⟨-, -, #Hcvk⟩)
     · exact absurd Hcv0.1 Hif
     wp_apply hMID s fv.memberID $$ []
     · iframe Hmidf
@@ -344,10 +344,10 @@ theorem EtcdServer.start.wp_proof
     · simp only [↓reduceIte]; iexact Hcvk
     inext
     iintro %cv1 Hcv1
-    icases Hcv1 with (%Hcv1 | ⟨%Hcv1, -⟩)
+    icases Hcv1 with (%Hcv1 | ⟨%Hcv1, ⟨%xv1, #Hxv1⟩, -⟩)
     · exact absurd Hcv1.2 (by decide)
-    wp_apply hVS cv1 $$ [] as %vs1 -
-    · ipureintro; exact Hcv1
+    wp_apply hVS cv1 DFrac.discard xv1 $$ [] as -
+    · iframe #
     wp_apply hVC as %cvs1 -
     wp_apply hZS as %f3 -
     start_info
@@ -357,10 +357,11 @@ theorem EtcdServer.start.wp_proof
     · simp only [↓reduceIte]; iexact Hcvk
     inext
     iintro %cv2 Hcv2
-    icases Hcv2 with (%Hcv2 | ⟨%Hcv2, -⟩)
+    icases Hcv2 with (%Hcv2 | ⟨%Hcv2, ⟨%xv2, #Hxv2⟩, -⟩)
     · exact absurd Hcv2.2 (by decide)
-    wp_apply hVS cv2 $$ [] as %vs2 %Hvs2
-    · ipureintro; exact Hcv2
+    wp_apply hVS cv2 DFrac.discard xv2 $$ [] as -
+    · iframe #
+    have Hvs2 := semver.semverStr_render xv2
     wp_apply hVC as %cvs2 %Hcvs2
     wp_apply wp_map_make1 (K := GoString) (V := GoString) as %lm Hlm
     wp_apply wp_mapInsert go.string lm _ go!"cluster_version" cvs2 $$ [$Hlm] as Hlm
