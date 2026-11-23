@@ -96,7 +96,9 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `Interface/Wire.lean` imports `Model/KvScan.lean` in place of `Interface/Names.lean` (the lab's
    net harness) and drops the harness's local instances. **Builds** (2026-11-23, `lake build
    …Model.Proof.{ExecWfInv,G1Replay,NoneRec}`, the leaves; 63 files, 32k lines, no `sorry`;
-   `#print axioms model.inv_step_deliver`: Lean's three).
+   `#print axioms model.inv_step_deliver`: Lean's three). Also `Interface/PeerWire.lean` (the peer
+   messages' pure encoders and `Countable` instances; by hand: imports `Perennial.Std.Countable`,
+   which the lab's `Names` brought, and keeps `open Iris`).
 3. **Not started:** the model layer's bridge to remote and the kit's model (the lab's
    `Interface/*` beyond `Wire`: they are stated over the lab's harness `EpaxosNetSpec`, the
    `netConnExts` world and its `kvScan` escrow; here they must be restated over `Net/`'s specs and
@@ -143,7 +145,11 @@ list it here, do not widen shared translations or add models.)
 
 ## Next (for a successor)
 
-1. Model layer over remote: restate the lab's `Interface/{Client,ClientSpec,Epaxos,EpaxosGhost,
+1. Model layer over remote. The first file that is not pure is `Interface/Net.lean` (the peer
+   streams' ghost vocabulary: `msgSent`, `sentHalf`, `delivTok`, `dialTok`, `peerConn`, `addrId`,
+   `peerStreamOk`), stated in the lab over `netDistGF` and the ghost names `EpNames` of `Names.lean`
+   (the lab harness's `EpaxosNetSpec`). Decide its GF and names over the part's world (as the paxos
+   port did for its ghost state), then restate the lab's `Interface/{Client,ClientSpec,Epaxos,EpaxosGhost,
    EpaxosRep,Replica,ReplicaSpec,State,PeerWire,Net,Marshal,Misc,Servers}` over `Net/`'s `net.Conn`
    specs (as `Dsverify/Proof/…/paxos`'s port did) and the kit's model; drop `Names`/
    `EpaxosNetSpec`, the harness's `kvScan` escrow and `RunRemote`.
