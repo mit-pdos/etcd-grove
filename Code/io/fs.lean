@@ -419,6 +419,21 @@ noncomputable def PathError.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- go: fs.go:272:21 -/
+noncomputable def PathError.Unwrap.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType PathError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef PathError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType PathError.ty)))) (Var "e"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.io.fs where
   pkgImportedPkgs := [pkg_id.time, pkg_id.internal.oserror, pkg_id.errors, pkg_id.io]
 
@@ -629,6 +644,7 @@ class PathError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   method_set : go.MethodSetIs PathError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType PathError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType PathError.ty) go!"Error" PathError.Error.impl
+  ptr_Unwrap_unfold : MethodUnfold (go.GoType.PointerType PathError.ty) go!"Unwrap" PathError.Unwrap.impl
 
 attribute [instance] PathError.TypeAssumptions.type_repr
   PathError.TypeAssumptions.underlying
@@ -641,6 +657,7 @@ attribute [instance] PathError.TypeAssumptions.type_repr
   PathError.TypeAssumptions.method_set
   PathError.TypeAssumptions.ptr_method_set
   PathError.TypeAssumptions.ptr_Error_unfold
+  PathError.TypeAssumptions.ptr_Unwrap_unfold
 
 abbrev GlobFS [GooseExts] : Type := GoInterface
 

@@ -1,7 +1,7 @@
 /-
 **A connection's end as an `io.Reader` and an `io.Writer`** (dsv-bufio, 2026-11-23,
 mit-pdos/etcd-grove#24): laws giving the generic `io` contracts (Perennial's `io.readerOk`,
-`Proof/io/WriterOk.lean`'s `io.writerOk`) of a `*TCPConn` `t` that is the end `s` of the connection
+`Proof/io/StreamWriterOk.lean`'s `io.streamWriterOk`) of a `*TCPConn` `t` that is the end `s` of the connection
 `cn` (`connAt`), from the canonical `Conn.Read`/`Conn.Write` specs (hypotheses) and the protocol
 vocabulary of `GooseLang/Ext/Net/Proto.lean`. So the kits' `bufio.NewReader(conn)` /
 `bufio.NewWriter(conn)` (`Spec/bufio/`) apply over a connection with the stream states
@@ -24,7 +24,7 @@ exact (`ReadOut`'s `sint.nat k = min …` admits a negative `k` when `min = 0`, 
   a read `*OpError` (`connReadE`). Reads of an empty buffer are excluded (`0 < m`; see above).
 * `connReader_proto`: what a `*bufio.Reader` over a connection has returned meets the protocol up to
   extension, a step later (`recvTokL_proto` with `bufio.ownBufReader_fact`).
-* `conn_writerOk`: `io.writerOk (connIface t) (sendTok cn s P) (P cn) (connWriteE ...)` for a
+* `conn_streamWriterOk`: `io.streamWriterOk (connIface t) (sendTok cn s P) (P cn) (connWriteE ...)` for a
   protocol closed under prefixes (`ProtoPrefixClosed`): a write extends `sendTok` by a prefix of
   the bytes (all of them on `nil`), each needing `□ P cn` of the whole stream; its errors are write
   `*OpError`s.
@@ -36,7 +36,7 @@ public import Net.Spec.net.Conn__Read
 public import Net.Spec.net.Conn__Write
 public import GooseLang.Ext.Net.Proto
 public import GooseLang.Ext.Net.Stream
-public import Proof.io.WriterOk
+public import Proof.io.StreamWriterOk
 public import Proof.bufio.Own
 public import Code.bufio
 
@@ -191,14 +191,14 @@ theorem conn_readerOk [_root_.Perennial.io.Assumptions]
     ipureintro; exact netErr_ptrTyped (Hne.2 (by simp))
 
 /-- See the file header. -/
-theorem conn_writerOk (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+theorem conn_streamWriterOk (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
     (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra ed : GoInterface) (P : Proto GF)
     (hP : ProtoPrefixClosed P) :
     connAt (GF := GF) t cn s a la ra ∗ globalAddr internal.poll.ErrDeadlineExceeded ↦□ ed ⊢
-      EtcdGrove.io.writerOk (connIface t) (sendTok (Gg := hG.goose_globalGS) cn s P) (P cn)
+      EtcdGrove.io.streamWriterOk (connIface t) (sendTok (Gg := hG.goose_globalGS) cn s P) (P cn)
         (connWriteE la ra ed) := by
   iintro ⟨#Hc, #Hed⟩
-  unfold EtcdGrove.io.writerOk EtcdGrove.io.prefixClosed connIface
+  unfold EtcdGrove.io.streamWriterOk EtcdGrove.io.prefixClosed connIface
   isplitr
   · iintro !> %x %y #Hxy
     ihave #Hx := hP.pre cn x (x ++ y) (List.prefix_append x y) $$ Hxy
@@ -231,7 +231,7 @@ theorem conn_writerOk (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
   · iright; imodintro; iexists k; iexact HE
 
 /-- See the file header (review C2 on #24: the kits' `ownReader_proto`, without unfolding). -/
-theorem connReader_proto [_root_.Perennial.bufio.Assumptions] (br : Loc) (ri : GoInterfaceOk)
+theorem connReader_proto (br : Loc) (ri : GoInterfaceOk)
     (Pre : List w8 → Nat → Prop) (cn : Nat) (s : Bool) (P : Proto GF)
     (E : List w8 → GoInterface → IProp GF) (R : List w8) :
     EtcdGrove.bufio.ownBufReader br ri Pre (recvTokL (Gg := hG.goose_globalGS) cn s P) E R ⊢

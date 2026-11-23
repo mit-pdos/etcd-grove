@@ -16,7 +16,6 @@ axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Tracer_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.codes.initFuncsOk
 axiom Perennial.google_golang_org.grpc.credentials.opaqueInitsOk
@@ -45,7 +44,6 @@ axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrUnclaimed
-axiom api.IsCapabilityEnabled.wp_proof
 axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
@@ -358,6 +356,7 @@ axiom streamKeyFromCtx.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
+axiom time.Time.Format.wp_proofBroken
 axiom trace.Trace.LogIfLong.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof

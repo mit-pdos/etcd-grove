@@ -3,6 +3,8 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import ManualProof.syscall
+public import Perennial.GeneratedProof.errors
+public import Perennial.GeneratedProof.internal.oserror
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.syscall

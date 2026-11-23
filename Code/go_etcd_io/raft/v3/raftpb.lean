@@ -3156,6 +3156,7 @@ class HardState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   ptr_GetTerm_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetTerm" HardState.GetTerm.impl
   ptr_GetVote_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"GetVote" HardState.GetVote.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"ProtoMessage" HardState.ProtoMessage.impl
+  ptr_Reset_unfold : MethodUnfold (go.GoType.PointerType HardState.ty) go!"Reset" HardState.Reset.impl
 
 attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.underlying
@@ -3177,6 +3178,7 @@ attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.ptr_GetTerm_unfold
   HardState.TypeAssumptions.ptr_GetVote_unfold
   HardState.TypeAssumptions.ptr_ProtoMessage_unfold
+  HardState.TypeAssumptions.ptr_Reset_unfold
 
 structure ConfState [GooseExts] where
   mk ::

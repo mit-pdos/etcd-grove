@@ -1,7 +1,7 @@
 /-
-`api.IsCapabilityEnabled` (`etcdserver/api/capability.go`, names-only: the trust boundary of unit
-P3b; the server's unary interceptor asks for the v3 RPC capability). Lean-first (no Rocq
-counterpart).
+`api.IsCapabilityEnabled` (`etcdserver/api/capability.go`; the server's interceptors ask for the v3
+RPC capability; unit P3b's trust boundary until prove-ps2-cap, 2026-11-23: translated with its
+body and proved). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -22,14 +22,16 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `api.IsCapabilityEnabled(c)` returns whether the capability `c` is enabled (some boolean;
-it reads the package's `enabledMap` under its `enableMapMu` read lock, which the package's
-`UpdateCapability` writes under the lock). -/
+/-- `api.IsCapabilityEnabled(c)` returns whether the capability `c` is enabled (some boolean: it
+read-locks the package's `enableMapMu`, with a reader slot of the package's pool (`capInit`)
+borrowed with the caller's level-0 thread token, which comes back, and reads `enabledMap[c]`, or
+`false` if the map is `nil`), under the thread bound the pool needs (`2 ^ 30`, the lock's reader
+counter). -/
 abbrev api.IsCapabilityEnabled.spec : Prop :=
-  ∀ (c : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api }}
-    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled)) (Val c))
-  {{ (b : Bool), RET #b; True }}
+  ∀ [ThreadBoundLe GF (2 ^ 30)] (c : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api ∗ levelTok 0 }}
+    (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.IsCapabilityEnabled)) (Val #c))
+  {{ (b : Bool), RET #b; levelTok 0 }}
 
 end spec
 

@@ -34,7 +34,8 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 read-only) returns a `*grpc.Server` being built (`grpcSrvNew`) with etcd's unary chain
 `[il, im, iu]` (`newLogUnaryInterceptor(s)`'s, grpc-prometheus's, `newUnaryInterceptor(s)`'s) and
 stream chain `[ims, is]` (grpc-prometheus's, transparent; `newStreamInterceptor(s)`'s, weakening the
-context, `srvStreamInterceptorWOk`), the unary interceptors transparent, and
+context, `srvStreamInterceptorWOk`), the unary interceptors transparent (etcd's two with a run's
+level-0 thread token as their resource, `IsCapabilityEnabled`'s; prove-ps2-cap, 2026-11-23), and
 etcd's services registered: among them the KV service's `Put`, `Range`, `DeleteRange`, `Txn` on
 the `*quotaKVServer` `q` over the `*kvServer` `p` (`kvRegs`) and the `Watch` stream on the
 `*watchServer` `pw` (`watchSReg`), and the Auth service's five admin methods on the `*AuthServer`
@@ -51,7 +52,8 @@ abbrev v3rpc.Server.spec : Prop :=
   v3rpc.ServerMethodSets → ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
   -- the backend stays under its quota (audit phase B3, D19h)
   apply.backendUnderQuota →
-  -- the thread bound etcd's stream interceptor's cancellable contexts need (k8s 7f-4 item 7)
+  -- the thread bound etcd's stream interceptor's cancellable contexts need (k8s 7f-4 item 7), and
+  -- the interceptors' `IsCapabilityEnabled` (prove-ps2-cap, 2026-11-23)
   threadBound GF ≤ 2 ^ 30 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.grpcCfgOk s C ∗ srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
@@ -71,8 +73,8 @@ abbrev v3rpc.Server.spec : Prop :=
       v3rpc.isWatchServer pw R ∗ ⌜R.s = s ∧ R.E = C.E ∧ R.wsl = C.wsl ∧ R.tag = C.tag⌝ ∗
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk il (srvLgReader s) Q) ∗
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
-      srvInterceptorOk iu iprop(True) v3rpc.learnerReqOk ∗
-      srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is iprop(True) ∗
+      srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
+      srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s }}
 
 end spec

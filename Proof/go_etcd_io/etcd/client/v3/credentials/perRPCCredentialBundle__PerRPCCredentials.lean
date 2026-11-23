@@ -36,10 +36,11 @@ theorem credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
   iapply HΦ
   unfold perRPCCredsOk
   isplit
-  · iintro !> %ctx %sl %Ψ !> - HΨ
+  · iintro !> %ctx %sl %R %Ψ !> ⟨-, HR⟩ HΨ
     wp_auto
     wp_apply wp_GetRequestMetadata rc P ctx sl $$ [$Hinv] as %mp %err ⟨%Herr, %cm, Hm, #Hq⟩
     iapply HΨ
+    iframe HR
     isplitr
     · ipureintro; exact Herr
     iintro -
