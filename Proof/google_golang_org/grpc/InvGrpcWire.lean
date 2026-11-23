@@ -43,8 +43,16 @@ map exists; set once from `addrUnset a` (`grpc_addr_set`). `grpcSvcAt a name Wq 
 (persistent, heap-free): the table `a` serves has an entry for `name` at the wire parts `Wq`, `Wp`,
 and a caller of `Spec` meets it after an update (`grpcSvcAt_of_addr`, `grpcSvcAt_mono_upd`).
 
-**Not yet** (S2's later steps): the parse laws (a server that read a head and a data frame knows
-the client's `fs` and `bs`), the client attempt's proof (`newClientTransportStream`,
+**Parsing.** A well-formed head (`headOk`: its block's length fits its `uint32`) and a data
+frame of a message below `2 ^ 32` bytes are determined by their bytes (`head_prefix_inj`,
+`dataFrame_prefix_inj`), so: a server that read the preface, a unary head and a data frame has the
+attempt's slot (`cli_read_slot`); a client on its unary attempt's connection that reads a server's
+data frame or a trailer with a handler's description has its slot's answer
+(`srv_data_answered`, `srv_trailer_answered`; `streamConn_unary`).
+
+**Not yet** (S2's later steps): the parse of the server's frame sequence (a client's read of
+`settingsBytes` and whole frames gives each frame's `srvFrameOk`; it needs the server's header
+blocks well formed too, finding F1 of §0a), the client attempt's proof (`newClientTransportStream`,
 `createHeaderFields`), the codec's laws relating `ProtoWire.enc` to the store (O7), and
 `ProtoMsg.wire` (O3: here a message's wire part has its bytes `enc`, not a tree).
 -/
@@ -188,6 +196,121 @@ def grpcMsgDecode : List w8 → List w8
   | l => l
 termination_by l => l.length
 
+/-! ## Parsing: a well-formed head is determined by its bytes -/
+
+/-- **A head grpc frames faithfully**: its block's length fits the `uint32` it is written as
+(`appendHeaderBlock` truncates it otherwise: `notes/phase7-plan.md`, §0a, finding F1). -/
+def headOk (fs : List (GoString × GoString)) : Prop :=
+  4 + (fs.map fun f => 8 + f.1.length + f.2.length).sum < 2 ^ 32
+
+theorem be32_inj {n m : Nat} (hn : n < 2 ^ 32) (hm : m < 2 ^ 32) (h : be32 n = be32 m) :
+    n = m := by
+  simp only [be32, List.cons.injEq, and_true] at h
+  obtain ⟨h1, h2, h3, h4⟩ := h
+  have e1 := congrArg BitVec.toNat h1
+  have e2 := congrArg BitVec.toNat h2
+  have e3 := congrArg BitVec.toNat h3
+  have e4 := congrArg BitVec.toNat h4
+  simp only [BitVec.toNat_ofNat] at e1 e2 e3 e4
+  omega
+
+theorem be32_append_inj {n m : Nat} {x y : List w8} (hn : n < 2 ^ 32) (hm : m < 2 ^ 32)
+    (h : be32 n ++ x = be32 m ++ y) : n = m ∧ x = y := by
+  obtain ⟨h1, h2⟩ := List.append_inj h (by simp)
+  exact ⟨be32_inj hn hm h1, h2⟩
+
+theorem fieldBytes_append_inj {f f' : GoString × GoString} {x y : List w8}
+    (h1 : f.1.length < 2 ^ 32) (h2 : f.2.length < 2 ^ 32) (h1' : f'.1.length < 2 ^ 32)
+    (h2' : f'.2.length < 2 ^ 32) (h : fieldBytes f ++ x = fieldBytes f' ++ y) :
+    f = f' ∧ x = y := by
+  simp only [fieldBytes, List.append_assoc] at h
+  obtain ⟨hl1, h⟩ := be32_append_inj h1 h1' h
+  obtain ⟨hn, h⟩ := List.append_inj h hl1
+  obtain ⟨hl2, h⟩ := be32_append_inj h2 h2' h
+  obtain ⟨hv, h⟩ := List.append_inj h hl2
+  exact ⟨Prod.ext hn hv, h⟩
+
+/-- Each field of a well-formed head fits a `uint32`. -/
+theorem headOk_field {fs : List (GoString × GoString)} (h : headOk fs) :
+    ∀ f ∈ fs, f.1.length < 2 ^ 32 ∧ f.2.length < 2 ^ 32 := by
+  intro f hf
+  have hle : ∀ (l : List (GoString × GoString)), f ∈ l →
+      8 + f.1.length + f.2.length ≤ (l.map fun f => 8 + f.1.length + f.2.length).sum := by
+    intro l hl
+    induction l with
+    | nil => simp at hl
+    | cons g l ih =>
+      simp only [List.mem_cons] at hl
+      simp only [List.map_cons, List.sum_cons]
+      rcases hl with rfl | hl
+      · omega
+      · have := ih hl; omega
+  have := hle fs hf
+  unfold headOk at h
+  omega
+
+theorem fieldsBytes_append_inj : ∀ {fs fs' : List (GoString × GoString)} {x y : List w8},
+    fs.length = fs'.length →
+    (∀ f ∈ fs, f.1.length < 2 ^ 32 ∧ f.2.length < 2 ^ 32) →
+    (∀ f ∈ fs', f.1.length < 2 ^ 32 ∧ f.2.length < 2 ^ 32) →
+    (fs.map fieldBytes).flatten ++ x = (fs'.map fieldBytes).flatten ++ y → fs = fs' ∧ x = y
+  | [], [], _, _, _, _, _, h => by simpa using h
+  | f :: fs, f' :: fs', x, y, hl, hb, hb', h => by
+    simp only [List.map_cons, List.flatten_cons, List.append_assoc] at h
+    have ⟨b1, b2⟩ := hb f (by simp)
+    have ⟨b1', b2'⟩ := hb' f' (by simp)
+    obtain ⟨rfl, h2⟩ := fieldBytes_append_inj b1 b2 b1' b2' h
+    obtain ⟨rfl, rfl⟩ := fieldsBytes_append_inj (by simpa using hl)
+      (fun g hg => hb g (by simp [hg])) (fun g hg => hb' g (by simp [hg])) h2
+    exact ⟨rfl, rfl⟩
+
+theorem headOk_length {fs : List (GoString × GoString)} (h : headOk fs) : fs.length < 2 ^ 32 := by
+  unfold headOk at h
+  have : 8 * fs.length ≤ (fs.map fun f => 8 + f.1.length + f.2.length).sum := by
+    clear h
+    induction fs with
+    | nil => simp
+    | cons f fs ih => simp only [List.map_cons, List.sum_cons, List.length_cons]; omega
+  omega
+
+/-- **A header block is determined by its bytes**: two well-formed blocks of a kind, followed by
+`x` and by `y`, with the same bytes, are the same block, followed by the same bytes. -/
+theorem headerBlock_append_inj {k : w8} {fs fs' : List (GoString × GoString)} {x y : List w8}
+    (hok : headOk fs) (hok' : headOk fs') (h : headerBlock k fs ++ x = headerBlock k fs' ++ y) :
+    fs = fs' ∧ x = y := by
+  simp only [headerBlock, List.cons_append, List.cons.injEq, true_and, List.append_assoc] at h
+  obtain ⟨-, h⟩ := be32_append_inj hok hok' h
+  obtain ⟨hc, h⟩ := be32_append_inj (headOk_length hok) (headOk_length hok') h
+  exact fieldsBytes_append_inj hc (headOk_field hok) (headOk_field hok') h
+
+/-- The same, for a block that is a prefix of another followed by `y`. -/
+theorem headerBlock_prefix_inj {k : w8} {fs fs' : List (GoString × GoString)} {y : List w8}
+    (hok : headOk fs) (hok' : headOk fs') (h : headerBlock k fs <+: headerBlock k fs' ++ y) :
+    fs = fs' := by
+  obtain ⟨z, hz⟩ := h
+  exact (headerBlock_append_inj hok hok' hz).1
+
+/-- **A client's head is determined by its bytes**: a well-formed head after the preface, a prefix
+of another well-formed head after the preface followed by anything, is that head. -/
+theorem head_prefix_inj {fs fs' : List (GoString × GoString)} {y : List w8}
+    (hok : headOk fs) (hok' : headOk fs')
+    (h : clientPrefaceBytes ++ headFrame fs <+: clientPrefaceBytes ++ headFrame fs' ++ y) :
+    fs = fs' := by
+  rw [List.append_assoc, List.prefix_append_right_inj] at h
+  exact headerBlock_prefix_inj hok hok' h
+
+/-- **A data frame is determined by its bytes** (a message below `2 ^ 32` bytes). -/
+theorem dataFrame_prefix_inj {bs bs' : List w8} {y : List w8} (h : bs.length < 2 ^ 32)
+    (h' : bs'.length < 2 ^ 32) (hp : dataFrame bs <+: dataFrame bs' ++ y) : bs = bs' := by
+  obtain ⟨z, hz⟩ := hp
+  simp only [dataFrame, grpcMsgHdr, List.cons_append, List.cons.injEq, true_and,
+    List.append_assoc] at hz
+  obtain ⟨hl, hz⟩ := be32_append_inj h h' hz
+  exact (List.append_inj hz hl).1
+
+theorem dataFrame_length (bs : List w8) : (dataFrame bs).length = 6 + bs.length := by
+  simp [dataFrame, grpcMsgHdr]; omega
+
 /-! ## Outcomes, keys, readiness -/
 
 /-- **What the server answered a unary attempt's slot**: a reply's bytes, or a handler's error
@@ -284,16 +407,20 @@ def grpcAttemptSlot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoStri
 def cliRest (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString)) (rest : List w8) :
     IProp GF :=
   iprop(⌜¬ unaryOf Svc fs⌝ ∨ ⌜rest = [] ∨ rest = cancelFrame⌝ ∨
-    ∃ bs tl, ⌜rest = dataFrame bs ++ tl⌝ ∗ grpcAttemptSlot (Gg := Gg) Svc cn fs bs)
+    ∃ bs tl, ⌜rest = dataFrame bs ++ tl ∧ bs.length < 2 ^ 32⌝ ∗
+      grpcAttemptSlot (Gg := Gg) Svc cn fs bs)
 
-/-- **What a client writes** on a connection to an address serving `Svc`. -/
+/-- **What a client writes** on a connection to an address serving `Svc`: every head well formed
+(`headOk`). -/
 def grpcCliP (Svc : GrpcSvc GF) : Proto GF := fun cn W =>
   iprop(⌜W <+: clientPrefaceBytes⌝ ∨
-    ∃ fs rest, ⌜W = clientPrefaceBytes ++ headFrame fs ++ rest⌝ ∗ cliRest (Gg := Gg) Svc cn fs rest)
+    ∃ fs rest, ⌜W = clientPrefaceBytes ++ headFrame fs ++ rest ∧ headOk fs⌝ ∗
+      cliRest (Gg := Gg) Svc cn fs rest)
 
 /-- The connection's client wrote a head that names no unary method of `Svc` (persistent). -/
 def streamConn (Svc : GrpcSvc GF) (cn : Nat) : IProp GF :=
-  iprop(∃ fs, sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) ∗ ⌜¬ unaryOf Svc fs⌝)
+  iprop(∃ fs, sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) ∗
+    ⌜headOk fs ∧ ¬ unaryOf Svc fs⌝)
 
 /-- **What a server frame says** (see the file header). -/
 def srvFrameOk (Svc : GrpcSvc GF) (cn : Nat) : SrvFrame → IProp GF
@@ -352,7 +479,7 @@ end protos
 
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [Gg : GooseGlobalGS hlc GF]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF]
 
 include Gg
 
@@ -369,6 +496,97 @@ theorem grpc_addr_set (E : CoPset) (a : GoString) (Svc : GrpcSvc GF) :
   imodintro
   unfold grpcAddrAt
   iframe Hp Hs
+
+/-- **A unary attempt's connection is no stream connection**: its client wrote a well-formed head
+naming a unary method of `Svc`, so the server's frames answer its slot. -/
+theorem streamConn_unary (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (hok : headOk fs) (hu : unaryOf Svc fs) :
+    sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) ∗ streamConn (Gg := Gg) Svc cn ⊢
+      (False : IProp GF) := by
+  unfold streamConn
+  iintro ⟨#H1, %fs', #H2, %hfs'⟩
+  icases sentLb_agree cn false (clientPrefaceBytes ++ headFrame fs)
+    (clientPrefaceBytes ++ headFrame fs') $$ [H1 H2] with %h
+  · iframe H1 H2
+  exfalso
+  obtain ⟨hok', hnu⟩ := hfs'
+  rcases h with h | h
+  · exact hnu (head_prefix_inj (y := []) hok hok' (by simpa using h) ▸ hu)
+  · exact hnu (head_prefix_inj (y := []) hok' hok (by simpa using h) ▸ hu)
+
+/-- **The server reads a unary request whole**: what it read, the preface, a well-formed head
+naming a unary method of `Svc` and a data frame, met the client's protocol, so the data frame
+carries the attempt's slot. -/
+theorem cli_read_slot (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (bs : List w8) (hok : headOk fs) (hu : unaryOf Svc fs) (hbs : bs.length < 2 ^ 32) :
+    protoPrefix (grpcCliP (Gg := Gg) Svc) cn (clientPrefaceBytes ++ headFrame fs ++ dataFrame bs) ⊢
+      grpcAttemptSlot (Gg := Gg) Svc cn fs bs := by
+  unfold protoPrefix
+  iintro (%h0 | ⟨%ext, %hext, #HP⟩)
+  · exfalso
+    have := congrArg List.length h0
+    simp [dataFrame_length] at this
+  unfold grpcCliP
+  icases HP with (%hpre | ⟨%fs0, %rest, ⟨%hW, %hok0⟩, #Hr⟩)
+  · exfalso
+    have h1 := (hext.trans hpre).length_le
+    simp only [List.length_append, dataFrame_length, clientPrefaceBytes] at h1
+    simp at h1
+    omega
+  subst hW
+  have hh : clientPrefaceBytes ++ headFrame fs <+: clientPrefaceBytes ++ headFrame fs0 ++ rest :=
+    (List.prefix_append _ _).trans hext
+  obtain rfl := head_prefix_inj hok hok0 hh
+  have hd : dataFrame bs <+: rest := (List.prefix_append_right_inj _).1 hext
+  unfold cliRest
+  icases Hr with (%hnu | %hr | ⟨%bs0, %tl, ⟨%hrest, %hbs0⟩, #Hs⟩)
+  · exfalso; exact hnu hu
+  · exfalso
+    have h1 := hd.length_le
+    rcases hr with rfl | rfl <;> (simp [dataFrame_length, cancelFrame] at h1 <;> omega)
+  · subst hrest
+    obtain rfl := dataFrame_prefix_inj hbs hbs0 hd
+    iexact Hs
+
+/-- **The client reads a reply's data frame**: on its unary attempt's connection, a server's data
+frame of bytes `bs'` answered its slot `.ok bs'`. -/
+theorem srv_data_answered (Svc : GrpcSvc GF) (cn : Nat) (fs : List (GoString × GoString))
+    (bs bs' : List w8) (γ : SlotNames) (hok : headOk fs) (hu : unaryOf Svc fs) :
+    ⊢ sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) -∗
+      depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) -∗ srvFrameOk (Gg := Gg) Svc cn (.data bs') -∗
+      slotDone (Gg := Gg) γ (GrpcOut.ok bs') := by
+  iintro #Hlb #Hs Hf
+  unfold srvFrameOk
+  icases Hf with (#Hst | ⟨%γ', %k', #Hs', #Hd⟩)
+  · iexfalso
+    iapply streamConn_unary Svc cn fs hok hu $$ [Hlb Hst]
+    iframe Hlb Hst
+  · icases depSlotOf_agree cn γ γ' ((fs, bs) : GrpcKey) k' $$ Hs Hs' with %h
+    obtain ⟨rfl, -⟩ := h
+    iexact Hd
+
+/-- **The client reads a trailer**: on its unary attempt's connection, a trailer whose decoded
+`grpc-message` is a handler's description answered its slot `.err` with it. -/
+theorem srv_trailer_answered (Svc : GrpcSvc GF) (cn : Nat) (fs fst : List (GoString × GoString))
+    (bs v : List w8) (γ : SlotNames) (hok : headOk fs) (hu : unaryOf Svc fs)
+    (hv : fieldLast fst go!"grpc-message" = some v) (hd : grpcMsgDecode v ∈ handlerDescs) :
+    ⊢ sentLb (Gg := Gg) cn false (clientPrefaceBytes ++ headFrame fs) -∗
+      depSlotOf (Gg := Gg) cn γ ((fs, bs) : GrpcKey) -∗
+      srvFrameOk (Gg := Gg) Svc cn (.trailer fst) -∗
+      slotDone (Gg := Gg) γ (GrpcOut.err (grpcMsgDecode v)) := by
+  iintro #Hlb #Hs Hf
+  unfold srvFrameOk
+  icases Hf with (#Hst | Hw)
+  · iexfalso
+    iapply streamConn_unary Svc cn fs hok hu $$ [Hlb Hst]
+    iframe Hlb Hst
+  · ihave Hx := Hw $$ %v
+    ihave Hy := Hx $$ []
+    · ipureintro; exact ⟨hv, hd⟩
+    icases Hy with ⟨%γ', %k', #Hs', #Hd⟩
+    icases depSlotOf_agree cn γ γ' ((fs, bs) : GrpcKey) k' $$ Hs Hs' with %h
+    obtain ⟨rfl, -⟩ := h
+    iexact Hd
 
 /-- An entry of the table `a` serves is a registration of its method. -/
 theorem grpcSvcAt_of_addr (a name : GoString) (Svc : GrpcSvc GF) (e : GrpcEntry GF)

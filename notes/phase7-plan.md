@@ -274,6 +274,35 @@ This supersedes the parts of §1.1, §1.2 (`headReady`, `grpcAttemptSlot`, `grpc
    etcd-side users are proving session 2's part, on its own branch; S2's core builds on its
    interface when it lands (#24), and touches none of those modules.
 
+**Built so far** (`phase7-s2-core`): `GooseLang/Ext/Net/Slot.lean` (the slot library, §1.1 as
+amended; laws proved) and `Proof/google_golang_org/grpc/InvGrpcWire.lean` (the model's bytes, the
+two protocols, `grpcAddrAt`, `grpcSvcAt`, `grpc_addr_set`, and the parse laws that make the protocols
+usable: `cli_read_slot`, `srv_data_answered`, `srv_trailer_answered`). Changes to §1.2 made there:
+- `ProtoWire` has the message's bytes `enc : M → List w8`, not a tree (`pbEncodeTree` does not
+  exist; O7 decides how `enc` relates to the store, and O3 becomes `ProtoMsg` gaining `enc`).
+- The deposit is at every metadata the server may make of the head (`grpcFieldsMd fs md`, stated on
+  the keys grpc does not set, as `grpcAttemptMd` is; a `-bin` key through the base64 encoder
+  `b64Raw`), not at a function `mdOfFields`.
+- The trailer's fact is over its `grpc-message` field percent-decoded (`grpcMsgDecode`, Go's
+  `decodeGrpcMessage`), not over a `statusOf`.
+- `grpcSlotCont`'s error arm is `⌜d ∈ handlerDescs⌝ -∗ Ψe d` (the server can answer any error).
+- Data and trailer frames say nothing when the connection's head is a well-formed head of no unary
+  method of `Svc` (`streamConn`: streams, unknown methods), which a unary attempt's client refutes
+  from its own head (`streamConn_unary`).
+
+**F1 (finding, the grpc model): a header block of 4 GiB or more is misframed.** `appendHeaderBlock`
+(`models/grpc/model_wire.go`) writes the block's length and each field's length as `uint32`s,
+truncating them. A head whose fields total 4 GiB (a context's outgoing metadata, which nothing
+bounds) is then read by the server as other fields, possibly another method's head, while grpc-go's
+HTTP/2 server rejects any header list over its 16 MiB default (`MaxHeaderListSize`; the model's own
+reader, `readHeaderBlock`, refuses a block over `maxHeaderBlock`, but only after the truncation). The
+protocol requires every head well formed (`headOk` in `grpcCliP`), so the client attempt's proof
+needs either the model to refuse such a head before writing it (proposed: `newClientTransportStream`
+fails the attempt when `len(b) > maxHeaderBlock + 5`, without a transparent retry, as grpc-go's
+server would answer it with a connection error), or a premise bounding the metadata. The same holds
+for the server's header and trailer blocks (a handler's `SetHeader`/`SetTrailer` metadata). Decision
+for the model's owner; not changed here.
+
 ### 1. The vocabulary
 
 #### 1.1 Deposit slots (net library, neutral: `GooseLang/Ext/Net/Slot.lean`)
