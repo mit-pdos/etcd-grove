@@ -105,14 +105,14 @@ def brIface (br : Loc) : GoInterface := interface.mkOk (go.GoType.PointerType bu
 
 /-- The parameters of a `*bufio.Writer` (`EtcdGrove.bufio.ownBufWriter`): the underlying writer
 `wi` by the contract `io.writerOk wi J Q Ew`, the buffer's size `sz`; `Q` closed under prefixes
-(a connection's protocol: `ProtoPrefixClosed`), which the marshalers' partial writes need. -/
+(a connection's protocol: `ProtoPrefixClosed.pre`), which the marshalers' partial writes need. -/
 structure BufWr (GF : BundledGFunctors) where
   wi : GoInterfaceOk
   J : List w8 → IProp GF
   Q : List w8 → IProp GF
   Ew : GoInterface → IProp GF
   sz : Nat
-  Q_pre : ∀ x y : List w8, Q (x ++ y) ⊢ Q x
+  Q_pre : ∀ x y : List w8, □ Q (x ++ y) ⊢ □ Q x
 
 /-- The writer `bw` with parameters `wr`, having sent `sent`, buffering `pend`, error `err`. -/
 abbrev wrOwn (bw : Loc) (wr : BufWr GF) (sent pend : List w8) (err : GoInterface) : IProp GF :=

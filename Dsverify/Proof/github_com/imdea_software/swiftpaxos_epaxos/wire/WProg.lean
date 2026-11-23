@@ -143,11 +143,10 @@ theorem wprog_obl (wr : BufWr GF) (sent pend done x todo s' p' : List w8)
     Classical.byContradiction fun h => h ((hw.2.2.2.2 h).1 ▸ he)
   ihave #HQ1 := HQ $$ %herr
   have hs : s' ++ p' = sent ++ pend ++ done := hw.2.2.2.1 he
-  have hpre : wr.Q (sent ++ pend ++ done ++ (x ++ todo)) ⊢ wr.Q (s' ++ p' ++ x) := by
+  have hpre : □ wr.Q (sent ++ pend ++ done ++ (x ++ todo)) ⊢ □ wr.Q (s' ++ p' ++ x) := by
     rw [hs]
     have := wr.Q_pre (sent ++ pend ++ done ++ x) todo
     simpa only [List.append_assoc] using this
-  imodintro
   iapply hpre
   iexact HQ1
 
