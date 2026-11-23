@@ -1,0 +1,12 @@
+# (otel-tracing, 2026-11-23) The no-op tracer etcd's `traceutil.Tracer` holds
+# (`noop.NewTracerProvider().Tracer(instrumentationScope)`, its package variable's initializer):
+# the provider and its `Tracer` with their bodies; the span type and its instance (`noopSpanInstance`,
+# `Span{}` as a `trace.Span`), and the package's interface assertions (`var _ I = T{}`). `Tracer.Start`
+# is names-only (its call goes through `traceutil.Tracer.Start`'s trust-boundary spec).
+translate = ["!*", "_", "TracerProvider", "NewTracerProvider", "TracerProvider.Tracer", "Tracer",
+  "Span", "noopSpanInstance"]
+imports = ["!*", "go.opentelemetry.io/otel/trace", "go.opentelemetry.io/otel/trace/embedded",
+  "go.opentelemetry.io/otel/attribute", "go.opentelemetry.io/otel/codes", "context"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
