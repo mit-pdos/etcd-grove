@@ -171,9 +171,9 @@ theorem tGen_wp (hAbs : AbsDiskGpreS GF) (wp_Main : Main.spec (GF := GF) (hG := 
     imod tester_crash hAbs tQ (fun _ _ h => h) hG.goose_localGS L' W e γ V' ho
       $$ Hinv Hok Hdd Hdi Hwt Hdt Hcrd Hcr with ⟨Htree, Hc⟩
     imodintro
-    unfold tGen
     iframe Hos'
     iexists V'
+    iunfold osShared at Htree
     iframe Htree Hgs'
     iright
     iexact Hc
