@@ -183,10 +183,6 @@ theorem frameBatch_reg (γ : QNames) (b : Batch) :
     icases Hsh with ⟨-, -, -, Hn, -⟩
     iExactEq Hn; rfl
 
-/-- `tix_register` at the full mask. -/
-theorem tix_register_top (γ : QNames) (t : Ticket) (cn n : Nat) (ht : t ∈ tickets) :
-    ⊢ inv consN (consInv (GF := GF) γ) -∗ ticketTok γ t ={⊤}=∗ tixAt γ t cn n :=
-  tix_register γ ⊤ (by simp) t cn n ht
 
 end ghost
 
@@ -278,6 +274,11 @@ local notation "kpkg" => pkg_id.raxos.examples.quepaxanet
 local notation "repTy" => raxos.examples.quepaxanet.replica
 
 set_option goose.wp.extras true
+
+/-- `tix_register` at the full mask. -/
+theorem tix_register_top (γ : QNames) (t : Ticket) (cn n : Nat) (ht : t ∈ tickets) :
+    ⊢ inv consN (consInv (GF := GF) γ) -∗ ticketTok γ t ={⊤}=∗ tixAt γ t cn n :=
+  tix_register γ ⊤ (by simp) t cn n ht
 
 /-- `r.drop()`: close the connection, `r.c` and `r.w` `nil`. -/
 theorem wp_drop (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
@@ -444,6 +445,248 @@ theorem wp_connect (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     iframe Hc Hw
     simp only [Bool.false_eq_true, ↓reduceIte]
     ipureintro; first | rfl | trivial
+
+/-- The connected state's connection value. -/
+theorem connInv_cv (γ : QNames) (c k : Nat) (cv : GoInterface) (w : Loc) :
+    connInv (GF := GF) γ c k cv w ⊢ connInv γ c k cv w ∗
+      ∃ (t : Loc) (cn : Nat) (la ra : GoInterface),
+        ⌜cv = interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t⌝ ∗
+        net.connAt t cn false (proxyAddr k) la ra ∗ connIs cn := by
+  unfold connInv
+  iintro ⟨%t, %cn, %la, %ra, %ed, %L, %sent, %pend, %err, %Hcv, #Hca, #Hconn, #Hed, Hbw, %HS, #HL⟩
+  isplitl
+  · iexists t, cn, la, ra, ed, L, sent, pend, err
+    iframe Hca Hconn Hed Hbw HL
+    ipureintro; exact ⟨Hcv, HS⟩
+  · iexists t, cn, la, ra
+    iframe Hca Hconn
+    ipureintro; exact Hcv
+
+/-- `r.tryConnect()`. -/
+theorem wp_tryConnect (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (γ : QNames) (c k : Nat) (r : Loc) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ isReplica γ c k r }}
+      (App (Val (r @!! go.GoType.PointerType raxos.examples.quepaxanet.replica.ty @!!
+        go!"tryConnect")) (Val #()))
+    {{ (ok : Bool), RET #ok; True }} := by
+  wp_start as #Hr
+  unfold isReplica
+  icases Hr with ⟨#Hf, #Hmu⟩
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HR⟩
+  unfold repInv
+  icases HR with ⟨%cv, %w, Hc, Hw, (%Hnil | Hconn)⟩
+  · subst Hnil
+    wp_auto
+    wp_apply wp_connect wp_Dial wp_Write wp_Close γ c k r w $$ [$Hf $Hc $Hw]
+      as %ok ⟨%cv', %w', Hc, Hw, Hst⟩
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw Hst]
+    · iexists cv', w'
+      iframe Hc Hw
+      cases ok
+      · ileft; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hst
+      · iright; simp only [↓reduceIte]; iexact Hst
+    wp_end
+  · icases connInv_cv γ c k cv w $$ Hconn with ⟨Hconn, %t, %cn, %la, %ra, %Hcv, #Hca, #Hcis⟩
+    subst Hcv
+    wp_auto
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw Hconn]
+    · iexists _, w
+      iframe Hc Hw
+      iright; iexact Hconn
+    wp_end
+
+/-- `r.reset()`. -/
+theorem wp_reset (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (γ : QNames) (c k : Nat) (r : Loc) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ isReplica γ c k r }}
+      (App (Val (r @!! go.GoType.PointerType raxos.examples.quepaxanet.replica.ty @!!
+        go!"reset")) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start as #Hr
+  unfold isReplica
+  icases Hr with ⟨#Hf, #Hmu⟩
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HR⟩
+  unfold repInv
+  icases HR with ⟨%cv, %w, Hc, Hw, (%Hnil | Hconn)⟩
+  · subst Hnil
+    wp_auto
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw]
+    · iexists _, w
+      iframe Hc Hw
+      ileft; ipureintro; rfl
+    wp_end
+  · icases connInv_cv γ c k cv w $$ Hconn with ⟨-, %t, %cn, %la, %ra, %Hcv, #Hca, #Hcis⟩
+    subst Hcv
+    wp_auto
+    wp_apply wp_drop wp_Close r t cn _ la ra w $$ [$Hca $Hcis $Hc $Hw] as ⟨Hc, Hw⟩
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw]
+    · iexists _, _
+      iframe Hc Hw
+      ileft; ipureintro; rfl
+    wp_end
+
+/-- `r.send(b)`: batch `bv` (registered) sent by client `c` to replica `k`'s proxy with ticket
+`(k, c, j)`, or the connection dropped. -/
+theorem wp_send (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
+    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
+    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
+    (γ : QNames) (k : Nat) (r b : Loc) (dq : DFrac) (bv : Batch) (c j : Nat) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ isReplica γ c k r ∗ repCB b dq bv ∗
+        batchReg γ bv.id bv ∗ ticketTok γ ((k : Int), c, j) ∗ ⌜((k : Int), c, j) ∈ tickets⌝ }}
+      (App (Val (r @!! go.GoType.PointerType raxos.examples.quepaxanet.replica.ty @!! go!"send"))
+        (Val #b))
+    {{ RET #(); repCB b dq bv }} := by
+  wp_start as ⟨#Hr, HCB, #Hreg, Htk, %ht⟩
+  unfold isReplica
+  icases Hr with ⟨#Hf, #Hmu⟩
+  ihave #Hf2 := Hf
+  iunfold repFacts at Hf2
+  icases Hf2 with ⟨%hck, -, -, #Hsh⟩
+  obtain ⟨hc, hk⟩ := hck
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlk, HR⟩
+  unfold repInv
+  icases HR with ⟨%cv, %w, Hc, Hw, HR⟩
+  ipersist r
+  wp_join (Q := fun v => iprop(∃ ok : Bool, ⌜v = #ok⌝ ∗ ∃ (cv : GoInterface) (w : Loc),
+      structFieldRef repTy go!"c" r ↦ cv ∗ structFieldRef repTy go!"w" r ↦ w ∗
+      if ok then connInv γ c k cv w else ⌜cv = interface.nil⌝)) at (If _ (Val #true) _)
+    with [Hc Hw HR]
+  · icases HR with (%Hnil | Hconn)
+    · subst Hnil
+      wp_auto
+      wp_apply wp_connect wp_Dial wp_Write wp_Close γ c k r w $$ [$Hf $Hc $Hw] as %ok Hst
+      iexists ok
+      isplitr
+      · ipureintro; rfl
+      · iexact Hst
+    · icases connInv_cv γ c k cv w $$ Hconn with ⟨Hconn, %t, %cn, %la, %ra, %Hcv, -, -⟩
+      subst Hcv
+      wp_auto
+      iexists true
+      isplitr
+      · ipureintro; rfl
+      iexists _, w
+      iframe Hc Hw
+      simp only [↓reduceIte]
+      iexact Hconn
+  iintro ⟨%ok, %Hv, %cv', %w', Hc, Hw, Hst⟩
+  subst Hv
+  cases ok
+  · -- not connected
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    wp_auto
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw Hst]
+    · iexists _, w'
+      iframe Hc Hw
+      ileft; iexact Hst
+    wp_end
+  simp only [↓reduceIte]
+  -- connected: register the frame's ticket
+  iunfold connInv at Hst
+  icases Hst with ⟨%t, %cn, %la, %ra, %ed, %L, %sent, %pend, %err, %Hcv, #Hca, #Hcis, #Hed, Hbw,
+    %HS, #HL⟩
+  subst Hcv
+  ihave #Hsh2 := Hsh
+  iunfold sharedRes at Hsh2
+  icases Hsh2 with ⟨#Hinv, -⟩
+  imod tix_register_top γ _ cn L.length ht $$ Hinv Htk with #Htix
+  ihave #Hreg' := frameBatch_reg γ bv $$ [$Hreg $Hsh]
+  have hfok := frameBatch_ok bv
+  ihave #HQ1 : (□ proxyInProto (GF := GF) γ k cn (sent ++ pend ++ [W8 1])) $$ []
+  · iintro !>
+    rw [HS.1]
+    iapply proto_of_frames γ k cn L (frameBatch bv) c j hc [W8 1] (by simp [frame]) HS.2 hfok
+    iframe HL Hreg' Htix
+  wp_auto
+  wp_apply (EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof) w'
+      (net.connIface t) _ _ _ 4096 sent pend err (W8 1) $$ [Hbw]
+    as %e1 ⟨%s1, %p1, %H1, Hbw⟩
+  · iframe Hbw; iintro %_; iexact HQ1
+  rcases e1 with ei | _
+  · -- `WriteByte` failed
+    dsimp only
+    wp_auto
+    wp_apply wp_drop wp_Close r t cn _ la ra w' $$ [$Hca $Hcis $Hc $Hw] as ⟨Hc, Hw⟩
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw]
+    · iexists _, _; iframe Hc Hw; ileft; ipureintro; rfl
+    wp_end
+  have H1 := H1.2.1 rfl
+  dsimp only
+  wp_auto
+  ihave #HQ2 : □ (⌜batchFit bv⌝ → proxyInProto (GF := GF) γ k cn
+      (s1 ++ p1 ++ le8 (encBatch bv).length) ∗ proxyInProto γ k cn
+      (s1 ++ p1 ++ le8 (encBatch bv).length ++ encBatch bv)) $$ []
+  · iintro !> %hb
+    have e : s1 ++ p1 = raxos.hs (21 + c) ++ frs L ++ [W8 1] := by
+      rw [H1, HS.1]
+    rw [e]
+    isplitl []
+    · rw [show raxos.hs (21 + c) ++ frs L ++ [W8 1] ++ le8 (encBatch bv).length =
+          raxos.hs (21 + c) ++ frs L ++ ([W8 1] ++ le8 (encBatch bv).length) by
+          simp [List.append_assoc]]
+      iapply proto_of_frames γ k cn L bv c j hc ([W8 1] ++ le8 (encBatch bv).length)
+        (by simp [frame]) HS.2 hb
+      rw [frameBatch_of_ok bv hb]
+      iframe HL Hreg Htix
+    · rw [show raxos.hs (21 + c) ++ frs L ++ [W8 1] ++ le8 (encBatch bv).length ++ encBatch bv =
+          raxos.hs (21 + c) ++ frs L ++ frame bv by simp [frame, List.append_assoc]]
+      iapply proto_of_frames γ k cn L bv c j hc (frame bv) (List.prefix_refl _) HS.2 hb
+      rw [frameBatch_of_ok bv hb]
+      iframe HL Hreg Htix
+  ihave #Hcl : isPkgInit (PROP := IProp GF) pkg_id.raxos.proto.client $$ []
+  · iPkgInit
+  wp_apply cbMarshal_proof b dq bv w' (net.connIface t) _ _ _ 4096 s1 p1 GoInterface.nil $$
+    [$HCB $Hbw $HQ2 $Hcl] as %e2 ⟨HCB, %s2, %p2, %e2', %H2, Hbw⟩
+  rcases e2 with ei | _
+  · -- `Marshal` failed
+    dsimp only
+    wp_auto
+    wp_apply wp_drop wp_Close r t cn _ la ra w' $$ [$Hca $Hcis $Hc $Hw] as ⟨Hc, Hw⟩
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw]
+    · iexists _, _; iframe Hc Hw; ileft; ipureintro; rfl
+    wp_end
+  obtain ⟨hb, H2⟩ := H2 rfl
+  dsimp only
+  wp_auto
+  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof w' _ _ _ _ 4096 s2 p2 e2' $$ Hbw
+    as %e3 ⟨%k3, %H3, Hbw⟩
+  rcases e3 with ei | _
+  · -- `Flush` failed
+    dsimp only
+    wp_auto
+    wp_apply wp_drop wp_Close r t cn _ la ra w' $$ [$Hca $Hcis $Hc $Hw] as ⟨Hc, Hw⟩
+    wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw]
+    · iexists _, _; iframe Hc Hw; ileft; ipureintro; rfl
+    wp_end
+  dsimp only
+  wp_auto
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlk Hc Hw Hbw]
+  · iexists _, _
+    iframe Hc Hw
+    iright
+    unfold connInv
+    iexists t, cn, la, ra, ed, L ++ [bv], _, _, GoInterface.nil
+    iframe Hca Hcis Hed Hbw
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro
+      refine ⟨?_, ?_⟩
+      · rw [List.append_assoc, List.take_append_drop, H2, H1, HS.1, frs_append]
+        simp [frs, frame, List.append_assoc]
+      · intro x hx
+        rcases List.mem_append.1 hx with hx | hx
+        · exact HS.2 x hx
+        · simp only [List.mem_singleton] at hx; subst hx; exact hb
+    · rw [show L.length = L.length from rfl]
+      iapply framesOk_snoc γ k cn L bv c j
+      iframe HL Hreg Htix
+  wp_end
 
 end ops
 
