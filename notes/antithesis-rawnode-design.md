@@ -518,6 +518,53 @@ proof the definitions' change breaks, `InvNodeRun`'s and the examples' included;
 cost (b)'s threading the same way. Then decide with the user (Q7). Until then §2.2's "no `.snap`" facts
 and C1's `ps.base = base0` rest on this item. Estimated 800-2,000 lines either way.
 
+**Probe result (phase 2, step 0, 2026-11-23; static).** (a) is not taken: it does not leave
+`InvNodeRun`/`InvNode` alone.
+- *The floor must be per-node state.* `PrLo` (`Next ≥ 2`), `LogNsOk` (`prev ≤ 1`, `1 ≤ committed`) and
+  `NsCap` (`storCapF st 1`) read only `ns : Bool`, the log and the storage. At floor 0 a cluster's first
+  leader has `Next = 1` (`reset` at an empty log) and a fresh node `committed = 0`, so the floor-1
+  facts are false there. A floor-free variant (`prev + 1 ≤ Next`) is not enough: `NsCap`'s storage may
+  be compacted to `1` while `prev = 0`, and `term(0)` then fails. So `k` must ride in the node's state.
+- *Every carrier crosses `InvNodeRun`'s text.* `InvNodeRun.lean:497-507` closes `ownRaftPhys` through
+  `InvRawnodeReady`'s wand at `g := {s.gh with outlb, unst}` and passes, positionally and by `rfl`,
+  exactly `g.ns = s.gh.ns ∧ LogNsKeep s s.logst ∧ …` and `GhLogOk g s.logst`. With `k` in `NGhost`, the
+  wand needs `g.k = s.gh.k`, a new conjunct. With `k` in `LogState`, `LogNsKeep`'s 4-tuple
+  `⟨rfl, rfl, rfl, Int.le_refl _⟩` gains a component. Reshaping an existing `rfl` conjunct into a
+  pair equality would keep the text compiling, but only by contortion.
+- *The node API's exported law changes.* `RaftNames.reNoSnap_ok` (`reBootRaw ≠ []`) must be relaxed,
+  so `InvNode.lean`'s `clusterNoSnap_boot` (used by five example proofs) becomes false. Either
+  `clusterNoSnap`'s sealed body (in `InvNode.lean`) changes, or the examples do. The `RaftNames`
+  structure gains a field, which changes every cluster allocation.
+- *Size of (a)*: about 25 main-tree files (`Defs`' `PrOkN` lemmas, `becomeLeader`, `maybeSendAppend`,
+  `stepLeader`'s spec and two arms, `handleAppendEntries` and `RejHintOk` in four `Protocol/` files,
+  `InvRaftPhys`, `InvRawnode`, `InvRawnodeReady`, `newRaft`, `Bootstrap`, `setupNode`, `StepGhostMode`,
+  `Ghost`), plus `InvNode.lean`, plus re-checking `InvNodeRun`.
+- *A third route was checked and rejected*: refuting a queued `MsgSnap` from its certificate (`qSrc`:
+  `svCert` or `ksnCert`) at the `RawNode` layer. The storage's snapshot predicate is fixed to
+  `snapshotValid γ` at the API (`InvStorage.lean:372`), not the client's to set to `False`, and
+  `HSnapshot` relates a snapshot's index to no compaction fact.
+
+So (b), at the `RawNode` layer. It needs no edit to `InvNode*`, `node__run*` or `ownRaftPhys`. Its
+mechanism, refined from the above:
+- **The flag.** A family-level `nc` on the no-snapshot premises, as an implicit binder so that today's
+  callers unify it with `false` and keep their text. `TrNoSnap tr ls` becomes `NoSnapG false tr ls`
+  of a guard `tr ≠ none ∨ nc`. `IdxFree tr G` becomes `IdxFreeN false tr G` of a guard
+  `tr = none ∧ nc = false`.
+- **Where it changes specs.** `maybeSendAppend`, `sendAppend`, `bcastAppend`, `stepLeader`
+  (`leaderGates`' `"#Hnosnap"`), `stepCandidate` (`candidateGates`'), `stepFollower`, and `raft.Step`
+  through `StepG.nc` (`StepGOk`).
+- **How the result reaches the RawNode layer.** With `nc` the snapshot fallback is refuted, so every
+  send passes a gate. A `nc` family's outbox-indexed resources then carry "no `.snap`" to the
+  closing wand (`stepOutG`), as the traced family's do. No new post is threaded through `StepEnd`.
+- **To audit while proving.** Every untraced path that queues through no gate. A received `MsgSnap`
+  (`stepFollower`'s, `stepCandidate`'s `IdxFree G`) is excluded by the `RawNode` premise
+  `m.Type' ≠ MsgSnap`. Transfer and configuration-change paths are outside the harness's scope, so
+  `nc` takes them off by premise.
+- **What the `RawNode` family holds.** `NoSnapG true none ls` (`prev = 0`, the storage capped at `0`)
+  in `ownRawNodeAt`. It is moved across a step as the traced `TrNoSnap` is (`trNoSnap_logst`:
+  `prev` and the storage unchanged by a non-snapshot step).
+- **Estimate**: 800-1,500 lines.
+
 ---
 
 ## 3. The refinement
