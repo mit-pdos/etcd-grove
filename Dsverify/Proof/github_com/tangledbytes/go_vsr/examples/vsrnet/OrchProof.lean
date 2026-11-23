@@ -11,6 +11,12 @@ module
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Conf
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.KitProof
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
+public import Net.Proof.net.Dial
+public import Net.Proof.net.Listen
+public import Net.Proof.net.Listener__Accept
+public import Net.Proof.net.Conn__Write
+public import Net.Proof.net.Conn__Close
+public import Net.Proof.net.Conn__RemoteAddr
 
 @[expose] public section
 
@@ -142,10 +148,7 @@ abbrev Orch.spec : Prop :=
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Orch)) (Val #()))
   {{ RET #(); True }}
 
-theorem Orch.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
-    (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
+theorem Orch.wp_proof (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
     (wp_Check : github_com.mit_pdos.etcd_grove.examples.lib.remote.Check.spec (GF := GF) (hG := hG)
       (St := VsrModel.Store) (I := KIn) (O := KOut)) :
     Orch.spec (GF := GF) (hG := hG) := by
@@ -164,7 +167,7 @@ theorem Orch.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   iapply fupd_wp
   imod conf_size γ Hc $$ Hsys Hsize with #Hf
   imodintro
-  wp_apply (Configure.wp_proof wp_Dial wp_Write wp_Close conn_readerOk γ cfgs (DFrac.own 1) n h r Hc)
+  wp_apply (Configure.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof conn_readerOk γ cfgs (DFrac.own 1) n h r Hc)
     $$ [Hcfgs] as -
   · iframe; iframe #
   -- the check

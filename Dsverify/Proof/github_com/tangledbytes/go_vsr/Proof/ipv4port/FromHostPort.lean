@@ -1,6 +1,6 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/ipv4port/FromHostPort.lean (lab master 915f964; notes/dsv-vr.md):
-over any `GF`, on the net extension; the configured addresses are the port's (`ipv4port.addrs`), whose IP
+over any `GF`, on the net extension; the configured addresses are the port's (`VsrWire.addrs`), whose IP
 bytes are exact (`ipBytes_intro'` without the lab's `ipBytes_intro`).
 -/
 /-
@@ -71,7 +71,7 @@ theorem ipv4port.ipBytes_intro' (s : GoSlice) (l : List w8) :
 set_option maxHeartbeats 0 in
 theorem ipv4port.IPv4Port.FromHostPort.wp_proof : ipv4port.IPv4Port.FromHostPort.spec (GF := GF) (hG := hG) :=
     fun p v0 a ha => by
-  simp only [ipv4port.addrs, List.mem_cons, List.not_mem_nil, or_false] at ha
+  simp only [VsrWire.addrs, List.mem_cons, List.not_mem_nil, or_false] at ha
   rcases ha with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals (
     wp_start as Hp
@@ -96,7 +96,7 @@ theorem ipv4port.IPv4Port.FromHostPort.wp_proof : ipv4port.IPv4Port.FromHostPort
     unfold ipv4port.ipCfgDef
     isplitr
     · ipureintro
-      refine ⟨by simp [ipv4port.addrs], ?_⟩; dsimp only; decide
+      refine ⟨by simp [VsrWire.addrs], ?_⟩; dsimp only; decide
     ihave H := ipv4port.ipBytes_intro' _ _ $$ Hsl
     iapply H
     ipureintro

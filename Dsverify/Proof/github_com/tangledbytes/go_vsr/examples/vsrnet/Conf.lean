@@ -853,14 +853,6 @@ theorem waitConf.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   iapply HΦ
   iframe
 
-/-- The hook is set for good: `vsrwire`'s package fact (the kit links `vsrwire`). -/
-theorem kit_frameDecoderSet :
-    isPkgInit (PROP := IProp GF) kpkg ⊢ pkg.events.frameDecoderSet (GF := GF) := by
-  iintro #Hk
-  ihave #Hw : isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrwire $$ []
-  · iPkgInit
-  iapply isPkgInit_access $$ Hw
-
 end proof
 
 end github_com.tangledbytes.go_vsr.examples.vsrnet

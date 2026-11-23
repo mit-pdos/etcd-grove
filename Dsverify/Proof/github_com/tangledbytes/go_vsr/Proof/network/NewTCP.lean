@@ -2,7 +2,7 @@
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/network/NewTCP.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension. `events.Event.FromDecoder`'s spec (the events
 package's, `Spec/events.lean`) is the theorem's hypothesis `wp_FromDecoder` (the lab linked its
-proof); the configured address is `VsrWire.addrs`'s (`ipv4port.addrs`, the same list).
+proof); the configured address is `VsrWire.addrs`'s (`VsrWire.addrs`, the same list).
 -/
 /-
 `NewTCP`: the `*TCP`, its ghost state, its lock, its registry, its sender's right.

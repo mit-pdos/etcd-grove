@@ -50,9 +50,6 @@ variable [network.Assumptions] [ipv4port.Assumptions] [queue.Assumptions] [sort.
 
 set_option goose.wp.extras true
 
-/-- The two hand copies of the kit's `Addrs()` agree. -/
-theorem client.addrs_eq : VsrWire.addrs = ipv4port.addrs := rfl
-
 theorem client.cfg_addrOk (n : GoInterface) (γ : VsrGhost.Names) :
     ∀ ps : List ipv4port.IPv4Port,
     network.isNet (GF := GF) n γ ∗ ([∗list] v ∈ ps, ∃ a : GoString, ipv4port.ipCfg v a) ⊢
@@ -66,7 +63,7 @@ theorem client.cfg_addrOk (n : GoInterface) (γ : VsrGhost.Names) :
     iapply BigSepL.bigSepL_cons.2
     isplitl []
     · ihave %Hs := ipv4port.ipCfg_str v a $$ H
-      iapply network.netAddrOk_cfg n γ v a Hs.1 (client.addrs_eq ▸ Hs.2) $$ Hn
+      iapply network.netAddrOk_cfg n γ v a Hs.1 Hs.2 $$ Hn
     iapply client.cfg_addrOk n γ l
     iframe #
     iexact Hl
@@ -115,7 +112,7 @@ theorem client.New.wp_proof : client.New.spec (GF := GF) (hG := hG) := by
     icases ownSlice_elem_acc (sint.Z k) (zero_val ipv4port.IPv4Port) sl (DFrac.own 1) _ Hk.2.1
       (by rw [hkp]; exact get_append_rep ps _ _ hpl) $$ Hsl with ⟨Hp, Hsl⟩
     have hma : a ∈ ms := List.mem_of_getElem? Ha
-    wp_apply (ipv4port.IPv4Port.FromHostPort.wp _ _ a (client.addrs_eq ▸ hcfg a hma)) $$ [Hp] as ⟨%pv, Hp, #Hcfg⟩
+    wp_apply (ipv4port.IPv4Port.FromHostPort.wp _ _ a (hcfg a hma)) $$ [Hp] as ⟨%pv, Hp, #Hcfg⟩
     · iexact Hp
     ihave Hsl := Hsl $$ Hp
     rw [hkp, set_append_rep ps _ _ _ hpl]

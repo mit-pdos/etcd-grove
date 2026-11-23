@@ -3,7 +3,7 @@ Ported from dsverify-lab examples/vr/proof/VsrProof/Wire/Basic.lean (lab master 
 notes/dsv-vr.md): over any `GF`, the net extension's `addrProto` for the lab's `addrProtoG netDistGS`;
 the configuration's wire (`confBytes`, `ConfOk`, `cfgAddrs`, `confProto`, `ackProto`, `confProtos`)
 moved to `examples/vsrnet/Conf.lean`; `addrs` (the lab's `github_com.tangledbytes.go_vsr.addrs`,
-`VsrNetSpec.lean`) defined here from the kit's `Addrs()`.
+`VsrNetSpec.lean`) is `Wire/Addrs.lean`'s.
 -/
 /-
 The wire: how the model's messages travel. Each event is sent as one line, its JSON encoding
@@ -24,6 +24,7 @@ public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Ghost.System
 public import GooseLang.Ext.Net.Proto
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.jsoncodec.Frame
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.LineBound
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.Addrs
 
 @[expose] public section
 
@@ -38,15 +39,6 @@ def encEvent (m : Msg) : List w8 := VsrJson.encEvent m
 
 /-- One line: an event's encoding and a newline (`Encoder.Encode`). -/
 def line (m : Msg) : List w8 := encEvent m ++ [W8 10]
-
-/-- The go-vsr addresses of the machines (the kit's `Addrs()`, `kit.go`: machine `i` at
-`127.0.0.1:(7500 + i)`; 0 the orchestrator (unused), client `c` on `1 + c`, then the servers); the lab's
-`github_com.tangledbytes.go_vsr.addrs` (`VsrNetSpec.lean`, its `Addrs()`). -/
-def addrs : List GoString :=
-  [go!"127.0.0.1:7500", go!"127.0.0.1:7501", go!"127.0.0.1:7502",
-   go!"127.0.0.1:7503", go!"127.0.0.1:7504", go!"127.0.0.1:7505",
-   go!"127.0.0.1:7506", go!"127.0.0.1:7507", go!"127.0.0.1:7508",
-   go!"127.0.0.1:7509", go!"127.0.0.1:7510", go!"127.0.0.1:7511"]
 
 /-- The lines of a sequence of messages. -/
 def lines (ms : List Msg) : List w8 := (ms.map line).flatten

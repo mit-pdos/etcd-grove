@@ -31,13 +31,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net VsrModel
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-section results
+section newNetworkEvent
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [package_sem : events.Assumptions] [log.Assumptions] [examples.vsrwire.Assumptions]
+variable [package_sem : events.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
 variable [encoding.json.Assumptions] [C : models_lab.jsoncodec.JsonCodec GF]
-variable [encoding.json.EncoderRep GF]
 
 set_option goose.wp.extras true in
 theorem events.NewNetworkEvent.wp : events.NewNetworkEvent.spec (GF := GF) (hG := hG) := by
@@ -46,6 +45,16 @@ theorem events.NewNetworkEvent.wp : events.NewNetworkEvent.spec (GF := GF) (hG :
   wp_auto
   iapply HΦ
   itrivial
+
+end newNetworkEvent
+
+section results
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : events.Assumptions] [log.Assumptions] [examples.vsrwire.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [encoding.json.DecoderRep GF]
+variable [encoding.json.Assumptions] [C : models_lab.jsoncodec.JsonCodec GF]
+variable [encoding.json.EncoderRep GF]
 
 theorem events.Event.ToWriter.wp
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))

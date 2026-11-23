@@ -1,6 +1,6 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Spec/ipv4port.lean (lab master 915f964; notes/dsv-vr.md):
-over any `GF`, on the net extension. The configured addresses are the port's (`ipv4port.addrs`,
+over any `GF`, on the net extension. The configured addresses are the port's (`VsrWire.addrs`,
 kit.go's `Addrs()`: `127.0.0.1`, a port per machine), not the lab's (`10.77.0.x`, one port), so
 `Less` on them compares ports and `ByLess` sorts by the port order (`ipv4port.portLt`), not by the
 empty order; `ipCfg` keeps the IP bytes exact (`127.0.0.1`) instead of the lab's last byte `x`.
@@ -10,13 +10,14 @@ Cross-package specs of `pkg/ipv4port`: an `IPv4Port` value's string (`ipOwn`), t
 configured addresses (`ipCfg`), `FromHostPort` on a configured address, `FromAddrString`,
 `String`, and `ByLess` as a `sort.Interface` (`sort.Sort` in `client.New`, `replica.New`).
 
-On the configured addresses (`ipv4port.addrs`: one IP, `127.0.0.1`, distinct ports) `Less`
+On the configured addresses (`VsrWire.addrs`: one IP, `127.0.0.1`, distinct ports) `Less`
 compares the ports, so `ByLess` sorts by the port order (`portLt`): `sort.Sort` gives back a
 permutation, which is all its callers need (the members' order is not needed, notes/hubs.md).
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.pkg.ipv4port.Base
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.Addrs
 public import Perennial.Proof.sort.SorterBasics
 public import Perennial.Proof.slices.SortBasics
 
@@ -29,13 +30,6 @@ namespace Perennial.github_com.tangledbytes.go_vsr.pkg
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Net
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- `Addrs()` (kit.go): node `i`'s go-vsr address. -/
-def ipv4port.addrs : List GoString :=
-  [go!"127.0.0.1:7500", go!"127.0.0.1:7501", go!"127.0.0.1:7502",
-   go!"127.0.0.1:7503", go!"127.0.0.1:7504", go!"127.0.0.1:7505",
-   go!"127.0.0.1:7506", go!"127.0.0.1:7507", go!"127.0.0.1:7508",
-   go!"127.0.0.1:7509", go!"127.0.0.1:7510", go!"127.0.0.1:7511"]
 
 /-- The order `ByLess` sorts the configured addresses by: their ports' (`Less` on equal IPs). -/
 def ipv4port.portLt [GooseExts] (a b : ipv4port.IPv4Port) : Prop := sint.Z a.Second' < sint.Z b.Second'
@@ -50,7 +44,7 @@ variable [package_sem : ipv4port.Assumptions]
 
 /-- The body of `ipCfg` (the package's: callers use `ipCfg` and its laws). -/
 def ipv4port.ipCfgDef (v : ipv4port.IPv4Port) (a : GoString) : IProp GF :=
-  iprop(⌜a ∈ ipv4port.addrs ∧ v.str' = a⌝ ∗
+  iprop(⌜a ∈ VsrWire.addrs ∧ v.str' = a⌝ ∗
     v.First' ↦*□ ([W8 0, W8 0, W8 0, W8 0, W8 0, W8 0, W8 0, W8 0, W8 0, W8 0,
       W8 255, W8 255, W8 127, W8 0, W8 0, W8 1] : List w8))
 
@@ -71,7 +65,7 @@ instance ipv4port.ipCfg_timeless (v : ipv4port.IPv4Port) (a : GoString) :
 
 /-- A parsed configured address has its string, and is configured. -/
 theorem ipv4port.ipCfg_str (v : ipv4port.IPv4Port) (a : GoString) :
-    ipv4port.ipCfg (GF := GF) (hG := hG) v a ⊢ ⌜ipv4port.ipOwn v a ∧ a ∈ ipv4port.addrs⌝ := by
+    ipv4port.ipCfg (GF := GF) (hG := hG) v a ⊢ ⌜ipv4port.ipOwn v a ∧ a ∈ VsrWire.addrs⌝ := by
   rw [show ipv4port.ipCfg v a = ipv4port.ipCfgDef v a by with_unfolding_all rfl]
   unfold ipv4port.ipCfgDef
   iintro ⟨%h, -⟩
@@ -93,7 +87,7 @@ set_option goose.wp.extras true
 
 /-- `p.FromHostPort(a)` on a configured address `a`: no error, `*p` is `a`'s parse. -/
 abbrev ipv4port.IPv4Port.FromHostPort.spec : Prop :=
-  ∀ (p : Loc) (v0 : ipv4port.IPv4Port) (a : GoString), a ∈ ipv4port.addrs →
+  ∀ (p : Loc) (v0 : ipv4port.IPv4Port) (a : GoString), a ∈ VsrWire.addrs →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.ipv4port ∗
       p ↦ v0 }}
     (App (Val (p @!! go.GoType.PointerType ipv4port.IPv4Port.ty @!! go!"FromHostPort"))

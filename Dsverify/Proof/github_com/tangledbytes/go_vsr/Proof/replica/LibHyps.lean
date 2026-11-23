@@ -1,7 +1,9 @@
 /-
 The `log/slog` specs the replica's proof takes as hypotheses (notes/dsv-vr.md, "Hypotheses":
 `log/slog` has no model here, so its specs are theorem arguments, never axioms or instances).
-Stated over `Spec/sloglib.lean`'s `isLogger`.
+Stated over `Spec/sloglib.lean`'s `isLogger`. Also the kit's two (`examples/vsrnet/KitLib.lean`'s
+`logger()`, `slog.New(slog.DiscardHandler)`): `New.spec`, `DiscardHandler.load_spec`. These are
+all of the vr proof's `log/slog` hypotheses but `Debug.spec` (`Proof/network/LibHyps.lean`).
 
 The lab's `Harness/Proof/log/slog.lean` (lab master 915f964) proved `Logger.{Debug,Info,Warn,Error}`
 for arguments `fmt.ArgsWf` allows; its replica proof (`VsrProof/Proof/replica/Log.lean`, with
@@ -77,6 +79,22 @@ abbrev Logger.Info.spec : Prop := Logger.method.spec (GF := GF) (hG := hG) go!"I
 abbrev Logger.Warn.spec : Prop := Logger.method.spec (GF := GF) (hG := hG) go!"Warn"
 /-- `l.Error(msg, args...)`. -/
 abbrev Logger.Error.spec : Prop := Logger.method.spec (GF := GF) (hG := hG) go!"Error"
+
+/-- **Hypothesis** (no `log/slog` model; the lab's `New.wp_DiscardHandler`, over any handler):
+`slog.New(h)` is a logger. -/
+abbrev New.spec : Prop :=
+  ∀ (h : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog }}
+    (App (Val (@! log.slog.New)) (Val #h))
+  {{ (l : Loc), RET #l; isLogger l }}
+
+/-- **Hypothesis** (no `log/slog` model): reading the package variable `DiscardHandler`, `log/slog`
+initialized, returns (some handler; the lab's package state fixed its value). -/
+abbrev DiscardHandler.load_spec : Prop :=
+  {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog }}
+    (App (Val (GoInstruction (GoLoad log.slog.Handler.ty)))
+      (Val #(globalAddr log.slog.DiscardHandler)))
+  {{ (h : GoInterface), RET #h; True }}
 
 end spec
 

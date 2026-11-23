@@ -121,14 +121,10 @@ abbrev Client.spec : Prop :=
   {{ RET #(); False }}
 
 theorem Client.wp_proof
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_Accept : net.Listener.Accept.spec (GF := GF) (hG := hG))
-    (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG))
-    (wp_Close : net.Conn.Close.spec (GF := GF) (hG := hG))
     (conn_readerOk : connReaderOk (GF := GF) (hG := hG))
     (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
-    (wp_New : slogNew.spec (GF := GF) (hG := hG))
-    (slog_discard : slogDiscard.spec (GF := GF) (hG := hG))
+    (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
+    (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
     (codec_ok : vsrnet.codecOk (GF := GF) (hG := hG))
     (wp_Op : Op.spec (GF := GF) (hG := hG))
     (wp_ServeClientB : ServeClientB.spec (GF := GF) (hG := hG)) :
@@ -148,10 +144,10 @@ theorem Client.wp_proof
   imod ownSlice_persist _ _ _ $$ Hasl with #Hasl
   imodintro
   wp_apply CfgAddrs.wp_proof as %cfgs Hcfgs
-  wp_apply (waitConf.wp_proof wp_Listen wp_Accept wp_Write wp_Close conn_readerOk γ cfgs
+  wp_apply (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof conn_readerOk γ cfgs
     (DFrac.own 1) (W64 1 + W64 (c : Int)) (by word)) $$ [Hcfgs] as %cf ⟨-, #Hcf⟩
   · iframe; iframe #
-  wp_apply (mkClient.wp_proof wp_NewTCP wp_New slog_discard γ c asl cf hc) $$ [Hnext] as %x Hres
+  wp_apply (mkClient.wp_proof wp_NewTCP wp_New wp_Discard γ c asl cf hc) $$ [Hnext] as %x Hres
   · iframe; iframe #
   wp_apply wp_ClientAddrs as %casl Hcasl
   ihave %Hal := ownSlice_len _ _ _ $$ Hcasl

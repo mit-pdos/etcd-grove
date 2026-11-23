@@ -6,12 +6,13 @@ from dsverify-lab `examples/vr/proof/VsrProof/Top/NewProof.lean` (`wp_mkClient`)
 client's invariant (`ClientDefs.lean`).
 
 The library pieces `logger` needs, which no model gives yet (notes/dsv-vr.md, "Hypotheses"), are
-hypothesis statements here: `slogNew` (`slog.New(h)` returns a logger) and `slogDiscard` (the
-package variable `DiscardHandler` holds a handler, for good).
+the hypotheses `log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`
+(`Proof/replica/LibHyps.lean`; `wp_logger`, `KitLib.lean`).
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.OpProof
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.KitLib
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.time.Results
 
 @[expose] public section
@@ -47,54 +48,6 @@ local notation "kpkg" => pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet
 
 set_option goose.wp.extras true
 
-/-- **Hypothesis statement**: `slog.New(h)` returns a logger (no `log/slog` model yet). -/
-abbrev slogNew.spec : Prop :=
-  ∀ h : GoInterface,
-  {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog }}
-    (App (Val (@! log.slog.New)) (Val #h))
-  {{ (l : Loc), RET #l; log.slog.isLogger l }}
-
-/-- **Hypothesis statement**: loading `slog.DiscardHandler` gives some interface value (no
-`log/slog` model yet: its package state; its type is names-only, so no points-to can say it). -/
-abbrev slogDiscard.spec : Prop :=
-  {{ isPkgInit (PROP := IProp GF) pkg_id.log.slog }}
-    (App (Val (GoInstruction (GoLoad log.slog.Handler.ty)))
-      (Val #(globalAddr log.slog.DiscardHandler)))
-  {{ (h : GoInterface), RET #h; True }}
-
-/-- `Addrs()` returns a new slice of every machine's go-vsr address. -/
-theorem wp_Addrs :
-    {{ isPkgInit (PROP := IProp GF) kpkg }}
-      (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Addrs)) (Val #()))
-    {{ (sl : GoSlice), RET #sl; sl ↦* VsrWire.addrs }} := by
-  wp_start as -
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.string))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := GoString) (t := go.string) VsrWire.addrs
-  wp_auto
-  isplitl []
-  · ipureintro; rfl
-  iintro %sl ⟨Hsl, -⟩
-  wp_auto
-  iapply HΦ
-  iexact Hsl
-
-/-- `logger()`: a logger. -/
-theorem wp_logger (wp_New : slogNew.spec (GF := GF) (hG := hG))
-    (slog_discard : slogDiscard.spec (GF := GF) (hG := hG)) :
-    {{ isPkgInit (PROP := IProp GF) kpkg }}
-      (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.logger)) (Val #()))
-    {{ (l : Loc), RET #l; log.slog.isLogger l }} := by
-  wp_start as -
-  ihave #Hsp : isPkgInit (PROP := IProp GF) pkg_id.log.slog $$ []
-  · iPkgInit
-  wp_auto
-  wp_apply slog_discard as %h -
-  wp_apply wp_New as %l #Hl
-  iapply HΦ
-  iexact Hl
-
 /-- `replicas(addrs, conf)`: the configuration's replicas' addresses, server machines `1 .. N`. -/
 theorem wp_replicas (sl : GoSlice) (n h r : Nat) (hc : ConfOk n h r) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ VsrWire.addrs }}
@@ -122,15 +75,6 @@ theorem wp_replicas (sl : GoSlice) (n h r : Nat) (hc : ConfOk n h r) :
   rw [e1, e2]
   iexact Hm
 
-/-- `RegisterJSON()`: nothing (`register.go`, notes/dsv-vr.md). -/
-theorem wp_RegisterJSON :
-    {{ isPkgInit (PROP := IProp GF) kpkg }}
-      (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.RegisterJSON)) (Val #()))
-    {{ RET #(); True }} := by
-  wp_start
-  iapply HΦ
-  itrivial
-
 /-- What a machine running go-vsr needs of the packages' states beyond their package facts
 (persistent): the kit's JSON codec registered. Nothing establishes it yet (`RegisterJSON` is empty:
 jsongen refuses go-vsr's `log.Logs`, notes/dsv-vr.md finding 2; blocker (2) on #24); the hook set
@@ -154,8 +98,8 @@ abbrev mkClient.spec : Prop :=
   {{ (x : Loc), RET #x; sysRes γ c (interface.mkOk (go.GoType.PointerType Sys.ty) #x) 1 }}
 
 theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
-    (wp_New : slogNew.spec (GF := GF) (hG := hG))
-    (slog_discard : slogDiscard.spec (GF := GF) (hG := hG)) :
+    (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
+    (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG)) :
     mkClient.spec (GF := GF) (hG := hG) := by
   intro γ c sl cf hc
   wp_start as ⟨#Hsl, #Hcf, #Hprotos, #HsysI, #HregI, Hnext, #Hst, #Hkit⟩
@@ -195,7 +139,7 @@ theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG :=
   · iframe #
   wp_apply pkg.time.NewReal.wp as %rl %Hrl
   wp_apply (wp_requestMs (W64 (r : Int)) (by have := Hok.2.2; word)) as %rq -
-  wp_apply (wp_logger wp_New slog_discard) as %lg #Hlg
+  wp_apply (wp_logger wp_New wp_Discard) as %lg #Hlg
   have hn : n = 3 ∨ n = 5 := Hok.1
   have hms : ∀ a ∈ subslice 7 (7 + n) VsrWire.addrs, a ∈ VsrWire.addrs := fun a ha =>
     List.mem_of_mem_take (List.mem_of_mem_drop (by simpa [subslice] using ha))
