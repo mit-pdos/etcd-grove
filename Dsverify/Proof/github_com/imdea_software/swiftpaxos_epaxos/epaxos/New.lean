@@ -439,7 +439,32 @@ theorem wp_New_of (hRN : replica.New.spec (GF := GF)) (hReg : rpc.Table.Register
   iframe Hisr
   ipureintro; exact Hrnn
 
-
 end heap
+
+section newSpec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
+variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
+
+/-- `epaxos.New`'s spec as the kit's `serve` calls it (the lab's statement without its `addrTok`:
+in `Net/` the right to listen at a replica address is its `addrProto`'s, in `clientInvs`); proved
+in `epaxos/Link.lean` (`wp_New`), a hypothesis of `examples/epaxosnet/ServeReplica.lean`. -/
+abbrev EpaxosNewSpecEp (isRep : EpNames → Nat → Loc → IProp GF) : Prop :=
+  ∀ (γ : EpNames) (k i : Nat) (L : List GoString) (sl : GoSlice) (cfg logger : Loc)
+    (c : config.Config),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.epaxos ∗
+      ⌜k ∈ replicaNodes ∧ L[i]? = some (peerAddrOf k)⌝ ∗ idTok γ i ∗ repFwStart γ i ∗
+      epRepStart γ i ∗
+      listFinal γ L ∗ sl ↦* L ∗ clientInvs γ ∗
+      cfg ↦ c ∗ c.Proxy' ↦ (zeroValDef : config.ProxyInfo) ∗
+      ⌜c.Leader' = null ∧ c.Port' = W64 (7500 + k)⌝ ∗
+      logger ↦ (zeroValDef : dlog.Logger) }}
+    (App (App (App (App (App (App (App (App (App (App (App
+      (Val (@! epaxos.New)) (Val #c.Alias')) (Val #(W64 i))) (Val #sl)) (Val #true))
+      (Val #false)) (Val #false)) (Val #(W64 0))) (Val #false)) (Val #(W64 2))) (Val #cfg))
+      (Val #logger))
+  {{ (r : Loc), RET #r; isRep γ i r ∗ ⌜r ≠ null⌝ }}
+
+end newSpec
 
 end Perennial.github_com.imdea_software.swiftpaxos_epaxos

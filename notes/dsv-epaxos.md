@@ -443,15 +443,36 @@ through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (n
 
 ## Import tiers (etc/tier-check.py, a land gate)
 
-2026-11-23: `etc/tier-check.py --check` reports **34 new violations, all `defs->proof`**: the kit's
-proof files are named `<F>.spec_holds` (so tier "defs") and import library proof modules to call
-their `wp_proof`s directly (`Proof.bufio.{Writer__Flush,Writer__WriteByte,NewReaderOk,...}`,
-`Net.Proof.net.{Conn__Read,Conn__Write,Conn__Close,Dial,...}`, in `replica/*` and `wire/{WProg,RProg,
-Varint/ReadUvarint}`). To fix at landing: import the libraries' `Spec` modules, take their specs as
-hypotheses of `spec_holds`, and close them in the `Link` modules (which may import proofs). New files
-follow the rule (a proof file sees callees through their specs only).
+**2026-11-23 (landing prep): `etc/tier-check.py --check` passes, no new baseline or tier-linking
+entry.** The 34 old `defs->proof` imports (`replica/*`, `wire/{WProg,RProg,Varint/ReadUvarint}`
+calling bufio's, net's, `replica/RpcTable`'s and `replica/IoReadFull`'s `wp_proof`s) are gone: the
+callees' specs are bundled in `Interface/LibDeps.lean` (a defs module importing only the `Spec`
+modules) as Prop classes `EpBufioDeps` (bufio `Writer.{Flush,WriteByte,Write}`,
+`Reader.{ReadByte,Read(Ok)}`, `NewReader(Ok)`, `NewWriter`), `EpNetDeps` (`Conn.{Read,Write,Close,
+RemoteAddr}`, `Dial`, `Listen`, `Listener.Accept`), `EpReplicaDeps` (`rpc.NewTableId`,
+`rpc.Table.Get`, `ioReadFullPre`); the proofs take them as instance arguments (a section
+`variable`, placed just before the first theorem that uses one, so earlier lemmas don't carry it),
+and the Links close them: `wire/Link.lean`'s `epBufioDeps_holds`, `replica/Link.lean`'s
+`epNetDeps_holds`, `epReplicaDeps_holds`, each a `local instance` of that Link's section only (no
+global instance). `ioReadAtLeastPre.spec`/`ioReadFullPre.spec` moved to `Interface/IoReadFullPre.lean`
+(the proofs stay in `replica/IoReadFull.lean`). `EpaxosNewSpecEp` moved from `epaxos/Link.lean`
+into `epaxos/New.lean` (its own section, without `TreemapHyp`); `ServeDefs`' copy `epaxosNew.spec`
+is gone, `ServeReplica` takes `EpaxosNewSpecEp isRep`.
 
 ## Next (for a successor)
+
+**LANDING PREP (2026-11-23, agent 4):** merged `origin/lean` `38c516a9ba` (Perennial `71de6f043`;
+`.lake/package-overrides.json` and `PERENNIAL_DIR` at `/shared/perennial-71de6f043`, a new worktree
+with `.lake` copied from `/shared/perennial-940c686dd`, itself new, copied from 48401b6ba's);
+`gen-init` (PkgTables gained `internal/abi`, `internal/bytealg`, `unicode/utf8` at 940c686dd;
+nothing more at 71de6f043), tiers fixed (above, "Import tiers"), `EpaxosNewSpecEp` moved.
+Checks at 71de6f043: `gen-init --check`, `goose --check` (all projects), `copy-part --check`,
+`tier-check --check` pass; `errorf-wrap-check`'s `init_errors()` is `[]`; `lake build` of the
+statement's proof module green (3259 jobs); `#print axioms epaxos_remote_robust`: `propext`,
+`Classical.choice`, `Quot.sound`; `theorem-loc --list-tcb`: TCB 514, all premises (unchanged).
+Open for the gates: `rpcgen.py --check` on the kit differs until `models/` takes the one-line
+`codec_go` import fix ("What changed against the lab", rpcgen); `tcb-report --check` not run.
+
 
 **STATE (2026-11-23, end of agent 3, head after `237e22869c`): `epaxos_remote_robust` IS PROVED.**
 `Dsverify/Spec/github_com/imdea_software/swiftpaxos_epaxos/examples/epaxosnet/TopLevelRobustness.lean`
@@ -570,7 +591,7 @@ net.http ∗ masterFresh ∗ listUnset γ ∗ ⌜W.SS = rpcSS γ⌝ ∗ rpcLisP 
 muxOwner [] ∗ rpcReady ∗ srvEnv ∗ bounds`), `examples/epaxosnet/{OpDefs,OpProof}` (`Op.wp_proof`;
 11 callee-spec premises: NIL, Marshal, Unmarshal, DialTimeout, Conn.Read/Write/Close, bufio
 NewWriter/NewReader/WriteByte/Flush), `ServerDefs`/`Register` (`register.wp_proof`),
-`ServeDefs`/`ServeHelpers`/`ServeReplica` (`serveReplica.wp_proof`; `epaxosNew.spec` is a copy of
+`ServeDefs`/`ServeHelpers`/`ServeReplica` (`serveReplica.wp_proof`; [since moved: `EpaxosNewSpecEp` in `epaxos/New.lean`] `epaxosNew.spec` was a copy of
 `EpaxosNewSpecEp`, which lives in the linking module `epaxos/Link`: move it to `epaxos/New` to
 drop the copy), `Bridge` (`robust_of_distProtoLisRB`), `Start` (`ep_ghost_start`, `ep_start` over
 `GooseGlobalGS` + `RpcHttpAddr`: `∃ γ W, ⌜W.SS = rpcSS γ⌝ ∗ own_state γ init ∗ masterRes γ W ∗

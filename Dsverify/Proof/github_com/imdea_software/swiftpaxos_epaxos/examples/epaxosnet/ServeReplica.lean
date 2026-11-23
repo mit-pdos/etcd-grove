@@ -45,7 +45,7 @@ theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (wp_host : host.spec (GF := GF) (hG := hG))
     (wp_itoa : itoa.spec (GF := GF) (hG := hG))
     (wp_register : register.spec (GF := GF) (hG := hG))
-    (wp_New : epaxosNew.spec isRep)
+    (wp_New : EpaxosNewSpecEp isRep)
     (rcv : ∀ γ i, replicaRcv.spec (isRep γ i))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
     serveReplica.spec (GF := GF) (hG := hG) := by

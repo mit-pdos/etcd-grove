@@ -13,14 +13,13 @@ branch.
 * `serve(k, sl, 7500)` for replica node `k` (`serveReplica.spec`): it returns only if
   `rpc.Register` or `net.Listen` fails (`http.Serve` returns only on a listener error).
 
-`epaxosNew.spec isRep` is `epaxos/Link.lean`'s `EpaxosNewSpecEp isRep` verbatim (definitionally
-equal: the `Link` passes `wp_New`); it is restated here because `EpaxosNewSpecEp` is declared in a
-linking module, which neither this defs module nor a proof module may import ("Import tiers").
+`epaxos.New`'s spec as `serve` calls it is `epaxos/New.lean`'s `EpaxosNewSpecEp`.
 -/
 module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.ServerDefs
 public import Net.Spec.net.Listen
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.epaxos.New
 
 @[expose] public section
 
@@ -177,24 +176,6 @@ abbrev itoa.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) kpkg }}
     (App (Val (@! examples.epaxosnet.itoa)) (Val #n))
   {{ (sl : GoSlice), RET #sl; sl ↦* itoaB (uint.nat n) }}
-
-/-- `epaxos.New`'s spec as `serve` calls it: `epaxos/Link.lean`'s `EpaxosNewSpecEp isRep`, verbatim
-(the file header). -/
-abbrev epaxosNew.spec (isRep : EpNames → Nat → Loc → IProp GF) : Prop :=
-  ∀ (γ : EpNames) (k i : Nat) (L : List GoString) (sl : GoSlice) (cfg logger : Loc)
-    (c : config.Config),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.epaxos ∗
-      ⌜k ∈ replicaNodes ∧ L[i]? = some (peerAddrOf k)⌝ ∗ idTok γ i ∗ repFwStart γ i ∗
-      epRepStart γ i ∗
-      listFinal γ L ∗ sl ↦* L ∗ clientInvs γ ∗
-      cfg ↦ c ∗ c.Proxy' ↦ (zeroValDef : config.ProxyInfo) ∗
-      ⌜c.Leader' = null ∧ c.Port' = W64 (7500 + k)⌝ ∗
-      logger ↦ (zeroValDef : dlog.Logger) }}
-    (App (App (App (App (App (App (App (App (App (App (App
-      (Val (@! epaxos.New)) (Val #c.Alias')) (Val #(W64 i))) (Val #sl)) (Val #true))
-      (Val #false)) (Val #false)) (Val #(W64 0))) (Val #false)) (Val #(W64 2))) (Val #cfg))
-      (Val #logger))
-  {{ (r : Loc), RET #r; isRep γ i r ∗ ⌜r ≠ null⌝ }}
 
 /-- `serve(k, sl, 7500)` for replica node `k` (`sl` the server addresses, `Port0 = 7500`): from
 net/rpc's fresh codec, the unclaimed `DefaultServeMux`, net/rpc's server variables, the bounds of
