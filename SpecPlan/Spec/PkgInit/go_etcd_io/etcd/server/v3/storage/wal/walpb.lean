@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal.walpb
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.models_lab.pbcodec
+public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto
