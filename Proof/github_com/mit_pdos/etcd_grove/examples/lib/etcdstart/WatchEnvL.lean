@@ -110,7 +110,7 @@ theorem watchEnvL_conn [_root_.Perennial.errors.Assumptions] [_root_.Perennial.f
         (fun md => v3rpc.watchSpec m.2.1 m.2.2 (auth.mdTokenOf md))) ∗
       (□ ∀ i : Nat, ⌜i < ms.length⌝ -∗ client.watchMemberFacts ((watchEnvL m0 ms γr pfx).atIdx i)) ⊢
       □ ∀ (conn : Loc) (ics : List GoFunc),
-        grpcConn (GF := GF) conn (ms.map (·.1)) ics [] -∗
+        grpcConn (GF := GF) conn (ms.map (·.1)) ics [] anyRes -∗
           client.watchConnFacts { watchEnvL m0 ms γr pfx with conn := conn, ics := ics } := by
   iintro ⟨#P1, #P2, #P3, #Heof, #Hs, #Hm⟩
   iintro !> %conn %ics #Hc

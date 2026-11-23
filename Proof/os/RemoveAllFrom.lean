@@ -37,7 +37,7 @@ theorem os.osPathS_halves (R : Roots) (d : GoString) (qd : Qp) (j : Ino) :
 set_option hygiene false in
 /-- `removeAllFrom`'s end after its passes: the `rmdir` loop, then the error (`pe`, the passes'). -/
 local macro "rm_tail" pe:term:max : tactic => `(tactic| (
-  wp_apply os.model.wp_rmdirLoop_dirSt d b j J R qd h hJ0 q g t sg hb hJ hqg
+  wp_apply os.model.wp_rmdirLoop_dirSt d b j J R qd h hJ0 q g t sg (child d b) rfl hb hJ hqg
     $$ [Hp Hst Hperm Hg] as %e4 ⟨Hp, Hst, Hperm, Hg⟩
   · iframe; iframe #
   by_cases he40 : e4 = W64 0
@@ -249,8 +249,9 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
             (fun J' h' => by
               rw [os.restrict_only_cur] at h'
               obtain ⟨i, hi⟩ := hfo c _ (hsubk c _ h')
-              cases hi) (.inl rfl) $$ [Hpc Hc Hperm] as %pe ⟨Hpc, Hperm, Hpe, %hc', Hc, %hlo⟩
+              cases hi) (.inl rfl) $$ [Hpc Hc Hperm] as %pe ⟨Hpc, Hperm, Hpe, %hc', Hc, %hlow⟩
           · rw [hkd b]; iframe; iframe #
+          obtain ⟨hlo, -⟩ := hlow
           rw [hkd b]
           imod os.osNames_merge1 R J c hc' (hJ'.restrict J (.except [c])) $$ Hsi Hc Hr
             with ⟨%h'', HJ, %hm⟩

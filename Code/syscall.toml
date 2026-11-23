@@ -15,8 +15,11 @@ translate = ["!*", "Errno", "LOCK_SH", "LOCK_EX", "LOCK_NB", "LOCK_UN", "PROT_RE
   # the WAL's lock type (examples/osfs/walfs)
   "F_WRLCK",
   # (prove-etcdint3, 2026-11-21) the backend's `boltOpenOptions` (`config_linux.go`)
-  "MAP_POPULATE"]
-imports = ["!*", "sync"]
+  "MAP_POPULATE",
+  # (2026-11-22, wal-safe-errors) `Errno.Is` with its body (what `errors.Is` calls on an errno) and the
+  # constants it compares with
+  "Errno.Is", "EACCES", "EPERM", "EEXIST", "ENOTEMPTY", "ENOTSUP", "EOPNOTSUPP"]
+imports = ["!*", "sync", "errors", "internal/oserror"]
 # The functions minibolt calls, modeled by the Linux file extension fsExt
 # (TrustedCode/syscall.lean, GooseLang/Ext/Fs/Impl.lean).
 trusted = ["Fdatasync", "Flock",

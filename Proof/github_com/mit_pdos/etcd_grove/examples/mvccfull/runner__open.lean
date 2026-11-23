@@ -97,7 +97,7 @@ theorem runner.open.wp_proof
     iframe
   subst Hrnb
   (try wp_auto)
-  have hRB : receiptBound GF ≤ 2 ^ 38 := ReceiptBoundLe.receiptBound_le
+  have hRB : receiptBound GF ≤ 2 ^ 48 := ReceiptBoundLe.receiptBound_le
   have hk : receiptBound GF + (sint.Z cfg.Ops').toNat + 5 ≤ backend.wbInit := by
     rw [backend.wbInit_val]; omega
   imod inc_open_backend hopen hrest hCR γB bnb gx (limOf cfg) path D σ.log σ.crev u

@@ -54,9 +54,14 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
     ipureintro; rfl
   wp_for HI
   wp_bind (App (Val #(methods ci.ty go!"Recv" ci.v)) (Val #()))
-  iapply HRecv $$ %L Htok
+  iapply HRecv $$ %L %iprop(True) [Htok]
+  · isplitr
+    · ipureintro; trivial
+    isplitr
+    · itrivial
+    iexact Htok
   inext
-  iintro %resp %err Hr
+  iintro %resp %err ⟨-, Hr⟩
   icases Hr with (⟨%Herr0, %m, Hm, HDn, Htok⟩ | ⟨%Hrn, #Heofe, %Hen, Htok, -⟩ | ⟨%Hrn, #Hse, Htok⟩)
   · subst Herr0
     ihave ⟨Htok, #Hlb⟩ := cliRecvTok_lb $$ Htok

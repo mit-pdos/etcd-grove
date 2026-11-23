@@ -4,7 +4,8 @@
 A linking module (its name: `*Linked`): `kvReplica_wp`, the WP of `kvnetReplicaProgram` (kvnet's package
 initialization, then `RunNode`) from the generation's empty package state and `StartNode`'s start
 resource at every address map (`kvNodeStart`, from `TopBoot.lean`'s `kvGen_boot`), through kvnet's
-linked `wp_RunNode` (over `errors.IsPathErrnoNotExist.spec`, Perennial PR #677, a hypothesis).
+linked `wp_RunNode`. (`errors.IsPathErrnoNotExist.spec` is proved since 2026-11-22, `wal-safe-errors`, and
+`durable`'s Link uses the proof; the hypothesis `h_err` is unused, left for kvnet's top level to drop.)
 -/
 module
 
@@ -50,6 +51,7 @@ variable [os.Assumptions]
 variable [os.fileStat.FieldAssumptions]
 variable [os.file.FieldAssumptions]
 variable [syscall.Assumptions]
+variable [_root_.Perennial.errors.Assumptions]
 variable [_root_.Perennial.log.NewModel]
 
 /-- **A replica's program** (see the file header): from the generation's empty package state, the
@@ -88,7 +90,7 @@ theorem kvReplica_wp
   unfold raft_kvcheck.connGlobals
   icases Hcg with ⟨%eof, %ed, %et, #Heof, #Hed, -⟩
   wp_pures
-  wp_apply (kvnetLink.raft_kvnet.wp_RunNode γ vs dir h_err id addrs dir cl.voters cl.preVote
+  wp_apply (kvnetLink.raft_kvnet.wp_RunNode γ vs dir id addrs dir cl.voters cl.preVote
       cl.checkQuorum cl.stepDownOnRemoval cl.maxSizePerMsg cl.maxCommittedSizePerReady
       cl.maxInflightMsgs eof ed hvc hid1 hid2) $$ [Hproto HS]
   · iframe Hproto HS Heof Hed Hcc

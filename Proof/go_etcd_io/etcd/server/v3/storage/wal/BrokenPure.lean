@@ -203,6 +203,7 @@ theorem nonwalHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     (hc0 : ClaimOnce (lay.j, .except X, hj) cl)
     (hcoh' : ClaimCoh (hj.log x e c) lay.j (.except X))
     (hc : ∀ b, walNameP b = true → c !! b = hj.cur !! b)
+    (hcd : ∀ b, (NameSet.except X).Mem b → e.op.Writes lay.j b → ∀ J, c !! b ≠ some (.dir J))
     (Hc : NonWalCrash cl (replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl) lay.j)
     (hDo : DirsOk R s cl n →
       DirsOk R s (replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl) n)
@@ -265,8 +266,15 @@ theorem nonwalHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
       · exact { habs with names := ⟨by rw [← habs.names.1]; exact walInos_congr hc, habs.names.2⟩ }
     · exact ⟨la, nm, hj2, hla, hin, hjr', hnm, hwdc' _ _ hlaj hwd, habs, hcr'⟩
   · -- `WalsNamed`
-    obtain ⟨h1, h2⟩ := hNm dir' lay' hl'
-    refine ⟨fun hj'' hWc => ?_, fun m' hr => ?_⟩
+    obtain ⟨h1, h2, h3⟩ := hNm dir' lay' hl'
+    refine ⟨fun hj'' hWc => ?_, fun m' hr => ?_, fun N' hj'' hm => ?_⟩
+    rotate_left 2
+    · rcases mem_replClaim_cases hm with he | ⟨hm', -⟩
+      · simp only [Prod.mk.injEq] at he
+        obtain ⟨e1, rfl, rfl⟩ := he
+        rw [e1] at h3 ⊢
+        exact (h3 _ _ hcl).log x e c (fun b hb _ hw => hcd b hb hw)
+      · exact h3 N' hj'' hm'
     · rcases hwdc _ _ hWc with ⟨hj', rfl⟩ | ⟨hj', hWc'⟩
       · rw [hj'] at h1
         exact segsNamed_congr_wal (fun b hb => (hc b hb).symm) (h1 hj ⟨X, hX, hcl, hcoh1⟩)
@@ -328,7 +336,7 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
     (hs : hj.next ≤ e.start) (hbt : ∀ b, (NameSet.except X).Mem b → e.op.Writes lay.j b → b = bt)
     (hcur : hj.cur !! bt = none)
     (hothers : ∀ c' ∈ cl, c' ≠ (lay.j, NameSet.except X, hj) → c'.1 = lay.j → ¬ c'.2.1.Mem bt)
-    (hbtw : walNameP bt = false) :
+    (hbtw : walNameP bt = false) (hcbt : ∀ J, c !! bt ≠ some (.dir J)) :
     let cl' := replClaim (lay.j, .except X, hj) (lay.j, .except X, hj.log x e c) cl
     WalsOk C Mr R jr s Ls cl' n ∧ WalsCreateOk jr cl' ∧ CreatingOk jr cl' CR ∧
       AbsentNone s jr cl' n ∧ WalsNamed Ls cl' n ∧ DirKeysOk C Mr jr s Ls cl' n K cp ∧
@@ -342,7 +350,8 @@ theorem brokenHist_pure {C : WalCodec} {Mr : WalMarshal} {R : Roots} {jr : Ino} 
   subst hj1e
   have H : NonWalLog cl lay.j (.except X) hj x e c bt :=
     ⟨hcl, hcoh1, hs, hbt, hcur, hothers, hbtw⟩
-  exact nonwalHist_pure hW hWC hCO hAN hNm hDK hAt hK hl hc0 hcoh' hc H.crash
+  exact nonwalHist_pure hW hWC hCO hAN hNm hDK hAt hK hl hc0 hcoh' hc
+    (fun b hb hw J => by rw [hbt b hb hw]; exact hcbt J) H.crash
     (fun hdo => dirsOk_cut hdo hcl hcoh1 hs hbt hcur hothers)
     (fun hjjr' han => absentNone_cut han hjjr' hcl hcoh1 hs hbt hcur hothers)
 

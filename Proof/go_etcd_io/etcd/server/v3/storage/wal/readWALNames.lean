@@ -6,6 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNames
 public import Spec.fmt.ErrorfErrs
 public import Spec.fmt.ErrorfErrsTerm
+public import Proof.errors.ErrTree
 
 @[expose] public section
 
@@ -109,11 +110,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply HErrorf _ _ [GoInterface.ok ie] [ie] ?wf $$ [Hasl] as %err2 #Herr2
+    wp_apply HErrorf _ _ [GoInterface.ok ie] [ie] ?wf ?ww $$ [Hasl] as %err2 ⟨#Herr2, #Ht2⟩
     case wf => errargs_wf
+    case ww => wraps_le1
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
-        errIsTerm (GoInterface.ok e)))).2
+        errTreeTerm (GoInterface.ok e)))).2
       iframe Hterm
       iapply errOk_of_fmtErrorOkOrNil
       iexact Herr
@@ -124,7 +126,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.readWALNames.wp_proof
     iexists err2
     isplitr
     · ipureintro; rfl
-    iexact Herr2
+    isplitl []
+    · iexact Herr2
+    ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
+    · iPkgInit
+    iapply (errIsTerm_of_tree (GoInterface.ok err2)) $$ Herrs Ht2
 
 end proof
 
