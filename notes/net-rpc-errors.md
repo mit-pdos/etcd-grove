@@ -106,8 +106,8 @@ Built on fk-lean1: `Net.Proof.net.rpc.service__call`, `Net.Proof.net.rpc.Results
 
 Both sign-offs given by Upamanyu (#8): the trusted commit 3d0cc4bc8b (`OpError.Error`'s Go form)
 and the #8 point (`HandleHTTP_spec`'s premise claims more in meaning; no statement text changes).
-Merged origin/lean 6710e40411 (Perennial ccfeb3895, `/shared/perennial-ccfeb3895`; includes
-dsv-json-main); PkgTables regenerated with gen-init (no changes). Built on fk-lean1 (9122e5cc1f):
+Merged origin/lean 29f93a3c2c (Perennial ccfeb3895, `/shared/perennial-ccfeb3895`; includes
+dsv-json-main and lean's new gen-init.py); PkgTables regenerated with gen-init (no changes). Built on fk-lean1 (16bb490be3):
 `Net.Proof.net.rpc.service__call`, `Net.Proof.net.rpc.Results` and a scratch module importing the
 six `TopLevelRobustness` (swiftnet, rabianet, epaxosnet, quepaxanet, paxosnet, remote's counter),
 4819 jobs green; `#print axioms` of the six: `propext`, `Classical.choice`, `Quot.sound` each
