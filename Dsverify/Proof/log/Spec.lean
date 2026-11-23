@@ -38,12 +38,4 @@ class log.Hyps [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   Println : log.Println.spec (GF := GF)
 
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-
-theorem log.Println.wp_proof [h : log.Hyps GF] : log.Println.spec (GF := GF) := h.Println
-
-end proof
-
 end Perennial

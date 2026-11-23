@@ -11,8 +11,8 @@ module
 
 public import Dsverify.Proof.rabia.internal.tcp.Hub
 public import Dsverify.Proof.rabia.internal.tcp.Frames
-public import Net.Proof.net.Dial
-public import Net.Proof.net.Conn__Close
+public import Net.Spec.net.Dial
+public import Net.Spec.net.Conn__Close
 
 @[expose] public section
 
@@ -116,7 +116,7 @@ variable [msg_sem : rabia.internal.message.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem wp_ClientTCP_RecvHandler (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) (t : Loc) (hc : c < nC)
+theorem wp_ClientTCP_RecvHandler (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) (t : Loc) (hc : c < nC)
     (br : Loc) (cid : Nat) (rc : GoChan) (wg : Loc) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗
       t.[ClientTCP, go!"Reader"] ↦□ br ∗ t.[ClientTCP, go!"RecvChan"] ↦□ rc ∗
@@ -143,7 +143,7 @@ theorem wp_ClientTCP_RecvHandler (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNam
   ihave %Hdl := ownSlice_len _ _ _ $$ Hsl
   have hdl : ds.length = 409600 := by rw [Hdl.1, hsl]
   ihave #HF := proxyQ_frameIs γ (c % cf.n) cid rs Hrs
-  wp_apply wp_cmdReadUnmarshal cmd_ptr br cid false _ _ sl ds $$ [$Hmpkg $cmd $Hbr $HF $Hsl]
+  wp_apply wp_cmdReadUnmarshal D cmd_ptr br cid false _ _ sl ds $$ [$Hmpkg $cmd $Hbr $HF $Hsl]
     as %e ⟨%ds', Hsl, Hres⟩
   icases Hres with (⟨%He, %v, %q, %Hq, Hcmd, #Hrep, Hbr⟩ | ⟨%He, %R', %v, %HR', Hcmd, Hbr⟩)
   · subst He
@@ -176,7 +176,7 @@ theorem wp_ClientTCP_RecvHandler (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNam
       itrivial
     · exact absurd rfl He
 
-theorem wp_ClientTCP_SendHandler (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) (t : Loc) (hc : c < nC)
+theorem wp_ClientTCP_SendHandler (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) (t : Loc) (hc : c < nC)
     (bw : Loc) (cid : Nat) (sc done : GoChan) (wg : Loc) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗
       t.[ClientTCP, go!"Writer"] ↦□ bw ∗ t.[ClientTCP, go!"SendChan"] ↦□ sc ∗
@@ -267,7 +267,7 @@ theorem wp_ClientTCP_SendHandler (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNam
     have hW : hsBytes c ++ frames (qs.map encCmd) ++ [] ++ model.frame (encCmd q) =
         hsBytes c ++ frames ((qs ++ [q]).map encCmd) := by
       simp [frames_append, frames_cons, frames_nil]
-    wp_apply wp_cmdMarshalWriteFlush req_ptr v q bw cid false _ _ [] _
+    wp_apply wp_cmdMarshalWriteFlush D req_ptr v q bw cid false _ _ [] _
       $$ [$Hmpkg $req $Hrep $Hw] as %e ⟨%sent', %pend', %Hs, Hw⟩
     · isplitr
       · ipureintro; exact hcl
@@ -337,7 +337,7 @@ theorem wp_ClientTCP_SendHandler (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNam
   iapply BigAndL.bigAndL_nil.2
   itrivial
 
-theorem wp_ClientTCP_connect (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) (t : Loc) (hc : c < nC) :
+theorem wp_ClientTCP_connect (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) (t : Loc) (hc : c < nC) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗ confRO cf ∗ shared γ ∗ cfgIs γ.rab cf ∗
       clientOwn γ c γc t (proxyAddr (c % cf.n)) ∗ estabTok γ c (c % cf.n) }}
     (App (Val (t @!! go.GoType.PointerType ClientTCP.ty @!! go!"connect")) (Val #()))
@@ -360,7 +360,7 @@ theorem wp_ClientTCP_connect (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) 
     $$ [HConn HReader HWriter]
   · iexists cn, rd, wr; iframe
   wp_for HI
-  wp_apply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp (proxyAddr (c % cf.n)) iprop(True)
+  wp_apply D.dial go!"tcp" net.tcpNet_tcp (proxyAddr (c % cf.n)) iprop(True)
       (fun cid => iprop(connEnd (Gg := hG.goose_globalGS) cid false (proxyP γ (c % cf.n))
         (proxyQ γ (c % cf.n)) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cid false)) $$ []
     as %cv %err (⟨%Herr, %cid, #Hcl, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
@@ -376,7 +376,7 @@ theorem wp_ClientTCP_connect (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) 
     icases Hend with ⟨Hsend, Hrecv⟩
     ihave #Hconn := sendTok_connIs cid false _ _ $$ Hsend
     ihave #HP0 := (proxyP_closed (GF := GF) γ (c % cf.n)).nil cid
-    wp_apply wp_GetReaderWriter cf conn_ptr cv cid false (proxyAddr (c % cf.n)) (proxyQ γ (c % cf.n))
+    wp_apply wp_GetReaderWriter D cf conn_ptr cv cid false (proxyAddr (c % cf.n)) (proxyQ γ (c % cf.n))
       (proxyP γ (c % cf.n)) [] [] (proxyP_closed γ (c % cf.n))
       $$ [$Hconf $conn $Hcl $Hrecv $Hsend $HP0] as %br %bw ⟨Hbr, Hbw⟩
     ipersist «$r0»
@@ -398,7 +398,7 @@ theorem wp_ClientTCP_connect (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) 
       · ileft; ipureintro; rfl
       iapply BigSepL.bigSepL_nil.2; iempintro
     have hlen : (encCmd (hsCmd c)).length < 2 ^ 32 := hsCmd_enc_len c (by unfold nC at hc; omega)
-    wp_apply wp_cmdMarshalWriteFlush «$r0_ptr» _ (hsCmd c) bw cid false _ [] [] _
+    wp_apply wp_cmdMarshalWriteFlush D «$r0_ptr» _ (hsCmd c) bw cid false _ [] [] _
       $$ [$Hmpkg $«$r0» $Hrep $Hbw] as %e ⟨%sent', %pend', %Hs, Hw⟩
     · isplitr
       · ipureintro; simp [hsCmd]
@@ -419,7 +419,7 @@ theorem wp_ClientTCP_connect (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) 
       icases Hcl with ⟨%tc, %la, %ra, %Hct, #Hca⟩
       subst Hct
       wp_auto
-      wp_apply net.Conn.Close.wp_proof tc cid false _ la ra (fun _ => iprop(True)) $$ [] as %_ -
+      wp_apply D.close tc cid false _ la ra (fun _ => iprop(True)) $$ [] as %_ -
       · iframe Hca
         imod close_au cid false $$ Hconn with ⟨%st, %dd, Hst, Hdd, Hcl⟩
         imodintro
@@ -451,11 +451,11 @@ theorem wp_ClientTCP_connect (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) 
       unfold clientChans
       icases Hchans with ⟨%sc, %rc, #HSC, #HRC, #Hspsc, #Hbag⟩
       wp_apply wp_fork $$ [Hbr Htok1]
-      · wp_apply wp_ClientTCP_RecvHandler γ cf c γc t hc br cid rc wg $$ [$Hbr $Htok1]
+      · wp_apply wp_ClientTCP_RecvHandler D γ cf c γc t hc br cid rc wg $$ [$Hbr $Htok1]
         · iframe #
         itrivial
       wp_apply wp_fork $$ [Hw Hcons Htok2]
-      · wp_apply wp_ClientTCP_SendHandler γ cf c γc t hc bw cid sc done wg $$ [$Hw $Hcons $Htok2]
+      · wp_apply wp_ClientTCP_SendHandler D γ cf c γc t hc bw cid sc done wg $$ [$Hw $Hcons $Htok2]
         · iframe #
         itrivial
       iapply HΦ
@@ -469,12 +469,12 @@ theorem wp_ClientTCP_connect (γ : Names) (cf : RCfg) (c : Nat) (γc : ClNames) 
     iexists _, _, _
     iframe
 
-theorem ClientTCP.Connect.wp_proof : ClientTCP.Connect.spec (GF := GF) := by
+theorem ClientTCP.Connect.wp_proof (D : TcpDeps (GF := GF)) : ClientTCP.Connect.spec (GF := GF) := by
   intro γ cf c γc t hc
   wp_start as ⟨#Hconf, #Hsh, #Hcf, Hown, Htok⟩
   wp_auto
   wp_apply wp_fork $$ [Hown Htok]
-  · wp_apply wp_ClientTCP_connect γ cf c γc t hc $$ [$Hown $Htok]
+  · wp_apply wp_ClientTCP_connect D γ cf c γc t hc $$ [$Hown $Htok]
     · iframe #
     itrivial
   wp_end

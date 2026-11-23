@@ -209,7 +209,7 @@ theorem choose.wp_proof :
     {{ (cf : RCfg), RET #(confV cf); ⌜cf.Ok⌝ }} := by
   wp_start
   wp_auto
-  wp_apply math.rand.Intn.wp_proof (W64 3) (by decide) as %s %Hs
+  wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 3) (by decide) as %s %Hs
   have hs : s = W64 0 ∨ s = W64 1 ∨ s = W64 2 := by
     have h1 : sint.Z s = 0 ∨ sint.Z s = 1 ∨ sint.Z s = 2 := by
       have : sint.Z (W64 3) = 3 := rfl; omega
@@ -228,9 +228,9 @@ theorem choose.wp_proof :
   rcases hs with rfl | rfl | rfl
   all_goals
     wp_auto
-    wp_apply math.rand.Intn.wp_proof (W64 4) (by decide) as %a %Ha
-    wp_apply math.rand.Intn.wp_proof (W64 5) (by decide) as %b %Hb
-    wp_apply math.rand.Intn.wp_proof (W64 4) (by decide) as %c %Hc
+    wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 4) (by decide) as %a %Ha
+    wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 5) (by decide) as %b %Hb
+    wp_apply (math.rand.Hyps.Intn (GF := GF)) (W64 4) (by decide) as %c %Hc
     rw [show sint.Z (W64 4) = 4 from rfl] at Ha Hc
     rw [show sint.Z (W64 5) = 5 from rfl] at Hb
     first
@@ -637,7 +637,7 @@ theorem send.wp_proof (γ : Names) (cf : RCfg) (hc : cf.Ok) :
   isplitr
   · ipureintro; rfl
   iintro %ls ⟨Hls, -⟩
-  wp_apply log.Println.wp_proof $$ [$Hlog $Hls] as -
+  wp_apply (log.Hyps.Println (GF := GF)) $$ [$Hlog $Hls] as -
   have hn5 : cf.n ≤ 5 := by have := hc; unfold RCfg.Ok at this; omega
   have hn1 : 1 ≤ cf.n := by have := hc; unfold RCfg.Ok at this; omega
   ihave HI : (∃ j : w64, "c" ∷ c_ptr ↦ j ∗ "conf" ∷ conf_ptr ↦ confV cf ∗

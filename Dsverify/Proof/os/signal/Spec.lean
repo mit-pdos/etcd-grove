@@ -72,14 +72,4 @@ class NoSignals [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [
     (GF : BundledGFunctors) [HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   notifyQuiet : NotifyQuiet.spec (GF := GF)
 
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-
-theorem Notify.wp_proof [h : Hyps GF] : Notify.spec (GF := GF) := h.Notify
-theorem NotifyQuiet.wp_proof [h : NoSignals GF] : NotifyQuiet.spec (GF := GF) := h.notifyQuiet
-theorem Stop.wp_proof [h : Hyps GF] : Stop.spec (GF := GF) := h.Stop
-
-end proof
-
 end Perennial.os.signal

@@ -15,10 +15,10 @@ module
 
 public import Dsverify.Proof.rabia.internal.tcp.NetTCP__RecvHandler
 public import Dsverify.Proof.rabia.internal.tcp.NetTCP__SendHandler
-public import Net.Proof.net.Dial
-public import Net.Proof.net.Listener__Accept
+public import Net.Spec.net.Dial
+public import Net.Spec.net.Listener__Accept
 public import Net.Proof.net.AtAddr
-public import Net.Proof.net.Conn__Close
+public import Net.Spec.net.Conn__Close
 
 @[expose] public section
 
@@ -42,12 +42,12 @@ variable [msg_sem : rabia.internal.message.Assumptions]
 set_option goose.wp.extras true
 
 /-- Closing an end of a connection (`close_au`): nothing to record. -/
-theorem wp_closeConn (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
+theorem wp_closeConn (D : TcpDeps (GF := GF)) (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
     {{ net.connAt (GF := GF) t cn s a la ra ∗ connIs (Gg := hG.goose_globalGS) cn }}
       (App (Val #(methods (go.GoType.PointerType net.TCPConn.ty) go!"Close" #t)) (Val #()))
     {{ (err : GoInterface), RET #err; True }} := by
   iintro %Φ ⟨#Hca, #Hconn⟩ HΦ
-  iapply net.Conn.Close.wp_proof t cn s a la ra (fun _ => iprop(True)) $$ []
+  iapply D.close t cn s a la ra (fun _ => iprop(True)) $$ []
   · iframe Hca
     imod close_au cn s $$ Hconn with ⟨%st, %dd, Hst, Hdd, Hcl⟩
     imodintro
@@ -89,7 +89,7 @@ theorem netAddr_peer (cf : RCfg) (j : Nat) (hj : j < cf.n) :
     (config.peerStrs cf)[j]? = some (netAddr j) := by
   simp [config.peerStrs, List.getElem?_range hj]
 
-theorem wp_NetTCP_dialing (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t : Loc) (scs sns wrs : GoSlice)
+theorem wp_NetTCP_dialing (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t : Loc) (scs sns wrs : GoSlice)
     (chs0 : List GoChan) (ss0 ws0 : List Loc) (hl : chs0.length = cf.n ∧ ss0.length = cf.n ∧ ws0.length = cf.n) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗ confRO cf ∗ shared γ ∗
       cfgIs γ.rab cf ∗ t.[NetTCP, go!"Id"] ↦□ (BitVec.ofNat 32 k : w32) ∗
@@ -138,7 +138,7 @@ theorem wp_NetTCP_dialing (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t 
     ihave #Hproto := shared_netProto γ (sint.nat i) hjm $$ Hsh
     ihave %Haok := addrTok_ok (netAddr (sint.nat i)) $$ [Hproto]
     · iapply addrProto_tok $$ Hproto
-    wp_apply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp (netAddr (sint.nat i)) iprop(True)
+    wp_apply D.dial go!"tcp" net.tcpNet_tcp (netAddr (sint.nat i)) iprop(True)
         (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (netP γ (sint.nat i)) noneP [] [] ∗
           connFresh (Gg := hG.goose_globalGS) cn false))
       as %cv %err (⟨%Herr, %cid, #Hc, Hend, -⟩ | ⟨-, %x, -, #HE⟩)
@@ -175,7 +175,7 @@ theorem wp_NetTCP_dialing (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t 
       ihave #HP0 := (netP_closed (GF := GF) γ (sint.nat i)).nil cid
       simp only [hbw, _root_.and_self, ↓reduceIte]
       wp_auto
-      wp_apply wp_GetReaderWriter cf conn_ptr cv cid false (netAddr (sint.nat i)) noneP
+      wp_apply wp_GetReaderWriter D cf conn_ptr cv cid false (netAddr (sint.nat i)) noneP
           (netP γ (sint.nat i)) [] [] (netP_closed γ (sint.nat i))
         $$ [$conn $Hc $Hrecv $Hsend $HP0] as %br %bw ⟨-, Hbw⟩
       · iframe #
@@ -206,7 +206,7 @@ theorem wp_NetTCP_dialing (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t 
         iapply BigSepL.bigSepL_nil.2; iempintro
       have hlen : (encCmd (hsCmd k)).length < 2 ^ 32 := hsCmd_enc_len k (by omega)
       wp_auto
-      wp_apply wp_cmdMarshalWriteFlush «$r0_ptr» _ (hsCmd k) bw cid false (netP γ (sint.nat i)) [] [] _
+      wp_apply wp_cmdMarshalWriteFlush D «$r0_ptr» _ (hsCmd k) bw cid false (netP γ (sint.nat i)) [] [] _
         $$ [$«$r0» $Hrep $Hbw] as %e ⟨%sent', %pend', %Hs, Hw⟩
       · isplitr
         · ipureintro; simp [hsCmd]
@@ -227,7 +227,7 @@ theorem wp_NetTCP_dialing (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t 
         iunfold net.isConn at Hc
         icases Hc with ⟨%tc, %la, %ra, %Hct, #Hca⟩
         subst Hct
-        wp_apply wp_closeConn tc cid false _ la ra $$ [$Hca $Hconn] as %_ -
+        wp_apply wp_closeConn D tc cid false _ la ra $$ [$Hca $Hconn] as %_ -
         wp_apply time.wp_Sleep
         wp_for_post
         iframe
@@ -345,7 +345,7 @@ theorem acc_init (γ : Names) (n : Nat) (k : Nat) (rl0 : List Loc) :
   · ipureintro; rw [List.getElem?_replicate]; simp [hj]
   ileft; ipureintro; rfl
 
-theorem wp_NetTCP_accepting (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t : Loc)
+theorem wp_NetTCP_accepting (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t : Loc)
     (li : GoInterface) (lid : w64) (rcs rds : GoSlice) (rl0 : List Loc) (hl : rl0.length = cf.n) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗ confRO cf ∗ shared γ ∗ cfgIs γ.rab cf ∗
       t.[NetTCP, go!"Listener"] ↦□ li ∗ ownListener li lid (netAddr k) ∗
@@ -388,7 +388,7 @@ theorem wp_NetTCP_accepting (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (
   wp_if_destruct
   · obtain ⟨hi0, hi3, hrl, hll, hcnt⟩ := Hi
     have hj3 : sint.Z i < cf.n := by word
-    wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) tl lid x (netAddr k)
+    wp_apply (net.Listener.Accept.spec_addrOk D.accept) tl lid x (netAddr k)
         (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) lid (netAddr k) true)
         (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) lid (netAddr k) true ∗
           connEnd (Gg := hG.goose_globalGS) cn true noneP (netP γ k) [] [] ∗
@@ -404,7 +404,7 @@ theorem wp_NetTCP_accepting (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (
       icases Hend with ⟨Hsend, Hrecv⟩
       ihave #Hconn := sendTok_connIs cid true _ [] $$ Hsend
       ihave #HP0 := noneP_closed.nil (GF := GF) cid
-      wp_apply wp_GetReaderWriter cf conn_ptr cv cid true (netAddr k) (netP γ k) noneP [] []
+      wp_apply wp_GetReaderWriter D cf conn_ptr cv cid true (netAddr k) (netP γ k) noneP [] []
           noneP_closed
         $$ [$conn $Hc $Hrecv $Hsend $HP0] as %br %bw ⟨Hbr, -⟩
       · iframe #
@@ -413,7 +413,7 @@ theorem wp_NetTCP_accepting (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (
       ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
       have hsl : sint.nat sl.len = 20 := by rw [← Hsl0.1, List.length_replicate]
       ihave #HF := netP_frameIs_hs (GF := GF) γ k cid
-      wp_apply (lc := 1) wp_cmdReadUnmarshal c_ptr br cid true (netP γ k) [] sl _ $$ [$c $Hbr $HF $Hsl]
+      wp_apply (lc := 1) wp_cmdReadUnmarshal D c_ptr br cid true (netP γ k) [] sl _ $$ [$c $Hbr $HF $Hsl]
         as %e ⟨%ds', Hsl, Hres⟩
       icases Hres with (⟨%He, %v, %q, %Hq, Hcmd, #Hrep, Hbr⟩ | ⟨%He, %R', %v, %HR', Hcmd, Hbr⟩)
       · subst He
@@ -495,7 +495,7 @@ theorem wp_NetTCP_accepting (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (
           icases Hif0 with ⟨%c1, %la0, %ra0, %Hcv0, #Hca0⟩
           subst Hcv0
           wp_auto
-          wp_apply wp_closeConn c1 cid0 true a0 la0 ra0 $$ [$Hca0 $Hconn0] as %_ -
+          wp_apply wp_closeConn D c1 cid0 true a0 la0 ra0 $$ [$Hca0 $Hconn0] as %_ -
           simp only [hb, _root_.and_self, ↓reduceIte]
           wp_apply wp_store_slice_index rcs _ rcl conn_ptr $$ [Hrcs] as Hrcs
           · iframe; ipureintro; exact ⟨hb.1, by have := Hrl.1; have := hb.2; omega⟩
@@ -537,7 +537,7 @@ theorem wp_NetTCP_accepting (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (
           iunfold net.isConn at Hc
           icases Hc with ⟨%tc, %la, %ra, %Hct, #Hca⟩
           subst Hct
-          wp_apply wp_closeConn tc cid true _ la ra $$ [$Hca $Hconn] as %_ -
+          wp_apply wp_closeConn D tc cid true _ la ra $$ [$Hca $Hconn] as %_ -
           wp_for_post
           iframe
           iexists _, rcl, rl
@@ -644,7 +644,7 @@ theorem send_view (γ : Names) (cf : RCfg) (k : Nat) (γs : List OrdNames) (chs 
   iframe Ho
   ipureintro; exact hγo
 
-theorem NetTCP.Connect.wp_proof : NetTCP.Connect.spec (GF := GF) := by
+theorem NetTCP.Connect.wp_proof (D : TcpDeps (GF := GF)) : NetTCP.Connect.spec (GF := GF) := by
   intro γ cf k γl γr t hk
   wp_start as ⟨#Hconf, #Hsh, #Hcf, #Hrecv, Hown, Hlogs⟩
   ihave %Hok := cfgIs_ok γ.rab cf $$ Hcf
@@ -667,13 +667,13 @@ theorem NetTCP.Connect.wp_proof : NetTCP.Connect.spec (GF := GF) := by
     $$ [$Had] as ⟨Had, Hd1, Hd2⟩
   wp_apply wp_fork $$ [Hd1 Hrcs Hrds Hl]
   · wp_auto
-    wp_apply wp_NetTCP_accepting γ cf k hk t li lid rcs rds rs0 hl3 $$ [$Hrcs $Hrds $Hl] as HP1
+    wp_apply wp_NetTCP_accepting D γ cf k hk t li lid rcs rds rs0 hl3 $$ [$Hrcs $Hrds $Hl] as HP1
     · iframe #
     wp_apply sync.join.WaitGroup.wp_Done $$ [$Hd1 $HP1]
     itrivial
   wp_apply wp_fork $$ [Hd2 Hscs Hsns Hwrs]
   · wp_auto
-    wp_apply wp_NetTCP_dialing γ cf k hk t scs sns wrs chs0 ss0 ws0 ⟨hl1, hl2, hl4⟩
+    wp_apply wp_NetTCP_dialing D γ cf k hk t scs sns wrs chs0 ss0 ws0 ⟨hl1, hl2, hl4⟩
       $$ [$Hscs $Hsns $Hwrs] as HP2
     · iframe #
     wp_apply sync.join.WaitGroup.wp_Done $$ [$Hd2 $HP2]
@@ -730,7 +730,7 @@ theorem NetTCP.Connect.wp_proof : NetTCP.Connect.spec (GF := GF) := by
     icases wgToks_split wg _ $$ Htoks with ⟨Htok1, Htoks⟩
     icases wgToks_split wg _ $$ Htoks with ⟨Htok2, Htoks⟩
     wp_apply wp_fork $$ [Hrd Hpush Hrcpt Hprod Htok1]
-    · wp_apply wp_NetTCP_RecvHandler γ cf k γl t i (sint.nat i) hXZ hX rc γr wg rds rl br cid Hbr
+    · wp_apply wp_NetTCP_RecvHandler D γ cf k γl t i (sint.nat i) hXZ hX rc γr wg rds rl br cid Hbr
         $$ [$Htok1 Hrd Hpush Hrcpt Hprod]
       · iframe #
         unfold recvSt
@@ -739,7 +739,7 @@ theorem NetTCP.Connect.wp_proof : NetTCP.Connect.spec (GF := GF) := by
         ipureintro; simp
       itrivial
     wp_apply wp_fork $$ [Hst Htok2]
-    · wp_apply wp_NetTCP_SendHandler γ cf k hk t i (sint.nat i) hXZ hX done wg scs wrs chs ws ch bw
+    · wp_apply wp_NetTCP_SendHandler D γ cf k hk t i (sint.nat i) hXZ hX done wg scs wrs chs ws ch bw
         cid' γo Hcw.1 Hcw.2 $$ [$Htok2 $Hst]
       · iframe #
       itrivial

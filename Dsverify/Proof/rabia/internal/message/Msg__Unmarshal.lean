@@ -8,7 +8,7 @@ module
 public import Dsverify.Proof.rabia.internal.message.Internal
 public import Dsverify.Proof.rabia.internal.message.MsgWire
 public import Dsverify.Proof.rabia.internal.message.VarintTac
-public import Dsverify.Proof.rabia.internal.message.ConsensusObj__Unmarshal
+public import Dsverify.Proof.rabia.internal.message.UnmarshalLemmas
 
 @[expose] public section
 
@@ -81,7 +81,7 @@ theorem msgRep_upto3_obj (v : Msg) (m : MsgV) :
   ipureintro; exact H
 
 set_option maxHeartbeats 2000000 in
-theorem Msg.Unmarshal.wp_proof_of (Hobj : ConsensusObj.Unmarshal.spec (GF := GF)) :
+theorem Msg.Unmarshal.wp_proof (Hobj : ConsensusObj.Unmarshal.spec (GF := GF)) :
     Msg.Unmarshal.spec (GF := GF) := by
   intro l sl dq m
   wp_start as ⟨Hl, Hsl⟩
@@ -283,9 +283,6 @@ theorem Msg.Unmarshal.wp_proof_of (Hobj : ConsensusObj.Unmarshal.spec (GF := GF)
     iexists v
     iframe
     iexact Hrep
-
-theorem Msg.Unmarshal.wp_proof : Msg.Unmarshal.spec (GF := GF) :=
-  Msg.Unmarshal.wp_proof_of ConsensusObj.Unmarshal.wp_proof
 
 end proof
 end Perennial.rabia.internal.message

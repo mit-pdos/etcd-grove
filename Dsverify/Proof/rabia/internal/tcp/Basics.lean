@@ -17,19 +17,20 @@ module
 public import Dsverify.Proof.rabia.internal.tcp.Spec
 public import Dsverify.Proof.rabia.internal.tcp.Wg
 public import Dsverify.Proof.rabia.internal.tcp.Enc
-public import Dsverify.Proof.rabia.internal.message.ReadUnmarshal
-public import Dsverify.Proof.rabia.internal.message.MarshalWriteFlush
-public import Dsverify.Proof.rabia.internal.message.WriteFlush
+public import Dsverify.Proof.rabia.internal.message.Spec
 public import Net.Proof.net.ConnIo
-public import Net.Proof.net.Conn__Read
-public import Net.Proof.net.Conn__Write
-public import Net.Proof.net.TCPConn__SetWriteBuffer
-public import Net.Proof.net.TCPConn__SetReadBuffer
-public import Net.Proof.net.TCPConn__SetKeepAlive
-public import Net.Proof.net.TCPConn__SetKeepAlivePeriod
+public import Net.Spec.net.Conn__Read
+public import Net.Spec.net.Conn__Write
+public import Net.Spec.net.TCPConn__SetWriteBuffer
+public import Net.Spec.net.TCPConn__SetReadBuffer
+public import Net.Spec.net.TCPConn__SetKeepAlive
+public import Net.Spec.net.TCPConn__SetKeepAlivePeriod
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
-public import Proof.bufio.NewReaderSize
-public import Proof.bufio.NewWriterSize
+public import Spec.bufio.NewReaderSize
+public import Spec.bufio.NewWriterSize
+public import Net.Spec.net.Conn__Close
+public import Net.Spec.net.Dial
+public import Net.Spec.net.Listener__Accept
 public import Perennial.Proof.time
 
 @[expose] public section
@@ -125,6 +126,36 @@ theorem ed_init :
 
 end pkg
 
+section deps
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
+variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
+variable [net.Assumptions] [net.FieldAssumptions]
+variable [msg_sem : rabia.internal.message.Assumptions]
+
+/-- The other packages' specs tcp's connection proofs use (`net`'s, `bufio`'s, `message`'s framing),
+taken as a hypothesis (CLAUDE.md, "Import tiers"; as consensus's `ExDeps`), linked in the server's
+`Link.lean`. -/
+structure TcpDeps : Prop where
+  setWriteBuffer : net.TCPConn.SetWriteBuffer.spec (GF := GF) (hG := hG)
+  setReadBuffer : net.TCPConn.SetReadBuffer.spec (GF := GF) (hG := hG)
+  setKeepAlive : net.TCPConn.SetKeepAlive.spec (GF := GF) (hG := hG)
+  setKeepAlivePeriod : net.TCPConn.SetKeepAlivePeriod.spec (GF := GF) (hG := hG)
+  read : net.Conn.Read.spec (GF := GF) (hG := hG)
+  write : net.Conn.Write.spec (GF := GF) (hG := hG)
+  close : net.Conn.Close.spec (GF := GF) (hG := hG)
+  dial : net.Dial.spec (GF := GF) (hG := hG)
+  accept : net.Listener.Accept.spec (GF := GF) (hG := hG)
+  newReaderSize : EtcdGrove.bufio.NewReaderSize.spec (GF := GF) (hG := hG)
+  newWriterSize : EtcdGrove.bufio.NewWriterSize.spec (GF := GF) (hG := hG)
+  cmdReadUnmarshal : Command.ReadUnmarshal.spec (GF := GF)
+  msgReadUnmarshal : Msg.ReadUnmarshal.spec (GF := GF)
+  cmdMarshalWriteFlush : Command.MarshalWriteFlush.spec (GF := GF)
+  msgMarshalWriteFlush : Msg.MarshalWriteFlush.spec (GF := GF)
+  writeFlush : WriteFlush.spec (GF := GF)
+
+end deps
+
 section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt Net.netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
@@ -152,7 +183,7 @@ theorem sockopt_true (cn : Nat) (s : Bool) (v : Option Bool) :
   imodintro
   itrivial
 
-theorem wp_GetReaderWriter (cf : RCfg) (cl : Loc) (cv : GoInterface) (cn : Nat) (s : Bool)
+theorem wp_GetReaderWriter (D : TcpDeps (GF := GF)) (cf : RCfg) (cl : Loc) (cv : GoInterface) (cn : Nat) (s : Bool)
     (a : GoString) (Pin Pout : Proto GF) (R W : List w8) (hP : ProtoPrefixClosed Pout) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗ confRO cf ∗ cl ↦□ cv ∗
         net.isConn cv cn s a ∗ recvTok (Gg := hG.goose_globalGS) cn s Pin R ∗
@@ -175,26 +206,26 @@ theorem wp_GetReaderWriter (cf : RCfg) (cl : Loc) (cv : GoInterface) (cn : Nat) 
   ihave #Hbuf : (isPkgInit (PROP := IProp GF) pkg_id.bufio) $$ []
   · iPkgInit
   wp_auto
-  wp_apply net.TCPConn.SetWriteBuffer.wp_proof t cn s a la ra _ (fun _ => iprop(True)) $$ [] as %_ -
+  wp_apply D.setWriteBuffer t cn s a la ra _ (fun _ => iprop(True)) $$ [] as %_ -
   · iframe Hca; iapply sockopt_true $$ Hconn
-  wp_apply net.TCPConn.SetReadBuffer.wp_proof t cn s a la ra _ (fun _ => iprop(True)) $$ [] as %_ -
+  wp_apply D.setReadBuffer t cn s a la ra _ (fun _ => iprop(True)) $$ [] as %_ -
   · iframe Hca; iapply sockopt_true $$ Hconn
-  wp_apply net.TCPConn.SetKeepAlive.wp_proof t cn s a la ra _ (fun _ => iprop(True)) $$ [] as %_ -
+  wp_apply D.setKeepAlive t cn s a la ra _ (fun _ => iprop(True)) $$ [] as %_ -
   · iframe Hca; iapply sockopt_true $$ Hconn
-  wp_apply net.TCPConn.SetKeepAlivePeriod.wp_proof t cn s a la ra _ (fun _ => iprop(True)) $$ []
+  wp_apply D.setKeepAlivePeriod t cn s a la ra _ (fun _ => iprop(True)) $$ []
     as %_ -
   · iframe Hca; iapply sockopt_true $$ Hconn
-  ihave #Hrok := net.conn_readerOk net.Conn.Read.wp_proof t cn s a la ra eof ed Pin $$ [$Hio $Hca $Heof $Hed]
-  ihave #Hwok := net.conn_streamWriterOk net.Conn.Write.wp_proof t cn s a la ra ed Pout hP $$ [$Hca $Hed]
+  ihave #Hrok := net.conn_readerOk D.read t cn s a la ra eof ed Pin $$ [$Hio $Hca $Heof $Hed]
+  ihave #Hwok := net.conn_streamWriterOk D.write t cn s a la ra ed Pout hP $$ [$Hca $Hed]
   ihave HRL := recvTok_L cn s Pin R $$ HR
   ihave #Hpu := EtcdGrove.bufio.preUpTo_trivial (recvTokL (Gg := hG.goose_globalGS) cn s Pin)
     (max (sint.Z (W64 16384000)) 16).toNat
   rw [show interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t = GoInterface.ok (net.connIface t)
     from rfl]
-  wp_apply EtcdGrove.bufio.NewReaderSize.wp_proof (net.connIface t) connPre _ _ R _
+  wp_apply D.newReaderSize (net.connIface t) connPre _ _ R _
     $$ [$Hbuf $Hrok $Hpu $HRL] as %br Hbr
   · ipureintro; exact net.connIface_ne_bufioReader t
-  wp_apply EtcdGrove.bufio.NewWriterSize.wp_proof (net.connIface t) _ _ _ W _
+  wp_apply D.newWriterSize (net.connIface t) _ _ _ W _
     $$ [$Hbuf $Hwok $HS $HW] as %bw Hbw
   · ipureintro; exact net.connIface_ne_bufioWriter t
   iapply HΦ
@@ -207,7 +238,7 @@ theorem wp_GetReaderWriter (cf : RCfg) (cl : Loc) (cv : GoInterface) (cn : Nat) 
 /-! ### Message's framing over a connection end's reader and writer -/
 
 /-- `(*Command).ReadUnmarshal` over `rdOwn`. -/
-theorem wp_cmdReadUnmarshal (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8)
+theorem wp_cmdReadUnmarshal (D : TcpDeps (GF := GF)) (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8)
     (sl : GoSlice) (ds : List w8) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ l ↦ (zeroValDef : Command) ∗
         rdOwn br cn s P R ∗ frameIs P cn R (fun bs => ∃ c, bs = encCmd c) ∗ sl ↦* ds }}
@@ -221,7 +252,7 @@ theorem wp_cmdReadUnmarshal (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R
   iintro %Φ ⟨#Hpkg, Hl, Hrd, #HF, Hsl⟩ HΦ
   unfold rdOwn
   icases Hrd with ⟨%ri, %E, Hrd⟩
-  iapply Command.ReadUnmarshal.wp_proof l br ri cn s P E R sl ds $$ [$Hpkg $Hl $Hrd $HF $Hsl]
+  iapply D.cmdReadUnmarshal l br ri cn s P E R sl ds $$ [$Hpkg $Hl $Hrd $HF $Hsl]
   inext
   iintro %e ⟨%ds', Hsl, Hres⟩
   iapply HΦ
@@ -246,7 +277,7 @@ theorem wp_cmdReadUnmarshal (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R
     iexists ri, E; iexact Hrd
 
 /-- `(*Msg).ReadUnmarshal` over `rdOwn`. -/
-theorem wp_msgReadUnmarshal (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8)
+theorem wp_msgReadUnmarshal (D : TcpDeps (GF := GF)) (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R : List w8)
     (sl : GoSlice) (ds : List w8) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ l ↦ (zeroValDef : Msg) ∗
         rdOwn br cn s P R ∗ frameIs P cn R (fun bs => ∃ m, bs = encMsg m) ∗ sl ↦* ds }}
@@ -260,7 +291,7 @@ theorem wp_msgReadUnmarshal (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R
   iintro %Φ ⟨#Hpkg, Hl, Hrd, #HF, Hsl⟩ HΦ
   unfold rdOwn
   icases Hrd with ⟨%ri, %E, Hrd⟩
-  iapply Msg.ReadUnmarshal.wp_proof l br ri cn s P E R sl ds $$ [$Hpkg $Hl $Hrd $HF $Hsl]
+  iapply D.msgReadUnmarshal l br ri cn s P E R sl ds $$ [$Hpkg $Hl $Hrd $HF $Hsl]
   inext
   iintro %e %n ⟨%ds', Hsl, Hres⟩
   iapply HΦ
@@ -285,7 +316,7 @@ theorem wp_msgReadUnmarshal (l br : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (R
     iexists ri, E; iexact Hrd
 
 /-- `(*Command).MarshalWriteFlush` over `wrOwn`. -/
-theorem wp_cmdMarshalWriteFlush (l : Loc) (v : Command) (c : CmdV) (bw : Loc) (cn : Nat)
+theorem wp_cmdMarshalWriteFlush (D : TcpDeps (GF := GF)) (l : Loc) (v : Command) (c : CmdV) (bw : Loc) (cn : Nat)
     (s : Bool) (P : Proto GF) (W pend : List w8) (err : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ l ↦□ v ∗ cmdRep v c ∗
         ⌜c.commands.length ≤ 1⌝ ∗ wrOwn bw cn s P W pend err ∗
@@ -300,7 +331,7 @@ theorem wp_cmdMarshalWriteFlush (l : Loc) (v : Command) (c : CmdV) (bw : Loc) (c
   iintro %Φ ⟨#Hpkg, #Hl, #Hrep, %Hc1, Hwr, #HQ⟩ HΦ
   unfold wrOwn
   icases Hwr with ⟨%wi, %Ew, %sz, #Hwi, Hwr⟩
-  iapply Command.MarshalWriteFlush.wp_proof l v c bw wi _ _ Ew sz W pend err
+  iapply D.cmdMarshalWriteFlush l v c bw wi _ _ Ew sz W pend err
     $$ [$Hpkg $Hl $Hrep $Hwi $Hwr $HQ]
   · ipureintro; exact Hc1
   inext
@@ -313,7 +344,7 @@ theorem wp_cmdMarshalWriteFlush (l : Loc) (v : Command) (c : CmdV) (bw : Loc) (c
   iframe Hwi Hwr
 
 /-- `(*Msg).MarshalWriteFlush` over `wrOwn`. -/
-theorem wp_msgMarshalWriteFlush (l : Loc) (v : Msg) (m : MsgV) (bw : Loc) (cn : Nat)
+theorem wp_msgMarshalWriteFlush (D : TcpDeps (GF := GF)) (l : Loc) (v : Msg) (m : MsgV) (bw : Loc) (cn : Nat)
     (s : Bool) (P : Proto GF) (W pend : List w8) (err : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ l ↦□ v ∗ msgRep v m ∗
         ⌜(encMsg m).length < 2 ^ 32⌝ ∗ wrOwn bw cn s P W pend err ∗
@@ -326,7 +357,7 @@ theorem wp_msgMarshalWriteFlush (l : Loc) (v : Msg) (m : MsgV) (bw : Loc) (cn : 
   iintro %Φ ⟨#Hpkg, #Hl, #Hrep, %Hm, Hwr, #HQ⟩ HΦ
   unfold wrOwn
   icases Hwr with ⟨%wi, %Ew, %sz, #Hwi, Hwr⟩
-  iapply Msg.MarshalWriteFlush.wp_proof l v m bw wi _ _ Ew sz W pend err
+  iapply D.msgMarshalWriteFlush l v m bw wi _ _ Ew sz W pend err
     $$ [$Hpkg $Hl $Hrep $Hwi $Hwr $HQ]
   · ipureintro; exact Hm
   inext
@@ -339,7 +370,7 @@ theorem wp_msgMarshalWriteFlush (l : Loc) (v : Msg) (m : MsgV) (bw : Loc) (cn : 
   iframe Hwi Hwr
 
 /-- `WriteFlush` over `wrOwn`. -/
-theorem wp_writeFlush (bw : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (W pend : List w8)
+theorem wp_writeFlush (D : TcpDeps (GF := GF)) (bw : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (W pend : List w8)
     (err : GoInterface) (sl : GoSlice) (dq : DFrac) (bs : List w8) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ ⌜bs.length < 2 ^ 32⌝ ∗
         wrOwn bw cn s P W pend err ∗ □ P cn (W ++ pend ++ frame bs) ∗ sl ↦*{dq} bs }}
@@ -351,7 +382,7 @@ theorem wp_writeFlush (bw : Loc) (cn : Nat) (s : Bool) (P : Proto GF) (W pend : 
   iintro %Φ ⟨#Hpkg, %Hbs, Hwr, #HQ, Hsl⟩ HΦ
   unfold wrOwn
   icases Hwr with ⟨%wi, %Ew, %sz, #Hwi, Hwr⟩
-  iapply WriteFlush.wp_proof bw wi _ _ Ew sz W pend err sl dq bs
+  iapply D.writeFlush bw wi _ _ Ew sz W pend err sl dq bs
     $$ [$Hpkg $Hwi $Hwr $HQ $Hsl]
   · ipureintro; exact Hbs
   inext

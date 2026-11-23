@@ -7,15 +7,17 @@
 the writer), `Flush` (returns the sticky error, else sends the rest).
 `Command`'s first runs G12's loop (a string longer than `0xffffffff`: `Flush`, return; with at
 most one string the encoding is then `< 2^33`, `encCmd_lt33`), and an encoding of `2^32` bytes
-or more goes through `BufWrite.wp_tooLong` (N8: nothing written), which needs the global
+or more goes through `hBWL` (N8: nothing written), which needs the global
 `errFrameTooLong` (`errFrameTooLong_get`, from the package fact `msgFact`).
 Rest on C1's proofs of the `Marshal` specs (`wp_of` takes them).
 -/
 module
 
-public import Dsverify.Proof.rabia.internal.message.BufWrite
+public import Dsverify.Proof.rabia.internal.message.SpecInternal
+public import Dsverify.Proof.rabia.internal.message.Command__Marshal
+public import Dsverify.Proof.rabia.internal.message.Msg__Marshal
+public import Spec.bufio.Writer__Flush
 public import Dsverify.Proof.rabia.internal.message.Internal
-public import Dsverify.Proof.rabia.internal.message.Marshal
 
 @[expose] public section
 
@@ -66,8 +68,10 @@ theorem encCmd_ge (c : CmdV) (s : GoString) (hs : s ∈ c.commands) : s.length �
 set_option maxHeartbeats 2000000 in
 /-- `Command.MarshalWriteFlush.spec`, given `Marshal`'s spec (the global `errFrameTooLong`
 from the package fact, `errFrameTooLong_get`). -/
-theorem Command.MarshalWriteFlush.wp_of
-    (hM : Command.Marshal.spec (GF := GF)) :
+theorem Command.MarshalWriteFlush.wp_proof
+    (hM : Command.Marshal.spec (GF := GF))
+    (hBW : BufWrite.spec (GF := GF)) (hBWL : BufWrite.specTooLong (GF := GF))
+    (wp_Flush : EtcdGrove.bufio.Writer.Flush.spec (GF := GF) (hG := hG)) :
     ∀ (l : Loc) (v : Command) (c : CmdV) (bw : Loc) (wi : GoInterfaceOk)
       (J Q : List w8 → IProp GF) (Ew : GoInterface → IProp GF) (sz : Nat) (sent pend : List w8)
       (err : GoInterface),
@@ -124,7 +128,7 @@ theorem Command.MarshalWriteFlush.wp_of
       have hlong : 4294967295 < cmd.length := by
         have h2 : uint.Z (W64 4294967295) = 4294967295 := rfl
         omega
-      wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof bw wi J Q Ew sz sent pend _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
+      wp_apply wp_Flush bw wi J Q Ew sz sent pend _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
       wp_for_post
       iapply HΦ
       iexists sent ++ pend.take k2, pend.drop k2
@@ -165,12 +169,11 @@ theorem Command.MarshalWriteFlush.wp_of
   by_cases h32 : (encCmd c).length < 2 ^ 32
   · -- the frame is written
     ihave #HQ' := HQ $$ %h32
-    have hBW : BufWrite.spec (GF := GF) := BufWrite.wp_of
     wp_apply hBW bw wi J Q Ew sz sent pend err dsl _ _ $$ [$Hpkg $Hwr $Hown $HQ' $Hd]
       as %e1 ⟨%k, %sent1, %pend1, %Hk, -, Hown⟩
     · ipureintro; exact h32
     obtain ⟨hkl, hks, hkp, hke⟩ := Hk
-    wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof bw wi J Q Ew sz sent1 pend1 _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
+    wp_apply wp_Flush bw wi J Q Ew sz sent1 pend1 _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
     obtain ⟨hk2l, hk2e, hk2s⟩ := Hk2
     iapply HΦ
     iexists sent1 ++ pend1.take k2, pend1.drop k2
@@ -186,8 +189,8 @@ theorem Command.MarshalWriteFlush.wp_of
       rw [hk2e h, List.take_length, List.drop_length, hks, hke he1, List.take_length]
       exact ⟨rfl, rfl⟩
   · -- N8: an encoding too long for a frame: `BufWrite` writes nothing
-    wp_apply BufWrite.wp_tooLong bw dsl _ _ (by omega) $$ [$Hpkg $Hd] as %e1 ⟨%He1, -⟩
-    wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof bw wi J Q Ew sz sent pend _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
+    wp_apply hBWL bw dsl _ _ (by omega) $$ [$Hpkg $Hd] as %e1 ⟨%He1, -⟩
+    wp_apply wp_Flush bw wi J Q Ew sz sent pend _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
     iapply HΦ
     iexists sent ++ pend.take k2, pend.drop k2
     iframe Hown
@@ -196,20 +199,21 @@ theorem Command.MarshalWriteFlush.wp_of
     rw [List.append_assoc, List.take_append_drop]; exact List.prefix_refl _
 
 set_option maxHeartbeats 1000000 in
-theorem Msg.MarshalWriteFlush.wp_of
-    (hM : Msg.Marshal.spec (GF := GF)) : Msg.MarshalWriteFlush.spec (GF := GF) := by
+theorem Msg.MarshalWriteFlush.wp_proof
+    (hM : Msg.Marshal.spec (GF := GF))
+    (hBW : BufWrite.spec (GF := GF)) (hBWL : BufWrite.specTooLong (GF := GF))
+    (wp_Flush : EtcdGrove.bufio.Writer.Flush.spec (GF := GF) (hG := hG)) : Msg.MarshalWriteFlush.spec (GF := GF) := by
   intro l v m bw wi J Q Ew sz sent pend err
   wp_start as ⟨#Hl, #Hrep, %Hbnd, #Hwr, Hown, #HQ⟩
   ihave ⟨#Hpb, #Hpio, #Hpbin⟩ := msgPkgDeps_get $$ Hpkg
   wp_auto
   wp_apply hM l v m _ $$ [$Hl $Hrep] as %dsl ⟨-, Hd⟩
   · ipureintro; exact Hbnd
-  have hBW : BufWrite.spec (GF := GF) := BufWrite.wp_of
   wp_apply hBW bw wi J Q Ew sz sent pend err dsl _ _ $$ [$Hpkg $Hwr $Hown $HQ $Hd]
     as %e1 ⟨%k, %sent1, %pend1, %Hk, -, Hown⟩
   · ipureintro; exact Hbnd
   obtain ⟨hkl, hks, hkp, hke⟩ := Hk
-  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof bw wi J Q Ew sz sent1 pend1 _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
+  wp_apply wp_Flush bw wi J Q Ew sz sent1 pend1 _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
   obtain ⟨hk2l, hk2e, hk2s⟩ := Hk2
   iapply HΦ
   iexists sent1 ++ pend1.take k2, pend1.drop k2
@@ -224,15 +228,6 @@ theorem Msg.MarshalWriteFlush.wp_of
       · rw [(hk2s hne).1] at h; exact absurd h hne
     rw [hk2e h, List.take_length, List.drop_length, hks, hke he1, List.take_length]
     exact ⟨rfl, rfl⟩
-
-/-- `Command.MarshalWriteFlush.spec`: `Command.Marshal.wp_proof` (C1). -/
-theorem Command.MarshalWriteFlush.wp_proof : Command.MarshalWriteFlush.spec (GF := GF) := by
-  exact Command.MarshalWriteFlush.wp_of Command.Marshal.wp_proof
-
-/-- `Msg.MarshalWriteFlush.spec`: as `Command.MarshalWriteFlush.wp_proof`. -/
-theorem Msg.MarshalWriteFlush.wp_proof : Msg.MarshalWriteFlush.spec (GF := GF) :=
-  Msg.MarshalWriteFlush.wp_of
-    Msg.Marshal.wp_proof
 
 end proof
 

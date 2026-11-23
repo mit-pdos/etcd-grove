@@ -26,7 +26,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [π : NetProtoGS]
 variable [package_sem : rabia.roles.server.layers.proxy.Assumptions]
 
-theorem Proxy.Prologue.wp_of (hConn : ProxyTCP.Connect.spec (GF := GF)) :
+theorem Proxy.Prologue.wp_proof (hConn : ProxyTCP.Connect.spec (GF := GF)) :
     Proxy.Prologue.spec (GF := GF) := by
   intro γ cf k γl γc ch p
   wp_start as ⟨#Hconf, #Hsh, #Hcfg, Hres⟩

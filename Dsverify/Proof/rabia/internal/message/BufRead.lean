@@ -13,7 +13,8 @@ module
 
 public import Dsverify.Proof.rabia.internal.message.FrameDeps
 public import Proof.bufio.ReaderLaws
-public import Proof.bufio.Reader__ReadOk
+public import Spec.bufio.Reader__ReadOk
+public import Dsverify.Proof.rabia.internal.message.SpecInternal
 public import Perennial.Proof.io.Link
 
 @[expose] public section
@@ -30,6 +31,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [package_sem : rabia.internal.message.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions] [_root_.Perennial.io.Assumptions]
+variable (wp_ReadOk : EtcdGrove.bufio.Reader.Read.specOk (GF := GF) (hG := hG))
+include wp_ReadOk
 
 /-- `io.ReadFull(reader, buf)` through a `*bufio.Reader` (the lab's `wp_ReadFull` over
 `bufioReadsOk`): Perennial's `io.ReadFull` over the reader's contract
@@ -49,7 +52,7 @@ theorem wp_ReadFull_buf (br : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp G
         EtcdGrove.bufio.ownBufReader br ri connPre S E (R ++ data) }} := by
   iintro %Φ ⟨#Hio, Hown, Hb⟩ HΦ
   have hR := EtcdGrove.bufio.ownBufReader_readerOk (GF := GF)
-    EtcdGrove.bufio.Reader.Read.wp_proofOk br ri connPre S E
+    wp_ReadOk br ri connPre S E
   have hri : EtcdGrove.bufio.readerIface br =
       ⟨go.GoType.PointerType _root_.Perennial.bufio.Reader.ty, #br⟩ := rfl
   rw [hri] at hR
@@ -89,31 +92,15 @@ theorem wp_ReadFull_buf (br : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp G
   word
 
 
-/-- `BufRead.spec` with the payload's bound (the header is a `uint32`): internal, for
-`ReadUnmarshal` (`frameIs` speaks of payloads below `2^32`). -/
-abbrev BufRead.specB : Prop :=
-  ∀ (br : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF)
-    (E : List w8 → GoInterface → IProp GF) (R : List w8) (sl : GoSlice) (ds : List w8),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗
-      EtcdGrove.bufio.ownBufReader br ri connPre S E R ∗ sl ↦* ds }}
-    (App (App (Val (@! BufRead)) (Val #br)) (Val #sl))
-  {{ (n : w64) (e : GoInterface), RET (PairV #n #e);
-      (⌜e = interface.nil⌝ ∗ ∃ bs, ⌜n = W64 bs.length ∧ bs.length ≤ ds.length ∧
-          bs.length < 2 ^ 32⌝ ∗
-        sl ↦* (bs ++ ds.drop bs.length) ∗
-        EtcdGrove.bufio.ownBufReader br ri connPre S E (R ++ frame bs)) ∨
-      (⌜e ≠ interface.nil⌝ ∗ ∃ (R' ds' : List w8), ⌜R <+: R'⌝ ∗ sl ↦* ds' ∗
-        EtcdGrove.bufio.ownBufReader br ri connPre S E R') }}
-
 set_option maxHeartbeats 1000000 in
-theorem BufRead.wp_ofB : BufRead.specB (GF := GF) := by
+theorem BufRead.wp_proofB : BufRead.specB (GF := GF) := by
   intro br ri S E R sl ds
   wp_start as ⟨Hown, Hsl⟩
   ihave ⟨#Hpb, #Hpio, #Hpbin⟩ := msgPkgDeps_get $$ Hpkg
   wp_auto
   wp_apply (wp_slice_make2 (V := w8) (W64 4)) as %lb ⟨Hlb, -⟩
   · ipureintro; decide
-  wp_apply wp_ReadFull_buf br ri S E R lb _ $$ [$Hpio $Hown $Hlb] as %n1 %err1 ⟨%d1, %Hd1, Hlb, Hown⟩
+  wp_apply wp_ReadFull_buf wp_ReadOk br ri S E R lb _ $$ [$Hpio $Hown $Hlb] as %n1 %err1 ⟨%d1, %Hd1, Hlb, Hown⟩
   obtain ⟨rfl, hd1l, hd1e⟩ := Hd1
   simp only [List.length_replicate] at hd1l hd1e
   wp_if_destruct
@@ -157,7 +144,7 @@ theorem BufRead.wp_ofB : BufRead.specB (GF := GF) := by
     ihave ⟨Hs1, Hs2⟩ := (ownSlice_split_all (W64 (uint.Z (leToU32 d1))) sl _ ds
       ⟨by omega, by omega⟩).1 $$ Hsl
     rw [hkn]
-    wp_apply wp_ReadFull_buf br ri S E (R ++ d1) _ _ $$ [$Hpio $Hown $Hs1]
+    wp_apply wp_ReadFull_buf wp_ReadOk br ri S E (R ++ d1) _ _ $$ [$Hpio $Hown $Hs1]
       as %n3 %err3 ⟨%d2, %Hd2, Hs1, Hown⟩
     obtain ⟨rfl, hd2l, hd2e⟩ := Hd2
     have htl : (List.take (LittleEndian.combine d1) ds).length = LittleEndian.combine d1 := by
@@ -204,10 +191,10 @@ theorem BufRead.wp_ofB : BufRead.specB (GF := GF) := by
   iframe Hsl Hown
   ipureintro; exact List.prefix_append _ _
 
-theorem BufRead.wp_of : BufRead.spec (GF := GF) := by
+theorem BufRead.wp_proof : BufRead.spec (GF := GF) := by
   intro br ri S E R sl ds
   iintro %Φ Hpre HΦ
-  iapply (BufRead.wp_ofB br ri S E R sl ds) $$ Hpre
+  iapply (BufRead.wp_proofB wp_ReadOk br ri S E R sl ds) $$ Hpre
   inext
   iintro %n %e Hres
   iapply HΦ
@@ -220,10 +207,6 @@ theorem BufRead.wp_of : BufRead.spec (GF := GF) := by
     ipureintro; exact ⟨Hbs.1, Hbs.2.1⟩
   iright
   iexact Hres
-
-/-- `BufRead.spec`. -/
-theorem BufRead.wp_proof : BufRead.spec (GF := GF) :=
-  BufRead.wp_of
 
 end proof
 

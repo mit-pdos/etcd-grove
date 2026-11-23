@@ -44,7 +44,7 @@ def recvSt (γ : Names) (k : Nat) (γl : SrvNames) (X : Nat) (γr : OrdNames) (b
     (∃ J : GMap Nat Unit, rcptAuth γl X J ∗ ⌜∀ x, J.lookup x ≠ none → x < (bcastPart l).length⌝) ∗
     ordProd γr X l.length)
 
-theorem wp_NetTCP_RecvHandler (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (t : Loc)
+theorem wp_NetTCP_RecvHandler (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (t : Loc)
     (fr : w64) (X : Nat) (hX : sint.Z fr = X) (hXn : X < cf.n) (rc : GoChan) (γr : OrdNames) (wg : Loc)
     (rds : GoSlice) (rs : List Loc) (br : Loc) (cid : Nat) (hbr : rs[X]? = some br) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗ shared γ ∗ confRO cf ∗ cfgIs γ.rab cf ∗
@@ -88,7 +88,7 @@ theorem wp_NetTCP_RecvHandler (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames
   simp only [hb, _root_.and_self, ↓reduceIte]
   wp_apply wp_load_slice_index rds _ rs _ br hb.1 $$ [Hrds] with -
   · iframe #; ipureintro; rw [hfX]; exact hbr
-  wp_apply (lc := 1) wp_msgReadUnmarshal m_ptr br cid true (netP γ k) _ sl ds $$ [$m $Hbr $HF $Hsl]
+  wp_apply (lc := 1) wp_msgReadUnmarshal D m_ptr br cid true (netP γ k) _ sl ds $$ [$m $Hbr $HF $Hsl]
     as %e %n ⟨%ds', Hsl, Hres⟩
   icases Hres with (⟨%He, %v, %msg, %Hq, Hcmd, #Hrep, Hbr⟩ | ⟨%He, %R', %v, %HR', Hcmd, Hbr⟩)
   · subst He

@@ -7,8 +7,8 @@
 -/
 module
 
+public import Dsverify.Proof.rabia.internal.logger.Spec
 public import Dsverify.Proof.rabia.roles.server.layers.proxy.Basics
-public import Dsverify.Proof.rabia.internal.logger.InitLogger
 public import Dsverify.Proof.rabia.internal.tcp.Spec
 public import Perennial.Proof.context
 
@@ -41,7 +41,7 @@ theorem wp_RedisInit (cf : RCfg) (id : w32) :
   iapply HΦ
   itrivial
 
-theorem ProxyInit.wp_of (hLog : rabia.internal.logger.InitLogger.spec (GF := GF))
+theorem ProxyInit.wp_proof (hLog : rabia.internal.logger.InitLogger.spec (GF := GF))
     (hTcp : ProxyTcpInit.spec (GF := GF)) : ProxyInit.spec (GF := GF) := by
   intro γ cf k γl γc ch id wg ledger hid hk
   wp_start as ⟨#Hconf, #Hchans, #Hled, #Hslots, Haddr, Hboot⟩
@@ -102,10 +102,6 @@ theorem ProxyInit.wp_of (hLog : rabia.internal.logger.InitLogger.spec (GF := GF)
   · unfold proxyRO
     iexists t
     iframe TCP Htcp
-
-/-- `ProxyInit.spec`: from tcp's `ProxyTcpInit` spec (an argument, linked by the kit). -/
-theorem ProxyInit.wp_proof [github_com.rs.zerolog.Hyps GF] (hTcp : ProxyTcpInit.spec (GF := GF)) : ProxyInit.spec (GF := GF) :=
-  ProxyInit.wp_of rabia.internal.logger.InitLogger.wp_proof hTcp
 
 end proof
 end Perennial.rabia.roles.server.layers.proxy

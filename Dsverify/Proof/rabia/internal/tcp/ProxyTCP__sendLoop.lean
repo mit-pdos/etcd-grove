@@ -32,7 +32,7 @@ variable [msg_sem : rabia.internal.message.Assumptions] [sync.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem wp_ProxyTCP_sendLoop (γ : Names) (k : Nat) (p : Loc) (c : Nat) (ch : GoChan)
+theorem wp_ProxyTCP_sendLoop (D : TcpDeps (GF := GF)) (γ : Names) (k : Nat) (p : Loc) (c : Nat) (ch : GoChan)
     (γch : ChanNames) (bw : Loc) (cid : Nat) (done : GoChan) (wg : Loc) (hc : c < nC) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗
       p.[ProxyTCP, go!"Done"] ↦□ done ∗ doneChan done ∗
@@ -97,7 +97,7 @@ theorem wp_ProxyTCP_sendLoop (γ : Names) (k : Nat) (p : Loc) (c : Nat) (ch : Go
       simp [frames_append, frames_cons, frames_nil]
     ihave #Hpkgm : (isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message) $$ []
     · iPkgInit
-    wp_apply wp_cmdMarshalWriteFlush c_ptr v q bw cid true (proxyQ γ k) _ [] _
+    wp_apply wp_cmdMarshalWriteFlush D c_ptr v q bw cid true (proxyQ γ k) _ [] _
       $$ [$Hpkgm $c $Hrep $Hw] as %e ⟨%sent', %pend', %Hsw, Hw⟩
     · isplitr
       · ipureintro; exact hcl

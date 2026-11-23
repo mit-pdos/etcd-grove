@@ -10,10 +10,8 @@ encoding), then `Unmarshal` of `readBuf[:n]` (C1's proofs).
 -/
 module
 
-public import Dsverify.Proof.rabia.internal.message.BufRead
+public import Dsverify.Proof.rabia.internal.message.SpecInternal
 public import Dsverify.Proof.rabia.internal.message.Internal
-public import Dsverify.Proof.rabia.internal.message.Msg__Unmarshal
-public import Dsverify.Proof.rabia.internal.message.Command__Unmarshal
 public import Net.Proof.net.ConnIo
 
 @[expose] public section
@@ -52,13 +50,13 @@ theorem frameIs_use (br : Loc) (ri : GoInterfaceOk) (cn : Nat) (s : Bool) (P : P
   ipureintro; exact HD
 
 set_option maxHeartbeats 1000000 in
-theorem Msg.ReadUnmarshal.wp_of
+theorem Msg.ReadUnmarshal.wp_proof (hBR : BufRead.specB (GF := GF))
     (hU : Msg.Unmarshal.spec (GF := GF)) :
     Msg.ReadUnmarshal.spec (GF := GF) := by
   intro l br ri cn s P E R sl ds
   wp_start as ⟨Hl, Hown, #HF, Hsl⟩
   wp_auto_lc 1
-  wp_apply BufRead.wp_ofB br ri _ E R sl ds $$ [$Hpkg $Hown $Hsl] as %n %e Hres
+  wp_apply hBR br ri _ E R sl ds $$ [$Hpkg $Hown $Hsl] as %n %e Hres
   icases Hres with (⟨%He, %bs, %Hbs, Hsl, Hown⟩ | ⟨%He, %R', %ds', %HR, Hsl, Hown⟩)
   · subst He
     obtain ⟨rfl, hbl, hb32⟩ := Hbs
@@ -105,13 +103,13 @@ theorem Msg.ReadUnmarshal.wp_of
     exact absurd rfl He
 
 set_option maxHeartbeats 1000000 in
-theorem Command.ReadUnmarshal.wp_of
+theorem Command.ReadUnmarshal.wp_proof (hBR : BufRead.specB (GF := GF))
     (hU : Command.Unmarshal.spec (GF := GF)) :
     Command.ReadUnmarshal.spec (GF := GF) := by
   intro l br ri cn s P E R sl ds
   wp_start as ⟨Hl, Hown, #HF, Hsl⟩
   wp_auto_lc 1
-  wp_apply BufRead.wp_ofB br ri _ E R sl ds $$ [$Hpkg $Hown $Hsl] as %n %e Hres
+  wp_apply hBR br ri _ E R sl ds $$ [$Hpkg $Hown $Hsl] as %n %e Hres
   icases Hres with (⟨%He, %bs, %Hbs, Hsl, Hown⟩ | ⟨%He, %R', %ds', %HR, Hsl, Hown⟩)
   · subst He
     obtain ⟨rfl, hbl, hb32⟩ := Hbs
@@ -156,16 +154,6 @@ theorem Command.ReadUnmarshal.wp_of
       iframe Hl Hown
       ipureintro; exact HR
     exact absurd rfl He
-
-/-- `Msg.ReadUnmarshal.spec`: C1's `Msg.Unmarshal.wp_proof`. -/
-theorem Msg.ReadUnmarshal.wp_proof : Msg.ReadUnmarshal.spec (GF := GF) :=
-  Msg.ReadUnmarshal.wp_of
-    Msg.Unmarshal.wp_proof
-
-/-- `Command.ReadUnmarshal.spec`: as `Msg.ReadUnmarshal.wp_proof`. -/
-theorem Command.ReadUnmarshal.wp_proof : Command.ReadUnmarshal.spec (GF := GF) :=
-  Command.ReadUnmarshal.wp_of
-    Command.Unmarshal.wp_proof
 
 end proof
 

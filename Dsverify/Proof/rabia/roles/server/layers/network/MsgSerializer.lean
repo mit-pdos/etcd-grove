@@ -5,8 +5,8 @@ The proof of `rabia/roles/server/layers/network.(*Network).MsgSerializer`.
 -/
 module
 
+public import Dsverify.Proof.rabia.internal.message.SpecPure
 public import Dsverify.Proof.rabia.roles.server.layers.network.Basics
-public import Dsverify.Proof.rabia.internal.message.Marshal
 
 @[expose] public section
 
@@ -28,7 +28,7 @@ variable [package_sem : rabia.roles.server.layers.network.Assumptions]
 set_option goose.wp.extras true
 
 set_option maxHeartbeats 4000000 in
-theorem Network.MsgSerializer.wp_of (hM : Msg.Marshal.spec (GF := GF)) :
+theorem Network.MsgSerializer.wp_proof (hM : Msg.Marshal.spec (GF := GF)) :
     Network.MsgSerializer.spec (GF := GF) := fun γ cf k γl n => by
   wp_start as ⟨#Hconf, #Hsh, #Hcfg, Hres⟩
   ihave %hnS := cfgIs_n_le γ cf $$ Hcfg
@@ -152,10 +152,6 @@ theorem Network.MsgSerializer.wp_of (hM : Msg.Marshal.spec (GF := GF)) :
     · ipureintro; exact ⟨Hst.2.1, Hst.2.2.1⟩
     simp only [List.length_append, List.length_singleton]
     iexact Hdone
-
-/-- `Network.MsgSerializer.spec` (with C1's `Msg.Marshal.wp_proof`). -/
-theorem Network.MsgSerializer.wp_proof : Network.MsgSerializer.spec (GF := GF) :=
-  Network.MsgSerializer.wp_of rabia.internal.message.Msg.Marshal.wp_proof
 
 end proof
 end Perennial.rabia.roles.server.layers.network

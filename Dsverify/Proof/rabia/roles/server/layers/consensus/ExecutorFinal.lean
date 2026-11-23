@@ -6,6 +6,7 @@ never closed, nothing is sent on it).
 -/
 module
 
+public import Dsverify.Proof.rabia.roles.server.layers.consensus.ExecDecide
 public import Dsverify.Proof.rabia.roles.server.layers.consensus.ExecBefore
 public import Dsverify.Proof.rabia.roles.server.layers.consensus.ExecLaws
 public import Perennial.Proof.time.Link
@@ -172,6 +173,11 @@ theorem Consensus.Executor.wp_proof_of (D : ExDeps (GF := GF)) (hDec : decideSlo
     iframe
     iexists σ'
     iexact Hidle
+
+/-- `Consensus.Executor.spec`: the main loop with `decideSlot`'s proof (`wp_decideSlot_proof`). -/
+theorem Consensus.Executor.wp_proof (D : ExDeps (GF := GF)) : Consensus.Executor.spec (GF := GF) :=
+  Consensus.Executor.wp_proof_of D
+    (fun γ cf k γl γc ch c σ x hk hx => wp_decideSlot_proof (cf := cf) D γ k γl γc ch c hk σ x hx)
 
 end proof
 

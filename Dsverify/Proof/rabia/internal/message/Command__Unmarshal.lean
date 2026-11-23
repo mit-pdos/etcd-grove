@@ -9,7 +9,7 @@ module
 public import Dsverify.Proof.rabia.internal.message.Internal
 public import Dsverify.Proof.rabia.internal.message.ObjWire
 public import Dsverify.Proof.rabia.internal.message.VarintTac
-public import Dsverify.Proof.rabia.internal.message.ConsensusObj__Unmarshal
+public import Dsverify.Proof.rabia.internal.message.UnmarshalLemmas
 
 @[expose] public section
 

@@ -9,7 +9,7 @@ ordered channel of `n` producers).
 module
 
 public import Dsverify.Proof.rabia.internal.tcp.Basics
-public import Net.Proof.net.Listen
+public import Net.Spec.net.Listen
 public import Net.Proof.net.AtAddr
 
 @[expose] public section
@@ -31,7 +31,7 @@ variable [net.Assumptions] [net.FieldAssumptions] [go.BasicIntoValInj]
 
 set_option goose.wp.extras true
 
-theorem NetTCPInit.wp_proof : NetTCPInit.spec (GF := GF) := by
+theorem NetTCPInit.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) : NetTCPInit.spec (GF := GF) := by
   intro γ cf k γl id hid hk
   wp_start as ⟨#Hconf, #Hsh⟩
   ihave #Hconf0 := Hconf
@@ -45,7 +45,7 @@ theorem NetTCPInit.wp_proof : NetTCPInit.spec (GF := GF) := by
   ihave Hc2 := Hconf
   iStructNamed Hc2
   wp_auto
-  wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp (netAddr k) as %lv %err Hres
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp (netAddr k) as %lv %err Hres
   · iframe %Haok
     iapply listen_au $$ Hproto
   ihave HI : (∃ (lv err : GoInterface), "listener" ∷ listener_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ err ∗
@@ -127,7 +127,7 @@ theorem NetTCPInit.wp_proof : NetTCPInit.spec (GF := GF) := by
     rw [if_pos (by simp)]
     wp_auto
     wp_apply time.wp_Sleep
-    wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp (netAddr k) as %lv' %err' Hres
+    wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp (netAddr k) as %lv' %err' Hres
     · iframe %Haok
       iapply listen_au $$ Hproto
     wp_for_post

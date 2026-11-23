@@ -77,7 +77,7 @@ theorem range'_pop (j m : Nat) (h : j < m) :
 
 set_option goose.wp.extras true
 
-theorem wp_ProxyTCP_recvLoop (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (p : Loc) (c : Nat)
+theorem wp_ProxyTCP_recvLoop (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (p : Loc) (c : Nat)
     (hc : c < nC) (hck : c % cf.n = k) (br : Loc) (cid : Nat) (toProxy : GoChan) (wg : Loc) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗
       p.[ProxyTCP, go!"RecvChan"] ↦□ toProxy ∗ isChanBag γl.c2p toProxy (c2pP γ cf k γl) ∗
@@ -112,7 +112,7 @@ theorem wp_ProxyTCP_recvLoop (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames)
   ihave #HF := proxyP_frameIs γ k cid c hc qs Hqs
   ihave #Hpkgm : (isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message) $$ []
   · iPkgInit
-  wp_apply wp_cmdReadUnmarshal c_ptr br cid true (proxyP γ k) _ sl ds $$ [$Hpkgm $c $Hbr $HF $Hsl]
+  wp_apply wp_cmdReadUnmarshal D c_ptr br cid true (proxyP γ k) _ sl ds $$ [$Hpkgm $c $Hbr $HF $Hsl]
     as %e ⟨%ds', Hsl, Hres⟩
   icases Hres with (⟨%He, %v, %q, %Hq, Hcmd, #Hrep, Hbr⟩ | ⟨%He, %R', %v, %HR', Hcmd, Hbr⟩)
   · subst He

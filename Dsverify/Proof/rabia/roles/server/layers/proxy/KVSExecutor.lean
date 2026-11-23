@@ -14,10 +14,10 @@ was, rereading the slot.
 -/
 module
 
+public import Dsverify.Proof.rabia.internal.ledger.Spec
+public import Dsverify.Proof.rabia.internal.tcp.Spec
 public import Dsverify.Proof.rabia.roles.server.layers.proxy.singleExecuteAndReply
-public import Dsverify.Proof.rabia.internal.ledger.Slot__GetDecisionOrWake
 public import Dsverify.Proof.github_com.rs.zerolog.Spec
-public import Dsverify.Proof.rabia.internal.tcp.ProxyTCP__ClientSendChan
 
 @[expose] public section
 
@@ -41,7 +41,7 @@ variable [package_sem : rabia.roles.server.layers.proxy.Assumptions] [github_com
 the invariant opened around its commit): when done, its facts (`decInfo`); when not, a wake
 channel (a broadcast channel carrying `True`). Unfolds consensus's `slotsInv`/`slotInv` (instead
 of the law `readDecision`, whose credit cannot be given back by the atomic update's abort). -/
-theorem wp_GetDecisionOrWake_slot (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (γc : ConsNames) (s : Nat)
+theorem wp_GetDecisionOrWake_slot (wp_GDW : Slot.GetDecisionOrWake.spec (GF := GF)) (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (γc : ConsNames) (s : Nat)
     (e : SlotV) (he : γl.slots[s]? = some e) :
     ⊢ ∀ Φ : val → IProp GF, isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.ledger -∗
       isSlot e.loc e.γ e.q -∗ slotsInv γ cf k γl γc -∗
@@ -51,7 +51,7 @@ theorem wp_GetDecisionOrWake_slot (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvN
         Φ (PairV (PairV #v #b) #w)) -∗
     WP (App (Val (e.loc @!! go.GoType.PointerType Slot.ty @!! go!"GetDecisionOrWake")) (Val #())) {{ Φ }} := by
   iintro %Φ #Hpkg #Hisl #Hslots HΦ
-  ihave Hspec := Slot.GetDecisionOrWake.wp_proof e.loc e.γ e.q $$ Hpkg Hisl
+  ihave Hspec := wp_GDW e.loc e.γ e.q $$ Hpkg Hisl
   iunfold atomic_wp at Hspec
   iapply Hspec
   iauintro
@@ -98,13 +98,13 @@ theorem wp_GetDecisionOrWake_slot (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvN
       iframe Hx Hdi
       ipureintro; exact hd
 
-theorem Proxy.KVSExecutor.wp_of
-    (hCSC : ProxyTCP.ClientSendChan.spec (GF := GF)) :
+theorem Proxy.KVSExecutor.wp_proof
+    (wp_GDW : Slot.GetDecisionOrWake.spec (GF := GF)) (hCSC : ProxyTCP.ClientSendChan.spec (GF := GF)) :
     Proxy.KVSExecutor.spec (GF := GF) := by
-  have hDebug := github_com.rs.zerolog.Logger.Debug.wp_proof (GF := GF)
-  have hUint32 := github_com.rs.zerolog.Event.Uint32.wp_proof (GF := GF)
-  have hBool := github_com.rs.zerolog.Event.Bool.wp_proof (GF := GF)
-  have hMsg := github_com.rs.zerolog.Event.Msg.wp_proof (GF := GF)
+  have hDebug := github_com.rs.zerolog.Hyps.level (GF := GF) go!"Debug" (by simp)
+  have hUint32 := github_com.rs.zerolog.Hyps.Event_Uint32 (GF := GF)
+  have hBool := github_com.rs.zerolog.Hyps.Event_Bool (GF := GF)
+  have hMsg := github_com.rs.zerolog.Hyps.Event_Msg (GF := GF)
   intro γ cf k γl γc p
   wp_start as ⟨#Hconf, #Hsh, #Hcfg, Hres⟩
   wp_apply wp_with_defer as %dfr Hdfr
@@ -175,7 +175,7 @@ theorem Proxy.KVSExecutor.wp_of
     wp_apply wp_load_slice_index _ _ _ _ e.loc (by rw [hidx]; omega) $$ [$Hls] as -
     · ipureintro; rw [hidx, Int.toNat_natCast, List.getElem?_map, he]; rfl
     rw [hsi] at he
-    wp_apply wp_GetDecisionOrWake_slot γ cf k γl γc seq.toNat e he $$ [] Hisl Hslots as %v %b %w Hb
+    wp_apply wp_GetDecisionOrWake_slot wp_GDW γ cf k γl γc seq.toNat e he $$ [] Hisl Hslots as %v %b %w Hb
     cases b with
     | true =>
       simp only [Bool.not_true, ↓reduceIte]
@@ -295,10 +295,6 @@ theorem Proxy.KVSExecutor.wp_of
     iframe
     iframe Hpf
     ipureintro; exact ⟨Hrel, Hseqb⟩
-
-/-- `Proxy.KVSExecutor.spec`: from tcp's `ClientSendChan`. -/
-theorem Proxy.KVSExecutor.wp_proof : Proxy.KVSExecutor.spec (GF := GF) :=
-  Proxy.KVSExecutor.wp_of ProxyTCP.ClientSendChan.wp_proof
 
 end proof
 end Perennial.rabia.roles.server.layers.proxy

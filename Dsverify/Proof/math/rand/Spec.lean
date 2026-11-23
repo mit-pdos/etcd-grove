@@ -64,17 +64,4 @@ class math.rand.Hyps [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext
   Rand_Intn : math.rand.Rand.Intn.spec (GF := GF)
   Intn : math.rand.Intn.spec (GF := GF)
 
-section proof
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-
-theorem math.rand.NewSource.wp_proof [h : math.rand.Hyps GF] : math.rand.NewSource.spec (GF := GF) :=
-  h.NewSource
-theorem math.rand.New.wp_proof [h : math.rand.Hyps GF] : math.rand.New.spec (GF := GF) := h.New
-theorem math.rand.Rand.Intn.wp_proof [h : math.rand.Hyps GF] : math.rand.Rand.Intn.spec (GF := GF) :=
-  h.Rand_Intn
-theorem math.rand.Intn.wp_proof [h : math.rand.Hyps GF] : math.rand.Intn.spec (GF := GF) := h.Intn
-
-end proof
-
 end Perennial

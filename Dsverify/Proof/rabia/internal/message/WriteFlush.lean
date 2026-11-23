@@ -7,7 +7,8 @@
 -/
 module
 
-public import Dsverify.Proof.rabia.internal.message.BufWrite
+public import Dsverify.Proof.rabia.internal.message.FrameDeps
+public import Spec.bufio.Writer__Flush
 
 @[expose] public section
 
@@ -25,12 +26,13 @@ variable [sem : go.Semantics] [package_sem : rabia.internal.message.Assumptions]
 variable [_root_.Perennial.bufio.Assumptions]
 
 set_option maxHeartbeats 1000000 in
-theorem WriteFlush.wp_of : WriteFlush.spec (GF := GF) := by
+theorem WriteFlush.wp_proof (hBW : BufWrite.spec (GF := GF))
+    (wp_Flush : EtcdGrove.bufio.Writer.Flush.spec (GF := GF) (hG := hG)) :
+    WriteFlush.spec (GF := GF) := by
   intro bw wi J Q Ew sz sent pend err sl dq bs
   wp_start as ⟨%hbs, #Hwr, Hown, #HQ, Hsl⟩
   ihave ⟨#Hpb, #Hpio, #Hpbin⟩ := msgPkgDeps_get $$ Hpkg
   wp_auto
-  have hBW : BufWrite.spec (GF := GF) := BufWrite.wp_of
   wp_apply hBW bw wi J Q Ew sz sent pend err sl dq bs $$ [$Hpkg $Hwr $Hown $HQ $Hsl]
     as %e1 ⟨%k, %sent1, %pend1, %Hk, Hsl, Hown⟩
   · ipureintro; exact hbs
@@ -48,7 +50,7 @@ theorem WriteFlush.wp_of : WriteFlush.spec (GF := GF) := by
   subst hk
   rw [List.take_length] at hks
   wp_auto
-  wp_apply EtcdGrove.bufio.Writer.Flush.wp_proof bw wi J Q Ew sz sent1 pend1 _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
+  wp_apply wp_Flush bw wi J Q Ew sz sent1 pend1 _ $$ [$Hown] as %e2 ⟨%k2, %Hk2, Hown⟩
   obtain ⟨hk2l, hk2e, -⟩ := Hk2
   iapply HΦ
   iexists sent1 ++ pend1.take k2, pend1.drop k2
@@ -58,10 +60,6 @@ theorem WriteFlush.wp_of : WriteFlush.spec (GF := GF) := by
   · rw [List.append_assoc, List.take_append_drop, hks]; exact List.prefix_refl _
   · rw [hk2e h, List.take_length, List.drop_length, hks]
     exact ⟨rfl, rfl⟩
-
-/-- `WriteFlush.spec`. -/
-theorem WriteFlush.wp_proof : WriteFlush.spec (GF := GF) :=
-  WriteFlush.wp_of
 
 end proof
 

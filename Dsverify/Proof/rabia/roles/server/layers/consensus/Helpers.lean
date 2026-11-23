@@ -227,8 +227,8 @@ theorem wp_ResetCommonCoin [math.rand.Hyps GF] (c : Loc) :
   ihave #Hrpkg : isPkgInit (PROP := IProp GF) pkg_id.math.rand $$ [Hpkg]
   · iPkgInit
   wp_auto
-  wp_apply math.rand.NewSource.wp_proof $$ [$Hrpkg] as %src -
-  wp_apply math.rand.New.wp_proof $$ [$Hrpkg] as %r ⟨%v, Hr⟩
+  wp_apply (math.rand.Hyps.NewSource (GF := GF)) $$ [$Hrpkg] as %src -
+  wp_apply (math.rand.Hyps.New (GF := GF)) $$ [$Hrpkg] as %r ⟨%v, Hr⟩
   iapply HΦ
   unfold coinOk
   iexists r, v
@@ -243,7 +243,7 @@ theorem wp_CommonCoinFlip [math.rand.Hyps GF] (c : Loc) :
   unfold coinOk
   icases H with ⟨%r, %v, Hc, Hr⟩
   wp_auto
-  wp_apply math.rand.Rand.Intn.wp_proof r v (W64 2) (by decide) $$ [$Hr] as %x ⟨Hr, %hx⟩
+  wp_apply (math.rand.Hyps.Rand_Intn (GF := GF)) r v (W64 2) (by decide) $$ [$Hr] as %x ⟨Hr, %hx⟩
   iapply HΦ
   isplitl
   · iexists r, v; iframe

@@ -46,7 +46,7 @@ theorem pushLbs_nil_fupd (E : CoPset) (γl : SrvNames) :
     iframe
 
 set_option maxHeartbeats 4000000 in
-theorem Network.Prologue.wp_of (hC : NetTCP.Connect.spec (GF := GF))
+theorem Network.Prologue.wp_proof (hC : NetTCP.Connect.spec (GF := GF))
     (hP : fmt.Printf.spec (GF := GF)) :
     Network.Prologue.spec (GF := GF) := fun γ cf k γl ch n => by
   wp_start as ⟨#Hconf, #Hsh, #Hcfg, Hres⟩
@@ -138,7 +138,7 @@ theorem Network.Prologue.wp_of (hC : NetTCP.Connect.spec (GF := GF))
     iapply BigSepL.bigSepL_nil.2; iempintro
 
 set_option maxHeartbeats 4000000 in
-theorem NetworkInit.wp_of (hI : NetTCPInit.spec (GF := GF)) :
+theorem NetworkInit.wp_proof (hI : NetTCPInit.spec (GF := GF)) :
     NetworkInit.spec (GF := GF) := fun γ cf k γl ch id wg hid hk => by
   wp_start as ⟨#Hconf, #Hch, Haddr, Hboot⟩
   ihave ⟨%ps, #Hc⟩ := confRO_val $$ Hconf
@@ -162,11 +162,6 @@ theorem NetworkInit.wp_of (hI : NetTCPInit.spec (GF := GF)) :
   · ipureintro; exact ⟨hk, rfl, rfl, rfl, rfl, rfl, rfl⟩
   iframe
   iframe Hch Hrecv Hts Hslb
-
-/-- `Network.Prologue.spec`, from tcp's `NetTCP.Connect` (`fmt.Printf` linked). -/
-theorem Network.Prologue.wp_proof (hC : NetTCP.Connect.spec (GF := GF)) :
-    Network.Prologue.spec (GF := GF) :=
-  Network.Prologue.wp_of hC fmt.Printf.wp_proof
 
 end proof
 end Perennial.rabia.roles.server.layers.network

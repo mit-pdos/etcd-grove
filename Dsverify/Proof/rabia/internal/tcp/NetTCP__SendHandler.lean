@@ -54,7 +54,7 @@ def sendSt (γ : Names) (cf : RCfg) (k j : Nat) (γo : OrdNames) (bw : Loc) (cid
     wrOwn bw cid false (netP γ j) (hsBytes k ++ frames (fs.map encMsg)) [] interface.nil ∗
     bcastLb γ k (bcastPart fs) ∗ [∗list] m ∈ fs.filter (·.ty = tyProposalReply), replyOk γ cf j m)
 
-theorem wp_NetTCP_SendHandler (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t : Loc)
+theorem wp_NetTCP_SendHandler (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n) (t : Loc)
     (to : w64) (j : Nat) (hj : sint.Z to = j) (hjn : j < cf.n) (done : GoChan) (wg : Loc) (scs wrs : GoSlice)
     (chs : List GoChan) (ws : List Loc) (ch : GoChan) (bw : Loc) (cid : Nat) (γo : OrdNames)
     (hch : chs[j]? = some ch) (hbw : ws[j]? = some bw) :
@@ -211,7 +211,7 @@ theorem wp_NetTCP_SendHandler (γ : Names) (cf : RCfg) (k : Nat) (hk : k < cf.n)
         · exact Hf.2.2 r hr
         · exact Hmb
       iframe #
-    wp_apply wp_writeFlush bw cid false (netP γ j) _ [] _ v _ (encMsg m) $$ [$Hw $Hvm]
+    wp_apply wp_writeFlush D bw cid false (netP γ j) _ [] _ v _ (encMsg m) $$ [$Hw $Hvm]
       as %e ⟨%sent', %pend', %Hs, -, Hw⟩
     · iframe %Hmb
       rw [hW]; iexact HP

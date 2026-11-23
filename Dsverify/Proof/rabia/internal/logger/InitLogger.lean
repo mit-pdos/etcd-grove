@@ -36,9 +36,9 @@ theorem InitLogger.wp_proof : InitLogger.spec (GF := GF) := by
   iStructNamed HConf
   wp_auto
   simp only [confVal]
-  wp_apply github_com.rs.zerolog.ParseLevel.warn.wp_proof
-  wp_apply github_com.rs.zerolog.SetGlobalLevel.wp_proof
-  wp_apply github_com.rs.zerolog.New.wp_proof as %lg _
+  wp_apply (github_com.rs.zerolog.Hyps.ParseLevel_warn (GF := GF))
+  wp_apply (github_com.rs.zerolog.Hyps.SetGlobalLevel (GF := GF))
+  wp_apply (github_com.rs.zerolog.Hyps.New (GF := GF)) as %lg _
   iapply HΦ
   itrivial
 

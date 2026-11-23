@@ -48,7 +48,7 @@ theorem SigListen.wp_proof : SigListen.spec (GF := GF) := by
   iintro %sl ⟨_, _⟩
   wp_auto_lc 2
   ihave %Hnn := isChan_ne_nil_signal _ _ $$ Hch
-  wp_apply os.signal.NotifyQuiet.wp_proof _ _ Hnn
+  wp_apply (os.signal.NoSignals.notifyQuiet (GF := GF)) _ _ Hnn
   wp_apply_core chan.wp_select_blocking
   iapply BigAndL.bigAndL_cons.2
   isplit

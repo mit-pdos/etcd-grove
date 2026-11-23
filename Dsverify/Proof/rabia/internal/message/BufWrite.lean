@@ -10,8 +10,8 @@
 module
 
 public import Dsverify.Proof.rabia.internal.message.FrameDeps
-public import Proof.bufio.Writer__Write
-public import Proof.bufio.Writer__Flush
+public import Spec.bufio.Writer__Write
+public import Dsverify.Proof.rabia.internal.message.SpecInternal
 
 @[expose] public section
 
@@ -37,12 +37,9 @@ theorem Q_of_prefix (Q : List w8 → IProp GF) (x y : List w8) (h : x <+: y) :
   imodintro
   iapply Hpc $$ %x %z HQ
 
-/-- `(*bufio.Writer).Write` (the revised bufio's, `Flush` linked). -/
-theorem wp_Write : EtcdGrove.bufio.Writer.Write.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof
-
 set_option maxHeartbeats 1000000 in
-theorem BufWrite.wp_of : BufWrite.spec (GF := GF) := by
+theorem BufWrite.wp_proof (wp_Write : EtcdGrove.bufio.Writer.Write.spec (GF := GF) (hG := hG)) :
+    BufWrite.spec (GF := GF) := by
   intro bw wi J Q Ew sz sent pend err sl dq bs
   wp_start as ⟨%hbs, #Hwr, Hown, #HQ, Hsl⟩
   ihave ⟨#Hpb, #Hpio, #Hpbin⟩ := msgPkgDeps_get $$ Hpkg
@@ -124,11 +121,8 @@ theorem BufWrite.wp_of : BufWrite.spec (GF := GF) := by
 
 /-- `BufWrite` on data of `2^32` bytes or more (N8): a non-nil error, nothing written (the writer
 is not touched). -/
-theorem BufWrite.wp_tooLong (bw : Loc) (sl : GoSlice) (dq : DFrac) (bs : List w8) :
-    2 ^ 32 ≤ bs.length →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.message ∗ sl ↦*{dq} bs }}
-      (App (App (Val (@! BufWrite)) (Val #bw)) (Val #sl))
-    {{ (e : GoInterface), RET #e; ⌜e ≠ interface.nil⌝ ∗ sl ↦*{dq} bs }} := by
+theorem BufWrite.wp_proofTooLong : BufWrite.specTooLong (GF := GF) := by
+  intro bw sl dq bs
   intro hbs
   wp_start as Hsl
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
@@ -143,10 +137,6 @@ theorem BufWrite.wp_tooLong (bw : Loc) (sl : GoSlice) (dq : DFrac) (bs : List w8
   have h2 : uint.Z (W64 4294967295) = 4294967295 := rfl
   have h3 : ((sint.nat sl.len : Nat) : Int) = sint.Z sl.len := Int.toNat_of_nonneg Hlen.2
   omega
-
-/-- `BufWrite.spec`. -/
-theorem BufWrite.wp_proof : BufWrite.spec (GF := GF) :=
-  BufWrite.wp_of
 
 end proof
 

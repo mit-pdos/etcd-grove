@@ -9,6 +9,7 @@ module
 public import Dsverify.Proof.rabia.internal.message.Internal
 public import Dsverify.Proof.rabia.internal.message.ObjWire
 public import Dsverify.Proof.rabia.internal.message.VarintTac
+public import Dsverify.Proof.rabia.internal.message.UnmarshalLemmas
 
 @[expose] public section
 
@@ -77,9 +78,6 @@ theorem objOwn_zero (o : ObjV) : ⊢ objOwn (GF := GF) (zeroValDef : ConsensusOb
   isplitr; · iapply ownSlice_nil
   iapply ownSliceCap_nil
 
-omit [GooseExts] in
-theorem w32_ofNat_toNat' (x : w32) : BitVec.ofNat 32 x.toNat = x := by simp
-
 omit package_sem [IsPkgInit (IProp GF) pkg_id.rabia.internal.message] in
 theorem objOwn_persist (v : ConsensusObj) (o : ObjV) : objOwn (GF := GF) v o ⊢ |==> objRep v o := by
   unfold objOwn objRep
@@ -90,11 +88,6 @@ theorem objOwn_persist (v : ConsensusObj) (o : ObjV) : objOwn (GF := GF) v o ⊢
   imodintro
   iframe
   ipureintro; exact H
-
-omit [GooseExts] in
-theorem subslice_of_drop' {A : Type} (a : Nat) (l X Y : List A) (h : l.drop a = X ++ Y) :
-    subslice a (a + X.length) l = X := by
-  rw [subslice_comm, h, Nat.add_sub_cancel_left, List.take_left]
 
 set_option maxHeartbeats 4000000 in
 theorem ConsensusObj.Unmarshal.wp_proof : ConsensusObj.Unmarshal.spec (GF := GF) := by

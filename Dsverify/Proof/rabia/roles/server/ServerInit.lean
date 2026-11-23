@@ -5,6 +5,8 @@ The proof of `rabia/roles/server.ServerInit`.
 -/
 module
 
+public import Dsverify.Proof.rabia.internal.queue.Spec
+public import Dsverify.Proof.rabia.internal.message.SpecPure
 public import Dsverify.Proof.rabia.roles.server.Spec
 public import Dsverify.Proof.rabia.roles.server.layers.consensus.Spec
 public import Dsverify.Proof.rabia.roles.server.Alloc
@@ -12,14 +14,6 @@ public import Dsverify.Proof.rabia.internal.ledger.Spec
 public import Dsverify.Proof.rabia.roles.server.layers.proxy.Spec
 public import Dsverify.Proof.rabia.roles.server.layers.network.Spec
 public import Dsverify.Proof.rabia.internal.logger.Spec
-public import Dsverify.Proof.rabia.internal.queue.heapInit
-public import Dsverify.Proof.rabia.internal.queue.PQueue__Len
-public import Dsverify.Proof.rabia.internal.message.ProxySeqId
-public import Dsverify.Proof.rabia.internal.ledger.Slot__Reset
-public import Dsverify.Proof.rabia.roles.server.layers.proxy.ProxyInit
-public import Dsverify.Proof.rabia.roles.server.layers.network.Prologue
-public import Dsverify.Proof.rabia.roles.server.layers.consensus.ConsensusInit
-public import Dsverify.Proof.rabia.internal.logger.InitLogger
 
 @[expose] public section
 
@@ -66,7 +60,7 @@ def slotRes (L : Nat) (e : SlotV) : IProp GF :=
   iprop(isSlot e.loc e.γ e.q ∗ slotSt e.γ (SlotSt.init L) ∗
     slotPriv e.loc { phase := 0, round := 0, myProp := default, myBC := [] } ∗ queueFresh e.q)
 
-theorem ServerInit.wp_of (hReset : Slot.Reset.spec (GF := GF))
+theorem ServerInit.wp_proof (hReset : Slot.Reset.spec (GF := GF))
     (hProxy : ProxyInit.spec (GF := GF)) (hNet : NetworkInit.spec (GF := GF))
     (hCons : ConsensusInit.spec (GF := GF)) : ServerInit.spec (GF := GF) := by
   intro γ cf k id hid hk
@@ -280,16 +274,6 @@ theorem ServerInit.wp_of (hReset : Slot.Reset.spec (GF := GF))
   · unfold serverOwn; iexists «$v1_ptr», γw; iframe; iframe #
   iframe #
   iframe
-
-
-/-- `ServerInit.spec`, from the layers' and the ledger's proofs. -/
-theorem ServerInit.wp_proof [github_com.rs.zerolog.Hyps GF] (hPT : rabia.internal.tcp.ProxyTcpInit.spec (GF := GF))
-    (hNT : rabia.internal.tcp.NetTCPInit.spec (GF := GF)) : ServerInit.spec (GF := GF) := by
-  exact ServerInit.wp_of rabia.internal.ledger.Slot.Reset.wp_proof
-    (layers.proxy.ProxyInit.wp_proof hPT) (layers.network.NetworkInit.wp_of hNT)
-    (layers.consensus.ConsensusInit.wp_proof rabia.internal.logger.InitLogger.wp_proof
-      (rabia.internal.queue.heapInit.wp_proof rabia.internal.queue.PQueue.Len.wp_proof
-        rabia.internal.message.ProxySeqIdLessThan.wp_proof))
 
 end proof
 end Perennial.rabia.roles.server

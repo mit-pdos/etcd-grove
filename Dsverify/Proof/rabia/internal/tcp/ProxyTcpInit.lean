@@ -8,7 +8,7 @@ The proof of `rabia/internal/tcp.ProxyTcpInit`.
 module
 
 public import Dsverify.Proof.rabia.internal.tcp.ProtoLemmas
-public import Net.Proof.net.Listen
+public import Net.Spec.net.Listen
 public import Net.Proof.net.AtAddr
 public import Perennial.Proof.sync
 
@@ -49,7 +49,7 @@ theorem table_init (γ : Names) (n : Nat) :
   unfold tableEntry
   ileft; ipureintro; exact hx'
 
-theorem ProxyTcpInit.wp_proof : ProxyTcpInit.spec (GF := GF) := by
+theorem ProxyTcpInit.wp_proof (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) : ProxyTcpInit.spec (GF := GF) := by
   intro γ cf k γl id toProxy hid hk
   wp_start as ⟨#Hconf, #Hsh, #Hc2p, Hrcpts⟩
   ihave %Hok := confRO_ok cf $$ Hconf
@@ -61,7 +61,7 @@ theorem ProxyTcpInit.wp_proof : ProxyTcpInit.spec (GF := GF) := by
   ihave Hc2 := Hconf
   iStructNamed Hc2
   wp_auto
-  wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp (proxyAddr k) as %lv %err Hres
+  wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp (proxyAddr k) as %lv %err Hres
   · iframe %Haddr
     iapply listen_au $$ Hproto
   ihave HI : (∃ (lv err : GoInterface), "listener" ∷ listener_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ err ∗
@@ -127,7 +127,7 @@ theorem ProxyTcpInit.wp_proof : ProxyTcpInit.spec (GF := GF) := by
     rw [if_pos (by simp)]
     wp_auto
     wp_apply time.wp_Sleep
-    wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp (proxyAddr k) as %lv' %err' Hres
+    wp_apply (net.Listen.spec_addrOk wp_Listen) go!"tcp" net.tcpNet_tcp (proxyAddr k) as %lv' %err' Hres
     · iframe %Haddr
       iapply listen_au $$ Hproto
     wp_for_post

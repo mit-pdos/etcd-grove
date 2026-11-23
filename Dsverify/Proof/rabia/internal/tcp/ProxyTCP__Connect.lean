@@ -15,9 +15,9 @@ module
 
 public import Dsverify.Proof.rabia.internal.tcp.ProxyTCP__sendLoop
 public import Dsverify.Proof.rabia.internal.tcp.ProxyTCP__recvLoop
-public import Net.Proof.net.Listener__Accept
+public import Net.Spec.net.Listener__Accept
 public import Net.Proof.net.AtAddr
-public import Net.Proof.net.Conn__Close
+public import Net.Spec.net.Conn__Close
 
 @[expose] public section
 
@@ -115,7 +115,7 @@ variable [msg_sem : rabia.internal.message.Assumptions] [sync.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (p : Loc)
+theorem wp_ProxyTCP_connect (D : TcpDeps (GF := GF)) (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) (p : Loc)
     (hk : k < cf.n) (li : GoInterface) (l : w64) (toProxy done : GoChan) (wg : Loc) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp ∗ confRO cf ∗ shared γ ∗ cfgIs γ.rab cf ∗
       proxyTcpRO γ k p ∗
@@ -152,7 +152,7 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
     ipureintro; unfold nC; constructor <;> word
   wp_for HI
   wp_if_destruct
-  · wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) t l x (proxyAddr k)
+  · wp_apply (net.Listener.Accept.spec_addrOk D.accept) t l x (proxyAddr k)
         (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l (proxyAddr k) true)
         (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l (proxyAddr k) true ∗
           connEnd (Gg := hG.goose_globalGS) cn true (proxyQ γ k) (proxyP γ k) [] [] ∗
@@ -169,7 +169,7 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
       ihave #Hcis := sendTok_connIs cn true (proxyQ γ k) [] $$ Hsend
       ihave #HQ0 : proxyQ γ k cn [] $$ []
       · unfold proxyQ; ileft; ipureintro; rfl
-      wp_apply wp_GetReaderWriter cf conn_ptr cv cn true (proxyAddr k) (proxyP γ k) (proxyQ γ k) [] []
+      wp_apply wp_GetReaderWriter D cf conn_ptr cv cn true (proxyAddr k) (proxyP γ k) (proxyQ γ k) [] []
           (proxyQ_closed γ k) $$ [$Hrecv $Hsend] as %br %bw ⟨Hbr, Hbw⟩
       · iframe #
       wp_apply (wp_slice_make2 (V := w8) _) as %sl ⟨Hsl, -⟩
@@ -177,7 +177,7 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
       ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
       have hsl : sint.nat sl.len = 20 := by rw [← Hsl0.1, List.length_replicate]
       ihave #HF := proxyP_frameIs_hs (GF := GF) γ k cn
-      wp_apply wp_cmdReadUnmarshal req_ptr br cn true (proxyP γ k) [] sl _ $$ [$Hpkgm $req $Hbr $HF $Hsl]
+      wp_apply wp_cmdReadUnmarshal D req_ptr br cn true (proxyP γ k) [] sl _ $$ [$Hpkgm $req $Hbr $HF $Hsl]
         as %e ⟨%ds', Hsl, Hres⟩
       icases Hres with (⟨%He, %v, %q, %Hq, Hcmd, #Hrep, Hbr⟩ | ⟨%He, %R', %v, %HR', Hcmd, Hbr⟩)
       · subst He
@@ -236,7 +236,7 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
           icases Hif0 with ⟨%t0, %la0, %ra0, %Hcv0, #Hca0⟩
           subst Hcv0
           wp_auto
-          wp_apply net.Conn.Close.wp_proof t0 cid0 true a0 la0 ra0 (fun _ => iprop(True)) $$ [] as %_ -
+          wp_apply D.close t0 cid0 true a0 la0 ra0 (fun _ => iprop(True)) $$ [] as %_ -
           · iframe Hca0; iapply close_true $$ Hcis0
           simp only [hbc, _root_.and_self, ↓reduceIte]
           have hix : (sint.Z (W64 (uint.Z (BitVec.ofNat 32 c' : w32)))).toNat = c' := by rw [hi]; simp
@@ -277,14 +277,14 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
           icases wgToks_split wg 1 $$ Htoks with ⟨Htok1, Htoks⟩
           icases wgToks_split wg 0 $$ Htoks with ⟨Htok2, -⟩
           wp_apply wp_fork $$ [Hbw Htok1]
-          · wp_apply wp_ProxyTCP_sendLoop γ k p c' nch γn bw cn done wg hc' $$ [$Hbw $Htok1]
+          · wp_apply wp_ProxyTCP_sendLoop D γ k p c' nch γn bw cn done wg hc' $$ [$Hbw $Htok1]
             · iframe #
             itrivial
           ihave #Hrinv : inv (rcptN k c') (rcptBody γ k γl c') $$ []
           · unfold rcptInvs
             iapply (BigSepL.bigSepL_lookup (i := c') (by rw [List.getElem?_range hc'])) $$ Hrc
           wp_apply wp_fork $$ [Hbr Htok2 Hfresh]
-          · wp_apply wp_ProxyTCP_recvLoop γ cf k γl p c' hc' hck' br cn toProxy wg
+          · wp_apply wp_ProxyTCP_recvLoop D γ cf k γl p c' hc' hck' br cn toProxy wg
               $$ [$Hbr $Htok2 $Hfresh]
             · iframe #
             itrivial
@@ -334,14 +334,14 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
         icases wgToks_split wg 1 $$ Htoks with ⟨Htok1, Htoks⟩
         icases wgToks_split wg 0 $$ Htoks with ⟨Htok2, -⟩
         wp_apply wp_fork $$ [Hbw Htok1]
-        · wp_apply wp_ProxyTCP_sendLoop γ k p c' nch γn bw cn done wg hc' $$ [$Hbw $Htok1]
+        · wp_apply wp_ProxyTCP_sendLoop D γ k p c' nch γn bw cn done wg hc' $$ [$Hbw $Htok1]
           · iframe #
           itrivial
         ihave #Hrinv : inv (rcptN k c') (rcptBody γ k γl c') $$ []
         · unfold rcptInvs
           iapply (BigSepL.bigSepL_lookup (i := c') (by rw [List.getElem?_range hc'])) $$ Hrc
         wp_apply wp_fork $$ [Hbr Htok2 Hfresh]
-        · wp_apply wp_ProxyTCP_recvLoop γ cf k γl p c' hc' hck' br cn toProxy wg
+        · wp_apply wp_ProxyTCP_recvLoop D γ cf k γl p c' hc' hck' br cn toProxy wg
             $$ [$Hbr $Htok2 $Hfresh]
           · iframe #
           itrivial
@@ -357,7 +357,7 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
           icases Hcv with ⟨%tc, %lac, %rac, %Hcvc, #Hcac⟩
           subst Hcvc
           wp_auto
-          wp_apply net.Conn.Close.wp_proof tc cn true (proxyAddr k) lac rac (fun _ => iprop(True))
+          wp_apply D.close tc cn true (proxyAddr k) lac rac (fun _ => iprop(True))
             $$ [] as %_ -
           · iframe Hcac; iapply close_true $$ Hcis
           wp_for_post
@@ -376,7 +376,7 @@ theorem wp_ProxyTCP_connect (γ : Names) (cf : RCfg) (k : Nat) (γl : SrvNames) 
   · iapply HΦ
     itrivial
 
-theorem ProxyTCP.Connect.wp_proof : ProxyTCP.Connect.spec (GF := GF) := by
+theorem ProxyTCP.Connect.wp_proof (D : TcpDeps (GF := GF)) : ProxyTCP.Connect.spec (GF := GF) := by
   intro γ cf k γl p
   wp_start as ⟨#Hconf, #Hsh, #Hcf, #Hro, Hown⟩
   unfold proxyTcpOwn
@@ -386,7 +386,7 @@ theorem ProxyTCP.Connect.wp_proof : ProxyTCP.Connect.spec (GF := GF) := by
   wp_auto
   wp_apply wp_fork $$ [Hwg Hl p]
   · wp_auto
-    wp_apply wp_ProxyTCP_connect γ cf k γl p hk li l toProxy done wg $$ [$Hwg $Hl]
+    wp_apply wp_ProxyTCP_connect D γ cf k γl p hk li l toProxy done wg $$ [$Hwg $Hl]
     · iframe #
       unfold rcptInvs; iexact Hrc
     itrivial

@@ -8,14 +8,12 @@ connections and the slots' statistics and logs them.
 -/
 module
 
+public import Dsverify.Proof.rabia.roles.server.layers.consensus.Spec
 public import Dsverify.Proof.rabia.roles.server.Spec
 public import Dsverify.Proof.github_com.rs.zerolog.Spec
 public import Dsverify.Proof.rabia.internal.logger.Spec
 public import Perennial.Proof.time.Link
 public import Dsverify.Proof.rabia.internal.tcp.Spec
-public import Dsverify.Proof.rabia.roles.server.layers.consensus.SlotStats
-public import Dsverify.Proof.rabia.internal.logger.InitLogger
-public import Dsverify.Proof.rabia.internal.tcp.ProxyTCP__NumConns
 
 @[expose] public section
 
@@ -39,15 +37,15 @@ theorem confRO_elim' (cf : RCfg) : (confRO cf : IProp GF) ⊢
     ∃ ps, (globalAddr Conf ↦□ confVal cf ps : IProp GF) ∗ ps ↦*□ peerStrs cf := by
   unfold confRO; iintro ⟨-, H⟩; iexact H
 
-theorem Server.TerminalLogger.wp_of
+theorem Server.TerminalLogger.wp_proof
     (hIL : rabia.internal.logger.InitLogger.spec (GF := GF))
     (hNC : ProxyTCP.NumConns.spec (GF := GF)) (hSS : Consensus.SlotStats.spec (GF := GF)) :
     Server.TerminalLogger.spec (GF := GF) := by
-  have hW := github_com.rs.zerolog.Logger.Warn.wp_proof (GF := GF)
-  have hU := github_com.rs.zerolog.Event.Uint32.wp_proof (GF := GF)
-  have hI := github_com.rs.zerolog.Event.Int.wp_proof (GF := GF)
-  have hFl := github_com.rs.zerolog.Event.Float64.wp_proof (GF := GF)
-  have hM := github_com.rs.zerolog.Event.Msg.wp_proof (GF := GF)
+  have hW := github_com.rs.zerolog.Hyps.level (GF := GF) go!"Warn" (by simp)
+  have hU := github_com.rs.zerolog.Hyps.Event_Uint32 (GF := GF)
+  have hI := github_com.rs.zerolog.Hyps.Event_Int (GF := GF)
+  have hFl := github_com.rs.zerolog.Hyps.Event_Float64 (GF := GF)
+  have hM := github_com.rs.zerolog.Hyps.Event_Msg (GF := GF)
   intro γ cf k s
   wp_start as ⟨#Hconf, Hr⟩
   unfold serverLogRes
@@ -121,13 +119,6 @@ theorem Server.TerminalLogger.wp_of
     iframe
   · iapply BigAndL.bigAndL_nil.2
     itrivial
-
-
-/-- `Server.TerminalLogger.spec`, from the callees' proofs. -/
-theorem Server.TerminalLogger.wp_proof :
-    Server.TerminalLogger.spec (GF := GF) := by
-  exact Server.TerminalLogger.wp_of rabia.internal.logger.InitLogger.wp_proof
-    ProxyTCP.NumConns.wp_proof layers.consensus.Consensus.SlotStats.wp_proof
 
 end proof
 end Perennial.rabia.roles.server
