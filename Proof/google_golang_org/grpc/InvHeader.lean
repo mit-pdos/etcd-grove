@@ -149,6 +149,15 @@ theorem mapFields_snoc (keys : List GoString) (k : GoString) (look : GoString �
     mapFields (keys ++ [k]) look = mapFields keys look ++ [(k, encMdHdr k v)] := by
   simp [mapFields, List.filterMap_append, h]
 
+theorem rowFields_append : ∀ (l rest : List GoString), l.length % 2 = 0 →
+    rowFields (l ++ rest) = rowFields l ++ rowFields rest
+  | [], rest, _ => by simp [rowFields]
+  | [_], _, h => by simp at h
+  | a :: b :: l, rest, h => by
+    simp only [List.cons_append, rowFields]
+    rw [rowFields_append l rest (by simp at h; omega)]
+    simp
+
 end grpcHdr
 
 open Iris Iris.BI

@@ -90,6 +90,8 @@ theorem grpc.createHeaderFields.wp_proof
   wp_start as ⟨Hch, #Hacc, Hpf, Hpcs, Huf, #Hpcok, %HOk, HR, #Hdl, #Hout⟩
   ihave %Hchnn := typedPointsto_not_null $$ Hch
   iStructNamed Hch
+  irename : ("_" ∷ True : IProp GF) => Htriv
+  iclear Htriv
   wp_auto
   wp_join iprop(∃ a : GoString, aud_ptr ↦ a ∗ callHdr_ptr ↦ chp ∗
       chp.[google_golang_org.grpc.callHdr, go!"Host"] ↦{dq} ch.Host' ∗
@@ -441,10 +443,25 @@ theorem grpc.createHeaderFields.wp_proof
     · exact absurd Hacc.1 Hif
     · wp_auto
       wp_join_done
-  ihave Hhf := ownSlice_nil (V := google_golang_org.grpc.headerField) (DFrac.own 1)
-  ihave Hcap := ownSliceCap_nil (V := google_golang_org.grpc.headerField)
+  ihave Hhf0 := ownSlice_nil (V := google_golang_org.grpc.headerField) (DFrac.own 1)
+  ihave Hcap0 := ownSliceCap_nil (V := google_golang_org.grpc.headerField)
   rw [show (zero_val GoSlice) = slice.nil from rfl]
-  append_hf
+  wp_bind (App (Val (GoInstruction (CompositeLiteral
+    (go.SliceType google_golang_org.grpc.headerField.ty)))) (Val (LiteralValueV _)))
+  iapply wp_slice_literal (V := google_golang_org.grpc.headerField)
+    (t := google_golang_org.grpc.headerField.ty) [_]
+  wp_auto
+  isplitl []
+  · ipureintro; rfl
+  iintro %lsl ⟨Hlsl, -⟩
+  wp_apply wp_slice_append (V := google_golang_org.grpc.headerField) $$ [Hhf0 Hcap0 Hlsl]
+    as %hsl ⟨Hhf, Hcap, -⟩
+  · isplitl [Hhf0]
+    · iexact Hhf0
+    isplitl [Hcap0]
+    · iexact Hcap0
+    iexact Hlsl
+  iclear Hhf0 Hcap0
   append_hf
   append_hf
   append_hf
@@ -841,7 +858,52 @@ theorem grpc.createHeaderFields.wp_proof
           rw [htk] at Hfj
           refine ⟨⟨Hnd, fun k => ?_⟩, Hfj.2⟩
           rw [Hmem k, Hdom k]
-    sorry
+    -- the added rows' fields
+    rename_i kout _
+    ihave %Hrsl := ownSlice_len _ _ _ $$ Had
+    ihave IH : iprop(∃ (m : w64) (kk : GoString) (vvx : GoSlice) (hsl' : GoSlice)
+        (fs' : List google_golang_org.grpc.headerField),
+        "i" ∷ i_ptr ↦ m ∗ "k" ∷ kout ↦ kk ∗ "vv" ∷ vv_ptr ↦ vvx ∗
+        "headerFields" ∷ headerFields_ptr ↦ hsl' ∗ "Hhf" ∷ hsl' ↦* fs' ∗
+        "Hcap" ∷ ownSliceCap google_golang_org.grpc.headerField hsl' (DFrac.own 1) ∗
+        "%Hm" ∷ ⌜0 ≤ sint.Z m ∧ sint.nat m ≤ rows.length ∧
+          hfPairs fs' = hfPairs fs6 ++ (rows.take (sint.nat m)).flatMap grpcHdr.rowFields⌝)
+      $$ [i k vv headerFields Hhf Hcap]
+    · iexists W64 0, _, _, _, _
+      simp only [named]
+      iframe
+      ipureintro
+      rw [show sint.nat (W64 0) = 0 by decide]
+      refine ⟨by decide, by omega, by simp⟩
+    iclear Hmd Hms Hfn Hval
+    wp_for IH
+    by_cases hlt : sint.Z m < sint.Z r.added'.len
+    · rw [ite_eq_left (by simp [hlt])]
+      sorry
+    · have hm : sint.nat m = rows.length := by
+        obtain ⟨hl, _⟩ := Hrsl; obtain ⟨_, hle, _⟩ := Hm; word
+      rw [ite_eq_right (by simp [hlt]), ite_eq_right (by simp [hlt])]
+      wp_auto
+      ihave Hch : chp ↦{dq} ch $$ [Host Method SendCompress AcceptedCompressors Creds ContentSubtype
+        PreviousAttempts Authority]
+      · iapply typedPointsto_combine _ _ _ Hchnn
+        simp only [TypedPointsto.typedPointstoDef, named]
+        rw [hcreds]
+        iframe
+      iapply HΦ
+      iframe
+      ileft
+      isplitr
+      · itrivial
+      iexists fs', cms, tfs, afs,
+        mkeys.flatMap (fun k => grpcHdr.mdKeyFields k ((Mo !! k).getD [])) ++
+          rows.flatMap grpcHdr.rowFields
+      iframe
+      ipureintro
+      rw [hm, List.take_length] at Hm
+      refine ⟨?_, Hfs4.2, HM.1, HM.2.1, Hfs5.2, mkeys, Hfs6.1, rfl⟩
+      rw [Hm.2.2, Hfs6.2]
+      simp
 
 end proof
 
