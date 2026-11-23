@@ -325,6 +325,35 @@ named after the lab's specs, until each comes as one shared change. **All are in
     prefix; `Unmarshal.spec` should take the stream fact as `unmarshalB.spec`).
   * Import tiers: no new violation (`etc/tier-check.py`: 19 non-scratch `raxos` violations, as
     before: 18 defs->proof, 1 defs->linking).
+- **Kit design point found before porting `Kit/*` (2026-11-23, kit fork; nothing of the kit
+  written yet)**: remote's `RBase` needs `encIn_len : ∀ i, (encIn i).length < 2^63`, and
+  `codecOk` asks `EncIn(iv i)` to return exactly `encIn i` for *every* `i : I`. The kit's `KIn`
+  (`Pure/Smr.lean`) has unbounded strings, so `I := KIn` cannot satisfy `encIn_len` (`EncIn`'s
+  bytes are `1 + 8 + |k| + 8 + |v|`). paxos bounds its inputs (`BStr`, `bnd`). And `kit.go`'s
+  `result` reads a get's value at `r[1+KeyLen:]`, so the kit is only correct for keys of
+  `keyLen` bytes (`inputOk`, which `Gen` meets). Two ways:
+  (A) remote's `I := QIn := {i : KIn // inputOk i ∧ (i.k.length + i.v.length : Int) < 2^48}`,
+  `qB : PendSpec Store QIn KOut` with `step i := kvB.step i.1` (so `lin_opAU` stays definitional:
+  `opAU γ i.1 Φ`); but the porcupine model `qS` (`Model.lean`, `Pure/ModelSet.lean`, ~2k lines) is
+  over `PSet Store KIn` and must be over `PSet Store QIn` (remote's `pendCtx`/`pendLib` take the
+  same `I`): either restate `mSet`/`step_mSet`/`mSet_empty` for `QIn` (their proofs only use
+  `i.put`, `i.k`, `i.v`: generalize `ModelSet` over a projection `I → KIn`), with `qDec` checking
+  `inputOk` and the bound (`ioOk` asks them; `Gen.spec` gives them); or
+  (B) give `KIn` itself the bound (a fourth, `Prop` field), touching every `KIn` literal in
+  `Ghost`, `Smr/*`, `Proxy/Kv`, `Model*`. (A) leaves the protocol proof alone; recommended.
+  Next for the kit, in order: `Kit.lean` (defs tier: `QIn`, `qB`, `qR γ` with `sysState :=
+  ownState γ`, `Eop := ↑raxosN`, `iv`, `ov`, `unk`, `encIn`/`encOut` from `EncIn`/`EncOut`'s
+  bytes, `lin_opAU`, the generalized model spec, `clientAddrs`, and `Model/Codec/Gen/Orch/Client/
+  Server.spec` as paxos's `Kit.lean`); `KitProof.lean` (Codec: the byte loops of `appendStr`/
+  `takeStr`; Gen: `mix`/`digit(s)`; Orch: `send`/`sendConf` (net.Dial, Write, `ioLt.ReadFull`,
+  Close) and `remote.Check` with `Model.wp_proof`); Client (`awaitConf` (Listen/Accept with
+  retry, as `Proxy/NetAccept`), `newClient` (replicas, `accept`/`receive` over bufio and
+  `ClientBatch.Unmarshal` from `PbHyp`, `tryConnect`/`connect`/`send` with `Marshal`), `Op`
+  (`opRegister`'s ticket and `op_collect`, the lab's `Kit/Op*`), then `remote.ServeClient`);
+  Server (`awaitConf`, then `New`/`NetworkInit`/`StartProposers`/`Run` from `Replica/Results`, the
+  `id > conf.N` branch sleeping forever); the start (`γ.net` with `netTok 1..5`,
+  `addrs_lis_start` with the proxies' and recorders' wildcards, `lis_set_proto` for each,
+  `NetProtoGS`); then `TopLevelRobustness.lean`.
 - **Next, in order** (ported ~20k of 37k lab lines; Replica and Proxy done but `WireProof`):
   2. `Codec/*` (7.3k: only the pure
      parts port; the generated-codec proofs are replaced by the protobuf hypotheses, so
