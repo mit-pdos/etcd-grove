@@ -3856,7 +3856,9 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   trap (#24 item 4) is gone at the pin (`wp_slice_copy_int` states `sint.Z n = min ...`); it remains in
   the net model's `Conn.Read` spec (`ReadOut`: `sint.nat k = min ...`), the reason for `0 < len(p)`.
 - **Proposed.** `io.writerOk` next to `io.readerOk` in `Perennial/Proof/io/`; the slice facts in
-  `Perennial/Proof/` slice library.
+  `Perennial/Proof/` slice library; `bufio.wand_pure_persistent` (`Proof/bufio/Own.lean`: `□ (∀ _ : φ, P)`
+  from `⌜φ⌝ -∗ □ P`, a general Iris fact, review round 2 on #24, N6) in Perennial's (or iris-lean's)
+  BI lemmas.
 - **Status.** Not filed yet.
 
 ## 2026-11-23: `io.ReadAtLeast`/`io.ReadFull` ask `Pre` of a read they never make (dsv-bufio, #24 review C1)
@@ -3869,12 +3871,14 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 - **Who needs it.** The dsverify kits' `io.ReadFull(conn, …)` without a `*bufio.Reader` in between.
 - **Workaround here.** Read through a `*bufio.Reader` (`bufio.ownBufReader_readerOk`); the claim that it
   works directly was removed from `Net/Proof/net/ConnIo.lean`'s header.
-- **Proposed change.** Ask `Pre` only at `(ys.length : Int) < sint.Z min` (`ReadFull`: `ys.length <
-  len(buf)`); both proofs change by one line. Alternative (not taken: Upamanyu's `Net/` spec, 64 importers
+- **Proposed change.** Ask `Pre` only at `(ys.length : Int) < sint.Z min ∧ ys.length < len(buf)`
+  (`ReadFull`: `ys.length < len(buf)`); both proofs change by one line. (The first version asked it at
+  `ys.length < min` alone: with `min > len(buf)`, the `ErrShortBuffer` path, which reads nothing,
+  Nat subtraction then asked `Pre _ 0`; round 2 of the review on #24, N3.) Alternative (not taken: Upamanyu's `Net/` spec, 64 importers
   and the `KvNet/` copies): make `net.Conn.Read`'s `ReadOut` exact (`sint.Z k = min …`), so a connection's
   condition can be `True`.
-- **Status.** On Perennial branch `readatleast-prefix` (`d5cdfc558`, off `lean` `7b2259a12`, pushed; the
-  io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
+- **Status.** On Perennial branch `readatleast-prefix` (`af905abba`, after `d5cdfc558`, off `lean`
+  `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
   callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
   WAL uses its own `Spec/io/ReadFull.lean`.
 

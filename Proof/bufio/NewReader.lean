@@ -1,12 +1,12 @@
 /-
-`bufio.NewReader` for the WAL (see `Spec/bufio/NewReader.lean`): `NewReaderSize(rd, 4096)` by the
-generic `bufio.NewReaderSize.specE`, at the WAL's stream reader (`Proof/bufio/OwnReaderE.lean`).
-Until 2026-11-23 a proof of its own; review R1 on #24 (one proof per function).
+`bufio.NewReader` for the WAL (see `Spec/bufio/NewReader.lean`): the generic `bufio.NewReader.specE`
+at the WAL's stream reader (`Proof/bufio/OwnReaderE.lean`). Until 2026-11-23 a proof of its own;
+review R1 on #24 (one proof per function); an instance of `NewReader.specE` since round 2 (N4).
 -/
 module
 
 public import Spec.bufio.NewReader
-public import Spec.bufio.NewReaderSize
+public import Spec.bufio.NewReaderOk
 public import Proof.bufio.OwnReaderE
 public import Proof.bufio.Base
 
@@ -27,16 +27,13 @@ variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.bufio.Assumptions]
 
 theorem bufio.NewReader.wp_proof
-    (wp_NewReaderSize : bufio.NewReaderSize.specE (GF := GF) (hG := hG)) :
+    (wp_NewReaderE : bufio.NewReader.specE (GF := GF) (hG := hG)) :
     bufio.NewReader.spec (GF := GF) (hG := hG) := by
   intro ri S E r hty
-  wp_start as ⟨#Hrs, #Hbd, HS⟩
+  iintro %Φ ⟨#Hpkg, #Hrs, #Hbd, HS⟩ HΦ
   ihave #Hrd := io.readerStream_readerOk ri S E $$ Hrs
-  try wp_auto
-  wp_apply wp_NewReaderSize ri bufio.walPre S E E (· ≤ 2 ^ 12) r (W64 4096) $$ [$Hpkg $HS]
-    as %br Hbr
-  · have h4 : (max (sint.Z (W64 4096)) 16).toNat = 4096 := rfl
-    rw [h4]
+  iapply wp_NewReaderE ri bufio.walPre S E E (· ≤ 2 ^ 12) r $$ [HS]
+  · iframe Hpkg HS
     isplitr
     · ipureintro; exact hty
     isplitr
@@ -49,7 +46,7 @@ theorem bufio.NewReader.wp_proof
     ipureintro
     intro m _ hm
     omega
-  try wp_auto
+  iintro !> %br Hbr
   iapply HΦ
   iapply bufio.ownReader_ofE $$ Hbr
 
