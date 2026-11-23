@@ -57,7 +57,7 @@ theorem state.keyComparator_cmpOk :
   iintro #Hst
   iunfold github_com.emirpasic.gods.maps.treemap.cmpOk
   iintro !> %a %b %Φ HΦ
-  wp_apply state.wp_KeyComparator a b as -
+  wp_apply state.wp_KeyComparator a b
   iapply HΦ
   ipureintro
   by_cases h1 : sint.Z b < sint.Z a
@@ -69,7 +69,7 @@ theorem state.keyComparator_cmpOk :
     · rw [keyCmp_lt a b h2]
       have hne : a ≠ b := by rintro rfl; omega
       exact ⟨⟨fun _ => h2, fun _ => by decide⟩, ⟨fun h => absurd h (by decide), fun h => absurd h hne⟩⟩
-    · have hab : a = b := BitVec.eq_of_toInt_eq (by omega)
+    · have hab : a = b := BitVec.eq_of_toInt_eq (Int.le_antisymm (Int.not_lt.mp h1) (Int.not_lt.mp h2))
       subst hab
       rw [keyCmp_self]
       exact ⟨⟨fun h => absurd h (by decide), fun h => absurd h h2⟩, ⟨fun _ => rfl, fun _ => rfl⟩⟩

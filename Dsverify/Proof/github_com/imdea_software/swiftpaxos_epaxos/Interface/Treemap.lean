@@ -137,8 +137,10 @@ theorem filter_valE (es : List (w64 × GoSlice)) (P : w64 → Bool) :
   rw [List.filter_map]; rfl
 
 theorem sortedEntries_sortedE {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
-    (h : sortedEntries M es) : sortedE es :=
-  List.pairwise_map.mp h.1
+    (h : sortedEntries M es) : sortedE es := by
+  have h1 := h.1
+  rw [List.pairwise_map] at h1
+  exact h1
 
 theorem sortedEntries_lookupE {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
     (h : sortedEntries M es) (k : w64) : lookupE es k = M.lookup k := by
@@ -147,18 +149,20 @@ theorem sortedEntries_lookupE {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)
   exact h.2 k x
 
 theorem sortedEntries_empty : sortedEntries (∅ : GMap w64 GoSlice) [] :=
-  ⟨List.Pairwise.nil, fun k sl => ⟨fun h => by cases h, fun h => by cases h⟩⟩
+  ⟨List.Pairwise.nil, fun _ sl =>
+    ⟨fun h => (List.not_mem_nil h).elim,
+     fun h => nomatch (h : (none : Option GoSlice) = some sl)⟩⟩
 
 theorem sortedEntries_put {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
     (h : sortedEntries M es) (k : w64) (sl : GoSlice) :
     sortedEntries (M.insert k sl) (putE es k sl) := by
   have hs := sortedEntries_sortedE h
-  refine ⟨List.pairwise_map.mpr (sortedE_putE es k sl hs), fun k' x => ?_⟩
+  refine ⟨by rw [List.pairwise_map]; exact sortedE_putE es k sl hs, fun k' x => ?_⟩
   rw [mem_putE es k sl hs k' x]
   show _ ↔ (if k = k' then some sl else M.lookup k') = some x
   by_cases hk : k' = k
   · subst hk
-    simp only [if_true, true_and, ne_eq, not_true_eq_false, and_false, or_false, Option.some.injEq]
+    simp only [ite_true, true_and, ne_eq, not_true_eq_false, and_false, or_false, Option.some.injEq]
     exact eq_comm
   · rw [if_neg (Ne.symm hk), ← h.2 k' x]
     simp [hk]
@@ -171,7 +175,8 @@ theorem lookup_filterP (M : GMap w64 GoSlice) (P : w64 → Bool) (k : w64) :
 theorem sortedEntries_filter {M : GMap w64 GoSlice} {es : List (w64 × GoSlice)}
     (h : sortedEntries M es) (P : w64 → Bool) :
     sortedEntries (M.filter (fun k _ => P k)) (es.filter (fun e => P e.1)) := by
-  refine ⟨List.pairwise_map.mpr (sortedE_filter _ es (sortedEntries_sortedE h)), fun k x => ?_⟩
+  refine ⟨by rw [List.pairwise_map]; exact sortedE_filter _ es (sortedEntries_sortedE h),
+    fun k x => ?_⟩
   rw [lookup_filterP, List.mem_filter, h.2 k x]
   by_cases hP : P k <;> simp [hP]
 
@@ -186,16 +191,20 @@ def StateTreemap.ofGods {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Sema
   iterVal v es := H.iterVal v (es.map valE)
   ownIter p rest cur := H.ownIter p (rest.map valE) (cur.map valE)
   NewWith_spec := by
-    wp_start as ⟨#Htm, #Hst⟩
+    wp_start_folded
+    ihave #Hst : isPkgInit (PROP := IProp GF)
+        pkg_id.github_com.imdea_software.swiftpaxos_epaxos.state $$ []
+    · iPkgInit
     ihave #Hc := hcmp $$ Hst
     wp_apply H.NewWith_spec (functions state.KeyComparator []) keyIface $$ [$Hc] as %m Hm
     iapply HΦ
     iexists []
+    simp only [List.map_nil]
     iframe Hm
     ipureintro; exact sortedEntries_empty
   Put_spec := by
     intro m M k sl
-    wp_start as ⟨#Htm, #Hst, ⟨%es, Hm, %Hes⟩⟩
+    wp_start_folded as ⟨%es, Hm, %Hes⟩
     wp_apply H.Put_spec m keyIface (es.map valE) k (valIface sl) $$ [$Hm] as Hm
     iapply HΦ
     iexists putE es k sl
@@ -204,7 +213,7 @@ def StateTreemap.ofGods {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Sema
     ipureintro; exact sortedEntries_put Hes k sl
   Get_spec := by
     intro m M k
-    wp_start as ⟨#Htm, #Hst, ⟨%es, Hm, %Hes⟩⟩
+    wp_start_folded as ⟨%es, Hm, %Hes⟩
     wp_apply H.Get_spec m keyIface (es.map valE) k $$ [$Hm] as Hm
     rw [lookupE_valE, sortedEntries_lookupE Hes k]
     iapply HΦ
@@ -216,7 +225,7 @@ def StateTreemap.ofGods {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Sema
     cases M.lookup k <;> simp
   Select_spec := by
     intro m M f P R hf
-    wp_start as ⟨#Htm, ⟨%es, Hm, %Hes⟩, HR⟩
+    wp_start_folded as ⟨⟨%es, Hm, %Hes⟩, HR⟩
     wp_apply H.Select_spec m keyIface (es.map valE) f P R ?hsel $$ [$Hm $HR]
       as %m' ⟨Hm, HR, Hm'⟩
     case hsel =>
@@ -240,7 +249,7 @@ def StateTreemap.ofGods {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Sema
     ipureintro; exact lookup_filterP M P
   Iterator_spec := by
     intro m M
-    wp_start as ⟨#Htm, ⟨%es, Hm, %Hes⟩⟩
+    wp_start_folded as ⟨%es, Hm, %Hes⟩
     wp_apply H.Iterator_spec m keyIface (es.map valE) $$ [$Hm] as %v Hv
     iapply HΦ
     iexists es
@@ -249,15 +258,19 @@ def StateTreemap.ofGods {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Sema
   iter_alloc := fun p v es => H.iter_alloc p v (es.map valE)
   Next_spec := by
     intro p rest cur
-    wp_start as ⟨#Htm, Hit⟩
+    wp_start_folded as Hit
     wp_apply H.Next_spec p (rest.map valE) (cur.map valE) $$ [$Hit] as %b Hb
     iapply HΦ
-    cases rest with
-    | nil => iexact Hb
-    | cons e r => iexact Hb
+    irevert Hb
+    cases rest <;> simp only [List.map_nil, List.map_cons, Option.map_none, Option.map_some]
+    all_goals (try (iintro Hb; iexact Hb))
   Value_spec := by
     intro p rest k sl
-    wp_start as ⟨#Htm, Hit⟩
+    wp_start_folded as Hit
+    have hv : Option.map valE (some (k, sl)) = some (k, valIface sl) := rfl
+    irevert Hit
+    rw [hv]
+    iintro Hit
     wp_apply H.Value_spec p (rest.map valE) k (valIface sl) $$ [$Hit] as Hit
     iapply HΦ
     iexact Hit
