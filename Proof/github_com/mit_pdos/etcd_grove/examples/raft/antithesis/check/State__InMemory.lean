@@ -604,8 +604,52 @@ theorem State.InMemory.wp_proof
       wp_apply wp_T _ _ t $$ [Hx] as %ut %Hut
       · iframe Hx; ipureintro; exact ht
       have hw1 : W64 (j : Int) + W64 1 = W64 ((j + 1 : Nat) : Int) := by word
-      trace_state
-      sorry
+      have hda : decide (sint.Z gs[j].T' < sint.Z ut) = a := by rw [Hut, HgqR.1, ← ha]
+      rw [hda]
+      cases a
+      · rw [haf rfl] at Hjany
+        simp only [Bool.false_eq_true, ite_false] at Hjany
+        wp_auto
+        wp_for_post
+        iframe
+        iexists j + 1
+        rw [hw1]
+        iframe
+        isplitl [p]
+        · iexists _; iexact p
+        ipureintro; exact ⟨hjl, Hjany⟩
+      replace hat := hat rfl
+      unfold notM at hat
+      replace hat := bind_ok hat; obtain ⟨ip, hip, hat⟩ := hat
+      replace hip := bind_ok hip; obtain ⟨sc, hsc, hip⟩ := hip
+      simp only [pure_ok, Except.ok.injEq] at hat
+      subst hat
+      wp_auto
+      wp_apply wp_SubSeq _ _ (W64 1) gs[j].V' sc $$ [HChain] as %gsc #Hgsc
+      · iframe HChain; ipureintro; rw [sint_one, HgqR.2]; exact hsc
+      wp_apply wp_load_at _ _ _ Hn $$ [Hglog] as -
+      · iexact Hglog
+      wp_apply wp_IsPrefix _ _ _ _ ip $$ [Hgsc Hlogn]
+      · iframe Hgsc Hlogn; ipureintro; exact hip
+      cases ip
+      · simp only [Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Hjany
+        subst Hjany
+        wp_auto
+        wp_for_post
+        wp_join_done
+        iexists true
+        iframe
+        ipureintro; exact Hjp6
+      · simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Hjany
+        wp_auto
+        wp_for_post
+        iframe
+        iexists j + 1
+        rw [hw1]
+        iframe
+        isplitl [p]
+        · iexists _; iexact p
+        ipureintro; exact ⟨hjl, Hjany⟩
     · have hc : ¬ sint.Z (W64 (j : Int)) < sint.Z g.TermLen'.len := by word
       rw [decide_eq_false hc]
       simp only [Bool.false_eq_true, ↓reduceIte]
