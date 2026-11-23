@@ -869,7 +869,22 @@ tests kept as differential tests against the real library, a "not modelled" pani
    (`serverCodec.rerr`, `codec.go`'s doc: Go's behavior over Linux without read deadlines; a program that
    sets a read deadline on a served connection is outside the model's claim), and the server codec's
    read specs take `rerr` (`nonissues/go-netrpc-server-reads-on-after-body-read-error.md`).
-   *Left*: the HTTP path (`ServeHTTP`, `HandleHTTP`, `DialHTTP`); `ServeRequest`; `register`'s logging
+   **`Client.Call`'s decoding obligation restricted to the method's answers (2026-11-23, same branch;
+   found by kaashoek's craq port, #24; ledger 2026-11-23).** `Call` (and `Go`, `send`, `callRes`) asked the
+   program's codec to decode every reply, `□ (D -∗ ∀ rep, C.dec rep reply (Θ rep))`, which no rpcgen codec
+   with two types or more meets: its `Decode` panics `rpcNotModelled` on a well-formed value of another listed
+   type (a documented deviation from gob). Now `□ (D -∗ ∀ rep, Φ rep "" -∗ C.dec rep reply (Θ rep))`: only of
+   the replies the method answers with, its answer in hand (it goes into the decoding; the success post is
+   `∃ rep, Θ rep true`, so `Θ` keeps of `Φ rep ""` what the caller needs). The method's spec is what says a
+   reply is of its type (the server encodes the handler's reply into `Φ eb ""`, `callRet`; only the run's
+   answer gives `Φ`). `input` now trades the call's collection token for the answer at the header (as for an
+   error response), before the body, and `ReadResponseBody` takes a guard (`bodyDecG C body D G Θ`, and a
+   premise turning the reader predicate after the frame into `G pl` a step later: `body_guard`, the frame is
+   that answer's reply). At-most-once and the other cases unchanged. `decErr`'s docstring names the panics.
+   *Open, same defect on the server*: `methodOk`'s `NewArg` gives `bodyDec`, a decoding of every request body,
+   which a generated codec with two types does not meet either; the fix is the same shape (a guard from the
+   deposit `S m args Φ`, which the reader holds when it reads the body, `req_body`), not done.
+   *Left*: the server's request decoding (above); the HTTP path (`ServeHTTP`, `HandleHTTP`, `DialHTTP`); `ServeRequest`; `register`'s logging
    premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
    not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
    `invalidRequest` at `()`) and `isPkgInit log` (item 5).

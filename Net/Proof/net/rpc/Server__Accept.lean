@@ -11,6 +11,7 @@ module
 public import Net.Spec.net.rpc.Server__Accept
 public import Net.Spec.net.rpc.Server__ServeConn
 public import Net.Spec.net.Listener__Accept
+public import Net.Proof.net.AtAddr
 public import Net.Spec.log.Println
 public import Net.Proof.net.rpc.Errs
 
@@ -40,6 +41,8 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
     (wp_ServeConn : Server.ServeConn.spec (GF := GF) (hG := hG)) :
     Server.Accept.spec (GF := GF) (hG := hG) := by
   intro s γs C W a lis l
+  -- the valid-address shape of `Accept` (the wildcard-aware spec's instance, `AtAddr.lean`)
+  have wp_Accept := net.Listener.Accept.spec_addrOk wp_Accept
   wp_start as ⟨%Hb, #Hsrv, #Hserves, #Henv, #Hset, #Hlog, #Haddr, #Hlis, #Hat, #Hli⟩
   iunfold net.isListener at Hlis
   icases Hlis with ⟨%tl, %x, %Hlis, #HlisAt⟩

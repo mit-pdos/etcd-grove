@@ -5131,3 +5131,40 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   lease, auth and watch ones, `etcdstart`'s `grpcUp`).
 - **Decision.** Applied: an axiom retired, callee contracts restated so that every caller proves on top; no
   top-level statement changes.
+
+## 2026-11-23: `Client.Call.spec` asks the codec to decode only the method's answers (net/rpc model)
+
+- **Spec.** `Net/Spec/net/rpc/Client__Call.lean` (and `Client__Go.lean`, `Client__send.lean`): the decoding
+  obligation `□ (D -∗ ∀ rep, C.dec rep reply (Θ rep))` becomes `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply
+  (Θ rep))`; `Call`'s success post `Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true` becomes `Rargs ∗ ∃ rep, Θ rep true`
+  (the answer went into the decoding; `Θ` keeps what the caller needs of it), as `callPost`'s `nil` case
+  (`ClientDefs.lean`). `callRes` holds `bodyDecG C reply D (fun rep => Φ rep []) Θ`.
+  `Net/Spec/net/rpc/clientCodec__ReadResponseBody.lean`: `bodyDec C body D Θ` becomes `bodyDecG C body D G Θ`
+  (`Codec.lean`: the `dec` of every payload `pl` with `G pl`), with a new premise `□ (∀ pl, ⌜pl.length ≤
+  maxFrameN⌝ -∗ P (frameOf pl) -∗ ▷ (P (frameOf pl) ∗ G pl))` (the guard from the reader predicate, a step
+  after the read; `guard_true` for a `nil` body). `decErr`'s docstring (`Codec.lean`): the generated `Decode`
+  also panics `rpcNotModelled` on a tag naming another type (and on a `nil` or unlisted target), outside any
+  `C.dec` a generated codec meets; `CodecSpec`'s: a decoding that fails partway leaves fields written, so
+  `dec`'s `Ψ false` can only promise some value of the target's type.
+- **Defect.** No program using rpcgen's codec with two types or more could meet `Call`'s premise: its
+  `rpcDecode` (`models/net/rpc/rpcgen_core.py`) panics `rpcNotModelled("... decoding a <tag> into a <T> is not
+  modelled")` when the tag parses but names another listed type (a documented deviation from gob), so
+  `C.dec rep reply Ψ` is false of such `rep` and `∀ rep, C.dec rep reply _` unprovable: a kit cannot call
+  `Call`.
+- **Evidence.** kaashoek's craq port, report on etcd-grove#24. The new statement is proved:
+  `Client.input`'s proof (`Net/Proof/net/rpc/Client__input.lean`) trades the call's collection token for the
+  answer `Φ reply []` at the header (`resp_hdr`, `ans_trade`), before the body, and gives `ReadResponseBody`
+  the guard `pl = reply` (`body_guard`: by `resp_body` and the `ans` element's agreement, the body frame is
+  that answer's reply); `lake build Net.Proof.net.rpc.Results` green, every linked result Lean's three axioms.
+- **Why true of the code.** A success response's body is the server's encoding of the handler's reply
+  (`sendResponse`, `callRet`: `C.enc replyv (fun eb => Φ eb [])`), and `Φ rep []` reaches the client only
+  through the run's answer (`answerRes`, `replyEscrow`), so a method spec that gives `Φ rep []` only for `rep`
+  an encoding of the reply type (as a caller's `Φ` can require) makes the decoding provable. `decOk`'s failure
+  branch claimed nothing about the target (it is `C.dec`'s `Ψ false`, the codec spec's choice); no concrete
+  `CodecSpec` exists yet to overclaim.
+- **Proposed change.** As above; callers updated (`Client.input`'s, `Client.send`'s, `Client.Call`'s,
+  `ReadResponseBody`'s proofs). Open, same defect: the server's `methodOk` (`ServerDefs.lean`) gives
+  `bodyDec C argv D Θ`, a decoding of every request body, which a generated codec with two types does not meet
+  either (`serverCodec.ReadRequestBody`, `Server.readRequest`); the same guard from the deposit `S m args Φ`
+  would fix it.
+- **Decision.** Applied for the client (branch `models-rpc-server`); the server's request decoding open.
