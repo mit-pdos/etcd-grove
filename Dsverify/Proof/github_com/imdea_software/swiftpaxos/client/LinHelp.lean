@@ -146,24 +146,70 @@ theorem apply_linPuts (G : Seq) (x : CmdId) (c : Cmd) (hx : x ∉ G.map Prod.fst
     · exact absurd (hc.resolve_left hput) hget
 
 section vals
-variable [GoGlobalContext] [go.IntoValInj w64]
+variable [GoGlobalContext]
 
-theorem valW_enc (w : w64) : valW (#w) = w := by
-  have h : ∃ w' : w64, (#w : val) = #w' := ⟨w, rfl⟩
-  rw [valW, dif_pos h]
-  exact (go.intoVal_inj (Classical.choose_spec h)).symm
+theorem strW1_length (w : w64) : (strW1 w).length = 10 := by simp [strW1]
 
-theorem map_valW_enc (ws : List w64) : (ws.map (fun w => (#w : val))).map valW = ws := by
-  induction ws with
-  | nil => rfl
-  | cons w ws ih => simp only [List.map_cons, valW_enc, ih]
+/-- A word is its string's: its ten 7-bit chunks give it back. -/
+theorem strW1_inj {a b : w64} (h : strW1 a = strW1 b) : a = b := by
+  simp only [strW1, List.map_cons, List.map_nil, List.cons.injEq] at h
+  obtain ⟨h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, -⟩ := h
+  have e : ∀ x y : Nat, x < 128 → y < 128 → W8 (x : Int) = W8 (y : Int) → x = y := by
+    intro x y hx hy hxy
+    have := congrArg BitVec.toNat hxy
+    simp only [W8, BitVec.toNat_ofInt] at this
+    omega
+  have h0 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h0
+  have h1 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h1
+  have h2 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h2
+  have h3 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h3
+  have h4 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h4
+  have h5 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h5
+  have h6 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h6
+  have h7 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h7
+  have h8 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h8
+  have h9 := e _ _ (Nat.mod_lt _ (by decide)) (Nat.mod_lt _ (by decide)) h9
+  have ha := a.isLt
+  have hb := b.isLt
+  apply BitVec.eq_of_toNat_eq
+  simp only [Nat.reducePow, Nat.pow_zero, Nat.div_one] at h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 ha hb
+  omega
 
-/-- Resolving an event's words: the prophecy's decoding loses its head. -/
-theorem decodeV_enc {e : PEv} (he : PEvWf e) (vs : List val) :
-    decodeV (encV e ++ vs) = e :: decodeV vs := by
-  unfold decodeV encV
-  rw [List.map_append, map_valW_enc]
-  exact decodeP_enc he _
+/-- Words are their string's (each word's string is ten bytes). -/
+theorem strW_inj : ∀ {xs ys : List w64}, strW xs = strW ys → xs = ys
+  | [], [], _ => rfl
+  | [], y :: ys, h => by
+    have := congrArg List.length h
+    simp [strW, List.flatMap_cons, strW1_length] at this
+  | x :: xs, [], h => by
+    have := congrArg List.length h
+    simp [strW, List.flatMap_cons, strW1_length] at this
+  | x :: xs, y :: ys, h => by
+    simp only [strW, List.flatMap_cons] at h
+    obtain ⟨h1, h2⟩ := List.append_inj h (by rw [strW1_length, strW1_length])
+    rw [strW1_inj h1, strW_inj h2]
+
+variable [go.IntoValInj GoInterface] [go.IntoValInj GoString]
+
+/-- **`encE` is injective** on well-formed events (`encP_inj`, with nothing after). -/
+theorem encE_inj {e e' : PEv} (he : PEvWf e) (he' : PEvWf e') (h : encE e = encE e') : e = e' := by
+  unfold encE at h
+  have h1 := go.intoVal_inj h
+  simp only [GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h1
+  have h2 := strW_inj (go.intoVal_inj h1)
+  exact (encP_inj he he' (by simpa using h2)).1
+
+/-- An event's value's words are its words. -/
+theorem valWs_encE {e : PEv} (he : PEvWf e) : valWs (encE e) = encP e := by
+  have h : ∃ e', PEvWf e' ∧ encE e = encE e' := ⟨e, he, rfl⟩
+  rw [valWs, dif_pos h]
+  have hs := Classical.choose_spec h
+  rw [encE_inj he hs.1 hs.2]
+
+/-- Resolving an event's value: the prophecy's words lose the event's. -/
+theorem flatMap_valWs_cons {e : PEv} (he : PEvWf e) (vs : List val) :
+    (encE e :: vs).flatMap valWs = encP e ++ vs.flatMap valWs := by
+  rw [List.flatMap_cons, valWs_encE he]
 
 end vals
 

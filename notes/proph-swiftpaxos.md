@@ -89,6 +89,28 @@ Files (I):
    (replicas claim swift's), `ClientMachine`/`ClientNodeDefs` (clients claim client's), `TopLevelRobustness`'s
    `bootRes_client`/`bootRes_server` (proof only; the statement must not change).
 
+## Finding: the invariant's mask (the main remaining work)
+"The mutex resource becomes an invariant opened around the single resolve" means each site's protocol
+update must run *inside* the opened node-prophecy invariant (namespace `client.nodeProphN`), i.e. at
+mask `⊤ ∖ ↑client.nodeProphN`, not `⊤`: the update consumes the node's half of `γ.pred` (in the
+invariant, with the prophecy), and must happen in the same atomic step as the resolution, or another
+goroutine of the node could resolve (and step) in between and the prediction's order would not be the
+steps' order. (Running the update before the resolve, or after with the half checked out, fails for that
+reason: a second resolver cannot wait.) So:
+- client side: `sp.l2_invoke`/`sp.l2_accept` already take a mask `E` with `↑spN ⊆ E`: use
+  `E = ⊤ ∖ ↑client.nodeProphN` (no change to L2Laws).
+- swift side: `swift.ghostUpd` (GhostSteps.lean) is `∀ W', predPre ... ={⊤}=∗ predPost ... ∗ Q`; it must
+  become `={⊤ ∖ ↑client.nodeProphN}=∗`, and the step lemmas its 11 sites use must be generalized from
+  `|={⊤}=>` to a mask `E` (with `↑swift.nodeN ⊆ E` and `↑sp.spN ⊆ E ∖ ↑swift.nodeN`, replacing their
+  `(⊤ \ ↑swift.nodeN) swift.nodeN_diff` arguments to `sp.upd_*`, which already take `E`):
+  `swift.handle_stepDN` (HandleStepN), `swift.newBallot_stepD`, `computeSync_stepD`, `takeSync_stepD`
+  (SyncStepD), `swift.commit_dstep`/`commit_dstep'`, `preaccept_dstep` (DescNode), `accept_dstep_pre`,
+  `reaccept_dstep`, `recommit_dstep` (AcceptPre), `swift.fill_report` (FillAckN's), and whatever they call
+  at `⊤ \ ↑swift.nodeN` (e.g. `swift.nodeX_newBal`). Sites: HandleProposalProof, HandleSyncProof,
+  NewLeaderProof, NewLeaderAckNs, AcksHandler, HandleSyncEntry, HandleProposeProof (2), FastAck (2),
+  FillAckN.
+This is mechanical but touches ~15 files; it is not done yet.
+
 ## Checks
 `swiftpaxos_remote_robust`'s statement (`Spec/.../examples/swiftnet/TopLevelRobustness.lean`) must not change:
 `git diff origin/lean -- Dsverify/Spec/github_com/imdea_software/swiftpaxos/examples/swiftnet/TopLevelRobustness.lean`
@@ -99,3 +121,25 @@ must be empty. Builds: `/shared/tmp/fklean1-check.sh /shared/etcd-grove-prophswi
 - Go side done and committed; translation regenerated (`etc/goose.py --project dsv-swiftpaxos`); gen-init
   regenerated (package tables: swift imports primitive).
 - Warm-up build of the other kits' TopLevelRobustness on the pinned Perennial: started.
+- Lean WIP (committed, NOT building yet as a whole): Spec client/Ghost.lean (`strW1`, `strW`, `encE`, `valWs`,
+  `nodeVar`, `nodeProphN`, `nodeLockR` over `flatMap valWs`, `nodeGhostB` with the invariant,
+  `prophFresh`, `ghostFresh`, `freshOf`; `isNodeGhost` gone), NodeGhost.lean (`claimGhost.spec` over
+  `freshOf n`), LinHelp.lean (`strW1_inj`, `strW_inj`, `encE_inj`, `valWs_encE`, `flatMap_valWs_cons`;
+  the `valW` lemmas gone), Claim.lean (inv_alloc), client/Pkg.lean (`ghostUnclaimed` gone).
+- Next: (1) build LinHelp + Claim on fk-lean1 and fix; (2) a probe module to see the goal after `wp_auto`
+  of one word statement `s += string(byte(w&127)) + ...` (the chunks come out as
+  `go.runeString (uint.Z (W8 (uint.Z ((w >>> W64 7) &&& W64 127))))`; prove each is
+  `[W8 ↑(w.toNat / 2^7 % 128)]` (`go.runeString` of a value below 128 is that byte; `decide` over
+  `Fin 128` if simp does not get it; NOT `bv_decide`/`native_decide`, which add `Lean.ofReduceBool`), so the
+  ten make `strW1 w`); (3) GhostDefs/Ghost.lean: `client.resolveInvoke.specG`/`resolveAccept.specG` (the
+  old Invoke/Accept specs with `client.nodeGhostB γ (cl (clOf x))` for `isNodeGhost g`), proofs: the word
+  statements, the loops over `val` (invariant `s = strW (prefix of the words)`), then the resolve:
+  `wp_bind (ResolveProph _ _)`, `iinv Hi with ⟨%pvs, >Hpr, >Hw⟩`, `wp_resolve_proph`, rewrite with
+  `sp.flatMap_valWs_cons`, `sp.l2_invoke (⊤ ∖ ↑client.nodeProphN)`, close with `pvs'`; drop
+  theGhost/Ghost.Step/GhostStep and `SwiftKitDeps.ghostStep` (InternalDeps, InternalDepsLinked);
+  BufferClient__Write/Read and client/Results.lean: the new helpers; (4) the mask generalization above and
+  GhostSteps/GhostSteps2 `wp_resolveX` (same shape as `wp_ghostX`, resolving `swift.nodeProph` under the
+  invariant), renaming the 11 sites' calls; (5) boot (BootLinked: client's `nodeProph` + `init.0`, swift's
+  `nodeProph` + `init.0`, `bootRes` gains `client.prophFresh swift.nodeProph`; ServeDefs/ServeProof: replicas
+  claim `freshOf (rep _)`; ClientMachine/ClientNodeDefs: `freshOf (cl _)` is `ghostFresh` by `rfl`;
+  TopLevelRobustness.lean's `bootRes_client`/`bootRes_server` proofs).

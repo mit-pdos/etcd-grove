@@ -2,12 +2,11 @@
 Ported from dsverify-lab examples/swiftpaxos/proof/Proof/client/Claim.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
-L2: the claim of the node's ghost (`client.claimGhost.spec`, Spec/client/NodeGhost.lean): the
-node's fresh ghost (`client.ghostFresh`) registers its prediction (`sp.pred_register`, the
-prophecy's values as its future words) and the mutex becomes the node's ghost lock
-(`client.nodeLockR`). (The lab's `client.ghostFresh_take`, the claim off a replica node with
-the node's address token, is gone: every node's boot thread gets the fresh ghost,
-Proof/client/Pkg.lean.)
+L2: the claim of the node's prophecy (`client.claimGhost.spec`, Spec/client/NodeGhost.lean): the
+node's fresh prophecy of its kind (`client.freshOf n`) registers its prediction (`sp.pred_register`,
+the prophecy's values' words as its future words) and goes into an invariant with the node's half
+(`client.nodeLockR`). Every node's boot thread gets both packages' fresh prophecies
+(Proof/client/Pkg.lean, examples/swiftnet/BootLinked.lean).
 -/
 module
 
@@ -32,20 +31,19 @@ variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [SwiftBufioDeps netDistGF] [SwiftNetDeps netDistGF]
 variable [sync.Assumptions]
 
-/-- **The claim** (`client.claimGhost.spec`): the node's fresh ghost (`client.ghostFresh`: its
-prophecy and its zero mutex) registers the node's prediction (`sp.pred_register`, the
-prophecy's values as its future words) and its mutex becomes the node's ghost lock
-(`client.nodeLockR`). -/
+/-- **The claim** (`client.claimGhost.spec`): the node's fresh prophecy of its kind
+(`client.freshOf n`) registers the node's prediction (`sp.pred_register`, the prophecy's values'
+words as its future words), and an invariant ties them (`client.nodeLockR`). -/
 theorem client.claimGhost.wp_proof : client.claimGhost.spec (hG := hG) := by
   intro γ γc γm γl n
   iintro #Hpkg #Hinv Hfr Htok
-  iunfold client.ghostFresh at Hfr
-  icases Hfr with ⟨%g, %p, %pvs, #Hg, %Hne, #Hp, Hpr, Hmu⟩
+  iunfold client.freshOf at Hfr
+  iunfold client.prophFresh at Hfr
+  icases Hfr with ⟨%p, %pvs, #Hp, Hpr⟩
   imod (sp.pred_register (γ := γ) (γc := γc) (γm := γm) (γl := γl) ⊤
-    (by solve_ndisj) n (pvs.map sp.valW)) $$ [Htok] with ⟨#Hreg, Hw⟩
+    (by solve_ndisj) n (pvs.flatMap sp.valWs)) $$ [Htok] with ⟨#Hreg, Hw⟩
   · iframe Hinv Htok
-  imod sync.init_Mutex (client.nodeLockR γ n p) ⊤ _ $$ Hmu [Hpr Hw]
-    with #Hmu
+  imod inv_alloc client.nodeProphN ⊤ (client.nodeLockR γ n p) $$ [Hpr Hw] with #Hi
   · inext
     iunfold client.nodeLockR
     iexists pvs
@@ -55,12 +53,8 @@ theorem client.claimGhost.wp_proof : client.claimGhost.spec (hG := hG) := by
   iunfold client.nodeGhostOk
   iunfold client.nodeGhostB
   iframe Hreg
-  iexists g
-  iframe Hg
-  iunfold client.isNodeGhost
   iexists p
-  iframe Hp Hmu
-  ipureintro; exact Hne
+  iframe Hp Hi
 
 end proof
 

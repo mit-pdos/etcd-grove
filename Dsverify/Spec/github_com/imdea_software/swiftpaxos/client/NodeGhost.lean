@@ -31,24 +31,24 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 
-/-- This node's ghost is claimed for the predicted node `n` (persistent): `n` is registered and
-the package's `nodeGhost`'s mutex guards `n`'s prophecy and its half of `n`'s future words in
-`sp.inv` (`client.nodeGhostB`, Spec/client/Ghost.lean); users only pass it on. -/
+/-- This node's prophecy is claimed for the predicted node `n` (persistent): `n` is registered and
+an invariant ties the prophecy of `n`'s kind to its half of `n`'s future words in `sp.inv`
+(`client.nodeGhostB`, Spec/client/Ghost.lean); users only pass it on. -/
 def client.nodeGhostOk (γ : sp.Names) (n : sp.PNode) : IProp netDistGF := client.nodeGhostB γ n
 
 instance client.nodeGhostOk_persistent (γ : sp.Names) (n : sp.PNode) :
     Persistent (client.nodeGhostOk γ n) := by
   unfold client.nodeGhostOk; infer_instance
 
-/-- **The claim** (a ghost step of the node, no code): with the client package initialized on
-this node, the protocol's invariant, the node's exclusive right to claim its one ghost
-(`client.ghostFresh`, Spec/client/Ghost.lean: handed out by the client package's first
-initialization or taken from its package state with the node's own token; decision D90, R-E1)
-and the node's registration token, the node registers its prediction. -/
+/-- **The claim** (a ghost step of the node, no code): with the protocol's invariant, the node's
+exclusive right to claim the prophecy of its kind (`client.freshOf n`, Spec/client/Ghost.lean: the
+client package's `nodeProph` for a client node, the swift package's for a replica node, handed out by
+the package's first initialization) and the node's registration token, the node registers its
+prediction. -/
 abbrev client.claimGhost.spec : Prop :=
   ∀ (γ : sp.Names) (γc γm γl : GName) (n : sp.PNode),
   ⊢ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client -∗
-    sp.inv γ γc γm γl -∗ client.ghostFresh -∗ sp.predTok γ n ={⊤}=∗
+    sp.inv γ γc γm γl -∗ client.freshOf n -∗ sp.predTok γ n ={⊤}=∗
       sp.predReg γ n ∗ client.nodeGhostOk γ n
 
 end spec
