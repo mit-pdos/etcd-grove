@@ -6,8 +6,14 @@
 // the generated codec compared with real protobuf-go by the regression test the generator
 // writes beside it (pb_gen_test.go: Marshal of random values byte for byte and nil-or-not;
 // Unmarshal of real encodings, of their mutations and of every field number with every wire type,
-// error-or-not and the value; the recursion limits; the panics). And schemas outside the subset,
-// one unsupported construct each, which the generator must refuse, naming message and field.
+// error-or-not and the value; the recursion limits; the panics). The same schemas in the
+// generator's pbmodel mode (#37 S3): the methods written into the schemas' own packages and the
+// tests generated beside them (pbmodel_gen_test.go: also the bytes and message that come with an
+// error, unknown fields, Size, Clone, interleavings of real and generated operations on shared
+// messages comparing every level's size cache; the concurrent test again under -race). And
+// schemas outside the subset, one unsupported construct each, which the generator must refuse,
+// naming message and field (TestRefusals; TestRefusalsPbModel for the pbmodel mode's own).
+// cache_test.go (tag pbmodel) keeps the size cache's named cases on pbdifftest's messages.
 //
 // Environment: PBGEN_RAND_SCHEMAS (schemas per run, default 24), PBGEN_RAND_SEED (default 1),
 // PBGEN_RAND_BATCH (schemas per compiled Go module, default 12), PBGEN_TEST_SCALE (the count of
@@ -948,4 +954,43 @@ func failures(out string) string {
 		return tail(out, 60)
 	}
 	return strings.Join(keep, "\n")
+}
+
+// TestRefusalsPbModel: what only the pbmodel mode refuses (pbgen_core.py, Schema with pbmodel): a
+// message type with a method or field of the generated methods' prefix PbModel (here a
+// hand-written PbModelSize, and a field pb_model_x, Go name PbModelX); the codec mode accepts both.
+func TestRefusalsPbModel(t *testing.T) {
+	s := newSetup(t)
+	dir := t.TempDir()
+	s.newModule(t, dir)
+	f := refusedFile("pm", "proto3",
+		&descriptorpb.DescriptorProto{Name: proto.String("Hand"), Field: []*descriptorpb.FieldDescriptorProto{fld("x", 1, i32, opt)}},
+		&descriptorpb.DescriptorProto{Name: proto.String("Named"), Field: []*descriptorpb.FieldDescriptorProto{fld("pb_model_x", 1, i32, opt)}},
+		&descriptorpb.DescriptorProto{Name: proto.String("Fine"), Field: []*descriptorpb.FieldDescriptorProto{fld("y", 1, i32, opt)}})
+	s.protocGenGo(t, dir, []*descriptorpb.FileDescriptorProto{f}, "")
+	must(t, os.WriteFile(filepath.Join(dir, "pm", "hand.go"), []byte("package pm\n\n"+
+		"func (x *Hand) PbModelSize(cached bool) int { return 0 }\n"), 0o644))
+	toml := "[protobuf]\nimports = { pm = \"pbgenrand.tmp/pm\" }\nroots = [\"pm.Hand\", \"pm.Named\", \"pm.Fine\"]\n"
+	tomlPath := filepath.Join(dir, "protobuf.toml")
+	must(t, os.WriteFile(tomlPath, []byte(toml), 0o644))
+	out, code := runCode(dir, nil, "python3", s.pbgen, tomlPath, dir, "--pbmodel")
+	if code != 2 {
+		t.Fatalf("pbgen --pbmodel: exit %d, not 2 (refused):\n%s", code, out)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "pm", "pbmodel_gen.go")); err == nil {
+		t.Fatalf("pbgen --pbmodel wrote files for a refused schema")
+	}
+	for _, want := range []string{"message pm.Hand (pm/pm.proto): a method PbModelSize",
+		"message pm.Named (pm/pm.proto): Go field PbModelX"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("the refusal does not say %q:\n%s", want, out)
+		}
+	}
+	if strings.Contains(out, "pm.Fine") {
+		t.Errorf("pm.Fine refused:\n%s", out)
+	}
+	if out, code := runCode(dir, nil, "python3", s.pbgen, tomlPath, filepath.Join(dir, "codec"), "--pkg", "codec"); code != 0 {
+		t.Fatalf("the codec mode refuses it:\n%s", out)
+	}
+	t.Logf("refused as expected:\n%s", out)
 }

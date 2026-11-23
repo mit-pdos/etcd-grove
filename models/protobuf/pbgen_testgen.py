@@ -1110,10 +1110,12 @@ def gen_test_go(P, header, go_name, names=None, pbmodel=False):
         table += ["\t\t\t},", "\t\t},"]
     table += ["\t}", "}", ""]
     table += ["// pbAllNew: every message type of the codec (all packages), by full name.",
-              "var pbAllNew = map[string]func() proto.Message{"]
+              "var pbAllNew = pbAllNewOf()", "",
+              "func pbAllNewOf() map[string]func() proto.Message {",
+              "\tm := map[string]func() proto.Message{}"]
     for n in P.names:
-        table.append(f"\t{go_str(P.full[n])}: func() proto.Message {{ return &{n}{{}} }},")
-    table += ["}", ""]
+        table.append(f"\tm[{go_str(P.full[n])}] = func() proto.Message {{ return &{n}{{}} }}")
+    table += ["\treturn m", "}", ""]
     # the oneofs' holder interface types and their wrappers, for random values
     table += ["// pbOneofWrappers: each oneof holder's interface type, with its wrapper types.",
               "var pbOneofWrappers = pbOneofWrappersOf()", "",

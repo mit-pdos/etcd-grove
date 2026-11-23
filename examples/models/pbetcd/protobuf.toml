@@ -7,10 +7,13 @@
 # proto2 and oneof extension (2026-11-23) also raft's raftpb (proto2: explicit presence, closed
 # enums, unpacked repeated fields; at the examples' raft pin), the WAL's walpb (proto2), and the
 # oneofs of the transaction and raft-entry requests (TxnRequest, Compare, RequestOp, ResponseOp,
-# InternalRaftRequest, WatchRequest). Generate from the repository root:
+# InternalRaftRequest, WatchRequest). Since #37's stage S3 (2026-11-23), the types etcd keeps in bbolt
+# or the WAL that its review named (authpb.User and Role, leasepb.Lease, etcdserverpb.Metadata), and the
+# same roots give the same-package methods (pbgen's pbmodel mode), which pbmodel_forks.py writes
+# into a scratch copy of the forks and tests there. Generate from the repository root:
 #     models/protobuf/pbgen.py examples/models/pbetcd/protobuf.toml examples/models/pbetcd --pkg pbetcd
 [protobuf]
-imports = { etcdserverpb = "go.etcd.io/etcd/api/v3/etcdserverpb", mvccpb = "go.etcd.io/etcd/api/v3/mvccpb", raftpb = "go.etcd.io/raft/v3/raftpb", walpb = "go.etcd.io/etcd/server/v3/storage/wal/walpb" }
+imports = { etcdserverpb = "go.etcd.io/etcd/api/v3/etcdserverpb", mvccpb = "go.etcd.io/etcd/api/v3/mvccpb", raftpb = "go.etcd.io/raft/v3/raftpb", walpb = "go.etcd.io/etcd/server/v3/storage/wal/walpb", authpb = "go.etcd.io/etcd/api/v3/authpb", leasepb = "go.etcd.io/etcd/server/v3/lease/leasepb" }
 roots = ["etcdserverpb.RangeRequest", "etcdserverpb.RangeResponse",
          "etcdserverpb.PutRequest", "etcdserverpb.PutResponse",
          "etcdserverpb.DeleteRangeRequest", "etcdserverpb.DeleteRangeResponse",
@@ -23,4 +26,5 @@ roots = ["etcdserverpb.RangeRequest", "etcdserverpb.RangeResponse",
          "etcdserverpb.WatchRequest",
          "raftpb.Entry", "raftpb.Message", "raftpb.HardState", "raftpb.ConfState", "raftpb.Snapshot",
          "raftpb.SnapshotMetadata", "raftpb.ConfChange", "raftpb.ConfChangeSingle", "raftpb.ConfChangeV2",
-         "walpb.Record", "walpb.Snapshot"]
+         "walpb.Record", "walpb.Snapshot",
+         "authpb.User", "authpb.Role", "leasepb.Lease", "etcdserverpb.Metadata"]

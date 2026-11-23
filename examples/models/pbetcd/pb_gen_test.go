@@ -18,6 +18,7 @@ import (
 	etcdserverpb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	membershippb "go.etcd.io/etcd/api/v3/membershippb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
+	leasepb "go.etcd.io/etcd/server/v3/lease/leasepb"
 	walpb "go.etcd.io/etcd/server/v3/storage/wal/walpb"
 	raftpb "go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/encoding/protowire"
@@ -49,6 +50,20 @@ func pbTypes() []pbType {
 				{"PermType", 1, protoreflect.EnumKind, false, false, string(authpb.Permission_Type(0).Descriptor().FullName()), pbTypeOf[authpb.Permission_Type](), false, false, true, "", "", nil},
 				{"Key", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
 				{"RangeEnd", 3, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "authpb.Role", new: func() proto.Message { return &authpb.Role{} }, req: false, init: false,
+			fields: []pbField{
+				{"Name", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"KeyPermission", 2, protoreflect.MessageKind, true, false, pbFullName(&authpb.Permission{}), pbTypeOf[[]*authpb.Permission](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "authpb.User", new: func() proto.Message { return &authpb.User{} }, req: false, init: false,
+			fields: []pbField{
+				{"Name", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Password", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
+				{"Roles", 3, protoreflect.StringKind, true, false, "", pbTypeOf[[]string](), false, false, true, "", "", nil},
+				{"Options", 4, protoreflect.MessageKind, false, false, pbFullName(&authpb.UserAddOptions{}), pbTypeOf[*authpb.UserAddOptions](), false, false, true, "", "", nil},
 			},
 		},
 		{name: "authpb.UserAddOptions", new: func() proto.Message { return &authpb.UserAddOptions{} }, req: false, init: false,
@@ -278,6 +293,12 @@ func pbTypes() []pbType {
 				{"Members", 2, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.Member{}), pbTypeOf[[]*etcdserverpb.Member](), false, false, true, "", "", nil},
 			},
 		},
+		{name: "etcdserverpb.Metadata", new: func() proto.Message { return &etcdserverpb.Metadata{} }, req: false, init: false,
+			fields: []pbField{
+				{"NodeID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+				{"ClusterID", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[*uint64](), true, false, true, "", "", nil},
+			},
+		},
 		{name: "etcdserverpb.PutRequest", new: func() proto.Message { return &etcdserverpb.PutRequest{} }, req: false, init: false,
 			fields: []pbField{
 				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte](), false, false, true, "", "", nil},
@@ -414,6 +435,13 @@ func pbTypes() []pbType {
 				{"CancelReason", 6, protoreflect.StringKind, false, false, "", pbTypeOf[string](), false, false, true, "", "", nil},
 				{"Fragment", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool](), false, false, true, "", "", nil},
 				{"Events", 11, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.Event{}), pbTypeOf[[]*mvccpb.Event](), false, false, true, "", "", nil},
+			},
+		},
+		{name: "leasepb.Lease", new: func() proto.Message { return &leasepb.Lease{} }, req: false, init: false,
+			fields: []pbField{
+				{"ID", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"TTL", 2, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
+				{"RemainingTTL", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64](), false, false, true, "", "", nil},
 			},
 		},
 		{name: "membershippb.Attributes", new: func() proto.Message { return &membershippb.Attributes{} }, req: false, init: false,
@@ -553,73 +581,81 @@ func pbTypes() []pbType {
 }
 
 // pbAllNew: every message type of the codec (all packages), by full name.
-var pbAllNew = map[string]func() proto.Message{
-	"authpb.Permission": func() proto.Message { return &authpb.Permission{} },
-	"authpb.UserAddOptions": func() proto.Message { return &authpb.UserAddOptions{} },
-	"etcdserverpb.AlarmRequest": func() proto.Message { return &etcdserverpb.AlarmRequest{} },
-	"etcdserverpb.AuthDisableRequest": func() proto.Message { return &etcdserverpb.AuthDisableRequest{} },
-	"etcdserverpb.AuthEnableRequest": func() proto.Message { return &etcdserverpb.AuthEnableRequest{} },
-	"etcdserverpb.AuthRoleAddRequest": func() proto.Message { return &etcdserverpb.AuthRoleAddRequest{} },
-	"etcdserverpb.AuthRoleDeleteRequest": func() proto.Message { return &etcdserverpb.AuthRoleDeleteRequest{} },
-	"etcdserverpb.AuthRoleGetRequest": func() proto.Message { return &etcdserverpb.AuthRoleGetRequest{} },
-	"etcdserverpb.AuthRoleGrantPermissionRequest": func() proto.Message { return &etcdserverpb.AuthRoleGrantPermissionRequest{} },
-	"etcdserverpb.AuthRoleListRequest": func() proto.Message { return &etcdserverpb.AuthRoleListRequest{} },
-	"etcdserverpb.AuthRoleRevokePermissionRequest": func() proto.Message { return &etcdserverpb.AuthRoleRevokePermissionRequest{} },
-	"etcdserverpb.AuthStatusRequest": func() proto.Message { return &etcdserverpb.AuthStatusRequest{} },
-	"etcdserverpb.AuthUserAddRequest": func() proto.Message { return &etcdserverpb.AuthUserAddRequest{} },
-	"etcdserverpb.AuthUserChangePasswordRequest": func() proto.Message { return &etcdserverpb.AuthUserChangePasswordRequest{} },
-	"etcdserverpb.AuthUserDeleteRequest": func() proto.Message { return &etcdserverpb.AuthUserDeleteRequest{} },
-	"etcdserverpb.AuthUserGetRequest": func() proto.Message { return &etcdserverpb.AuthUserGetRequest{} },
-	"etcdserverpb.AuthUserGrantRoleRequest": func() proto.Message { return &etcdserverpb.AuthUserGrantRoleRequest{} },
-	"etcdserverpb.AuthUserListRequest": func() proto.Message { return &etcdserverpb.AuthUserListRequest{} },
-	"etcdserverpb.AuthUserRevokeRoleRequest": func() proto.Message { return &etcdserverpb.AuthUserRevokeRoleRequest{} },
-	"etcdserverpb.CompactionRequest": func() proto.Message { return &etcdserverpb.CompactionRequest{} },
-	"etcdserverpb.Compare": func() proto.Message { return &etcdserverpb.Compare{} },
-	"etcdserverpb.DeleteRangeRequest": func() proto.Message { return &etcdserverpb.DeleteRangeRequest{} },
-	"etcdserverpb.DeleteRangeResponse": func() proto.Message { return &etcdserverpb.DeleteRangeResponse{} },
-	"etcdserverpb.DowngradeVersionTestRequest": func() proto.Message { return &etcdserverpb.DowngradeVersionTestRequest{} },
-	"etcdserverpb.InternalAuthenticateRequest": func() proto.Message { return &etcdserverpb.InternalAuthenticateRequest{} },
-	"etcdserverpb.InternalRaftRequest": func() proto.Message { return &etcdserverpb.InternalRaftRequest{} },
-	"etcdserverpb.LeaseCheckpoint": func() proto.Message { return &etcdserverpb.LeaseCheckpoint{} },
-	"etcdserverpb.LeaseCheckpointRequest": func() proto.Message { return &etcdserverpb.LeaseCheckpointRequest{} },
-	"etcdserverpb.LeaseGrantRequest": func() proto.Message { return &etcdserverpb.LeaseGrantRequest{} },
-	"etcdserverpb.LeaseGrantResponse": func() proto.Message { return &etcdserverpb.LeaseGrantResponse{} },
-	"etcdserverpb.LeaseRevokeRequest": func() proto.Message { return &etcdserverpb.LeaseRevokeRequest{} },
-	"etcdserverpb.LeaseTimeToLiveResponse": func() proto.Message { return &etcdserverpb.LeaseTimeToLiveResponse{} },
-	"etcdserverpb.Member": func() proto.Message { return &etcdserverpb.Member{} },
-	"etcdserverpb.MemberListResponse": func() proto.Message { return &etcdserverpb.MemberListResponse{} },
-	"etcdserverpb.PutRequest": func() proto.Message { return &etcdserverpb.PutRequest{} },
-	"etcdserverpb.PutResponse": func() proto.Message { return &etcdserverpb.PutResponse{} },
-	"etcdserverpb.RangeRequest": func() proto.Message { return &etcdserverpb.RangeRequest{} },
-	"etcdserverpb.RangeResponse": func() proto.Message { return &etcdserverpb.RangeResponse{} },
-	"etcdserverpb.RequestHeader": func() proto.Message { return &etcdserverpb.RequestHeader{} },
-	"etcdserverpb.RequestOp": func() proto.Message { return &etcdserverpb.RequestOp{} },
-	"etcdserverpb.ResponseHeader": func() proto.Message { return &etcdserverpb.ResponseHeader{} },
-	"etcdserverpb.ResponseOp": func() proto.Message { return &etcdserverpb.ResponseOp{} },
-	"etcdserverpb.TxnRequest": func() proto.Message { return &etcdserverpb.TxnRequest{} },
-	"etcdserverpb.TxnResponse": func() proto.Message { return &etcdserverpb.TxnResponse{} },
-	"etcdserverpb.WatchCancelRequest": func() proto.Message { return &etcdserverpb.WatchCancelRequest{} },
-	"etcdserverpb.WatchCreateRequest": func() proto.Message { return &etcdserverpb.WatchCreateRequest{} },
-	"etcdserverpb.WatchProgressRequest": func() proto.Message { return &etcdserverpb.WatchProgressRequest{} },
-	"etcdserverpb.WatchRequest": func() proto.Message { return &etcdserverpb.WatchRequest{} },
-	"etcdserverpb.WatchResponse": func() proto.Message { return &etcdserverpb.WatchResponse{} },
-	"membershippb.Attributes": func() proto.Message { return &membershippb.Attributes{} },
-	"membershippb.ClusterMemberAttrSetRequest": func() proto.Message { return &membershippb.ClusterMemberAttrSetRequest{} },
-	"membershippb.ClusterVersionSetRequest": func() proto.Message { return &membershippb.ClusterVersionSetRequest{} },
-	"membershippb.DowngradeInfoSetRequest": func() proto.Message { return &membershippb.DowngradeInfoSetRequest{} },
-	"mvccpb.Event": func() proto.Message { return &mvccpb.Event{} },
-	"mvccpb.KeyValue": func() proto.Message { return &mvccpb.KeyValue{} },
-	"raftpb.ConfChange": func() proto.Message { return &raftpb.ConfChange{} },
-	"raftpb.ConfChangeSingle": func() proto.Message { return &raftpb.ConfChangeSingle{} },
-	"raftpb.ConfChangeV2": func() proto.Message { return &raftpb.ConfChangeV2{} },
-	"raftpb.ConfState": func() proto.Message { return &raftpb.ConfState{} },
-	"raftpb.Entry": func() proto.Message { return &raftpb.Entry{} },
-	"raftpb.HardState": func() proto.Message { return &raftpb.HardState{} },
-	"raftpb.Message": func() proto.Message { return &raftpb.Message{} },
-	"raftpb.Snapshot": func() proto.Message { return &raftpb.Snapshot{} },
-	"raftpb.SnapshotMetadata": func() proto.Message { return &raftpb.SnapshotMetadata{} },
-	"walpb.Record": func() proto.Message { return &walpb.Record{} },
-	"walpb.Snapshot": func() proto.Message { return &walpb.Snapshot{} },
+var pbAllNew = pbAllNewOf()
+
+func pbAllNewOf() map[string]func() proto.Message {
+	m := map[string]func() proto.Message{}
+	m["authpb.Permission"] = func() proto.Message { return &authpb.Permission{} }
+	m["authpb.Role"] = func() proto.Message { return &authpb.Role{} }
+	m["authpb.User"] = func() proto.Message { return &authpb.User{} }
+	m["authpb.UserAddOptions"] = func() proto.Message { return &authpb.UserAddOptions{} }
+	m["etcdserverpb.AlarmRequest"] = func() proto.Message { return &etcdserverpb.AlarmRequest{} }
+	m["etcdserverpb.AuthDisableRequest"] = func() proto.Message { return &etcdserverpb.AuthDisableRequest{} }
+	m["etcdserverpb.AuthEnableRequest"] = func() proto.Message { return &etcdserverpb.AuthEnableRequest{} }
+	m["etcdserverpb.AuthRoleAddRequest"] = func() proto.Message { return &etcdserverpb.AuthRoleAddRequest{} }
+	m["etcdserverpb.AuthRoleDeleteRequest"] = func() proto.Message { return &etcdserverpb.AuthRoleDeleteRequest{} }
+	m["etcdserverpb.AuthRoleGetRequest"] = func() proto.Message { return &etcdserverpb.AuthRoleGetRequest{} }
+	m["etcdserverpb.AuthRoleGrantPermissionRequest"] = func() proto.Message { return &etcdserverpb.AuthRoleGrantPermissionRequest{} }
+	m["etcdserverpb.AuthRoleListRequest"] = func() proto.Message { return &etcdserverpb.AuthRoleListRequest{} }
+	m["etcdserverpb.AuthRoleRevokePermissionRequest"] = func() proto.Message { return &etcdserverpb.AuthRoleRevokePermissionRequest{} }
+	m["etcdserverpb.AuthStatusRequest"] = func() proto.Message { return &etcdserverpb.AuthStatusRequest{} }
+	m["etcdserverpb.AuthUserAddRequest"] = func() proto.Message { return &etcdserverpb.AuthUserAddRequest{} }
+	m["etcdserverpb.AuthUserChangePasswordRequest"] = func() proto.Message { return &etcdserverpb.AuthUserChangePasswordRequest{} }
+	m["etcdserverpb.AuthUserDeleteRequest"] = func() proto.Message { return &etcdserverpb.AuthUserDeleteRequest{} }
+	m["etcdserverpb.AuthUserGetRequest"] = func() proto.Message { return &etcdserverpb.AuthUserGetRequest{} }
+	m["etcdserverpb.AuthUserGrantRoleRequest"] = func() proto.Message { return &etcdserverpb.AuthUserGrantRoleRequest{} }
+	m["etcdserverpb.AuthUserListRequest"] = func() proto.Message { return &etcdserverpb.AuthUserListRequest{} }
+	m["etcdserverpb.AuthUserRevokeRoleRequest"] = func() proto.Message { return &etcdserverpb.AuthUserRevokeRoleRequest{} }
+	m["etcdserverpb.CompactionRequest"] = func() proto.Message { return &etcdserverpb.CompactionRequest{} }
+	m["etcdserverpb.Compare"] = func() proto.Message { return &etcdserverpb.Compare{} }
+	m["etcdserverpb.DeleteRangeRequest"] = func() proto.Message { return &etcdserverpb.DeleteRangeRequest{} }
+	m["etcdserverpb.DeleteRangeResponse"] = func() proto.Message { return &etcdserverpb.DeleteRangeResponse{} }
+	m["etcdserverpb.DowngradeVersionTestRequest"] = func() proto.Message { return &etcdserverpb.DowngradeVersionTestRequest{} }
+	m["etcdserverpb.InternalAuthenticateRequest"] = func() proto.Message { return &etcdserverpb.InternalAuthenticateRequest{} }
+	m["etcdserverpb.InternalRaftRequest"] = func() proto.Message { return &etcdserverpb.InternalRaftRequest{} }
+	m["etcdserverpb.LeaseCheckpoint"] = func() proto.Message { return &etcdserverpb.LeaseCheckpoint{} }
+	m["etcdserverpb.LeaseCheckpointRequest"] = func() proto.Message { return &etcdserverpb.LeaseCheckpointRequest{} }
+	m["etcdserverpb.LeaseGrantRequest"] = func() proto.Message { return &etcdserverpb.LeaseGrantRequest{} }
+	m["etcdserverpb.LeaseGrantResponse"] = func() proto.Message { return &etcdserverpb.LeaseGrantResponse{} }
+	m["etcdserverpb.LeaseRevokeRequest"] = func() proto.Message { return &etcdserverpb.LeaseRevokeRequest{} }
+	m["etcdserverpb.LeaseTimeToLiveResponse"] = func() proto.Message { return &etcdserverpb.LeaseTimeToLiveResponse{} }
+	m["etcdserverpb.Member"] = func() proto.Message { return &etcdserverpb.Member{} }
+	m["etcdserverpb.MemberListResponse"] = func() proto.Message { return &etcdserverpb.MemberListResponse{} }
+	m["etcdserverpb.Metadata"] = func() proto.Message { return &etcdserverpb.Metadata{} }
+	m["etcdserverpb.PutRequest"] = func() proto.Message { return &etcdserverpb.PutRequest{} }
+	m["etcdserverpb.PutResponse"] = func() proto.Message { return &etcdserverpb.PutResponse{} }
+	m["etcdserverpb.RangeRequest"] = func() proto.Message { return &etcdserverpb.RangeRequest{} }
+	m["etcdserverpb.RangeResponse"] = func() proto.Message { return &etcdserverpb.RangeResponse{} }
+	m["etcdserverpb.RequestHeader"] = func() proto.Message { return &etcdserverpb.RequestHeader{} }
+	m["etcdserverpb.RequestOp"] = func() proto.Message { return &etcdserverpb.RequestOp{} }
+	m["etcdserverpb.ResponseHeader"] = func() proto.Message { return &etcdserverpb.ResponseHeader{} }
+	m["etcdserverpb.ResponseOp"] = func() proto.Message { return &etcdserverpb.ResponseOp{} }
+	m["etcdserverpb.TxnRequest"] = func() proto.Message { return &etcdserverpb.TxnRequest{} }
+	m["etcdserverpb.TxnResponse"] = func() proto.Message { return &etcdserverpb.TxnResponse{} }
+	m["etcdserverpb.WatchCancelRequest"] = func() proto.Message { return &etcdserverpb.WatchCancelRequest{} }
+	m["etcdserverpb.WatchCreateRequest"] = func() proto.Message { return &etcdserverpb.WatchCreateRequest{} }
+	m["etcdserverpb.WatchProgressRequest"] = func() proto.Message { return &etcdserverpb.WatchProgressRequest{} }
+	m["etcdserverpb.WatchRequest"] = func() proto.Message { return &etcdserverpb.WatchRequest{} }
+	m["etcdserverpb.WatchResponse"] = func() proto.Message { return &etcdserverpb.WatchResponse{} }
+	m["leasepb.Lease"] = func() proto.Message { return &leasepb.Lease{} }
+	m["membershippb.Attributes"] = func() proto.Message { return &membershippb.Attributes{} }
+	m["membershippb.ClusterMemberAttrSetRequest"] = func() proto.Message { return &membershippb.ClusterMemberAttrSetRequest{} }
+	m["membershippb.ClusterVersionSetRequest"] = func() proto.Message { return &membershippb.ClusterVersionSetRequest{} }
+	m["membershippb.DowngradeInfoSetRequest"] = func() proto.Message { return &membershippb.DowngradeInfoSetRequest{} }
+	m["mvccpb.Event"] = func() proto.Message { return &mvccpb.Event{} }
+	m["mvccpb.KeyValue"] = func() proto.Message { return &mvccpb.KeyValue{} }
+	m["raftpb.ConfChange"] = func() proto.Message { return &raftpb.ConfChange{} }
+	m["raftpb.ConfChangeSingle"] = func() proto.Message { return &raftpb.ConfChangeSingle{} }
+	m["raftpb.ConfChangeV2"] = func() proto.Message { return &raftpb.ConfChangeV2{} }
+	m["raftpb.ConfState"] = func() proto.Message { return &raftpb.ConfState{} }
+	m["raftpb.Entry"] = func() proto.Message { return &raftpb.Entry{} }
+	m["raftpb.HardState"] = func() proto.Message { return &raftpb.HardState{} }
+	m["raftpb.Message"] = func() proto.Message { return &raftpb.Message{} }
+	m["raftpb.Snapshot"] = func() proto.Message { return &raftpb.Snapshot{} }
+	m["raftpb.SnapshotMetadata"] = func() proto.Message { return &raftpb.SnapshotMetadata{} }
+	m["walpb.Record"] = func() proto.Message { return &walpb.Record{} }
+	m["walpb.Snapshot"] = func() proto.Message { return &walpb.Snapshot{} }
+	return m
 }
 
 // pbOneofWrappers: each oneof holder's interface type, with its wrapper types.

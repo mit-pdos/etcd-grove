@@ -170,4 +170,11 @@ func TestOrders(t *testing.T) {
 		}
 	}
 	t.Logf("%d orders of protobuf-go's type setup, the codec agrees in each", len(orders))
+	// the same schema's same-package methods (pbgen's pbmodel mode: the same required-field
+	// checks, PbModelIsInit), against protobuf-go in the generated tests' own order
+	run(t, dir, nil, "python3", s.pbgen, tomlPath, dir, "--pbmodel")
+	out, code := runCode(dir, goEnv("PBGEN_TEST_SCALE=0.1"), "go", "test", "-count=1", "-tags", "pbmodel", "./po", "./po3")
+	if code != 0 {
+		t.Fatalf("the methods differ from protobuf-go:\n%s", failures(out))
+	}
 }

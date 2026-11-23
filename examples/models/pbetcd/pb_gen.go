@@ -7,6 +7,7 @@ import (
 	etcdserverpb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	membershippb "go.etcd.io/etcd/api/v3/membershippb"
 	mvccpb "go.etcd.io/etcd/api/v3/mvccpb"
+	leasepb "go.etcd.io/etcd/server/v3/lease/leasepb"
 	walpb "go.etcd.io/etcd/server/v3/storage/wal/walpb"
 	raftpb "go.etcd.io/raft/v3/raftpb"
 	"models.lab/pbcodec"
@@ -43,6 +44,24 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, nil
 		}
 		b, ok := pbenc_authpb_Permission(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *authpb.Role:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_authpb_Role(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *authpb.User:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_authpb_User(make([]byte, 0), p)
 		if !ok {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
@@ -344,6 +363,15 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
 		return b, nil
+	case *etcdserverpb.Metadata:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_etcdserverpb_Metadata(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
 	case *etcdserverpb.PutRequest:
 		if p == nil {
 			return nil, nil
@@ -475,6 +503,15 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, nil
 		}
 		b, ok := pbenc_etcdserverpb_WatchResponse(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *leasepb.Lease:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_leasepb_Lease(make([]byte, 0), p)
 		if !ok {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
@@ -645,6 +682,24 @@ func pbUnmarshal(b []byte, m interface{}) error {
 		}
 		*p = authpb.Permission{}
 		if !pbdec_authpb_Permission(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *authpb.Role:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = authpb.Role{}
+		if !pbdec_authpb_Role(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *authpb.User:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = authpb.User{}
+		if !pbdec_authpb_User(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
@@ -945,6 +1000,15 @@ func pbUnmarshal(b []byte, m interface{}) error {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
+	case *etcdserverpb.Metadata:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = etcdserverpb.Metadata{}
+		if !pbdec_etcdserverpb_Metadata(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
 	case *etcdserverpb.PutRequest:
 		if p == nil {
 			panic("protobuf model: Unmarshal into a nil message pointer")
@@ -1077,6 +1141,15 @@ func pbUnmarshal(b []byte, m interface{}) error {
 		}
 		*p = etcdserverpb.WatchResponse{}
 		if !pbdec_etcdserverpb_WatchResponse(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *leasepb.Lease:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = leasepb.Lease{}
+		if !pbdec_leasepb_Lease(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
@@ -1311,6 +1384,187 @@ func pbdecField_authpb_Permission(b []byte, num uint64, typ uint64, m *authpb.Pe
 			return 0, false
 		}
 		m.RangeEnd = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_authpb_Role appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_authpb_Role(b []byte, m *authpb.Role) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if len(m.Name) > 0 {
+		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, m.Name)
+	}
+	for _, e := range m.KeyPermission {
+		sub, ok := pbenc_authpb_Permission(make([]byte, 0), e)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	return b, true
+}
+
+// pbdec_authpb_Role decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
+func pbdec_authpb_Role(b []byte, m *authpb.Role, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_authpb_Role(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_authpb_Role decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
+func pbdecField_authpb_Role(b []byte, num uint64, typ uint64, m *authpb.Role, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		m.Name = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		e := &authpb.Permission{}
+		if !pbdec_authpb_Permission(v, e, depth-1) {
+			return 0, false
+		}
+		m.KeyPermission = append(m.KeyPermission, e)
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_authpb_User appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_authpb_User(b []byte, m *authpb.User) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if len(m.Name) > 0 {
+		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, m.Name)
+	}
+	if len(m.Password) > 0 {
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, m.Password)
+	}
+	for _, e := range m.Roles {
+		if !pbcodec.ValidString(e) {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 3, pbcodec.BytesType)
+		b = pbcodec.AppendString(b, e)
+	}
+	if m.Options != nil {
+		sub, ok := pbenc_authpb_UserAddOptions(make([]byte, 0), m.Options)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 4, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	return b, true
+}
+
+// pbdec_authpb_User decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
+func pbdec_authpb_User(b []byte, m *authpb.User, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_authpb_User(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_authpb_User decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
+func pbdecField_authpb_User(b []byte, num uint64, typ uint64, m *authpb.User, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		m.Name = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		m.Password = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	if num == 3 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if !pbcodec.ValidUTF8(v) {
+			return 0, false
+		}
+		m.Roles = append(m.Roles, string(v))
+		return k, true
+	}
+	if num == 4 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if m.Options == nil {
+			m.Options = &authpb.UserAddOptions{}
+		}
+		if !pbdec_authpb_UserAddOptions(v, m.Options, depth-1) {
+			return 0, false
+		}
 		return k, true
 	}
 	return pbcodec.SkipField(num, typ, b)
@@ -4474,6 +4728,79 @@ func pbdecField_etcdserverpb_MemberListResponse(b []byte, num uint64, typ uint64
 	return pbcodec.SkipField(num, typ, b)
 }
 
+// pbenc_etcdserverpb_Metadata appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_Metadata(b []byte, m *etcdserverpb.Metadata) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if m.NodeID != nil {
+		b = pbcodec.AppendTag(b, 1, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, *m.NodeID)
+	}
+	if m.ClusterID != nil {
+		b = pbcodec.AppendTag(b, 2, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, *m.ClusterID)
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_Metadata decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
+func pbdec_etcdserverpb_Metadata(b []byte, m *etcdserverpb.Metadata, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_Metadata(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_Metadata decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
+func pbdecField_etcdserverpb_Metadata(b []byte, num uint64, typ uint64, m *etcdserverpb.Metadata, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		if m.NodeID == nil {
+			m.NodeID = new(uint64)
+		}
+		*m.NodeID = v
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		if m.ClusterID == nil {
+			m.ClusterID = new(uint64)
+		}
+		*m.ClusterID = v
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
 // pbenc_etcdserverpb_PutRequest appends the encoding of *m's fields (real proto.Marshal's: the fields in no
 // oneof in field-number order, then the oneofs in declaration order); false if a
 // UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
@@ -6214,6 +6541,85 @@ func pbdecField_etcdserverpb_WatchResponse(b []byte, num uint64, typ uint64, m *
 			return 0, false
 		}
 		m.Events = append(m.Events, e)
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_leasepb_Lease appends the encoding of *m's fields (real proto.Marshal's: the fields in no
+// oneof in field-number order, then the oneofs in declaration order); false if a
+// UTF-8-checked string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_leasepb_Lease(b []byte, m *leasepb.Lease) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if m.ID != 0 {
+		b = pbcodec.AppendTag(b, 1, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.ID))
+	}
+	if m.TTL != 0 {
+		b = pbcodec.AppendTag(b, 2, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.TTL))
+	}
+	if m.RemainingTTL != 0 {
+		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.RemainingTTL))
+	}
+	return b, true
+}
+
+// pbdec_leasepb_Lease decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs (required fields aside: pbinit_ checks them).
+func pbdec_leasepb_Lease(b []byte, m *leasepb.Lease, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_leasepb_Lease(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_leasepb_Lease decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a repeated scalar), is skipped (unknown).
+func pbdecField_leasepb_Lease(b []byte, num uint64, typ uint64, m *leasepb.Lease, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.ID = int64(v)
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.TTL = int64(v)
+		return k, true
+	}
+	if num == 3 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.RemainingTTL = int64(v)
 		return k, true
 	}
 	return pbcodec.SkipField(num, typ, b)

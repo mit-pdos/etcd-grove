@@ -128,13 +128,17 @@ func pbTypes() []pbType {
 }
 
 // pbAllNew: every message type of the codec (all packages), by full name.
-var pbAllNew = map[string]func() proto.Message{
-	"arith.Args": func() proto.Message { return &pb.Args{} },
-	"arith.Empty": func() proto.Message { return &pb.Empty{} },
-	"arith.Inner": func() proto.Message { return &pb.Inner{} },
-	"arith.Reply": func() proto.Message { return &pb.Reply{} },
-	"xpb.Kinds": func() proto.Message { return &xpb.Kinds{} },
-	"xpb.Other": func() proto.Message { return &xpb.Other{} },
+var pbAllNew = pbAllNewOf()
+
+func pbAllNewOf() map[string]func() proto.Message {
+	m := map[string]func() proto.Message{}
+	m["arith.Args"] = func() proto.Message { return &pb.Args{} }
+	m["arith.Empty"] = func() proto.Message { return &pb.Empty{} }
+	m["arith.Inner"] = func() proto.Message { return &pb.Inner{} }
+	m["arith.Reply"] = func() proto.Message { return &pb.Reply{} }
+	m["xpb.Kinds"] = func() proto.Message { return &xpb.Kinds{} }
+	m["xpb.Other"] = func() proto.Message { return &xpb.Other{} }
+	return m
 }
 
 // pbOneofWrappers: each oneof holder's interface type, with its wrapper types.

@@ -256,12 +256,26 @@ fi
 # (models/internal/{pbgenrand,jsongenrand}), and pbgen's codec of etcd's messages (examples/models)
 nm=0
 : > "$tmp/nm.log"
+# (a third field --pbmodel: the same-package methods, written into the packages under the
+# second; pbdifftest's are committed, etcd's are made in a scratch copy of the forks, below)
 pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
+models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest:--pbmodel
 examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd"
 for x in $pbinputs; do
   IFS=: read -r t o p <<< "$x"
-  python3 models/protobuf/pbgen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
+  if [ "$p" = --pbmodel ]; then
+    python3 models/protobuf/pbgen.py "$t" "$o" --pbmodel --check >> "$tmp/nm.log" 2>&1 || nm=1
+  else
+    python3 models/protobuf/pbgen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
+  fi
 done
+# the same-package methods' prefix: no Go code names it but the generated files, the proto model and
+# their tests (#37, D1's condition 1: no other code may reach the methods)
+if git grep -n -E '\bPbModel(Size|Append|Unmarshal|Decode|DecodeField|IsInit|MergeFrom|Clone|IsNil)\b|\bpbmodel(codec|atomic)\b' -- '*.go' ':!*pbmodel_gen.go' ':!*pbmodel_gen_test.go' \
+     ':!models/protobuf-go/' ':!models/internal/pbmodeltest/' ':!models/internal/pbgenrand/cache_test.go' \
+     ':!old/' >> "$tmp/nm.log" 2>&1; then
+  echo "models: Go code outside the generated files names the PbModel prefix (above)" >> "$tmp/nm.log"; nm=1
+fi
 for t in $(git ls-files '*protobuf.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$pbinputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
 done
@@ -284,6 +298,15 @@ done
 # run above; again under -race, for the concurrent Size/Marshal of a shared message
 (cd models && export GOTOOLCHAIN=go1.27.3 && GOWORK=off gotest -race ./internal/pbcachetest/) \
   >> "$tmp/nm.log" 2>&1 || nm=1
+# pbgen's same-package methods (#37 S3; their random-schema test runs in pbgenrand above): pbdifftest's
+# generated tests (tag pbmodel), the size cache's fixed cases (pbgenrand/cache_test.go) and the
+# concurrent tests under -race; the proto model (models/protobuf-go) against protobuf-go, equal
+# transcripts; and the methods on etcd's and raft's message packages, in a scratch copy of the forks
+(cd models && export GOTOOLCHAIN=go1.27.3 && GOWORK=off gotest -tags pbmodel ./internal/pbdifftest/... &&
+  GOWORK=off gotest -race -tags pbmodel -run 'TestCache|TestPbModelConcurrent' ./internal/pbgenrand/ \
+    ./internal/pbdifftest/...) >> "$tmp/nm.log" 2>&1 || nm=1
+GOTOOLCHAIN=go1.27.3 models/internal/pbmodeltest/run.sh >> "$tmp/nm.log" 2>&1 || nm=1
+GOTOOLCHAIN=go1.27.3 python3 examples/models/pbetcd/pbmodel_forks.py >> "$tmp/nm.log" 2>&1 || nm=1
 # the net/rpc and net/http models (models/net/; phase 5.2): rpcgen's codec is its output for the
 # derived input (--check, inside run.sh), and the differential tests pass against the real packages
 # and against the models (an overlay of the toolchain's source, models/goroot.py)

@@ -159,3 +159,87 @@ schemas), `TestRefusals`, `TestProtobufQuirks`. Findings, none unsound, and what
    codec methods (`Marshal`, `Unmarshal`, `XXX_Marshal`, `XXX_Unmarshal`, `XXX_Size`: APIv1 and
    gogo), and the core refuses it (protobuf-go's legacy path); `TestRefusals` has one (`p3.Leg`, a
    generated message given its own `Marshal`/`Unmarshal`).
+
+## The pbmodel mode: same-package methods, unknown fields, the size cache, Clone (2026-11-23, branch `proto-s3-go`, #37 stage S3, Go side)
+
+Not a review: the author's account of what changed in the trusted core, for the review requested on
+#37. Decisions it implements: D1 (dispatch by methods in each message's own package), D2 (unknown
+fields kept), D-A (a default `Marshal` reads the caches as protobuf-go does), D-C (a size mismatch is
+an error the specs rule out, not one they describe).
+
+**What changed in the trusted core.**
+
+- `pbgen_core.py`: a second mode, `--pbmodel` (`pbmodel_go`, the `pm_*` functions; the doc's new
+  section "THE SAME-PACKAGE METHODS", every choice cited to protobuf-go v1.36.12). The codec mode is
+  unchanged (its emitted code is byte for byte the same; only its generated test changed) and keeps
+  its deviations, unknown fields dropped among them: it stays for the dsverify kits that register a
+  codec (`quepaxa`) until they move. The doc's deviations are now the codec mode's; the pbmodel
+  mode has none but the error values (beyond their class) and slice capacities.
+- `Schema(pbmodel=True)` refuses a message whose Go struct lacks protoc-gen-go's `sizeCache int32`
+  or `unknownFields []byte` (the fields internal/impl's struct reader finds by those names), and a
+  type with a method or field of the generated prefix `PbModel` (which a hand-written method could
+  otherwise shadow, or collide with).
+- `pbdesc` dumps those facts (`go_size_cache`, `go_unknown_fields`, `go_pbmodel_methods`); the
+  codec mode ignores them.
+- New untrusted pieces: the generated test (`pbgen_testgen.py`: an exact mode, and the Size/Clone,
+  interleaving and concurrency tests), `pbgen.py --pbmodel` (writes into every package of the closure,
+  refusing a package in the module cache), the proto model's composition (`models/protobuf-go/proto/model.go`)
+  is trusted with the methods: it is the one place the methods are composed into `proto`'s API.
+
+**Why each choice** (the protobuf-go lines are in the core's doc; the points a reviewer may doubt):
+
+1. *Methods only, all exported, prefix `PbModel`* (no package-level function or variable, no init):
+   a package-level name could collide with the message package's own code, which the dump cannot
+   see; an exported method is in reflect's method set, so `pbdesc` sees a collision and the core
+   refuses it. The imports are renamed (`pbmodelcodec`, `pbmodelatomic`) for the same reason; the
+   gates (and `pbmodel_forks.py` on the forks) check that no other Go code names the methods.
+2. *Unknown fields as protobuf-go keeps them*: the tag re-encoded minimally from the number and wire
+   type read, then the value's bytes as `ConsumeFieldValue` delimits them (so a non-minimal tag is
+   normalised, the value never is), appended in arrival order, a nested message's into it; written
+   after the known fields (and after the oneofs); merged by `Clone` only when non-empty.
+3. *The size cache*: `PbModelSize(cached)` is `sizePointer` exactly, including that a cached size is
+   used only when above 0, that a recomputed level stores size+1 (0 past MaxInt32-1) atomically,
+   and that a level recomputed over a stale child stores the stale-derived value.
+   `PbModelAppend(b, cached)` checks only nested lengths (the top level's cache is never compared),
+   returns nil on a mismatch and what was appended on a nested error (the check is skipped then).
+   The proto model's `Marshal` is a size pass with the options' `UseCachedSize`, then an append pass
+   with the caches read, as `proto.MarshalOptions.marshal`. So a default `Marshal` can fail when a
+   concurrent cached `Size` writes a stale-derived size in between (W14's measurement, D-A): the
+   methods reproduce it (`cache_test.go`, 1 in 5000 races).
+4. *What comes with an error is protobuf-go's*, which the codec mode did not claim: Marshal's
+   partial bytes on invalid UTF-8 (appended, then checked) and full bytes with a required-field
+   error; Unmarshal's partial message, where every store happens where protobuf-go's consumer's
+   does. The one subtle case: a packed record first grows the slice to a new array (stored at once,
+   so a nil slice becomes non-nil even if the record then fails), as `growInt32Slice`; the first
+   pbdifftest run found it (an empty non-nil slice left by a failed decode).
+5. *Marshal's buffer is pre-sized as protobuf-go's* (`growcap` when the size does not fit): not for
+   the capacity (unclaimed) but for nil-ness: a cached `MarshalAppend(nil, m)` over a garbage
+   top-level cache of an empty message returns a non-nil empty slice in protobuf-go (its pre-sized
+   buffer), which the first interleaving run found against a model without it.
+6. *Clone* is `mergePointer` into a new message, with each field's merger chosen as protobuf-go's
+   `fieldCoder` chooses it. The surprises, each reproduced: an implicit-presence bytes field that is
+   empty but non-nil clones to nil, an explicit-presence one to a non-nil empty slice; an empty
+   non-nil repeated field clones to nil; a nil element of a repeated bytes field clones to a non-nil
+   empty slice, of a repeated message field to an empty message; a oneof wrapper holding nil bytes
+   clones to one holding an empty non-nil slice, holding a nil message to one holding an empty
+   message (the member's coder has presence, so it copies unconditionally); a typed-nil oneof
+   wrapper clones to a nil oneof; unknown fields are copied, the size cache is not.
+7. *Error classes*: Marshal's (invalid UTF-8, size mismatch, required field) are claimed; Unmarshal's
+   only required-or-not (the decoder returns a bool, as the codec mode's).
+8. *The proto model* (`models/protobuf-go/proto/model.go`) composes the methods as `proto` composes
+   protobuf-go's coders, and panics `NotModelled` for a type without methods, other unmarshal
+   options, `MarshalState`, `UnmarshalState`; `Deterministic` is accepted (no maps, extensions or
+   lazy fields in the subset: the only places internal/impl reads it). `MessageV2Of` returns a v2
+   message as it is (protobuf-go's `protoMessageV2Of`). Its own test (`models/internal/pbmodeltest`)
+   compares transcripts of the real build and the model build.
+
+**Evidence (2026-11-23).** `pbgenrand` seed 1, 24 schemas (81 message types, 507 fields; 14 proto2
+and 20 proto3 files, 65 oneofs, 14 required fields): the methods' Marshal 45840 encodings equal and
+3067 errors agreed (bytes and class); 112433 mutated decodes equal and 135567 errors agreed with the
+message left (unknown fields included); 18600 Size and Clone comparisons; about 119,000 interleaved
+operations on shared messages (1085 size mismatches, 2173 required-field errors agreed); the
+concurrent test under `-race`. pbdifftest's packages (pb, xpb: about 16,600 encodings, 37,700
+mutated decodes, 6000 Size/Clone comparisons, 39,000 interleaved operations with 478 mismatches).
+etcd's and raft's packages (`pbmodel_forks.py`: authpb, etcdserverpb, membershippb, mvccpb, leasepb,
+walpb, raftpb, 16,329 generated lines): all their generated tests pass, and their `-race` run.
+`cache_test.go`'s named cases and `pbmodeltest` (9748 transcript lines equal across the builds).

@@ -223,9 +223,10 @@ PbModel*, which no other code may name: Schema refuses a type with such a method
 pbcodec and sync/atomic (imported as pbmodelcodec, pbmodelatomic). The proto model
 (models/protobuf-go/proto) calls them through an interface in place of protobuf-go's reflection.
 The claim: each method is the internal/impl function of protobuf-go v1.36.12 it names, run on
-this type: its result (bytes, sizes, nil-ness, the class of an error: invalid UTF-8, a size
-mismatch, a required field missing, malformed input) and its effect on the message (fields,
-unknown fields, size caches) are the real one's, what comes with an error included; not claimed:
+this type: its result (bytes, sizes, nil-ness, the class of an error: Marshal's invalid UTF-8,
+size mismatch or required field missing; Unmarshal's required field missing or another error)
+and its effect on the message (fields, unknown fields, size caches) are the real one's, what
+comes with an error included; not claimed:
 the error values (*pbcodec.Error), slice capacities and which appends share an array (lengths and
 contents are claimed). The encoding of each field kind is the codec mode's (above); what differs:
   - Schema refuses a message without protoc-gen-go's `sizeCache int32` and `unknownFields []byte`
