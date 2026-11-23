@@ -74,16 +74,23 @@ The list asked for. They are named after the lab's specs, with the reason each i
 
 **Package inits** of the names-only packages (gob, signal, uuid, concurrent-map) follow dsv-vr's pattern (head `4e66186c1e`): a hand-written `Dsverify/Proof/<pkg>/Init.lean` with `class InitHyp GF : Prop` holding `wp_initialize'`, plus gen-init's `dsv_hyp_fix` (not done yet).
 
-**How the hypotheses enter (the plan).** A module `.../swiftpaxos/Hyps.lean` imports every library spec statement and declares
+**How the hypotheses enter (done, `Hyps.lean`).** `class SwiftHyps [GoGlobalContext] GF [HeapGS] [go.Semantics] [SwiftNetPkgState GF] : Prop`, one field per hypothesis (`∀ [X.Assumptions], X.spec`); below it the lab's theorem names are restated from the fields (`bufio.wp_ReadFull`, `treemap.Map.wp_Put`, `encoding.gob.Encoder.Encode.wp_proof`, …), so the ported proofs read as the lab's. The proof's variable lines carry `[SwiftHyps netDistGF]` (or `GF`); a file using a hypothesis is on the fixed extension list `netShaExts` (the lab's generic `[GooseExts]` dropped there, `etc/dsv-swiftpaxos/fixext.py`). Fields so far: bufio (12, incl. the lab's `BufioErr` lemmas `wp_WriteByte_err`, `wp_Write_err`, `wp_ReadByte_wf`, proved in the lab from `bufio`'s code), treemap (3), gob (5). Statements: `lib/Bufio.lean` (`*.labSpec`, the lab's `bufio` vocabulary copied: definitions over the real structs), `lib/NetRpc.lean`, `Spec/encoding/gob/*`, treemap `Specs.lean`.
 
-```lean
-class SwiftHyps [GoGlobalContext] (GF) [HeapGS .hasLC GF] [go.Semantics] [SwiftNetPkgState GF] : Prop
-```
+**Vocabulary decisions.**
+- **net/rpc: `Net/`'s client, not hypotheses.** After merging `lean`, `Net/` has the rpc client's vocabulary and proofs (`RpcWorld`, `MethodSpec`, `CodecSpec`, `codecSet C`, `isClient`, `rpcAddr`, `Client.Call/Close/Dial`), which are the lab's restated. The lab's `RpcCodec` class is kept (in `Base`), and `RpcCodec.spec` is its `CodecSpec`. The lab's `kitCodecOk` is `True` here: the client's obligation is `codecSet RpcCodec.spec`, and the server's dispatch belongs to `Register`'s hypothesis. `connIface` is over `Net/`'s `connAt` + `connIs`.
+- **The HTTP path** (`DialHTTP`, `HandleHTTP`, `http.Serve`): `rpcHttpAddr W a` puts `Net/`'s rpc protocols behind the CONNECT/Connected heads (`httpReqP`, `httpRespP`), stated concretely. `DialHTTP`'s hypothesis returns `Net/`'s `isClient`, whose protocol has no head; realizing it needs `Net/`'s client generalized over a head (a finding).
+- **gob:** the lab's model (`Encoder{w}`, `Decoder{r}`, a `codec` variable holding the kit's functions) is replaced by abstract `SwiftLibs` fields: `gobEncoder`, `gobDecoder`, `gobCodecSet C`. The specs' frame format is the lab's (`sp.gobFrame`). Real gob writes type descriptors before the first value, so a hypothesis stated in the lab's frame format is not true of the real `encoding/gob`. A finding: the gob hypotheses must be restated over an abstract stream format before they can be realized.
+- **`NetProtoGS`** (`Net/`'s ghost names) is a parent of `SwiftLibs`, so every file with `SwiftNetPkgState` has it without a variable change.
+- **dsv-bufio** (origin/dsv-bufio `bb18c0f3ef`, under review) has the real specs. The lab's bufio hypotheses map onto it:
+  - `EtcdGrove.bufio.NewReader.specOk`, `NewWriter.spec`, `Reader.ReadByte.spec`, `Writer.{Write,WriteByte,Flush}.spec`, over `ownBufReader`/`ownBufWriter` (`io.readerOk`/`io.writerOk`);
+  - `ownBufReader_readerOk` and Perennial's `io.wp_ReadFull`/`ReadAtLeast`;
+  - `Net/Proof/net/ConnIo.lean` `conn_readerOk`/`conn_writerOk`.
 
-Its fields are `∀ [X.Assumptions], X.spec`, one per row above.
-- Each library's `Link.lean` restates the lab's linked name from the field, e.g. `treemap.Map.wp_Put [h : SwiftHyps …] := h.treemap_Put`.
-- The proof's variable lines `[SwiftNetPkgState netDistGF]` gain `[SwiftHyps netDistGF]`, a mechanical edit.
-- `swiftpaxos_remote_robust` takes `SwiftHyps` at every heap.
+  Once it lands, each `bufio_*` field of `SwiftHyps` is to be derived from these (a bridge from the lab's `ownReader`/`ownWriter` to `ownBufReader`/`ownBufWriter`), or the vocabulary switched outright.
+- **Generated `sorry`s:** goose's names-only types (`os/signal`'s `stopping`, gob's) get `sorry -- axiomatized type` instances in `Dsverify/GeneratedProof`, as `Net/`'s and the main tree's do. They count only if used; `#print axioms` checks this.
+- **The lab's own `sorry`s:**
+  - The real ones are only in the lab kit's `Spec/swiftnet/Codec.lean` (two `HUB-REQUEST` cases of the lab's kitgen codec). That kit is replaced here.
+  - The swift files mention "named sorry" only in comments; no `sorry` term is left in them (checked with grep).
 
 ## Design findings
 

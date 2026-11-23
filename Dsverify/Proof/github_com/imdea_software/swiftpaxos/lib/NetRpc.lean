@@ -141,10 +141,9 @@ end net.rpc
 namespace bufio
 
 section lemmas
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics] [errors.Assumptions] [net.rpc.Assumptions] [net.FieldAssumptions]
-variable [net.Assumptions]
+variable [sem : go.Semantics] [errors.Assumptions]
 
 /-- A variable made by `errors.New` holds an error with some message (the lab's
 `bufio.newVar_errOrNil`, over `Net/`'s `errAny_newVar`). -/
@@ -154,8 +153,19 @@ theorem newVar_errOrNil (X msg : GoString) :
   iintro #HNP
   ihave #HNP' := HNP
   iunfold errors.newVar at HNP'
-  icases HNP' with ⟨%x, #Hx, -⟩
-  ihave #Ha := net.rpc.errAny_newVar _ _ _ $$ HNP Hx
+  icases HNP' with ⟨%x, #Hx, -, #HE⟩
+  ihave #Ha : models_lab.errAny (interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x) $$ []
+  · unfold models_lab.errAny
+    iexists ⟨go.GoType.PointerType errors.errorString.ty, #x⟩
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · ipureintro; go_type_set
+    imodintro
+    iintro %Φ HΦ
+    iapply HE
+    inext
+    iapply HΦ
   iexists _
   iframe Hx
   isplitl

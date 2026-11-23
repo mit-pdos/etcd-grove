@@ -15,6 +15,7 @@ The vocabulary the hubs share with the SwiftPaxos slot (`Spec/swift/Inv.lean`), 
 -/
 module
 
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.Model
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 
 @[expose] public section
