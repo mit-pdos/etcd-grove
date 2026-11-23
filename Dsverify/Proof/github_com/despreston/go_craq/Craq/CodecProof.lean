@@ -211,7 +211,7 @@ macro "enc_close" : tactic => `(tactic| (
     List.append_assoc, List.cons_append, List.nil_append, List.singleton_append, List.append_nil,
     decide_true, decide_false, ne_eq, not_true_eq_false, not_false_eq_true, ite_true, ite_false,
     Bool.false_eq_true, ↓reduceIte, *]
-  isimp only [List.append_assoc, List.cons_append, List.nil_append, List.singleton_append] at Hb
+  (try isimp only [List.append_assoc, List.cons_append, List.nil_append, List.singleton_append] at Hb)
   iframe))
 
 theorem wp_rpcEnc_t18 (k : GoString) (v : w64) :
@@ -254,6 +254,219 @@ theorem wp_rpcEnc_t18 (k : GoString) (v : w64) :
     wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
     (try wp_auto)
     (try (wp_apply wp_rpcEnc_t6 v _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    enc_close)
+
+theorem wp_rpcEnc_t22 :
+    encFn (GF := GF) examples.craqnet.rpcEnc_t22 #transport.netrpc.EmptyArgs.mk
+      (strct []) iprop(True) := by
+  intro b bs
+  wp_start as ⟨Hb, Hcap, -⟩
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := w8) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl1 ⟨Hsl1, -⟩
+  wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+  all_goals (
+    (try wp_auto)
+    enc_close)
+
+theorem wp_rpcEnc_t14 (k : GoString) (sl : GoSlice) (dq : DFrac) (x : List w8) :
+    encFn (GF := GF) examples.craqnet.rpcEnc_t14 #(transport.netrpc.ClientWriteArgs.mk k sl)
+      (strct [fStr k, fBytes x]) iprop(sl ↦*{dq} x) := by
+  intro b bs
+  wp_start as ⟨Hb, Hcap, Hsl⟩
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := w8) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl1 ⟨Hsl1, -⟩
+  wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t5 k
+    by_cases h1 : k = [] <;> simp only [h1, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t5 k _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t11 sl dq x $$ [$Hsl] as Hsl
+    by_cases h2 : x = [] <;> simp only [h2, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t11 sl dq x _ _ $$ [$Hb $Hcap $Hsl] as %b2 ⟨Hb, Hcap, Hsl⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    enc_close)
+
+theorem wp_rpcEnc_t31 (k : GoString) (sl : GoSlice) (dq : DFrac) (x : List w8) (v : w64) :
+    encFn (GF := GF) examples.craqnet.rpcEnc_t31 #(transport.netrpc.WriteArgs.mk k sl v)
+      (strct [fStr k, fBytes x, fU64 v]) iprop(sl ↦*{dq} x) := by
+  intro b bs
+  wp_start as ⟨Hb, Hcap, Hsl⟩
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := w8) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl1 ⟨Hsl1, -⟩
+  wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t5 k
+    by_cases h1 : k = [] <;> simp only [h1, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t5 k _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t11 sl dq x $$ [$Hsl] as Hsl
+    by_cases h2 : x = [] <;> simp only [h2, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t11 sl dq x _ _ $$ [$Hb $Hcap $Hsl] as %b2 ⟨Hb, Hcap, Hsl⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t6 v
+    by_cases h3 : v = W64 0 <;> simp only [h3, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t6 v _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    enc_close)
+
+theorem wp_rpcEnc_t28 (m : MetaV) :
+    encFn (GF := GF) examples.craqnet.rpcEnc_t28
+      #(transport.NodeMeta.mk m.isHead m.isTail m.prev m.next m.tail)
+      (strct [fBool m.isHead, fBool m.isTail, fStr m.prev, fStr m.next, fStr m.tail]) iprop(True) := by
+  intro b bs
+  wp_start as ⟨Hb, Hcap, -⟩
+  rcases m with ⟨hd, tl, p, n, t⟩
+  dsimp only
+  (try wp_auto)
+  wp_apply wp_slice_literal (V := w8) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl1 ⟨Hsl1, -⟩
+  wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t29 hd
+    cases h1 : hd
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t29 _ _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t29 tl
+    cases h2 : tl
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t29 _ _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t5 p
+    by_cases h3 : p = [] <;> simp only [h3, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t5 p _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t5 n
+    by_cases h4 : n = [] <;> simp only [h4, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t5 n _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_rpcSent_t5 t
+    by_cases h5 : t = [] <;> simp only [h5, ne_eq, not_true_eq_false, not_false_eq_true, decide_false, decide_true]
+    )
+  all_goals (
+    (try wp_auto)
+    wp_apply wp_slice_literal (V := w8) _
+    isplitr
+    · ipureintro; rfl
+    iintro %sl1 ⟨Hsl1, -⟩
+    wp_apply wp_slice_append $$ [$Hb $Hcap $Hsl1] as %b' ⟨Hb, Hcap, -⟩
+    (try wp_auto)
+    (try (wp_apply wp_rpcEnc_t5 t _ _ $$ [$Hb $Hcap] as %b2 ⟨Hb, Hcap, -⟩))
     )
   all_goals (
     (try wp_auto)
