@@ -160,6 +160,33 @@ Read with the seventh session's state below (accurate where this does not say ot
   there. **When models-rpc-http lands: merge it**, replace the `rpcLisP*` fields and
   `worldHs`/`worldHsAns` by its definitions, and apply the saved DialHTTP patch (seventh session).
 - `KitVal.equiv`/`KitVal.wf` moved from the lab kit's Codec.lean to Wire.lean.
+
+**State.** Kit build (all 481 modules; scratch `sw-build35.log`): the only failures are the 20
+of before, all the lab kit (`examples.swiftnet.*` 16, `client.Link`, the lab's `encoding.gob.
+SetCodec` ×2 and `netrpc.rpc.LocalRegister`, missing files), plus what imports them (`master.Link`,
+`swift.{Link,DescLink,NewDescLink,NewProof,Rcvr,CodecFns}`, `master.Rcvr`). Tier violations of
+the kit: still **257** (`etc/tier-check.py`, 2026-11-23). No `sorry`/axiom added.
+
+**Cleanups owed by this session.** `encoding.gob.codecSet` is `True`: drop it from `RunInv`,
+`RunInvD`, `RunLoop(Specs)`, `NewSpecs`, `Spec/swift/New`, `NewLeaderAckNs`, `TableAllocH`. The
+lab codec's dead pieces in `replica/WireWf` (`PFB`, `cMapOpt_peel`, …) and `SyncWire.cEnc`'s
+role (now only gob's size measure) can be trimmed at the codec switch.
+
+**Next, in order.**
+1. The codec switch (step 2): restate `sp.KitVal.encode` as `KitVal.rpcEncode`
+   (`examples/swiftnet/RpcWire.lean`, done: rpcgen's bytes; check it against `rpc_gen.go` with a
+   Go test if in doubt); per-type `enc_*`/`decA_*`/`dec_*` lemmas over the generated
+   `rpcEnc_t*`/`rpcDec_t*` as dsv-craq's `Craq/{Codec,CodecProof,CodecSrv,CodecSrvProof}.lean`
+   (here: RegisterArgs/Reply, GetLeader*, GetReplicaList*, Ping*, BeTheLeader*; strings, `[]string`,
+   `[]bool`, int/int32/uint8 fields with rpcgen's presence bytes); switch the 48 files' uses of
+   `RpcCodec.spec`/`kitCodec`/`KitLike`/`enc_of`/`dec_intro` to `swiftCodec`; the receivers
+   (`master.rcvr.spec`, the replica's) of `rpcReceiver`.
+2. Step 5 (the boot with `rpcLisP_set` — now with the handshake premise over `worldHs` —,
+   `lis_set_proto`, net/rpc's per-machine boot resource; the InitHyps; Mains/Orch/Client/Model;
+   the kit must cap each client below 1024 operations for the `2^10` bound; the statement with
+   `SwiftHyps`, `SwiftNoSignals`, `SwiftOsRandom`, `RpcHttpHyp`, every `InitHyp` visible;
+   theorem-loc; TCB collection; Link in `Perennial.EtcdGrove.dsvswiftpaxos`).
+3. On models-rpc-http's landing: merge, replace `RpcHttpHyp`'s proved parts (above).
 - Step 2 started: `Spec/.../examples/swiftnet/RpcWire.lean` (pure): rpcgen's bytes of each
   listed value (`KitVal.rpcEncode` = `rTag rpcName ++ rpcBody`), from `rpc_gen.go`; unused yet.
 
