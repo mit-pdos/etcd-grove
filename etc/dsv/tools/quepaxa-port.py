@@ -17,7 +17,11 @@ for rel in sys.argv[1:]:
     s=re.sub(r"public import Harness\.Proof\.(grpc|sync\.Map)[^\n]*\n", "public import Dsverify.Proof.raxos.Hyp\n", s)
     s=re.sub(r"public import Quepaxa\.Proof\.StoreInst\n", "", s)
     s=re.sub(r"(\nopen [^\n]*) NetConn\b", r"\1 Net", s)
-    s=s.replace("google_golang_org.grpc.isClientConn ", "V.isClientConn ")
+    s=s.replace("google_golang_org.grpc.isClientConn ", "qv.grpc.isClientConn ")
+    s=s.replace("open google_golang_org.protobuf.proto (codecSet kitCodecOk)\n", "open models_lab.pbcodec (PbCodec)\n")
+    s=s.replace("[raxos.examples.quepaxanet.Assumptions] [net.model.Assumptions]\n", "[raxos.examples.quepaxanet.Assumptions]\n\nattribute [local instance] hyp.qpCodec\n\nvariable [gh : hyp.grpc.GrpcHyp qv.grpc]\n")
+    s=re.sub(r"\nvariable \[sem : go.Semantics\]\n", "\nvariable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]\n", s)
+    s=s.replace("Iris.ProofMode Net Net\n", "Iris.ProofMode Net\n")
     s=s.replace("KvInput GoString GoString","KIn").replace("KvOutput GoString","KOut")
     import os
     os.makedirs(os.path.dirname(DST+rel),exist_ok=True)

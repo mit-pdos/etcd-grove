@@ -21,6 +21,8 @@ premises, to be discharged when each piece comes as one shared change:
   `GrpcWorld`, `handlerOk`, `decOk`, `replyOk`, `descOk`, `grpcAddr` defined as there, over the
   vocabulary). `grpcAddr W a` is `Net/`'s `addrProto a (reqProto W a) (respProto W a)` with the
   world's registry: the recorders' addresses get those protocols in the deployment.
+* **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.{Seed,NewSource,New,
+  Rand.Intn,Intn}.spec`, the class `RandHyp`.
 * **`sync.Map`** (the lab's `Harness/Proof/sync/Map.lean`; Perennial has no spec): the vocabulary
   `own m M` (`MapVocab`, abstract) and the class `MapHyp` of its laws (`own_timeless`, `own_zero`
   from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
@@ -34,6 +36,7 @@ public import Net.Proof.models_lab.pbcodec.Codec
 public import GooseLang.Ext.Net.Proto
 public import Net.Proof.net.Base
 public import Perennial.Proof.context.Base
+public import Proof.math.rand.Base
 
 @[expose] public section
 
@@ -85,6 +88,60 @@ class PbHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
   unmarshal : proto.Unmarshal.spec (GF := GF) (hG := hG)
 
 end pb
+
+/-! ## math/rand -/
+
+section rand
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **Hypothesis** `Seed(seed)`: nothing (the lab's model's). -/
+abbrev math.rand.Seed.spec : Prop :=
+  ∀ (seed : w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
+      (App (Val (@! Perennial.math.rand.Seed)) (Val #seed))
+    {{ RET #(); True }}
+
+/-- **Hypothesis** `NewSource(seed)`: some `Source`. -/
+abbrev math.rand.NewSource.spec : Prop :=
+  ∀ (seed : w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
+      (App (Val (@! Perennial.math.rand.NewSource)) (Val #seed))
+    {{ (src : GoInterface), RET #src; True }}
+
+/-- **Hypothesis** `New(src)`: a fresh `*Rand`, owned by the caller. -/
+abbrev math.rand.New.spec : Prop :=
+  ∀ (src : GoInterface),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
+      (App (Val (@! Perennial.math.rand.New)) (Val #src))
+    {{ (r : Loc), RET #r; ∃ v : Perennial.math.rand.Rand, r ↦ v }}
+
+/-- **Hypothesis** `r.Intn(n)` for `n > 0`, with `r` owned: some `x` with `0 ≤ x < n`. -/
+abbrev math.rand.Rand.Intn.spec : Prop :=
+  ∀ (r : Loc) (v : Perennial.math.rand.Rand) (n : w64), 0 < sint.Z n →
+    {{ (r ↦ v : IProp GF) }}
+      (App (Val (r @!! go.GoType.PointerType Perennial.math.rand.Rand.ty @!! go!"Intn")) (Val #n))
+    {{ (x : w64), RET #x; r ↦ v ∗ ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
+
+/-- **Hypothesis** the package-level `Intn(n)` for `n > 0`: some `x` with `0 ≤ x < n`, no
+resource (Go's top-level generator is safe for concurrent use). -/
+abbrev math.rand.Intn.spec : Prop :=
+  ∀ (n : w64), 0 < sint.Z n →
+    {{ isPkgInit (PROP := IProp GF) pkg_id.math.rand }}
+      (App (Val (@! Perennial.math.rand.Intn)) (Val #n))
+    {{ (x : w64), RET #x; ⌜0 ≤ sint.Z x ∧ sint.Z x < sint.Z n⌝ }}
+
+/-- The `math/rand` hypotheses (the lab's model's specs; Perennial proves none of these), together. -/
+class RandHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
+  Seed : math.rand.Seed.spec (GF := GF) (hG := hG)
+  NewSource : math.rand.NewSource.spec (GF := GF) (hG := hG)
+  New : math.rand.New.spec (GF := GF) (hG := hG)
+  RandIntn : math.rand.Rand.Intn.spec (GF := GF) (hG := hG)
+  Intn : math.rand.Intn.spec (GF := GF) (hG := hG)
+
+end rand
 
 /-! ## gRPC, unary -/
 
@@ -273,7 +330,7 @@ end defs
 /-- **The gRPC hypotheses** (see the file header): the vocabulary's laws and the specs. -/
 class GrpcHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] [NetProtoGS]
-    (V : GrpcVocab GF) [PbCodec GF] : Prop where
+    (V : GrpcVocab GF) [cd : PbCodec GF] : Prop where
   /-- a world's registry, for the method specs `MS` -/
   world_alloc : ∀ (MS : GoString → GoString → Option (UnarySpec GF)) (E : CoPset),
     ⊢ |={E}=> ∃ reg : GName, V.worldOk ⟨MS, reg⟩
