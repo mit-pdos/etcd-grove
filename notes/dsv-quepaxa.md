@@ -495,7 +495,7 @@ named after the lab's specs, until each comes as one shared change. **All are in
     [GrpcHyp] [RandHyp] [UtcHyp] [PrintlnHyp] [PbHyp] [SortHyp]` (callees: `Model.wp_proof`,
     `EtcdGrove.remote.wp_Check`, `net.*.wp_proof`, `ioLt.ReadFull.wp_proof ReadAtLeast.wp_proof`,
     `strings.wp_Split`, `Replica/Results`).
-  * **Next, precisely**: (5) **the start**. Two pieces. (a) **A bridge with wildcards is
+  * **Next, precisely** (done since, kit fork 4 below): (5) **the start**. Two pieces. (a) **A bridge with wildcards is
     missing**: `Net/Statement/DistBridge.lean`'s `robust_of_distProtoRB` gives `regCtx` and the
     listed addresses' `addrUnset` only (`addrs_start`); QuePaxa's proxies and recorders listen on
     `0.0.0.0:76xx`, whose protocols need `lisUnset la` from `addrs_lis_start` (`las` = the five
@@ -515,6 +515,58 @@ named after the lab's specs, until each comes as one shared change. **All are in
     (`proxyInProto γ k`/`silentProto`; `recLisP`'s gRPC `reqProto`/`respProto` of `recAddr r`),
     giving `orchRes`, `clientRes γ c`, `serverRes γ k` (`Kit.lean`). Then (4) `Client.spec` and
     (6) `TopLevelRobustness.lean` as paxos's.
+- **The kit, session of 2026-11-23 (kit fork 4: step 5, the start)**. Done, each `lean-check -a`
+  clean, `lake build Dsverify.Proof.raxos.examples.quepaxanet.Start ...DistBridgeLis` OK, `#print
+  axioms` of `kit_start`, `robust_of_distProtoLisRB`, `robust_of_distBootLisRB`, `consInv_init`,
+  `smrInv_init`, `alloc_init`, `kitLis_disj`, `kitLis_pairwise`, `kitAddrs_nodup`, `kitAddrs_ok`:
+  Lean's three; no sorry, no axiom, no new hypothesis, `Hyp.lean` unchanged; all four files are
+  defs tier (no proof imported), so `etc/tier-linking.txt` is unchanged; tiers: 19 raxos non-scratch
+  violations (none added):
+  * `DistBridgeLis.lean` (5a): **`robust_of_distBootLisRB`/`robust_of_distProtoLisRB`**, the copies
+    of `Net/Statement/DistBridge.lean`'s `robust_of_distBootRB`/`robust_of_distProtoRB` whose start
+    obligation also receives `[∗list] la ∈ las, lisUnset la` (`addrs_lis_start` in place of
+    `addrs_start`; premises `hlas` (no two listeners take a common address) and `hdisj` (no
+    listener takes a listed address)), proved from Net's public lemmas (`goose_dist_adequacy`,
+    `net_globalStart`, `addrs_lis_start`, `netProto_alloc`, `nodeWp_of_distBootG`). **Design
+    finding for `Net/`**: it should offer this variant as `Net.robust_of_distProtoLisRB` (and
+    `robust_of_distBootLisRB`); `robust_of_distProtoRB` is its case `las = []`. Any deployment with a
+    wildcard listener (QuePaxa's replicas: `0.0.0.0:port`, D21) needs it.
+  * `StartAddr.lean`: `kitAddrs` (32 listed addresses, in `netProtos`' order: `orchAddr`,
+    `unusedAddrs`, `clientAddr c`, `cconfAddr c`, `confAddr k`, remote's `clientAddrs`; literal
+    `kitAddrs_lit`), `kitLis` (`proxyLis 1..5`, `recLis 1..5`, `kitLis_lit`), `kitAddrs_nodup`,
+    `kitAddrs_ok`, `kitLis_pairwise` (from `lis_pairwise`: wildcards of distinct ports, generic),
+    `kitLis_disj` (`decide` over `lisAcceptsB`): the side conditions of `DistDeploy` and of the
+    bridge. The deployment's `DistDeploy` address list must be `kitAddrs`.
+  * `StartGhost.lean` (the lab's `Kit/StartGhost.lean`): `mkMap`, `bigSepM_mkMap`,
+    `clientTickets_nodup`, `consRes`/`smrRes`/`ownRes` (now with `netTok γ k`, `k = 1..5`, and the
+    abstract state's half for the pending library), **`alloc_init`** (every `QNames` name but
+    `grpc`), **`consInv_init`**, **`smrInv_init`**.
+  * `Start.lean` (the lab's `Kit/Start.lean`, 5b): `addrs_set_proto_map`, `lis_set_proto_map`,
+    `recs_setup` (`recLisP` from `lis_set_proto` and the world's registry), `net_setup`
+    (`netProtos γ`), `clients_dist`, `servers_dist`, and **`kit_start`**: under `[NetProtoGS]
+    [QpVocab GF]` and the premise `hW` (a gRPC world's registry for any method specs, over the global
+    ghost state), `regCtx -∗ ([∗list] a ∈ kitAddrs, addrUnset a) -∗ ([∗list] la ∈ kitLis, lisUnset
+    la) ={⊤}=∗ ∃ γ ρ γp, orchRes γ ∗ ([∗list] a ∈ clientAddrs, remoteAddr (qR γ) a) ∗ mapCtx (I :=
+    QIn) ∗ pendCtx (qR γ) qS0 γp ∗ pendLib qS0 γp qS0.M.init ∗ ([∗list] c ∈ List.range 6, clientRes
+    γ c) ∗ [∗list] k ∈ [1..5], serverRes γ k`: exactly the preconditions of `Orch.spec`,
+    `Client.spec` and `Server.spec` but `isPkgInit` (the world's registry via the lab's trick:
+    `world_alloc (consensusMS γ0)`, then `γ := {γ0 with grpc := g}`, the resources equal by `rfl`).
+  * **Design finding for `Hyp.lean`** (to do with the top level): `GrpcHyp.world_alloc` is a field
+    of a class over a `HeapGS`, but the start obligation (`robust_of_distProtoLisRB`'s `Hstart`) has
+    only the global ghost state `[GooseGlobalGS .hasLC GF]`: move `world_alloc` into its own class
+    over `GooseGlobalGS` (e.g. `hyp.GrpcWorldHyp qv.grpc`) and pass it as `kit_start`'s `hW`. (Not
+    done here: `Hyp.lean` is imported by the whole protocol proof, a rebuild of everything.)
+  * **Next, precisely**: (4) `Client.spec` (unchanged plan above); (6) the top level, as paxos's:
+    `TopLevelDefs.lean` (`quepaxaKitAddrs := kitAddrs`, `system σ`: orch, client0..5, server1..5 with
+    their `PkgTable`s), the statement `quepaxa_remote_robust.spec` in
+    `Dsverify/Spec/raxos/examples/quepaxanet/TopLevelRobustness.lean` (premises: every `InitHyp`,
+    `PbHyp`, `RandHyp`, `SortHyp`, `UtcHyp`, `PrintlnHyp`, `GrpcHyp`, `MapHyp`, the world class
+    above, the `Assumptions`), the commands' `wp_main`s (`Mains.lean`: `cmd.*.main` calls
+    `Orch`/`Client(c)`/`Server(k)`), and `TopLevelRobustness.lean`: `robust_of_distProtoLisRB
+    kitAddrs kitLis (system σ) g threads (2^63) kitLis_pairwise kitLis_disj`, then `kit_start` and,
+    per machine, paxos's `wp_boot` with `wp_Orch` (orchRes, remoteAddr list, mapCtx, pendCtx,
+    pendLib), `wp_Client` (clientRes γ c, `remoteAddr (clientAddrs.getD c [])` from the list,
+    mapCtx) and `wp_Server` (serverRes γ k). The only missing proof is `Client.spec`'s.
 - **Hypothesis audit (2026-11-23, after the kit's codec session)**: the reviewer's rule (a
   hypothesis no stronger than the real Go library: real preconditions, no spec where Go panics or
   races; nothing Perennial gives a body for) applied to `Hyp.lean`; the changes are in
