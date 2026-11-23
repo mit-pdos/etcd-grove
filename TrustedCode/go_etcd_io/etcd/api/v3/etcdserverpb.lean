@@ -1,11 +1,13 @@
 /-
 Trusted code for `go.etcd.io/etcd/api/v3/etcdserverpb` (protoc-gen-go output), in namespace `go_etcd_io.etcd.api.v3.etcdserverpb` like the generated package
 (`Code/go_etcd_io/etcd/api/v3/etcdserverpb.toml`): its `init` functions, the protobuf runtime's registration of the
-package's file descriptors, which the models skip (etcd-grove#32).
+package's file descriptors, which the models skip (etcd-grove#32); and `AlarmType.String`, a lookup in
+`AlarmType_name` (etcd-grove#39).
 -/
 module
 
 public import Perennial.Golang.Defn
+public import Perennial.Code.strconv
 
 @[expose] public section
 
@@ -66,6 +68,103 @@ names-only or skipped, `Code/go_etcd_io/etcd/api/v3/etcdserverpb.toml`; only `fi
 `initFuncsOk` said it returns (etcd-grove#32). -/
 def init.«2».impl : val :=
   λ: <>, #()
+
+
+/-- `AlarmType`'s type (the translation's `AlarmType.ty`: this module is imported by the translation, not the
+other way round). -/
+@[reducible] def model.AlarmType : go.GoType :=
+  go.GoType.Named go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmType" []
+
+/-- `AlarmType_name`'s name (the translation's `AlarmType_name`). -/
+@[reducible] def model.AlarmType_name : GoString := go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmType_name"
+
+/-- `(AlarmType).String` (etcd-grove#39, 2026-11-23; until then names-only, the trust-boundary axiom `etcdserverpb.AlarmType.String.wp_proof`). The
+generated method (`rpc.pb.go`, protoc-gen-go v1.36.12, etcd `edc800c6f262`) is
+
+```go
+func (x AlarmType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+func (AlarmType) Descriptor() protoreflect.EnumDescriptor {
+	return file_rpc_proto_enumTypes[0].Descriptor()
+}
+```
+
+and `EnumStringOf` (protobuf-go, `internal/impl/api_export.go`) is
+
+```go
+func (Export) EnumStringOf(ed protoreflect.EnumDescriptor, n protoreflect.EnumNumber) string {
+	ev := ed.Values().ByNumber(n)
+	if ev != nil {
+		return string(ev.Name())
+	}
+	return strconv.Itoa(int(n))
+}
+```
+
+The model is the GooseLang goose produces for
+
+```go
+func (x AlarmType) String() string {
+	if s, ok := AlarmType_name[int32(x)]; ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+```
+
+(the term of raftpb's `MessageType.String.impl`, `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, which
+the pinned goose produced from the same body, with the type and the table renamed). It is Go's
+because the descriptor's values and the table are the same: protoc-gen-go generates both
+`AlarmType_name` (`rpc.pb.go`: the map literal `{0: "NONE", 1: "NOSPACE", 2: "CORRUPT"}`) and the raw descriptor `file_rpc_proto_enumTypes[0]` is built
+from, from the one enum of `rpc.proto`, one entry per value, its name and number; the enum declares
+no aliases (no `allow_alias`), so `ByNumber(n)` finds the value of number `n` exactly when the table
+has key `n`, and its `Name()` is the table's entry. `EnumNumber` and `int32` are both `int32`, so
+`int(n)` is `int(x)`. Go test: `examples/premisefix/enumstring/enumstring_test.go` (the real method
+against the model, on every key of the table, on unknown, negative and extreme values, by value and
+through a pointer). What the model reads besides is the table, which nothing but the initializer
+writes (the package's fact holds it read-only); the descriptor's build and lookups do not fail and have
+no effect a translated reader sees (the descriptor is built in `init`, before any call). The model's
+`strconv.Itoa` is Perennial's `strconv`'s (its spec `Spec/strconv/Itoa.lean`), which protobuf's
+`internal/impl` imports (`Code/google_golang_org/protobuf/internal/impl.toml`), so the package's
+initializer has initialized it. -/
+noncomputable def AlarmType.String.impl : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc model.AlarmType))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert model.AlarmType go.int))) (App (Val (GoInstruction (GoLoad model.AlarmType))) (Var "x")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.int32 go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int32 go.string)))) (App (Val (GoInstruction (GlobalVarAddr model.AlarmType_name))) (Val #())))) (App (Val (GoInstruction (GoLoad model.AlarmType))) (Var "x")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
 end code
 end
