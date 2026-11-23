@@ -275,6 +275,23 @@ def clusterApplyOk (c : Loc) : IProp GF :=
 instance clusterApplyOk_persistent (c : Loc) : Persistent (clusterApplyOk (GF := GF) c) := by
   unfold clusterApplyOk; infer_instance
 
+/-- **`clusterApplyOk` without the proved rows** (prove-ps2-bootstage1, 2026-11-23, #34 stage 1: `bootOk`'s
+and `bootOkR`'s trusted clause `Hisc`, the rows `isClusterRest` keeps: `SetVersion`, `UpdateAttributes`,
+`SetDowngradeInfo`, and the cluster not nil): `clusterApplyOk` follows from it, the cluster's lock
+(`isRaftCluster`) and its id (`clusterCid`), through `RaftCluster.Version`'s and `ID`'s proofs
+(`clusterApplyOk_of`, `ClusterLaws.lean`). -/
+def clusterApplyRest (c : Loc) : IProp GF :=
+  iprop(⌜c ≠ null⌝ ∗ □ ∀ (M : auth.AuthMode) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
+      (RO : apply.RestM → IProp GF) (RW : IProp GF),
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗
+    ⌜f ≠ func.nil⌝ -∗ (∃ n : Loc, membership.rcVersionChangedAddr c ↦□ n) -∗
+    roLens RO (fun r => iprop(srvRestOwn M d.γB c r ∗ clusterBeOn c d.be)) -∗
+    rwLens RW iprop(srvRestRW d.γB ∗ clusterBeOn c d.be) -∗
+    apply.isClusterRest c (fun _ => Pk) f (srvBkTie d) RO RW)
+
+instance clusterApplyRest_persistent (c : Loc) : Persistent (clusterApplyRest (GF := GF) c) := by
+  unfold clusterApplyRest; infer_instance
+
 instance authApplyOk_persistent (stl : Loc) (RD : IProp GF) :
     Persistent (authApplyOk (GF := GF) stl RD) := by
   unfold authApplyOk; infer_instance

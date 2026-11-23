@@ -139,7 +139,7 @@ noncomputable instance indexer_access_load_indexers (l : Loc) (v : k8s_io.apiser
  by
   solve_pointsto_access_struct
 
-noncomputable instance indexer_access_store_indexers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.indexer) (indexers' : k8s_io.client_go.tools.cache.Indexers) :
+noncomputable instance indexer_access_store_indexers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.indexer) (indexers' : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.indexer go!"indexers" l) v.indexers' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.indexer go!"indexers" l) indexers' (DFrac.own 1))
@@ -288,7 +288,7 @@ noncomputable instance Element_access_load_Object (l : Loc) (v : k8s_io.apiserve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Element_access_store_Object (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.Element) (Object' : k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance Element_access_store_Object (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.Element) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.Element go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.Element go!"Object" l) Object' (DFrac.own 1))
@@ -304,7 +304,7 @@ noncomputable instance Element_access_load_Labels (l : Loc) (v : k8s_io.apiserve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Element_access_store_Labels (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.Element) (Labels' : k8s_io.apimachinery.pkg.labels.Set') :
+noncomputable instance Element_access_store_Labels (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.Element) (Labels' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Set') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.Element go!"Labels" l) v.Labels' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.Element go!"Labels" l) Labels' (DFrac.own 1))
@@ -320,7 +320,7 @@ noncomputable instance Element_access_load_Fields (l : Loc) (v : k8s_io.apiserve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Element_access_store_Fields (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.Element) (Fields' : k8s_io.apimachinery.pkg.fields.Set') :
+noncomputable instance Element_access_store_Fields (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.Element) (Fields' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.Element go!"Fields" l) v.Fields' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.Element go!"Fields" l) Fields' (DFrac.own 1))
@@ -438,7 +438,7 @@ noncomputable instance WatchCacheStorage_access_load_latestSnapshot (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatchCacheStorage_access_store_latestSnapshot (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage) (latestSnapshot' : (sync.atomic.Pointer k8s_io.apiserver.pkg.storage.cacher.store.btreeStore)) :
+noncomputable instance WatchCacheStorage_access_store_latestSnapshot (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage) (latestSnapshot' : (_root_.Perennial.sync.atomic.Pointer k8s_io.apiserver.pkg.storage.cacher.store.btreeStore)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage go!"latestSnapshot" l) v.latestSnapshot' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage go!"latestSnapshot" l) latestSnapshot' (DFrac.own 1))
@@ -454,7 +454,7 @@ noncomputable instance WatchCacheStorage_access_load_lock (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatchCacheStorage_access_store_lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage) (lock' : sync.RWMutex) :
+noncomputable instance WatchCacheStorage_access_store_lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage) (lock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.store.WatchCacheStorage go!"lock" l) lock' (DFrac.own 1))

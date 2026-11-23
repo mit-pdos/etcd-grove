@@ -329,7 +329,7 @@ noncomputable instance RequestInfoFactory_access_load_APIPrefixes (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfoFactory_access_store_APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (APIPrefixes' : k8s_io.apimachinery.pkg.util.sets.String) :
+noncomputable instance RequestInfoFactory_access_store_APIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (APIPrefixes' : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) v.APIPrefixes' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"APIPrefixes" l) APIPrefixes' (DFrac.own 1))
@@ -345,7 +345,7 @@ noncomputable instance RequestInfoFactory_access_load_GrouplessAPIPrefixes (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance RequestInfoFactory_access_store_GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (GrouplessAPIPrefixes' : k8s_io.apimachinery.pkg.util.sets.String) :
+noncomputable instance RequestInfoFactory_access_store_GrouplessAPIPrefixes (l : Loc) (v : k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory) (GrouplessAPIPrefixes' : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.String) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) v.GrouplessAPIPrefixes' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.endpoints.request.RequestInfoFactory go!"GrouplessAPIPrefixes" l) GrouplessAPIPrefixes' (DFrac.own 1))

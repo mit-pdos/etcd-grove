@@ -106,7 +106,7 @@ noncomputable instance Health_access_load_Now (l : Loc) (v : github_com.xiang90.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Health_access_store_Now (l : Loc) (v : github_com.xiang90.probing.Health) (Now' : time.Time) :
+noncomputable instance Health_access_store_Now (l : Loc) (v : github_com.xiang90.probing.Health) (Now' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) Now' (DFrac.own 1))

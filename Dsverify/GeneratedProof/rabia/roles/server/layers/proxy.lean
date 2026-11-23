@@ -218,7 +218,7 @@ noncomputable instance Proxy_access_load_RedisCtx (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_RedisCtx (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (RedisCtx' : context.Context) :
+noncomputable instance Proxy_access_store_RedisCtx (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (RedisCtx' : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisCtx" l) v.RedisCtx' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"RedisCtx" l) RedisCtx' (DFrac.own 1))
@@ -266,7 +266,7 @@ noncomputable instance Proxy_access_load_Logger (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_Logger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (Logger' : github_com.rs.zerolog.Logger) :
+noncomputable instance Proxy_access_store_Logger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (Logger' : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Logger" l) v.Logger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Logger" l) Logger' (DFrac.own 1))
@@ -298,7 +298,7 @@ noncomputable instance Proxy_access_load_Ledger (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Proxy_access_store_Ledger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (Ledger' : rabia.internal.ledger.Ledger) :
+noncomputable instance Proxy_access_store_Ledger (l : Loc) (v : rabia.roles.server.layers.proxy.Proxy) (Ledger' : _root_.Perennial.rabia.internal.ledger.Ledger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Ledger" l) v.Ledger' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.roles.server.layers.proxy.Proxy go!"Ledger" l) Ledger' (DFrac.own 1))

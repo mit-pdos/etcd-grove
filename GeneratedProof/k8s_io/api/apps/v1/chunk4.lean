@@ -93,7 +93,7 @@ noncomputable instance StatefulSetSpec_access_load_Template (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance StatefulSetSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (Template' : k8s_io.api.core.v1.PodTemplateSpec) :
+noncomputable instance StatefulSetSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.StatefulSetSpec) (Template' : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Template" l) v.Template' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.StatefulSetSpec go!"Template" l) Template' (DFrac.own 1))
@@ -300,7 +300,7 @@ noncomputable instance DeploymentSpec_access_load_Template (l : Loc) (v : k8s_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance DeploymentSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (Template' : k8s_io.api.core.v1.PodTemplateSpec) :
+noncomputable instance DeploymentSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.DeploymentSpec) (Template' : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Template" l) v.Template' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DeploymentSpec go!"Template" l) Template' (DFrac.own 1))
@@ -440,7 +440,7 @@ noncomputable instance DaemonSetSpec_access_load_Template (l : Loc) (v : k8s_io.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DaemonSetSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (Template' : k8s_io.api.core.v1.PodTemplateSpec) :
+noncomputable instance DaemonSetSpec_access_store_Template (l : Loc) (v : k8s_io.api.apps.v1.DaemonSetSpec) (Template' : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Template" l) v.Template' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.apps.v1.DaemonSetSpec go!"Template" l) Template' (DFrac.own 1))

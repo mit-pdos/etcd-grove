@@ -256,7 +256,7 @@ noncomputable instance InvalidError_access_load_Errs (l : Loc) (v : k8s_io.apise
  by
   solve_pointsto_access_struct
 
-noncomputable instance InvalidError_access_store_Errs (l : Loc) (v : k8s_io.apiserver.pkg.storage.InvalidError) (Errs' : k8s_io.apimachinery.pkg.util.validation.field.ErrorList) :
+noncomputable instance InvalidError_access_store_Errs (l : Loc) (v : k8s_io.apiserver.pkg.storage.InvalidError) (Errs' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.InvalidError go!"Errs" l) v.Errs' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.InvalidError go!"Errs" l) Errs' (DFrac.own 1))
@@ -589,7 +589,7 @@ noncomputable instance SelectionPredicate_access_load_Label (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance SelectionPredicate_access_store_Label (l : Loc) (v : k8s_io.apiserver.pkg.storage.SelectionPredicate) (Label' : k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance SelectionPredicate_access_store_Label (l : Loc) (v : k8s_io.apiserver.pkg.storage.SelectionPredicate) (Label' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.SelectionPredicate go!"Label" l) v.Label' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.SelectionPredicate go!"Label" l) Label' (DFrac.own 1))
@@ -605,7 +605,7 @@ noncomputable instance SelectionPredicate_access_load_Field (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance SelectionPredicate_access_store_Field (l : Loc) (v : k8s_io.apiserver.pkg.storage.SelectionPredicate) (Field' : k8s_io.apimachinery.pkg.fields.Selector) :
+noncomputable instance SelectionPredicate_access_store_Field (l : Loc) (v : k8s_io.apiserver.pkg.storage.SelectionPredicate) (Field' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.SelectionPredicate go!"Field" l) v.Field' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.SelectionPredicate go!"Field" l) Field' (DFrac.own 1))
@@ -717,7 +717,7 @@ noncomputable instance SelectionPredicate_access_load_ShardSelector (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance SelectionPredicate_access_store_ShardSelector (l : Loc) (v : k8s_io.apiserver.pkg.storage.SelectionPredicate) (ShardSelector' : k8s_io.apimachinery.pkg.sharding.Selector) :
+noncomputable instance SelectionPredicate_access_store_ShardSelector (l : Loc) (v : k8s_io.apiserver.pkg.storage.SelectionPredicate) (ShardSelector' : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.SelectionPredicate go!"ShardSelector" l) v.ShardSelector' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.SelectionPredicate go!"ShardSelector" l) ShardSelector' (DFrac.own 1))
@@ -779,7 +779,7 @@ noncomputable instance ListOptions_access_load_ResourceVersionMatch (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ListOptions_access_store_ResourceVersionMatch (l : Loc) (v : k8s_io.apiserver.pkg.storage.ListOptions) (ResourceVersionMatch' : k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch) :
+noncomputable instance ListOptions_access_store_ResourceVersionMatch (l : Loc) (v : k8s_io.apiserver.pkg.storage.ListOptions) (ResourceVersionMatch' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.ListOptions go!"ResourceVersionMatch" l) ResourceVersionMatch' (DFrac.own 1))

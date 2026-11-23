@@ -20,6 +20,21 @@ end pkg_id
 
 namespace encoding.json
 
+noncomputable def Codec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.Codec" [])
+
+attribute [irreducible] Codec.ty
+
+noncomputable def notModelled.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.notModelled" [])
+
+attribute [irreducible] notModelled.ty
+
+noncomputable def Unmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.Unmarshaler" [])
+
+attribute [irreducible] Unmarshaler.ty
+
 noncomputable def UnmarshalTypeError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnmarshalTypeError" [])
 
@@ -39,6 +54,11 @@ noncomputable def Number.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Number" [])
 
 attribute [irreducible] Number.ty
+
+noncomputable def Marshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.Marshaler" [])
+
+attribute [irreducible] Marshaler.ty
 
 noncomputable def UnsupportedTypeError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnsupportedTypeError" [])
@@ -60,6 +80,11 @@ noncomputable def MarshalerError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] MarshalerError.ty
 
+noncomputable def Options.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.Options" [])
+
+attribute [irreducible] Options.ty
+
 noncomputable def SyntaxError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.SyntaxError" [])
 
@@ -75,6 +100,11 @@ noncomputable def Encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Encoder.ty
 
+noncomputable def RawMessage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.Named go!"encoding/json.RawMessage" [])
+
+attribute [irreducible] RawMessage.ty
+
 noncomputable def Token.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Token" [])
 
@@ -85,17 +115,11 @@ noncomputable def Delim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Delim.ty
 
-@[reducible] noncomputable def Unmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"encoding/json/v2.Unmarshaler" [])
-
 opaque UnmarshalTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque UnmarshalFieldError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque InvalidUnmarshalError.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-@[reducible] noncomputable def Marshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"encoding/json/v2.Marshaler" [])
 
 opaque UnsupportedTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -103,17 +127,36 @@ opaque UnsupportedValueError.underlying [GooseExts] [GoGlobalContext] : go.GoTyp
 
 opaque MarshalerError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def Options.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"encoding/json/internal/jsonopts.Options" [])
-
 opaque Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def RawMessage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"encoding/json/jsontext.Value" [])
+opaque scanDone [GooseExts] [GoGlobalContext] : val
+
+opaque scanMore [GooseExts] [GoGlobalContext] : val
 
 opaque indentGrowthFactor [GooseExts] [GoGlobalContext] : val
+
+noncomputable def codecMu [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.codecMu"
+
+noncomputable def codec [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.codec"
+
+noncomputable def SetCodec [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.SetCodec"
+
+noncomputable def getCodec [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.getCodec"
+
+noncomputable def isSpace [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.isSpace"
+
+noncomputable def skipSpace [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.skipSpace"
+
+noncomputable def valid [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.valid"
 
 noncomputable def Unmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Unmarshal"
@@ -135,18 +178,6 @@ noncomputable def Compact [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def Indent [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Indent"
-
-noncomputable def appendIndent [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.appendIndent"
-
-noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.init.0"
-
-noncomputable def transformMarshalError [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.transformMarshalError"
-
-noncomputable def transformUnmarshalError [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.transformUnmarshalError"
 
 noncomputable def DefaultOptionsV1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.DefaultOptionsV1"
@@ -187,47 +218,17 @@ noncomputable def StringifyWithLegacySemantics [GooseExts] [GoGlobalContext] : G
 noncomputable def UnmarshalArrayFromAnyLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.UnmarshalArrayFromAnyLength"
 
-noncomputable def unmarshalAnyWithRawNumber [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.unmarshalAnyWithRawNumber"
-
 noncomputable def Valid [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Valid"
-
-noncomputable def checkValid [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.checkValid"
-
-noncomputable def transformSyntacticError [GooseExts] [GoGlobalContext] : GoString :=
-  go!"encoding/json.transformSyntacticError"
 
 noncomputable def NewDecoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.NewDecoder"
 
+noncomputable def endsInNumber [GooseExts] [GoGlobalContext] : GoString :=
+  go!"encoding/json.endsInNumber"
+
 noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.NewEncoder"
-
-/-- The package variables goose does not translate (the `skip` entries of the package's
-goose config): no Lean name, allocation or initialization step, so no translated code names
-them. Trusted: not running each one's Go initializer is unobservable (it terminates, cannot
-panic, and has no effect beyond the variable), for the reason given.
-
-- `numberType` (`var numberType = reflect.TypeFor[Number]()`): Its initializer calls, besides literals of constants and other variables' values:
-`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,
-cannot panic and has no effect beyond its variable.
-- `export` (`var export = jsontext.Internal.Export(&internal.AllowInternalUse)`): Its initializer calls, besides literals of constants and other variables' values:
-`jsontext.Internal.Export` returns a constant (the exporter value). So it terminates, cannot panic
-and has no effect beyond its variable.
-- `errUnexpectedEnd` (`var errUnexpectedEnd = errors.New("unexpected end of JSON input")`): Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
-constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
-variable.
-- `syntaxErrorReplacer` (`var syntaxErrorReplacer = strings.NewReplacer( "object name", "object key", "at start of value", "looking for beginning  … [sha256:046a0fff7294657d]`): Its initializer calls, besides literals of constants and other variables' values:
-`strings.NewReplacer` of an even number of constants allocates a replacer. So it terminates, cannot
-panic and has no effect beyond its variable.
--/
-noncomputable def skipped' : List go.SkippedVar := [
-  ⟨"encoding/json.numberType", "Its initializer calls, besides literals of constants and other variables' values:\n`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,\ncannot panic and has no effect beyond its variable.", "var numberType = reflect.TypeFor[Number]()"⟩,
-  ⟨"encoding/json.export", "Its initializer calls, besides literals of constants and other variables' values:\n`jsontext.Internal.Export` returns a constant (the exporter value). So it terminates, cannot panic\nand has no effect beyond its variable.", "var export = jsontext.Internal.Export(&internal.AllowInternalUse)"⟩,
-  ⟨"encoding/json.errUnexpectedEnd", "Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a\nconstant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its\nvariable.", "var errUnexpectedEnd = errors.New(\"unexpected end of JSON input\")"⟩,
-  ⟨"encoding/json.syntaxErrorReplacer", "Its initializer calls, besides literals of constants and other variables' values:\n`strings.NewReplacer` of an even number of constants allocates a replacer. So it terminates, cannot\npanic and has no effect beyond its variable.", "var syntaxErrorReplacer = strings.NewReplacer( \"object name\", \"object key\", \"at start of value\", \"looking for beginning  … [sha256:046a0fff7294657d]"⟩]
 
 noncomputable instance info' : PkgInfo pkg_id.encoding.json where
   pkgImportedPkgs := []
@@ -239,7 +240,82 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.encoding.json)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
+  (Val #()))))))
+
+structure Codec [GooseExts] where
+  mk ::
+  Marshal' : GoFunc
+  Unmarshal' : GoFunc
+  Scan' : GoFunc
+
+noncomputable instance Codec.zero_val [GooseExts] : ZeroVal Codec :=
+  ⟨Codec.mk zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Codec.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"Marshal" (go.GoType.FunctionType (go.signature.Signature [go.any] false [(go.GoType.SliceType go.byte), go.error]))),
+(go.field_decl.FieldDecl go!"Unmarshal" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), go.any] false [go.error]))),
+(go.field_decl.FieldDecl go!"Scan" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [go.uint64, go.uint64])))]
+
+@[irreducible] noncomputable def Codec.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Codec.fieldsUnsealed
+
+noncomputable instance equals_unfold_Codec [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Codec.fields Codec.fieldsUnsealed :=
+  ⟨by unfold Codec.fields; rfl⟩
+
+@[reducible] noncomputable def Codec.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Codec.fields)
+
+class Codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Codec.underlying Codec
+  underlying : go.UnderlyingDirectedEq Codec.ty Codec.underlying
+  get_Marshal : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Marshal") #x (Val #(x.Marshal'))
+  set_Marshal : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Marshal") (PairV #x #y) (Val #(({ x with Marshal' := y } : Codec)))
+  get_Unmarshal : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Unmarshal") #x (Val #(x.Unmarshal'))
+  set_Unmarshal : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Unmarshal") (PairV #x #y) (Val #(({ x with Unmarshal' := y } : Codec)))
+  get_Scan : ∀ (x : Codec), go.IsGoStepPureDetTagged under (StructFieldGet Codec.underlying go!"Scan") #x (Val #(x.Scan'))
+  set_Scan : ∀ (x : Codec) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Codec.underlying go!"Scan") (PairV #x #y) (Val #(({ x with Scan' := y } : Codec)))
+  method_set : go.MethodSetIs Codec.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
+
+attribute [instance] Codec.TypeAssumptions.type_repr
+  Codec.TypeAssumptions.underlying
+  Codec.TypeAssumptions.get_Marshal
+  Codec.TypeAssumptions.set_Marshal
+  Codec.TypeAssumptions.get_Unmarshal
+  Codec.TypeAssumptions.set_Unmarshal
+  Codec.TypeAssumptions.get_Scan
+  Codec.TypeAssumptions.set_Scan
+  Codec.TypeAssumptions.method_set
+  Codec.TypeAssumptions.ptr_method_set
+
+abbrev notModelled [GooseExts] : Type := GoString
+
+@[reducible] noncomputable def notModelled.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  go.string
+
+class notModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq notModelled.ty notModelled.underlying
+  method_set : go.MethodSetIs notModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
+
+attribute [instance] notModelled.TypeAssumptions.underlying
+  notModelled.TypeAssumptions.method_set
+  notModelled.TypeAssumptions.ptr_method_set
+
+abbrev Unmarshaler [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def Unmarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"UnmarshalJSON" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))])
+
+class Unmarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Unmarshaler.ty Unmarshaler.underlying
+  method_set : go.MethodSetIs Unmarshaler.ty [(go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Unmarshaler.ty) []
+
+attribute [instance] Unmarshaler.TypeAssumptions.underlying
+  Unmarshaler.TypeAssumptions.method_set
+  Unmarshaler.TypeAssumptions.ptr_method_set
 
 opaque UnmarshalTypeError.nonempty_type : NonemptyType.{0}
 def UnmarshalTypeError : Type := UnmarshalTypeError.nonempty_type.type
@@ -305,12 +381,26 @@ abbrev Number [GooseExts] : Type := GoString
 
 class Number.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Number.ty Number.underlying
-  method_set : go.MethodSetIs Number.ty [(go!"Float64", (some (go.signature.Signature [] false [go.float64, go.error]))), (go!"Int64", (some (go.signature.Signature [] false [go.int64, go.error]))), (go!"MarshalJSONTo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"encoding/json/jsontext.Encoder" []))] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Number.ty) [(go!"Float64", (some (go.signature.Signature [] false [go.float64, go.error]))), (go!"Int64", (some (go.signature.Signature [] false [go.int64, go.error]))), (go!"MarshalJSONTo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"encoding/json/jsontext.Encoder" []))] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalJSONFrom", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"encoding/json/jsontext.Decoder" []))] false [go.error])))]
+  method_set : go.MethodSetIs Number.ty [(go!"Float64", (some (go.signature.Signature [] false [go.float64, go.error]))), (go!"Int64", (some (go.signature.Signature [] false [go.int64, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Number.ty) [(go!"Float64", (some (go.signature.Signature [] false [go.float64, go.error]))), (go!"Int64", (some (go.signature.Signature [] false [go.int64, go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Number.TypeAssumptions.underlying
   Number.TypeAssumptions.method_set
   Number.TypeAssumptions.ptr_method_set
+
+abbrev Marshaler [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def Marshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarshalJSON" (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))])
+
+class Marshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Marshaler.ty Marshaler.underlying
+  method_set : go.MethodSetIs Marshaler.ty [(go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Marshaler.ty) []
+
+attribute [instance] Marshaler.TypeAssumptions.underlying
+  Marshaler.TypeAssumptions.method_set
+  Marshaler.TypeAssumptions.ptr_method_set
 
 opaque UnsupportedTypeError.nonempty_type : NonemptyType.{0}
 def UnsupportedTypeError : Type := UnsupportedTypeError.nonempty_type.type
@@ -404,6 +494,20 @@ attribute [instance] MarshalerError.TypeAssumptions.type_repr
   MarshalerError.TypeAssumptions.method_set
   MarshalerError.TypeAssumptions.ptr_method_set
 
+abbrev Options [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def Options.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"encoding/json.modelOptions" (go.signature.Signature [] false []))])
+
+class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq Options.ty Options.underlying
+  method_set : go.MethodSetIs Options.ty [(go!"encoding/json.modelOptions", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Options.ty) []
+
+attribute [instance] Options.TypeAssumptions.underlying
+  Options.TypeAssumptions.method_set
+  Options.TypeAssumptions.ptr_method_set
+
 structure SyntaxError [GooseExts] where
   mk ::
   msg' : GoString
@@ -456,7 +560,7 @@ class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
   isUnderlying : go.IsUnderlying Decoder.underlying Decoder.underlying
   method_set : go.MethodSetIs Decoder.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) [(go!"Buffered", (some (go.signature.Signature [] false [(go.GoType.Named go!"io.Reader" [])]))), (go!"Decode", (some (go.signature.Signature [go.any] false [go.error]))), (go!"DisallowUnknownFields", (some (go.signature.Signature [] false []))), (go!"InputOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"More", (some (go.signature.Signature [] false [go.bool]))), (go!"Token", (some (go.signature.Signature [] false [Token.ty, go.error]))), (go!"UseNumber", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) [(go!"Buffered", (some (go.signature.Signature [] false [(go.GoType.Named go!"io.Reader" [])]))), (go!"Decode", (some (go.signature.Signature [go.any] false [go.error]))), (go!"DisallowUnknownFields", (some (go.signature.Signature [] false []))), (go!"InputOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"More", (some (go.signature.Signature [] false [go.bool]))), (go!"Token", (some (go.signature.Signature [] false [Token.ty, go.error]))), (go!"UseNumber", (some (go.signature.Signature [] false []))), (go!"encoding/json.badStart", (some (go.signature.Signature [go.int] false [go.error]))), (go!"encoding/json.fetch", (some (go.signature.Signature [] false [go.error]))), (go!"encoding/json.readValue", (some (go.signature.Signature [(go.GoType.PointerType Codec.ty)] false [(go.GoType.SliceType go.byte), go.error])))]
 
 attribute [instance] Decoder.TypeAssumptions.type_repr
   Decoder.TypeAssumptions.underlying
@@ -483,6 +587,20 @@ attribute [instance] Encoder.TypeAssumptions.type_repr
   Encoder.TypeAssumptions.method_set
   Encoder.TypeAssumptions.ptr_method_set
 
+abbrev RawMessage [GooseExts] : Type := GoSlice
+
+@[reducible] noncomputable def RawMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.SliceType go.byte)
+
+class RawMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq RawMessage.ty RawMessage.underlying
+  method_set : go.MethodSetIs RawMessage.ty [(go!"Clone", (some (go.signature.Signature [] false [RawMessage.ty]))), (go!"IsValid", (some (go.signature.Signature [(go.GoType.SliceType Options.ty)] true [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RawMessage.ty) [(go!"Canonicalize", (some (go.signature.Signature [(go.GoType.SliceType Options.ty)] true [go.error]))), (go!"Clone", (some (go.signature.Signature [] false [RawMessage.ty]))), (go!"Compact", (some (go.signature.Signature [(go.GoType.SliceType Options.ty)] true [go.error]))), (go!"Format", (some (go.signature.Signature [(go.GoType.SliceType Options.ty)] true [go.error]))), (go!"Indent", (some (go.signature.Signature [(go.GoType.SliceType Options.ty)] true [go.error]))), (go!"IsValid", (some (go.signature.Signature [(go.GoType.SliceType Options.ty)] true [go.bool]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+
+attribute [instance] RawMessage.TypeAssumptions.underlying
+  RawMessage.TypeAssumptions.method_set
+  RawMessage.TypeAssumptions.ptr_method_set
+
 abbrev Token [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Token.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
@@ -500,7 +618,7 @@ attribute [instance] Token.TypeAssumptions.underlying
 abbrev Delim [GooseExts] : Type := w32
 
 @[reducible] noncomputable def Delim.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.rune
+  go.int32
 
 class Delim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Delim.ty Delim.underlying
@@ -512,31 +630,43 @@ attribute [instance] Delim.TypeAssumptions.underlying
   Delim.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  Codec_instance : Codec.TypeAssumptions
+  notModelled_instance : notModelled.TypeAssumptions
+  Unmarshaler_instance : Unmarshaler.TypeAssumptions
   UnmarshalTypeError_instance : UnmarshalTypeError.TypeAssumptions
   UnmarshalFieldError_instance : UnmarshalFieldError.TypeAssumptions
   InvalidUnmarshalError_instance : InvalidUnmarshalError.TypeAssumptions
   Number_instance : Number.TypeAssumptions
+  Marshaler_instance : Marshaler.TypeAssumptions
   UnsupportedTypeError_instance : UnsupportedTypeError.TypeAssumptions
   UnsupportedValueError_instance : UnsupportedValueError.TypeAssumptions
   InvalidUTF8Error_instance : InvalidUTF8Error.TypeAssumptions
   MarshalerError_instance : MarshalerError.TypeAssumptions
+  Options_instance : Options.TypeAssumptions
   SyntaxError_instance : SyntaxError.TypeAssumptions
   Decoder_instance : Decoder.TypeAssumptions
   Encoder_instance : Encoder.TypeAssumptions
+  RawMessage_instance : RawMessage.TypeAssumptions
   Token_instance : Token.TypeAssumptions
   Delim_instance : Delim.TypeAssumptions
 
-attribute [instance] Assumptions.UnmarshalTypeError_instance
+attribute [instance] Assumptions.Codec_instance
+  Assumptions.notModelled_instance
+  Assumptions.Unmarshaler_instance
+  Assumptions.UnmarshalTypeError_instance
   Assumptions.UnmarshalFieldError_instance
   Assumptions.InvalidUnmarshalError_instance
   Assumptions.Number_instance
+  Assumptions.Marshaler_instance
   Assumptions.UnsupportedTypeError_instance
   Assumptions.UnsupportedValueError_instance
   Assumptions.InvalidUTF8Error_instance
   Assumptions.MarshalerError_instance
+  Assumptions.Options_instance
   Assumptions.SyntaxError_instance
   Assumptions.Decoder_instance
   Assumptions.Encoder_instance
+  Assumptions.RawMessage_instance
   Assumptions.Token_instance
   Assumptions.Delim_instance
 

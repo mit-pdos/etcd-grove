@@ -8,8 +8,12 @@ translate = ["!*", "PriorityRequest", "TxnModeWriteWithSharedBuffer", "LeaseChec
   # (prove-smallinits, 2026-11-20) `DefaultEtcdServerFeatureGates`, a map literal of
   # `featuregate.FeatureSpec`s, and the features it names (until then `opaqueInitsOk`)
   "DefaultEtcdServerFeatureGates", "InitialCorruptCheck", "CompactHashCheck", "SetMemberLocalAddr",
-  "NonBlockingDefrag"]
-imports = ["!*", "go.etcd.io/etcd/pkg/v3/featuregate"]
+  "NonBlockingDefrag",
+  # (featuregate-3, 2026-11-23; until then the trust-boundary axiom
+  # `features.NewDefaultServerFeatureGate.wp_proof`) with its body, over featuregate's `New` and
+  # `featureGate.Add` (Code/go_etcd_io/etcd/pkg/v3/featuregate.toml) and `fmt.Sprintf`
+  "NewDefaultServerFeatureGate"]
+imports = ["!*", "fmt", "go.etcd.io/etcd/pkg/v3/featuregate"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

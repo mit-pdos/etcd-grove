@@ -213,7 +213,7 @@ noncomputable instance Event_access_load_Object (l : Loc) (v : k8s_io.apimachine
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (Object' : k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance Event_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) Object' (DFrac.own 1))

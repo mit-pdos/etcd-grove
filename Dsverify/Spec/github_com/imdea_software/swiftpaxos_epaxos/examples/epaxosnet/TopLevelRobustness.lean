@@ -21,8 +21,8 @@ own code (`github_com.emirpasic.gods.maps.treemap.hyps_true`, notes/gods-verifie
 
 **Premises** (visible, each a hypothesis of the proof at the bundle `remoteGF`, for every
 machine's heap `heapAt G L` and the start's `NetProtoGS`):
-* the package initializers Net and the main tree have no proof of: net/rpc's, net/http's,
-  encoding/json's (`InitHyp`, `etc/dsv/README.md`);
+* the package initializers Net and the main tree have no proof of: net/rpc's, net/http's
+  (`InitHyp`, `etc/dsv/README.md`; encoding/json's is the main tree's proved `wp_initialize'`);
 * net/rpc over HTTP (`Interface/RpcHttpHyps.lean`; Net's `models-rpc-http`, not landed, named after
   its shapes): the addresses' and listeners' protocols (`RpcHttpAddr`, per global ghost state) and
   the specs (`RpcHttpHyp`: `DialHTTP(Path)`, `HandleHTTP`, the package-level `Register`,
@@ -40,7 +40,6 @@ public import Robustness.Statement
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.net.http.Init
-public import Dsverify.Proof.encoding.json.Init
 
 @[expose] public section
 
@@ -82,7 +81,6 @@ def epaxos_remote_robust.spec : Prop :=
     [field_sem : net.FieldAssumptions] [go.BasicIntoValInj],
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; net.http.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; encoding.json.InitHyp remoteGF) →
     ∀ (ra : ∀ (G : GooseGlobalGS HasLC.hasLC remoteGF) (π : NetProtoGS), letI := G;
         RpcHttpAddr remoteGF)
       (rh : ∀ G L (π : NetProtoGS), letI := heapAt G L; letI := ra G π; RpcHttpHyp remoteGF),

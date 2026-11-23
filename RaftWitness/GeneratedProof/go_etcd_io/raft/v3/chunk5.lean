@@ -83,7 +83,7 @@ noncomputable instance Status_access_load_Config (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Status_access_store_Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (Config' : go_etcd_io.raft.v3.tracker.Config) :
+noncomputable instance Status_access_store_Config (l : Loc) (v : go_etcd_io.raft.v3.Status) (Config' : _root_.Perennial.go_etcd_io.raft.v3.tracker.Config) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) v.Config' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.Status go!"Config" l) Config' (DFrac.own 1))

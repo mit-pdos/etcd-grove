@@ -47,7 +47,7 @@ noncomputable instance Notifier_access_load_mu (l : Loc) (v : go_etcd_io.etcd.pk
  by
   solve_pointsto_access_struct
 
-noncomputable instance Notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (mu' : sync.RWMutex) :
+noncomputable instance Notifier_access_store_mu (l : Loc) (v : go_etcd_io.etcd.pkg.v3.notify.Notifier) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.notify.Notifier go!"mu" l) mu' (DFrac.own 1))
