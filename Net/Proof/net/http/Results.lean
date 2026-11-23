@@ -95,7 +95,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
-variable [HasExt netExt] [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [HasExt Net.netExt] [π : Net.NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [bufio_sem : bufio.Assumptions]
 
 theorem connReader.backgroundRead.wp :
