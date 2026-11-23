@@ -6,7 +6,7 @@ package's specs (`roles/server/Spec.lean`) are hypotheses here, linked in `Linke
 -/
 module
 
-public import Dsverify.Proof.rabia.examples.rabianet.ClientProof
+public import Dsverify.Proof.rabia.examples.rabianet.KitSpecs
 public import Dsverify.Proof.rabia.roles.server.Spec
 public import Perennial.Proof.time
 
@@ -31,15 +31,6 @@ variable [_root_.Perennial.io.Assumptions] [net.Assumptions] [net.FieldAssumptio
 
 set_option goose.wp.extras true
 
-/-- `Server(id)`: server machine `id = k + 1` (`k < maxS`), from its share and its package state
-(with which it claims `Conf` if it serves); it never returns. -/
-abbrev Server.spec : Prop :=
-  ∀ (γ : Names) (k : Nat) (σ : GMap GoString Bool), k < maxS →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗ serverShare γ k ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ }}
-      (App (Val (@! rabia.examples.rabianet.Server)) (Val #(W64 ((k + 1 : Nat) : Int))))
-    {{ RET #(); False }}
-
 theorem w32_pred (k : Nat) (hk : k < 5) :
     (W32 (uint.Z (W64 ((k + 1 : Nat) : Int) - W64 1))).toNat = k := by word
 
@@ -53,6 +44,8 @@ theorem serveAt.wp_proof
     (wp_ServerInit : rabia.roles.server.ServerInit.spec (GF := GF))
     (wp_Prologue : rabia.roles.server.Server.Prologue.spec (GF := GF))
     (wp_ServerMain : rabia.roles.server.Server.ServerMain.spec (GF := GF))
+    (wp_configure : configure.spec (GF := GF)) (wp_ProxyAddrs : ProxyAddrs.spec (GF := GF))
+    (wp_NetAddrs : NetAddrs.spec (GF := GF))
     (γ : Names) (cf : RCfg) (k : Nat) (ps : GoSlice) (σ : GMap GoString Bool) (hk : k < cf.n) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗ cfgIs γ.rab cf ∗
         serverCore γ k ∗ ps ↦*□ peerStrs cf ∗
@@ -72,7 +65,7 @@ theorem serveAt.wp_proof
   iapply fupd_wp
   imod conf_claim σ ⊤ (by simp) $$ [$Hpkg $Hσ] with HC
   imodintro
-  wp_apply configure.wp_proof _ cf $$ [$Hpkg $HC $Hps] as #Hconf
+  wp_apply wp_configure _ cf $$ [$Hpkg $HC $Hps] as #Hconf
   · ipureintro; exact Hok
   ihave %Hpl := ownSlice_len _ _ _ $$ Hps
   have hpl : sint.Z ps.len = (cf.n : Int) := by
@@ -96,7 +89,10 @@ theorem serveAt.wp_proof
 theorem Server.wp_proof
     (wp_ServerInit : rabia.roles.server.ServerInit.spec (GF := GF))
     (wp_Prologue : rabia.roles.server.Server.Prologue.spec (GF := GF))
-    (wp_ServerMain : rabia.roles.server.Server.ServerMain.spec (GF := GF)) :
+    (wp_ServerMain : rabia.roles.server.Server.ServerMain.spec (GF := GF))
+    (wp_configure : configure.spec (GF := GF)) (wp_ProxyAddrs : ProxyAddrs.spec (GF := GF))
+    (wp_NetAddrs : NetAddrs.spec (GF := GF)) (wp_ServerConfAddrs : ServerConfAddrs.spec (GF := GF))
+    (wp_waitConf : waitConf.spec (GF := GF)) :
     Server.spec (GF := GF) := by
   intro γ k σ hk
   have hk5 : k < 5 := hk
@@ -107,7 +103,7 @@ theorem Server.wp_proof
   · unfold serverCore; icases Hcore with ⟨#H, -⟩; iexact H
   ihave #Hproto := shared_cfgProto γ k hk $$ Hsh
   wp_auto
-  wp_apply ServerConfAddrs.wp_proof as %sl ⟨%L, Hsl, %HL⟩
+  wp_apply wp_ServerConfAddrs as %sl ⟨%L, Hsl, %HL⟩
   subst HL
   ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
   have hkz := w64_pred k hk5
@@ -118,7 +114,7 @@ theorem Server.wp_proof
   rw [ite_eq_left (by rw [hkz, hsl]; omega)]
   wp_apply wp_load_slice_index sl _ _ _ (cfgAddr k) (by omega) $$ [$Hsl] as -
   · ipureintro; rw [hkz]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hk
-  wp_apply waitConf.wp_proof γ (cfgAddr k) $$ [] as %v ⟨%cf, %Hv, #Hcfg⟩
+  wp_apply wp_waitConf γ (cfgAddr k) $$ [] as %v ⟨%cf, %Hv, #Hcfg⟩
   · iframe #
   subst Hv
   ihave %Hok := cfgIs_ok' γ.rab cf $$ Hcfg
@@ -129,7 +125,7 @@ theorem Server.wp_proof
     have hkn : k < cf.n := by
       unfold maxS at hn5 hk
       word
-    wp_apply ProxyAddrs.wp_proof as %ps2 ⟨%L, Hps2, %HL⟩
+    wp_apply wp_ProxyAddrs as %ps2 ⟨%L, Hps2, %HL⟩
     subst HL
     ihave %Hps20 := ownSlice_len _ _ _ $$ Hps2
     have hps2 : sint.Z ps2.len = (maxS : Int) := by
@@ -139,7 +135,7 @@ theorem Server.wp_proof
     rw [ite_eq_left (by rw [hkz, hps2]; omega)]
     wp_apply wp_load_slice_index ps2 _ _ _ (proxyAddr k) (by omega) $$ [$Hps2] as -
     · ipureintro; rw [hkz]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hk
-    wp_apply NetAddrs.wp_proof as %ns ⟨%L, Hns, %HL⟩
+    wp_apply wp_NetAddrs as %ns ⟨%L, Hns, %HL⟩
     subst HL
     ihave %Hns0 := ownSlice_len _ _ _ $$ Hns
     ihave %Hnwf := ownSlice_wf _ _ _ $$ Hns
@@ -159,7 +155,7 @@ theorem Server.wp_proof
     try wp_auto
     rw [show (⟨W64 cf.n, W64 cf.f, W64 cf.batch, W64 cf.bms, W64 cf.blocks⟩ :
       _root_.Perennial.rabia.examples.rabianet.Conf) = confV cf from rfl]
-    wp_apply (serveAt.wp_proof wp_ServerInit wp_Prologue wp_ServerMain γ cf k _ σ hkn)
+    wp_apply (serveAt.wp_proof wp_ServerInit wp_Prologue wp_ServerMain wp_configure wp_ProxyAddrs wp_NetAddrs γ cf k _ σ hkn)
       $$ [$Hpkg $Hcfg $Hcore $Hps $Hσ] as Hf
     iexfalso; iexact Hf
   · -- not a server of the configuration: sleep forever

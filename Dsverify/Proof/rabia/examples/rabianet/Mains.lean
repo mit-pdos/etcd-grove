@@ -19,8 +19,7 @@ public import Dsverify.Proof.rabia.examples.rabianet.cmd.server2.Base
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.server3.Base
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.server4.Base
 public import Dsverify.Proof.rabia.examples.rabianet.cmd.server5.Base
-public import Dsverify.Proof.rabia.examples.rabianet.OrchProof
-public import Dsverify.Proof.rabia.examples.rabianet.ServerProof
+public import Dsverify.Proof.rabia.examples.rabianet.KitSpecs
 
 @[expose] public section
 

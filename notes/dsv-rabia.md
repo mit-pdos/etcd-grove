@@ -37,10 +37,35 @@ checkout `/shared/perennial-c95e92207`). The server's `Link.lean` is in `EtcdGro
 paxos's: `etc/proof_roots.py`'s `namespace()` is the Links' common prefix; in
 `Perennial.rabia.roles.server` it shrank to `Perennial.` and renamed every trust-base entry).
 `lake build` of the top module and `#print axioms` (Lean's three) redone at that pin.
-**Open for the gates:** `etc/tier-check.py --check` refuses 106 new edges (88 proof->proof, 14
-defs->proof, 4 spec->proof), all under `Dsverify/{Spec,Proof}/rabia` and the part's library
-`Spec.lean`s (which declare `wp_proof`s, so are proof tier); the baseline only shrinks, so they
-need the proofs to take callees' specs as hypotheses (linked in `Link`/`Linked`) before landing.
+**Import tiers (2026-11-23, fifth agent):** `etc/tier-check.py --check` passes with no new baseline
+entry (it refused 106 edges: 88 proof->proof, 14 defs->proof, 4 spec->proof). Every proof file now
+sees its callees through their specs only, taken as hypotheses, and the two linking modules compose
+them: `roles/server/Link.lean` (bottom up: `bufio`'s and `message`'s framing, tcp's endpoints, the
+queue and the ledger, the three layers, `wp_ServerInit`/`wp_Prologue`/`wp_ServerMain`) and
+`examples/rabianet/Linked.lean` (`kitNetDeps`, `wp_configure_linked`, `wp_waitConf`, `wp_New`,
+`wp_newClient`, `wp_Server`/`wp_Client`/`wp_Orch`). What moved:
+- the library classes' `wp_proof`s (`zerolog`, `log`, `math/rand`, `os/signal`) are in
+  `HypsLinked.lean` beside each `Spec.lean` (linking tier, imported by nothing yet); a proof file uses
+  the class's field (`github_com.rs.zerolog.Hyps.Event_Msg`, `math.rand.Hyps.Intn`, ...), so the
+  `Spec.lean`s are defs and the statement imports no proof;
+- a hypothesis-taking `X.wp_of` became `X.wp_proof` and the old composing `X.wp_proof` moved to the
+  Link (`ServerInit`, `Server.{Prologue,ServerMain,TerminalLogger}`, `ProxyInit`, `Proxy.{Prologue,
+  KVSExecutor}`, `NetworkInit`, `Network.{Prologue,MsgRouter,MsgSerializer}`, `BufWrite`, `BufRead`,
+  `WriteFlush`, `{Command,Msg}.{MarshalWriteFlush,ReadUnmarshal}`, `Msg.Unmarshal`);
+  `ExecutorMain.lean`/`MsgHandlerFinal.lean` merged into `ExecutorFinal.lean`/`MsgHandler.lean`;
+- structures of callee specs, as consensus's `ExDeps`: `tcp/Basics.lean`'s `TcpDeps` (`net`'s
+  connection calls, `bufio`'s constructors, `message`'s framing; every tcp connection lemma takes
+  `D`), `examples/rabianet/KitSpecs.lean`'s `KitNetDeps` (`ConfProof`'s network calls,
+  `io.ReadFull.specLt`, `Config.CalcConstants`);
+- specs and lemmas out of proof files into defs: `message/SpecInternal.lean` (`BufRead.specB`,
+  `BufWrite.specTooLong`), `message/UnmarshalLemmas.lean`, `examples/rabianet/KitSpecs.lean`
+  (the address functions' and `attempt`'s specs, `Client.spec`/`Orch.spec`/`Server.spec`,
+  `range_map_get`, `take_peers`, `cfgIs_ok'`, `conf_claim`), `ModelLemmas.lean` (out of
+  `ModelProof.lean`), `ConnRead.lean` (`io.*.specLt`, `wp_connReadFull` over its two callees'
+  specs; `ConnReadFull.lean` keeps the two `wp_proofLt`s).
+`lake build` of the top module and `#print axioms rabia_remote_robust` (Lean's three) redone after
+it; all 230 modules under `Dsverify/{Proof,Spec}/rabia` and the libraries' build; `gen-init.py
+--check` and `goose.py --check --project dsv-rabia` pass.
 
 **Kit Go changes (third agent and its agents):** `Sys` has a mutex, `Op` locks it (`op1` the body);
 `op1` answers unknown once the sequence numbers reach `SeqBudget = 2^29` (`proxyP`'s budget;

@@ -7,8 +7,8 @@ operations against the key-value map with pending puts (`kvS`, `Model()`), over 
 -/
 module
 
-public import Dsverify.Proof.rabia.examples.rabianet.ClientProof
-public import Dsverify.Proof.rabia.examples.rabianet.ModelProof
+public import Dsverify.Proof.rabia.examples.rabianet.KitSpecs
+public import Dsverify.Proof.rabia.examples.rabianet.ModelLemmas
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.lib.remote.Check
 public import Perennial.Proof.time
 
@@ -36,25 +36,14 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 set_option goose.wp.extras true
 
-/-- `Orch()`: the orchestrator, from its share and remote's: the client machines' addresses'
-protocols, the map of operations, the pending library over the key-value map; it returns
-(porcupine accepts the history). -/
-abbrev Orch.spec : Prop :=
-  ∀ (γ : Names) (γp : PendNames), receiptBound GF ≤ 2 ^ 63 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗ orchCore γ ∗
-      ([∗list] a ∈ (List.range nC).map cliAddr, remoteAddr (Gg := hG.goose_globalGS) (kvR γ) a) ∗
-      mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
-      pendCtx (Gg := hG.goose_globalGS) (kvR γ) (kvS0 (GF := GF)) γp ∗
-      pendLib (Gg := hG.goose_globalGS) (kvS0 (GF := GF)) γp (kvS0 (GF := GF)).M.init }}
-    (App (Val (@! rabia.examples.rabianet.Orch)) (Val #()))
-  {{ RET #(); True }}
-
 /-- `Orch()` (`Orch.spec`). -/
 theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     (wp_Codec : Codec.spec (GF := GF) (hG := hG))
     (wp_gens : gens.spec (GF := GF) (hG := hG))
     (wp_Check : github_com.mit_pdos.etcd_grove.examples.lib.remote.Check.spec (GF := GF) (hG := hG)
-      (St := KSt) (I := KIn) (O := KOut)) :
+      (St := KSt) (I := KIn) (O := KOut))
+    (wp_New : New.spec (GF := GF)) (wp_ClientAddrs : ClientAddrs.spec (GF := GF))
+    (wp_attempt : attempt.spec (GF := GF)) :
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_kvS, pendLib_kvS]
@@ -64,12 +53,12 @@ theorem Orch.wp_proof (wp_Model : Model.spec (GF := GF) (hG := hG))
     iPkgInit
   unfold orchCore
   icases Hcore with ⟨#Hsh, HK⟩
-  wp_apply New.wp_proof γ $$ [$Hpkg $Hsh $HK] as -
+  wp_apply wp_New γ $$ [$Hpkg $Hsh $HK] as -
   try wp_auto
   wp_apply time.wp_Sleep
   try wp_auto
   wp_apply wp_Model as %m #Hm
-  wp_apply ClientAddrs.wp_proof as %addrs ⟨%L, Haddrs, %HL⟩
+  wp_apply wp_ClientAddrs as %addrs ⟨%L, Haddrs, %HL⟩
   subst HL
   iapply fupd_wp
   imod ownSlice_persist _ _ _ $$ Haddrs with #Haddrs

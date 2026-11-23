@@ -13,7 +13,7 @@ notes/dsv-rabia.md; as paxos's `KitProof.lean` and remote's counter's `Codec.lea
 -/
 module
 
-public import Dsverify.Proof.rabia.examples.rabianet.ModelProof
+public import Dsverify.Proof.rabia.examples.rabianet.ModelLemmas
 public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Perennial.Proof.sync.atomic.Results

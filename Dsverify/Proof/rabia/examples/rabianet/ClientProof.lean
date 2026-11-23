@@ -12,9 +12,7 @@ collect the update's postcondition (`Ghost.collect`); a get's found-flag from a 
 -/
 module
 
-public import Dsverify.Proof.rabia.examples.rabianet.ConfProof
-public import Dsverify.Proof.rabia.internal.tcp.ClientTcpInit
-public import Dsverify.Proof.rabia.internal.tcp.ClientTCP__Connect
+public import Dsverify.Proof.rabia.examples.rabianet.KitSpecs
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.rabia.examples.rabianet.KitModel
@@ -339,28 +337,13 @@ theorem Op.wp_proof : Op.spec (GF := GF) := by
   · ileft; ipureintro; exact h
   · iright; iexists σ, σ', out; iframe HQ; ipureintro; exact hp
 
-theorem take_peers (cf : RCfg) (h : cf.n ≤ maxS) :
-    ((List.range maxS).map netAddr).take cf.n = peerStrs cf := by
-  unfold peerStrs
-  rw [← List.map_take, List.take_range, Nat.min_eq_left h]
-
-/-- `Conf`'s points-to, claimed with the machine's package state (`confClaim`). -/
-theorem conf_claim (σ : GMap GoString Bool) (E : CoPset) (hE : ↑confN ⊆ E) :
-    isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗
-      ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ⊢
-      |={E}=> (globalAddr rabia.internal.config.Conf ↦ (zeroValDef : rabia.internal.config.Config)) := by
-  iintro ⟨#Hpkg, Hσ⟩
-  ihave #Hcfg : isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.config $$ []
-  · iPkgInit
-  ihave #Hcinv : inv confN (confInv (GF := GF) (hG := hG)) $$ []
-  · have hcfg : (isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.config : IProp GF) ⊢
-        inv confN (confInv (GF := GF) (hG := hG)) := by
-      with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.rabia.internal.config
-    iapply hcfg $$ Hcfg
-  iapply confClaim E hE σ $$ [$Hcinv $Hσ]
-
 /-- `newClient(c)` (`newClient.spec`). -/
-theorem newClient.wp_proof : newClient.spec (GF := GF) := by
+theorem newClient.wp_proof (wp_ClientConfAddrs : ClientConfAddrs.spec (GF := GF))
+    (wp_waitConf : waitConf.spec (GF := GF)) (wp_NetAddrs : NetAddrs.spec (GF := GF))
+    (wp_configure : configure.spec (GF := GF)) (wp_ProxyAddrs : ProxyAddrs.spec (GF := GF))
+    (wp_ClientTcpInit : ClientTcpInit.spec (GF := GF))
+    (wp_ClientTCP_Connect : ClientTCP.Connect.spec (GF := GF)) :
+    newClient.spec (GF := GF) := by
   intro γ c σ hc
   have hc6 : c < 6 := hc
   wp_start as ⟨Hcore, Hσ⟩
@@ -368,7 +351,7 @@ theorem newClient.wp_proof : newClient.spec (GF := GF) := by
   icases Hcore with ⟨#Hsh, HK, Hest, -⟩
   ihave #Hproto := shared_cliCfgProto γ c hc $$ Hsh
   wp_auto
-  wp_apply ClientConfAddrs.wp_proof as %sl ⟨%L, Hsl, %HL⟩
+  wp_apply wp_ClientConfAddrs as %sl ⟨%L, Hsl, %HL⟩
   subst HL
   ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
   have hcw : sint.Z (W64 (c : Int)) = (c : Int) := by word
@@ -379,13 +362,13 @@ theorem newClient.wp_proof : newClient.spec (GF := GF) := by
   rw [ite_eq_left (by rw [hcw, hsl]; omega)]
   wp_apply wp_load_slice_index sl _ _ _ (cliCfgAddr c) (by omega) $$ [$Hsl] as -
   · ipureintro; rw [hcw]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hc
-  wp_apply waitConf.wp_proof γ (cliCfgAddr c) $$ [] as %v ⟨%cf, %Hv, #Hcfg⟩
+  wp_apply wp_waitConf γ (cliCfgAddr c) $$ [] as %v ⟨%cf, %Hv, #Hcfg⟩
   · iframe #
   subst Hv
   ihave %Hok := cfgIs_ok' γ.rab cf $$ Hcfg
   have hn5 : cf.n ≤ maxS := by have := Hok; unfold RCfg.Ok at this; unfold maxS; omega
   have hn1 : 1 ≤ cf.n := by have := Hok; unfold RCfg.Ok at this; omega
-  wp_apply NetAddrs.wp_proof as %ns ⟨%L, Hns, %HL⟩
+  wp_apply wp_NetAddrs as %ns ⟨%L, Hns, %HL⟩
   subst HL
   ihave %Hns0 := ownSlice_len _ _ _ $$ Hns
   ihave %Hnwf := ownSlice_wf _ _ _ $$ Hns
@@ -402,9 +385,9 @@ theorem newClient.wp_proof : newClient.spec (GF := GF) := by
   imod conf_claim σ ⊤ (by simp) $$ [$Hpkg $Hσ] with HC
   imodintro
   wp_auto
-  wp_apply configure.wp_proof _ cf $$ [$Hpkg $HC $Hps] as #Hconf
+  wp_apply wp_configure _ cf $$ [$Hpkg $HC $Hps] as #Hconf
   · ipureintro; exact Hok
-  wp_apply ProxyAddrs.wp_proof as %ps2 ⟨%L, Hps2, %HL⟩
+  wp_apply wp_ProxyAddrs as %ps2 ⟨%L, Hps2, %HL⟩
   subst HL
   ihave %Hps20 := ownSlice_len _ _ _ $$ Hps2
   have hps2 : sint.Z ps2.len = (maxS : Int) := by
@@ -430,7 +413,7 @@ theorem newClient.wp_proof : newClient.spec (GF := GF) := by
   ihave #Htcp : (isPkgInit (PROP := IProp GF) pkg_id.rabia.internal.tcp) $$ []
   · iPkgInit
   have hc32 : (W32 (uint.Z (W64 (c : Int)))).toNat = c := by word
-  wp_apply (ClientTcpInit.wp_proof γ cf (W32 (uint.Z (W64 (c : Int)))) (proxyAddr (c % cf.n))
+  wp_apply (wp_ClientTcpInit γ cf (W32 (uint.Z (W64 (c : Int)))) (proxyAddr (c % cf.n))
     (by rw [hc32]; exact hc)) $$ [$Htcp $Hconf] as %t ⟨%γc, #Hchs, Hprod, Hown⟩
   rw [hc32]
   ihave Hest1 := (BigSepL.bigSepL_lookup (i := c % cf.n)
@@ -438,7 +421,7 @@ theorem newClient.wp_proof : newClient.spec (GF := GF) := by
   try wp_auto
   try wp_auto
   iapply wp_fupd
-  wp_apply (ClientTCP.Connect.wp_proof γ cf c γc t hc) $$ [$Htcp $Hconf $Hsh $Hcfg $Hown $Hest1]
+  wp_apply (wp_ClientTCP_Connect γ cf c γc t hc) $$ [$Htcp $Hconf $Hsh $Hcfg $Hown $Hest1]
   try wp_auto
   iStructNamed «$r0»
   irename t => Htf
@@ -478,10 +461,7 @@ theorem kvOutV_outVal (o : KvOutput GoString) : kvOutV o = outVal o := by
 theorem kvInV_inVal (i : KvInput GoString GoString) : kvInV i = inVal i := by
   cases i <;> rfl
 
-theorem wp_attempt :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet }}
-      (App (Val (@! rabia.examples.rabianet.attempt)) (Val #()))
-    {{ (d : w64), RET #d; True }} := by
+theorem attempt.wp_proof : attempt.spec (GF := GF) := by
   wp_start
   wp_auto
   iapply HΦ
@@ -491,21 +471,11 @@ section client
 variable [ρ : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.RemoteGS]
 
 open github_com.mit_pdos.etcd_grove.examples.lib.remote in
-/-- `Client(c)`: client machine `c`, from its share, its package state (with which it claims
-`Conf`), its address's remote protocols and remote's map; it never returns. -/
-abbrev Client.spec : Prop :=
-  ∀ (γ : Names) (c : Nat) (σ : GMap GoString Bool), c < nC →
-    {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗ cliCore γ c ∗
-        ownGoState (hG := hG.goose_localGS.goose_go_stateGS) σ ∗
-        remoteAddr (Gg := hG.goose_globalGS) (kvR γ) (cliAddr c) ∗
-        mapCtx (Gg := hG.goose_globalGS) (I := KIn) }}
-      (App (Val (@! rabia.examples.rabianet.Client)) (Val #(W64 c)))
-    {{ RET #(); False }}
-
-open github_com.mit_pdos.etcd_grove.examples.lib.remote in
 theorem Client.wp_proof (wp_Codec : Codec.spec (GF := GF) (hG := hG))
     (wp_ServeClient : github_com.mit_pdos.etcd_grove.examples.lib.remote.ServeClient.spec
-      (GF := GF) (hG := hG) (I := KIn) (O := KOut)) :
+      (GF := GF) (hG := hG) (I := KIn) (O := KOut))
+    (wp_newClient : newClient.spec (GF := GF)) (wp_ClientAddrs : ClientAddrs.spec (GF := GF))
+    (wp_attempt' : attempt.spec (GF := GF)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro γ c σ hc
   have hc6 : c < 6 := hc
@@ -514,13 +484,13 @@ theorem Client.wp_proof (wp_Codec : Codec.spec (GF := GF) (hG := hG))
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
   · iPkgInit
   wp_auto
-  wp_apply newClient.wp_proof γ c σ hc $$ [$Hpkg $Hcore $Hσ] as %l #Hsys
+  wp_apply wp_newClient γ c σ hc $$ [$Hpkg $Hcore $Hσ] as %l #Hsys
   irename sys => Hsysp
   ipersist Hsysp
   irename c => Hcp
   ipersist Hcp
   try wp_auto
-  wp_apply ClientAddrs.wp_proof as %sl ⟨%L, Hsl, %HL⟩
+  wp_apply wp_ClientAddrs as %sl ⟨%L, Hsl, %HL⟩
   subst HL
   ihave %Hsl0 := ownSlice_len _ _ _ $$ Hsl
   have hcw : sint.Z (W64 (c : Int)) = (c : Int) := by word
@@ -533,7 +503,7 @@ theorem Client.wp_proof (wp_Codec : Codec.spec (GF := GF) (hG := hG))
   · ipureintro; rw [hcw]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hc
   try wp_auto
   wp_apply (wp_Codec γ) as %cd #Hcd
-  wp_apply wp_attempt as %d -
+  wp_apply wp_attempt' as %d -
   try wp_auto
   wp_apply wp_ServeClient (RBase.svc (Gg := hG.goose_globalGS) (kvR γ)) _ _ _ _ cd d
     (fun sys => iprop(⌜sys = interface.mkOk (go.GoType.PointerType Sys.ty) #l⌝ ∗ is_sys γ c l))

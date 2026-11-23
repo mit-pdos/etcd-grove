@@ -11,16 +11,8 @@ The kit's configuration protocol (`kit.go`): `batchSize`, `batchMs`, `blocks`, `
 module
 
 public import Dsverify.Proof.rabia.examples.rabianet.Kit
-public import Dsverify.Proof.rabia.examples.rabianet.ConnReadFull
-public import Dsverify.Proof.rabia.internal.config.CalcConstants
-public import Dsverify.Proof.math.rand.Spec
-public import Dsverify.Proof.log.Spec
-public import Net.Proof.net.Dial
-public import Net.Proof.net.Listen
-public import Net.Proof.net.Listener__Accept
+public import Dsverify.Proof.rabia.examples.rabianet.KitSpecs
 public import Net.Proof.net.AtAddr
-public import Net.Proof.net.Conn__Write
-public import Net.Proof.net.Conn__Close
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
 public import Perennial.Proof.time
 public import Perennial.Proof.sync.Base
@@ -171,7 +163,7 @@ theorem confVal_eq (cf : RCfg) (hc : cf.Ok) (ps : GoSlice) :
     rfl
 
 set_option goose.wp.extras true in
-theorem wp_configure (ps : GoSlice) (cf : RCfg) (hc : cf.Ok) :
+theorem wp_configure (D : KitNetDeps (GF := GF)) (ps : GoSlice) (cf : RCfg) (hc : cf.Ok) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗
         (globalAddr rabia.internal.config.Conf ↦ (zeroValDef : rabia.internal.config.Config)) }}
       (App (App (Val (@! rabia.examples.rabianet.configure)) (Val #ps)) (Val #(confV cf)))
@@ -188,7 +180,7 @@ theorem wp_configure (ps : GoSlice) (cf : RCfg) (hc : cf.Ok) :
     dsimp only [TypedPointsto.typedPointstoDef, rabia.internal.config.Config.Config_typed_pointsto,
       confPre]
     iFrameNamed
-  wp_apply Config.CalcConstants.wp_proof (globalAddr rabia.internal.config.Conf) (confPre cf ps) $$ [Hc] as Hc
+  wp_apply D.calcConstants (globalAddr rabia.internal.config.Conf) (confPre cf ps) $$ [Hc] as Hc
   · iexact Hc
   wp_apply blocks.wp_proof cf hc.2.2.2
   iStructNamed Hc
@@ -381,11 +373,11 @@ theorem decode.wp_proof (b : GoSlice) (dq : DFrac) (cf : RCfg) (hc : cf.Ok) :
 
 
 /-- `configure(ps, conf)` (`configure.spec`). -/
-theorem configure.wp_proof : configure.spec (GF := GF) := by
+theorem configure.wp_proof (D : KitNetDeps (GF := GF)) : configure.spec (GF := GF) := by
   intro ps cf
   iintro %Φ ⟨#Hpkg, %hc, HC, #Hps⟩ HΦ
   iapply wp_fupd
-  wp_apply wp_configure ps cf hc $$ [$Hpkg $HC] as HC
+  wp_apply wp_configure D ps cf hc $$ [$Hpkg $HC] as HC
   ipersist HC
   imodintro
   iapply HΦ
@@ -405,12 +397,12 @@ theorem kit_ed_init :
   iapply github_com.mit_pdos.etcd_grove.examples.net.wire.ed_of_poll $$ Hpoll
 
 /-- `c.Close()` of a connection's end: it returns. -/
-theorem wp_closeConn (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
+theorem wp_closeConn (D : KitNetDeps (GF := GF)) (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
     {{ net.connAt t cn s a la ra ∗ connIs (Gg := hG.goose_globalGS) cn }}
       (App (Val #(methods (go.GoType.PointerType net.TCPConn.ty) go!"Close" #t)) (Val #()))
     {{ (err : GoInterface), RET #err; True }} := by
   iintro %Φ ⟨#Hca, #Hconn⟩ HΦ
-  iapply net.Conn.Close.wp_proof t cn s a la ra (fun _ => iprop(True)) $$ []
+  iapply D.close t cn s a la ra (fun _ => iprop(True)) $$ []
   · iframe Hca
     imod close_au cn s $$ Hconn with ⟨%st, %dd, Hst, Hdd, Hcl⟩
     imodintro
@@ -427,7 +419,7 @@ theorem wp_closeConn (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoI
 set_option goose.wp.extras true in
 /-- `sendConf(a, b)` of the recorded configuration's encoding at a configuration address `a`
 (`cfgP`/`cfgQ`): it writes (a prefix of) `cf.enc` on a connection to `a`. -/
-theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) :
+theorem sendConf.wp_proof (D : KitNetDeps (GF := GF)) (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗
         addrProto (Gg := hG.goose_globalGS) a (cfgP γ) cfgQ ∗ cfgIs γ.rab cf ∗ b ↦* cf.enc }}
       (App (App (Val (@! rabia.examples.rabianet.sendConf)) (Val #a)) (Val #b))
@@ -439,7 +431,7 @@ theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) 
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
   wp_auto
-  wp_apply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp a iprop(True)
+  wp_apply D.dial go!"tcp" net.tcpNet_tcp a iprop(True)
       (fun cid => iprop(connEnd (Gg := hG.goose_globalGS) cid false (cfgP γ) cfgQ [] [] ∗
         connFresh (Gg := hG.goose_globalGS) cid false)) $$ []
     as %cv %err (⟨%Herr, %cid, #Hcl, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
@@ -459,7 +451,7 @@ theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) 
     wp_auto
     ihave #HP : □ cfgP (GF := GF) γ cid ([] ++ cf.enc) $$ []
     · imodintro; unfold cfgP; iexists cf; iframe Hcfg; ipureintro; exact List.prefix_refl _
-    wp_apply net.Conn.Write.wp_proof t cid false a la ra b cf.enc (DFrac.own 1) ed
+    wp_apply D.write t cid false a la ra b cf.enc (DFrac.own 1) ed
         (writeP cid false (cfgP γ) []) $$ [Hb Hsend]
       as %nw %err ⟨%w, %res, Hsend, Hb, %Hw, #HE⟩
     · iframe Hca Hb Hed
@@ -471,7 +463,7 @@ theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) 
     | some k =>
       obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
       wp_auto
-      wp_apply wp_closeConn t cid false a la ra $$ [] as %_ -
+      wp_apply wp_closeConn D t cid false a la ra $$ [] as %_ -
       · iframe #
       try wp_auto
       iapply HΦ; itrivial
@@ -484,7 +476,7 @@ theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) 
       try wp_auto
       rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
         show (W64 1 - W64 0 : w64) = W64 1 from rfl]
-      wp_apply wp_connReadFull t cid false a la ra ed cfgQ [] _ _ $$ [$Hio $Hca $Hed $HRL $Hsl]
+      wp_apply wp_connReadFull D.read D.readFullLt t cid false a la ra ed cfgQ [] _ _ $$ [$Hio $Hca $Hed $HRL $Hsl]
         as %n %err ⟨%data, %Hd, Hsl, Hrecv⟩
       obtain ⟨-, hdl, herr⟩ := Hd
       have hz : (zero_val (GoArray w8 1)).arr.length = 1 := rfl
@@ -492,7 +484,7 @@ theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) 
       rcases err with e | _
       · dsimp only
         wp_auto
-        wp_apply wp_closeConn t cid false a la ra $$ [] as %_ -
+        wp_apply wp_closeConn D t cid false a la ra $$ [] as %_ -
         · iframe #
         try wp_auto
         iapply HΦ; itrivial
@@ -507,7 +499,7 @@ theorem sendConf.wp_proof (γ : Names) (a : GoString) (cf : RCfg) (b : GoSlice) 
       wp_auto
       wp_if_destruct
       all_goals
-        wp_apply wp_closeConn t cid false a la ra $$ [] as %_ -
+        wp_apply wp_closeConn D t cid false a la ra $$ [] as %_ -
         · iframe #
         try wp_auto
         iapply HΦ; itrivial
@@ -607,10 +599,6 @@ theorem ClientConfAddrs.wp_proof :
   iframe Hsl
   ipureintro; rfl
 
-theorem range_map_get {A : Type} (f : Nat → A) (n i : Nat) (h : i < n) :
-    ((List.range n).map f)[i]? = some (f i) := by
-  simp [List.getElem?_range h]
-
 theorem send_step1 (j : w64) (hj : uint.nat j < nC) : uint.nat (j + W64 1) ≤ nC := by
   unfold nC at hj ⊢; word
 
@@ -624,7 +612,7 @@ theorem send_init2 (n : Nat) (hn : 1 ≤ n) : 1 ≤ uint.nat (W64 1) ∧ uint.na
 set_option goose.wp.extras true in
 /-- `send(conf)` of the recorded configuration: it returns once every client machine and servers
 `1..n` acknowledged it. -/
-theorem send.wp_proof (γ : Names) (cf : RCfg) (hc : cf.Ok) :
+theorem send.wp_proof (D : KitNetDeps (GF := GF)) (γ : Names) (cf : RCfg) (hc : cf.Ok) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.rabia.examples.rabianet ∗ shared γ ∗ cfgIs γ.rab cf }}
       (App (Val (@! rabia.examples.rabianet.send)) (Val #(confV cf)))
     {{ RET #(); True }} := by
@@ -662,7 +650,7 @@ theorem send.wp_proof (γ : Names) (cf : RCfg) (hc : cf.Ok) :
     wp_apply wp_load_slice_index sl _ _ _ (cliCfgAddr (uint.nat j)) (by omega) $$ [$Hsl] as -
     · ipureintro; rw [hjz]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hj
     wp_apply encode.wp_proof conf_ptr cf hc $$ [$conf] as %b ⟨conf, Hb⟩
-    wp_apply sendConf.wp_proof γ _ cf b $$ [$Hb] as %ok -
+    wp_apply sendConf.wp_proof D γ _ cf b $$ [$Hb] as %ok -
     · iframe #
     rcases ok with _ | _
     · simp only [Bool.not_false, _root_.decide_true, ↓reduceIte]
@@ -703,7 +691,7 @@ theorem send.wp_proof (γ : Names) (cf : RCfg) (hc : cf.Ok) :
     wp_apply wp_load_slice_index sl _ _ _ (cfgAddr (uint.nat j - 1)) (by omega) $$ [$Hsl] as -
     · ipureintro; rw [hjz]; simp only [Int.toNat_natCast]; exact range_map_get _ _ _ hk
     wp_apply encode.wp_proof conf_ptr cf hc $$ [$conf] as %b ⟨conf, Hb⟩
-    wp_apply sendConf.wp_proof γ _ cf b $$ [$Hb] as %ok -
+    wp_apply sendConf.wp_proof D γ _ cf b $$ [$Hb] as %ok -
     · iframe #
     rcases ok with _ | _
     · simp only [Bool.not_false, _root_.decide_true, ↓reduceIte]
@@ -723,7 +711,7 @@ theorem send.wp_proof (γ : Names) (cf : RCfg) (hc : cf.Ok) :
 
 set_option goose.wp.extras true in
 /-- `New()` (`New.spec`). -/
-theorem New.wp_proof : New.spec (GF := GF) := by
+theorem New.wp_proof (D : KitNetDeps (GF := GF)) : New.spec (GF := GF) := by
   intro γ
   wp_start as ⟨#Hsh, HK⟩
   try wp_auto
@@ -734,18 +722,15 @@ theorem New.wp_proof : New.spec (GF := GF) := by
   imod (setCfg γ.rab ⊤ (by simp) cf []) $$ [Hrab HK] with ⟨-, #Hcfg⟩
   · iframe #; iframe; ipureintro; exact ⟨by simp, hc⟩
   imodintro
-  wp_apply send.wp_proof γ cf hc $$ []
+  wp_apply send.wp_proof D γ cf hc $$ []
   · iframe #
   iapply HΦ
   iexists cf
   iframe #
 
-theorem cfgIs_ok' (γ : RabiaNames) (cf : RCfg) : cfgIs (GF := GF) γ cf ⊢ ⌜cf.Ok⌝ := by
-  unfold cfgIs; iintro ⟨-, %h⟩; ipureintro; exact h
-
 set_option goose.wp.extras true in
 /-- `awaitConf(a, ch)` (`awaitConf.spec`). -/
-theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
+theorem awaitConf.wp_proof (D : KitNetDeps (GF := GF)) : awaitConf.spec (GF := GF) := by
   intro γ a ch γch
   wp_start as ⟨#Hproto, #Hbag⟩
   ihave %Haok := addrTok_ok a $$ [Hproto]
@@ -754,7 +739,7 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
   ihave #Hio : (isPkgInit (PROP := IProp GF) pkg_id.io) $$ []
   · iPkgInit
   wp_auto
-  wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp a as %lv %err Hres
+  wp_apply (net.Listen.spec_addrOk D.listen) go!"tcp" net.tcpNet_tcp a as %lv %err Hres
   · iframe %Haok
     iapply listen_au $$ Hproto
   ihave HI : (∃ (lv err : GoInterface), "l" ∷ l_ptr ↦ lv ∗ "err" ∷ err_ptr ↦ err ∗
@@ -782,7 +767,7 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
         "Hlis" ∷ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true : IProp GF) $$ [first Hlis]
     · iexists true; iframe
     wp_for HJ
-    wp_apply (net.Listener.Accept.spec_addrOk net.Listener.Accept.wp_proof) t l x a
+    wp_apply (net.Listener.Accept.spec_addrOk D.accept) t l x a
         (fun _ => netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true)
         (fun cn => iprop(netLis (extLocalGS netExt (L := hG.goose_localGS)) l a true ∗
           connEnd (Gg := hG.goose_globalGS) cn true cfgQ (cfgP γ) [] [] ∗
@@ -804,7 +789,7 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
       try wp_auto
       rw [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
         show (W64 5 - W64 0 : w64) = W64 5 from rfl]
-      wp_apply wp_connReadFull tc cid true a la ra ed (cfgP γ) [] _ _ $$ [$Hio $Hca $Hed $HRL $Hsl]
+      wp_apply wp_connReadFull D.read D.readFullLt tc cid true a la ra ed (cfgP γ) [] _ _ $$ [$Hio $Hca $Hed $HRL $Hsl]
         as %n %err ⟨%data, %Hd, Hsl, Hrecv⟩
       obtain ⟨-, hdl, herr⟩ := Hd
       have hz : (List.replicate 5 (zero_val w8)).length = 5 := rfl
@@ -828,7 +813,7 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
         rcases err with e | _
         · dsimp only
           wp_auto
-          wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+          wp_apply wp_closeConn D tc cid true a la ra $$ [] as %_ -
           · iframe #
           wp_for_post
           iframe
@@ -851,14 +836,14 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
           · ipureintro; rfl
           iintro %ls ⟨Hls, -⟩
           try wp_auto
-          wp_apply net.Conn.Write.wp_proof tc cid true a la ra _ [W8 107] (DFrac.own 1) ed
+          wp_apply D.write tc cid true a la ra _ [W8 107] (DFrac.own 1) ed
               (writeP cid true cfgQ []) $$ [Hls Hsend] as %nw %err' -
           · iframe Hca Hls Hed
             isplitl [Hsend]
             · iapply writeP_init $$ Hsend
             · iapply write_acc cid true cfgQ [] [W8 107] $$ HQ
           try wp_auto
-          wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+          wp_apply wp_closeConn D tc cid true a la ra $$ [] as %_ -
           · iframe #
           wp_for_post
           iframe
@@ -869,14 +854,14 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
         · ipureintro; rfl
         iintro %ls ⟨Hls, -⟩
         try wp_auto
-        wp_apply net.Conn.Write.wp_proof tc cid true a la ra _ [W8 107] (DFrac.own 1) ed
+        wp_apply D.write tc cid true a la ra _ [W8 107] (DFrac.own 1) ed
             (writeP cid true cfgQ []) $$ [Hls Hsend] as %nw %err' -
         · iframe Hca Hls Hed
           isplitl [Hsend]
           · iapply writeP_init $$ Hsend
           · iapply write_acc cid true cfgQ [] [W8 107] $$ HQ
         try wp_auto
-        wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+        wp_apply wp_closeConn D tc cid true a la ra $$ [] as %_ -
         · iframe #
         wp_for_post
         iframe
@@ -888,7 +873,7 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
           · exact absurd (herr rfl) (fun h => hl5 h)
         dsimp only
         wp_auto
-        wp_apply wp_closeConn tc cid true a la ra $$ [] as %_ -
+        wp_apply wp_closeConn D tc cid true a la ra $$ [] as %_ -
         · iframe #
         wp_for_post
         iframe
@@ -906,7 +891,7 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
     rw [if_pos (by simp)]
     wp_auto
     wp_apply time.wp_Sleep
-    wp_apply (net.Listen.spec_addrOk net.Listen.wp_proof) go!"tcp" net.tcpNet_tcp a as %lv' %err' Hres
+    wp_apply (net.Listen.spec_addrOk D.listen) go!"tcp" net.tcpNet_tcp a as %lv' %err' Hres
     · iframe %Haok
       iapply listen_au $$ Hproto
     wp_for_post
@@ -921,7 +906,7 @@ theorem awaitConf.wp_proof : awaitConf.spec (GF := GF) := by
 
 set_option goose.wp.extras true in
 /-- `waitConf(a)` (`waitConf.spec`). -/
-theorem waitConf.wp_proof : waitConf.spec (GF := GF) := by
+theorem waitConf.wp_proof (D : KitNetDeps (GF := GF)) : waitConf.spec (GF := GF) := by
   intro γ a
   wp_start as #Hproto
   wp_auto
@@ -933,7 +918,7 @@ theorem waitConf.wp_proof : waitConf.spec (GF := GF) := by
   imodintro
   try wp_auto
   wp_apply wp_fork $$ []
-  · wp_apply awaitConf.wp_proof γ a ch γch $$ [] as Hf
+  · wp_apply awaitConf.wp_proof D γ a ch γch $$ [] as Hf
     · iframe #
     iexfalso; iexact Hf
   wp_apply wp_bag_receive γch ch (confChanP γ) $$ [$Hbag] as %v Hv
