@@ -24,8 +24,8 @@ premises, to be discharged when each piece comes as one shared change:
 * **math/rand** (the lab's `Harness/Proof/math/rand.lean`): `math.rand.{Seed,NewSource,New,
   Rand.Intn,Intn}.spec`, the class `RandHyp`.
 * **`sync.Map`** (the lab's `Harness/Proof/sync/Map.lean`; Perennial has no spec): the vocabulary
-  `own m M` (`MapVocab`, abstract) and the class `MapHyp` of its laws (`own_timeless`, `own_zero`
-  from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
+  `own m M` and the memory's points-to `tp` (`MapVocab`, abstract) and the class `MapHyp` of its
+  laws (`ivt`: `tp` is the memory's, `own_timeless`, `own_zero` from the zero map) and the logically atomic specs `sync.Map.Load.spec`, `Store.spec`, `Delete.spec` for
   string keys.
 -/
 module
@@ -360,24 +360,18 @@ end inst
 
 end grpc
 
-/-- **The deployment's gRPC vocabulary**, as an instance (data only: the vocabulary the protocol
-proof's definitions mention, `netProtos` and the replicas' gRPC clients; the hypotheses about it,
-`GrpcHyp QpVocab.grpc`, are premises of the theorems that use them). -/
-class QpVocab [GooseExts] (GF : BundledGFunctors) where
-  grpc : grpc.GrpcVocab GF
-
 /-! ## `sync.Map` -/
 
 namespace sync
 
 /-- **The vocabulary of the `sync.Map` hypotheses**: `own m M`, the map at `m` holds the string
-keys' values `M` (exclusive; abstract). -/
+keys' values `M` (exclusive; abstract), and the typed points-to of a `sync.Map` value, `tp`
+(Perennial's generated one is `sorry`: `sync.Map`'s field `internal/sync.HashTrieMap` is an
+axiomatized type whose `TypedPointsto`/`IntoValTypedUnderlying` instances are `sorry`; the
+instances of `StoreInst.lean`, of high priority, use this one; notes/perennial-changes.md). -/
 structure MapVocab [GooseExts] (GF : BundledGFunctors) where
   own : Loc → GMap GoString GoInterface → IProp GF
-  /-- the memory of a zero `sync.Map` at `m` (abstract: Perennial's typed points-to of
-  `sync.Map` is `sorry`, its field `internal/sync.HashTrieMap` an axiomatized type; see
-  notes/dsv-quepaxa.md, "sync.Map's points-to") -/
-  zero : Loc → IProp GF
+  tp : TypedPointsto (GF := GF) Perennial.sync.Map
 
 /-- A string key as the interface the map stores. -/
 abbrev strKey [GooseExts] [GoGlobalContext] (k : GoString) : GoInterface :=
@@ -419,11 +413,15 @@ abbrev Map.Delete.spec : Prop :=
 
 end defs
 
-/-- **The `sync.Map` hypotheses**: a zero map holds nothing, and the specs. -/
+/-- **The `sync.Map` hypotheses**: the points-to `V.tp` is the memory's (`ivt`: allocating,
+loading and storing a `sync.Map` respect it), a zero map holds nothing, and the specs. -/
 class MapHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] (V : MapVocab GF) : Prop where
+  ivt : @IntoValTypedUnderlying _ _ _ _ HasLC.hasLC GF hG Perennial.sync.Map
+    Perennial.sync.Map.underlying _ V.tp _
   own_timeless : ∀ m M, Timeless (V.own m M)
-  own_zero : ∀ m : Loc, ⊢ V.zero m ==∗ V.own m ∅
+  own_zero : ∀ m : Loc, ⊢ @typedPointsto GF _ V.tp m (zero_val Perennial.sync.Map) (DFrac.own 1) ==∗
+    V.own m ∅
   Load : Map.Load.spec V
   Store : Map.Store.spec V
   Delete : Map.Delete.spec V
@@ -431,5 +429,14 @@ class MapHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 attribute [instance] MapHyp.own_timeless
 
 end sync
+
+/-- **The deployment's gRPC vocabulary**, as an instance (data only: the vocabulary the protocol
+proof's definitions mention, `netProtos` and the replicas' gRPC clients; the hypotheses about it,
+`GrpcHyp QpVocab.grpc`, are premises of the theorems that use them). -/
+class QpVocab [GooseExts] (GF : BundledGFunctors) where
+  grpc : grpc.GrpcVocab GF
+  /-- the `sync.Map` vocabulary of the replicas' batch stores (its points-to `tp` is the
+  instance of `sync.Map`'s memory, `StoreInst.lean`) -/
+  map : sync.MapVocab GF
 
 end Perennial.raxos.hyp

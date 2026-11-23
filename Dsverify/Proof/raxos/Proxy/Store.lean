@@ -20,6 +20,13 @@ open raxos.replica.src
 open hyp.sync (MapVocab MapHyp strKey)
 
 section proofs
+attribute [-instance] Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_typed_pointsto
+  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_into_val_typed
+  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_access_load_clientBatches
+  Perennial.raxos.replica.src.ClientBatchStore.ClientBatchStore_access_store_clientBatches
+  Perennial.sync.Map.Map_typed_pointsto Perennial.sync.Map.Map_into_val_typed
+  Perennial.internal.sync.HashTrieMap.HashTrieMap_typed_pointsto
+  Perennial.internal.sync.HashTrieMap.HashTrieMap_into_val_typed
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
@@ -194,17 +201,17 @@ theorem store_get_proof [raxos.replica.src.Assumptions] [raxos.proto.client.Assu
     itrivial
 
 /-- A fresh store (`server.go`'s `&ClientBatchStore{}`), for package `replica`: from the zero
-`sync.Map` memory of its field (`MapVocab.zero`, with the `sync.Map` hypotheses; how the
-allocation gives it is open: notes/dsv-quepaxa.md, "sync.Map's points-to"), a store with no id
-known yet. -/
-theorem isStore_alloc_proof (MV : MapVocab GF) [hMV : MapHyp MV] (γ : QNames) (cb : Loc)
+`sync.Map` memory of its field (its points-to the deployment's `qv.map.tp`, `StoreInst.lean`), with
+the `sync.Map` hypotheses, a store with no id known yet. -/
+theorem isStore_alloc_proof [hMV : MapHyp qv.map] (γ : QNames) (cb : Loc)
     (E : CoPset) (Hnn : cb.[ClientBatchStore, go!"clientBatches"] ≠ null) :
     ⊢@{IProp GF} isPkgInit (PROP := IProp GF) pkg_id.sync -∗
-      MV.zero cb.[ClientBatchStore, go!"clientBatches"] ={E}=∗ ∃ γs, isStore γ γs cb := by
+      cb.[ClientBatchStore, go!"clientBatches"] ↦ (zero_val Perennial.sync.Map) ={E}=∗
+        ∃ γs, isStore γ γs cb := by
   iintro #Hsm Hz
   imod hMV.own_zero _ $$ Hz with Hm
   imod ghost_map_alloc_empty (K := GoString) (V := Unit) with ⟨%γs, Hauth⟩
-  imod inv_alloc storeN E (storeInv MV γ γs cb.[ClientBatchStore, go!"clientBatches"])
+  imod inv_alloc storeN E (storeInv qv.map γ γs cb.[ClientBatchStore, go!"clientBatches"])
     $$ [Hm Hauth] with #Hinv
   · inext
     iunfold storeInv
@@ -219,7 +226,7 @@ theorem isStore_alloc_proof (MV : MapVocab GF) [hMV : MapHyp MV] (γ : QNames) (
   iexists γs
   iunfold isStore
   iunfold isStoreDef
-  iexists MV
+  iexists qv.map
   iframe Hsm Hinv
   ipureintro; exact ⟨hMV, Hnn⟩
 

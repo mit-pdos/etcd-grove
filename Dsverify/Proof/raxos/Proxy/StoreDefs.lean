@@ -9,6 +9,7 @@ module
 
 public import Dsverify.Proof.raxos.ReplicaDefs
 public import Dsverify.Proof.raxos.Hyp
+public import Dsverify.Proof.raxos.StoreInst
 
 @[expose] public section
 

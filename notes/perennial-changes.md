@@ -3933,3 +3933,24 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   every spec built on it (bufio's constructors' `size` premise-free statements among them) inherits the
   gap: a Perennial-wide question about `make`'s model, not one for the bufio specs.
 - **Status.** Unchecked; recorded for Perennial's `make` model.
+
+## 2026-11-23: `sync.Map`'s typed points-to is `sorry` (dsv-quepaxa, #24, branch `dsv-quepaxa`)
+
+- **Limitation.** `Perennial/GeneratedProof/internal/sync.lean` (pin `7b2259a12`):
+  `HashTrieMap_typed_pointsto` and `HashTrieMap_into_val_typed` are `sorry -- axiomatized type`.
+  `sync.Map` has a `HashTrieMap` field, so its generated `Map_typed_pointsto`/`Map_into_val_typed`,
+  and those of any struct with a `sync.Map` field (QuePaxa's `ClientBatchStore`), depend on
+  `sorryAx`. A proof that merely steps through such a struct's methods with `wp_auto` picks these
+  instances up (opportunistically: with them erased, the same proofs go through) and its `#print
+  axioms` shows `sorryAx`.
+- **Work-around here.** `Dsverify/Proof/raxos/StoreInst.lean`: high-priority instances of
+  `sync.Map` from the deployment's hypothesis vocabulary (`QpVocab.map.tp`, the points-to, and
+  `MapHyp.ivt`, its `IntoValTypedUnderlying`; `Hyp.lean`) and `ClientBatchStore`'s restated over
+  them; `Proxy/Store.lean` erases the generated (`sorry`) instances of `sync.Map`,
+  `HashTrieMap` and `ClientBatchStore` (`attribute [-instance]`). `store_add_proof`,
+  `esp_handlerOk`, `fetch_handlerOk`: Lean's three axioms. (The lab's `StoreInst.lean` did the
+  same over its own `sync.Map` model.)
+- **Proposed (general).** Perennial gives `internal/sync.HashTrieMap` (or `sync.Map` directly) a
+  model: a translated or hand-written `HashTrieMap`, or `sync.Map` as an opaque handle with a
+  heap-cell points-to and specs of `Load`/`Store`/`Delete`/`Range` (the shapes of `MapHyp`).
+  **Status.** Not proposed yet.

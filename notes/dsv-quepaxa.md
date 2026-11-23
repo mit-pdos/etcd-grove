@@ -107,7 +107,7 @@ named after the lab's specs, until each comes as one shared change. **All are in
   sent pend err` (the proxy's writers, `Proxy/SharedNet.lean`'s `wSlot`, size 4096), `ownBufReader br
   ri Pre S E R` (`Wire.lean`), specs `bufio.NewWriter.spec`, `Writer.Write/WriteByte/Flush.spec`,
   `Reader.Read.specOk`, laws `ownBufWriter_fact`, `ownBufReader_fact`, `ownBufReader_readerOk`,
-  `net.conn_writerOk`/`conn_readerOk` (`Net/Proof/net/ConnIo.lean`), `recvTokL_proto`. Never unfold
+  `net.conn_streamWriterOk`/`conn_readerOk` (`Net/Proof/net/ConnIo.lean`), `recvTokL_proto`. Never unfold
   the bufio predicates. If dsv-bufio changes again before landing, re-merge it.
 - **Package initialization** (`<pkg>.InitHyp GF`, `Dsverify/Proof/<pkg>/Init.lean`): yaml.v2,
   go-redis, io/ioutil, encoding/gob, grpc, grpc/codes (names only, their variables' initializers and
