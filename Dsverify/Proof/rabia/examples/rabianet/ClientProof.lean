@@ -314,6 +314,27 @@ theorem op1.wp_proof (γ : Names) (c : Nat) (hc : c < nC) (l t : Loc) (e : ClNam
   · iapply BigAndL.bigAndL_nil.2
     itrivial
 
+/-- `Op(x, c, in)` (`Op.spec`): `x.mu.Lock()`, `op1`, `x.mu.Unlock()`. -/
+theorem Op.wp_proof : Op.spec (GF := GF) := by
+  intro γ c l i Q hc hi
+  wp_start as ⟨#Hsys, HAU⟩
+  unfold is_sys
+  icases Hsys with ⟨%t, %mu, %e, %cf, #Ht, #Hmu, #Hch, #Hsh, #Hcfg, #Hconf, #Hlock⟩
+  ihave #Hsync : (isPkgInit (PROP := IProp GF) pkg_id.sync) $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hlock] as ⟨Hlocked, Hat⟩
+  wp_apply op1.wp_proof γ c hc l t e cf i hi Q $$ [$Hpkg $Ht $Hch $Hsh $Hcfg $Hat $HAU]
+    as %o ⟨Hat, Hres⟩
+  try wp_auto
+  wp_apply sync.Mutex.wp_Unlock mu (clientAt γ c l e) $$ [$Hsync $Hlocked $Hat]
+  · iexact Hlock
+  try wp_auto
+  iapply HΦ
+  icases Hres with (%h | ⟨%σ, %σ', %out, %hp, HQ⟩)
+  · ileft; ipureintro; exact h
+  · iright; iexists σ, σ', out; iframe HQ; ipureintro; exact hp
+
 end proof
 
 end Perennial.rabia.examples.rabianet
