@@ -114,6 +114,27 @@ abbrev awaitConf.spec : Prop :=
     (App (App (Val (@! examples.swiftnet.awaitConf)) (Val #a)) (Val #ch))
   {{ RET #(); False }}
 
+/-- `sendConf(a, b)`: the message `bs` meets `a`'s dialers' protocol; an acknowledgment carries
+`a`'s acceptors' protocol of a reply starting with `confAck`. -/
+abbrev sendConf.spec : Prop :=
+  ∀ (a : GoString) (b : GoSlice) (bs : List w8) (P Q : Proto netDistGF),
+  {{ isPkgInit (PROP := IProp netDistGF)
+        pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet ∗
+      addrProto (Gg := hG.goose_globalGS) a P Q ∗ □ (∀ cid, P cid bs) ∗ b ↦* bs }}
+    (App (App (Val (@! examples.swiftnet.sendConf)) (Val #a)) (Val #b))
+  {{ (ok : Bool), RET #ok;
+      if ok then ∃ (cid : Nat) (ext : List w8), ⌜[confAck] <+: ext⌝ ∗ □ Q cid ext else True }}
+
+/-- `New(addrs)`: from the configuration's writer token and the run's facts, every predicted node
+of the configuration it chose registered (and every node configured, the client nodes started). -/
+abbrev New.spec [RpcHttpAddr netDistGF] (γ : SwiftNames netDistGF) : Prop :=
+  ∀ (asl : GoSlice),
+  {{ isPkgInit (PROP := IProp netDistGF)
+        pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet ∗
+      conf.writer γ ∗ common γ ∗ asl ↦*□ addrs }}
+    (App (Val (@! examples.swiftnet.New)) (Val #asl))
+  {{ RET #(); sp.allPredsReg γ.sp γ.conf }}
+
 end spec
 
 end Perennial.github_com.imdea_software.swiftpaxos

@@ -215,6 +215,9 @@ def common (γ : SwiftNames netDistGF) : IProp netDistGF :=
     ([∗list] la ∈ rpcLis, RpcHttpAddr.rpcLisP γ.W la (connectReq defaultRPCPath) connectAns) ∗
     sp.inv γ.sp γ.conf γ.mem γ.lin)
 
+instance common_persistent (γ : SwiftNames netDistGF) : Persistent (common γ) := by
+  unfold common; infer_instance
+
 /-- The orchestrator's share (node 0): its address's token, the configuration's writer token
 and the abstract state's half at the model's initial state (`New` returns it as `own_state`). -/
 def orchShare (γ : SwiftNames netDistGF) : IProp netDistGF :=

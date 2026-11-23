@@ -233,15 +233,6 @@ theorem newClient.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
   iapply HΦ
   iframe HsysL
 
-/-- `callTime()`: some duration. -/
-theorem wp_callTime :
-    {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet }}
-      (App (Val (@! examples.swiftnet.callTime)) (Val #()))
-    {{ (d : w64), RET #d; True }} := by
-  wp_start
-  wp_auto
-  iapply HΦ; itrivial
-
 theorem clientNode.wp_proof (γ : SwiftNames netDistGF) (γk : GName) (c : Nat) (hc : c < 6)
     (wp_newClient : newClient.spec γ c) (wp_op : op.spec γ γk c)
     (wp_Codec : Codec.spec (GF := netDistGF) (hG := hG))

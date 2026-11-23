@@ -295,7 +295,41 @@ abbrev Client.spec : Prop :=
     (App (Val (@! examples.swiftnet.Client)) (Val #(W64 (c : Int))))
   {{ RET #(); False }}
 
+open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory in
+/-- `Orch()`: the orchestrator, from the configuration's writer token, the run's facts, remote's
+protocols of the client machines' request addresses, the map of inputs and the pending library
+over porcupine's model `swS0` of the store `swRK γk`; it returns (porcupine accepts the
+history). -/
+abbrev Orch.spec [RpcHttpAddr netDistGF] : Prop :=
+  ∀ (γ : SwiftNames netDistGF) (γk : GName) (γp : PendNames), receiptBound netDistGF ≤ 2 ^ 63 →
+  {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg ∗ conf.writer γ ∗ common γ ∗
+      ([∗list] a ∈ clientAddrs,
+        remoteAddr (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk) a) ∗
+      mapCtx (Gg := hG.goose_globalGS) (I := KIn) ∗
+      pendCtx (Gg := hG.goose_globalGS) (swRK (G := hG.goose_globalGS) γk) (swS0 (GF := netDistGF)) γp ∗
+      pendLib (Gg := hG.goose_globalGS) (swS0 (GF := netDistGF)) γp (swS0 (GF := netDistGF)).M.init }}
+    (App (Val (@! examples.swiftnet.Orch)) (Val #()))
+  {{ RET #(); True }}
+
 end specs
+
+section calltime
+variable [go_gctx : GoGlobalContext]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]
+variable [examples.swiftnet.Assumptions]
+
+set_option goose.wp.extras true
+
+/-- `callTime()`: some duration. -/
+theorem wp_callTime :
+    {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.examples.swiftnet }}
+      (App (Val (@! examples.swiftnet.callTime)) (Val #()))
+    {{ (d : w64), RET #d; True }} := by
+  wp_start
+  wp_auto
+  iapply HΦ; itrivial
+
+end calltime
 
 end cnode
 
