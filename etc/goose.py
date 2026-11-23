@@ -691,6 +691,10 @@ PROJECTS = [
                         "go.etcd.io/raft/v3=KvNet", "google.golang.org="],
             packages=["go.etcd.io/etcd/server/v3/storage/wal/walpb"],
             owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal", "walpb")])],
+        # (jsonlean, 2026-11-23, mit-pdos/etcd-grove#24) encoding/json from its model
+        # (models/encoding/json): the names the main tree's `Code/encoding/json.lean` declares
+        # (project k8s-apiserver's, names only) are the model's
+        std_models=["encoding/json"],
     ),
     Project(
         name="kv",
@@ -1804,6 +1808,10 @@ PROJECTS = [
                os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
+        # (jsonlean, 2026-11-23, mit-pdos/etcd-grove#24) encoding/json from its model
+        # (models/encoding/json): the names the main tree's `Code/encoding/json.lean` declares
+        # (project k8s-apiserver's, names only) are the model's
+        std_models=["encoding/json"],
     ),
     Project(
         name="k8s-daemonset",
@@ -1850,6 +1858,10 @@ PROJECTS = [
                os.path.join("k8s_io", "kubernetes"), os.path.join("k8s_io", "component_helpers"),
                os.path.join("k8s_io", "apiextensions_apiserver"),
                os.path.join("k8s_io", "controller_manager")],
+        # (jsonlean, 2026-11-23, mit-pdos/etcd-grove#24) encoding/json from its model
+        # (models/encoding/json): the names the main tree's `Code/encoding/json.lean` declares
+        # (project k8s-apiserver's, names only) are the model's
+        std_models=["encoding/json"],
     ),
     Project(
         name="k8s-compactor",
