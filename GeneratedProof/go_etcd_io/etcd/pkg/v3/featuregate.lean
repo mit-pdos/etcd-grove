@@ -179,7 +179,7 @@ noncomputable instance featureGate_access_load_lock (l : Loc) (v : go_etcd_io.et
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_lock (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (lock' : sync.Mutex) :
+noncomputable instance featureGate_access_store_lock (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (lock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lock" l) v.lock' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"lock" l) lock' (DFrac.own 1))
@@ -195,7 +195,7 @@ noncomputable instance featureGate_access_load_known (l : Loc) (v : go_etcd_io.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_known (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (known' : sync.atomic.Value) :
+noncomputable instance featureGate_access_store_known (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (known' : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"known" l) v.known' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"known" l) known' (DFrac.own 1))
@@ -211,7 +211,7 @@ noncomputable instance featureGate_access_load_enabled (l : Loc) (v : go_etcd_io
  by
   solve_pointsto_access_struct
 
-noncomputable instance featureGate_access_store_enabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (enabled' : sync.atomic.Value) :
+noncomputable instance featureGate_access_store_enabled (l : Loc) (v : go_etcd_io.etcd.pkg.v3.featuregate.featureGate) (enabled' : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"enabled" l) v.enabled' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.featuregate.featureGate go!"enabled" l) enabled' (DFrac.own 1))

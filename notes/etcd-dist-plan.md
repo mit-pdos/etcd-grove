@@ -803,6 +803,16 @@ gate (`etc/heapfree-roots.txt`): `SrvRaftLog` (`srvPropTk`, `srvQInv`, `srvReadA
 test of the gate), hence `idCluster_alloc`, `srvClusterBoot_alloc`, `clusterFacts`, `clusterAllocN`; and `nodeBoot`
 (step (c)). rafthttp's payload `srvNet γ` (message bundles on the receiver's heap) is S5's.
 
+**(c), raft's `nodeBootG` (branch `d7-nodeboot`, 2026-11-23).** `InvApiBoot`: `ApiImpl.nodeBootUG` (`nodeBootU` but
+`bootMarshal`), `cluster_alloc_boot_implG_tr` (the allocation over `[AllG] [ReceiptGS] [InvGS]`, its post also giving
+`γ.raft.reBoot = toEntries boot 0`), `nodeBootU_of_G` (`nodeBootUG ∗ bootMarshal ⊣⊢ nodeBootU`), and
+`cluster_alloc_boot_impl_tr` now its corollary (statement unchanged). The node API (`InvNodeRule`, sealed):
+`nodeBootG γ N vs ctxs id bl` (`@[no_expose]`, persistent), `cluster_alloc_bootG` (`cluster_alloc_ns`'s boot case over
+the global classes, each voter's `nodeBootG` at `toEntries boot 0`), and the law `nodeBoot_of_G : nodeBootG … bl ∗
+bootMarshal vs ctxs bl ⊢ nodeBoot …` at a heap. Additive: no statement changed; `RaftTla`/`RaftNoAx`/`KvNet` copies
+regenerated; heap-free roots, `nodeBoot` a negative test. `srvClusterBoot_alloc` can now take the raft part from
+`cluster_alloc_bootG`; it stays at a heap until the idutil split.
+
 #### The idutil split (design, 2026-11-23, for review on #28; not implemented)
 
 **The defect.** `idClusterInv issued cnt wn fs Φs` (`idutil/Defs.lean`), the cluster's claims, holds for every key

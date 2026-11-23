@@ -150,7 +150,7 @@ noncomputable instance raftNode_access_load_latestTickTs (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance raftNode_access_store_latestTickTs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (latestTickTs' : time.Time) :
+noncomputable instance raftNode_access_store_latestTickTs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.raftNode) (latestTickTs' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"latestTickTs" l) v.latestTickTs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.raftNode go!"latestTickTs" l) latestTickTs' (DFrac.own 1))

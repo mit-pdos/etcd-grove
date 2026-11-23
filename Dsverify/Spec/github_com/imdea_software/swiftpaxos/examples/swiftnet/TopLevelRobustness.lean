@@ -33,7 +33,8 @@ and the start's net protocol names `π`):
   treemap predicate, gob's encoder/decoder predicates and gob's wire format (`GobFmt`, the field
   `gobFmt`), each argued true of the real library in its docstring;
 * the package initializers without a proof here (`InitHyp`, `etc/dsv/README.md`): math/rand's,
-  net/rpc's, net/http's, encoding/json's, encoding/gob's, os/signal's, google/uuid's;
+  net/rpc's, net/http's, encoding/gob's, os/signal's, google/uuid's (encoding/json's is the main
+  tree's proved `wp_initialize'`);
 * the library specs (`SwiftHyps`, `Hyps.lean`: treemap, gob, bufio's lab lemmas, uuid's `ID`;
   `math.rand.Hyps`, dsv-rabia's `math/rand` specs), the environment (`os.signal.NoSignals usr1Sigs`,
   dsv-rabia's class at SIGUSR1: no SIGUSR1 is sent; `SwiftOsRandom`: the OS's randomness does not
@@ -53,7 +54,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcBoot
 public import Net.Statement.DistDeploy
 public import Robustness.Statement
-public import Dsverify.Proof.encoding.json.Init
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.github_com.google.uuid.Init
@@ -98,7 +98,6 @@ def swiftpaxos_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; math.rand.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; net.http.InitHyp netDistGF) →
-    (∀ G L, letI := heapAt G L; encoding.json.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; encoding.gob.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; os.signal.InitHyp netDistGF) →
     (∀ G L, letI := heapAt G L; github_com.google.uuid.InitHyp netDistGF) →

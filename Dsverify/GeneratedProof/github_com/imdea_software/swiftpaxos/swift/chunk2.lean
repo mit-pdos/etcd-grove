@@ -313,7 +313,7 @@ noncomputable instance CommandIdCache_access_load_mu (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommandIdCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.CommandIdCache) (mu' : sync.Mutex) :
+noncomputable instance CommandIdCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.CommandIdCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.CommandIdCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.CommandIdCache go!"mu" l) mu' (DFrac.own 1))
@@ -370,7 +370,7 @@ noncomputable instance SHashCache_access_load_mu (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance SHashCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.SHashCache) (mu' : sync.Mutex) :
+noncomputable instance SHashCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.SHashCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.SHashCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.SHashCache go!"mu" l) mu' (DFrac.own 1))
@@ -427,7 +427,7 @@ noncomputable instance AckCache_access_load_mu (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance AckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.AckCache) (mu' : sync.Mutex) :
+noncomputable instance AckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.AckCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.AckCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.AckCache go!"mu" l) mu' (DFrac.own 1))
@@ -484,7 +484,7 @@ noncomputable instance MNewLeaderAckCache_access_load_mu (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance MNewLeaderAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckCache) (mu' : sync.Mutex) :
+noncomputable instance MNewLeaderAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckCache go!"mu" l) mu' (DFrac.own 1))
@@ -541,7 +541,7 @@ noncomputable instance MLightSyncCache_access_load_mu (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance MLightSyncCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MLightSyncCache) (mu' : sync.Mutex) :
+noncomputable instance MLightSyncCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MLightSyncCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MLightSyncCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MLightSyncCache go!"mu" l) mu' (DFrac.own 1))
@@ -598,7 +598,7 @@ noncomputable instance MFastAckCache_access_load_mu (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance MFastAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MFastAckCache) (mu' : sync.Mutex) :
+noncomputable instance MFastAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MFastAckCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MFastAckCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MFastAckCache go!"mu" l) mu' (DFrac.own 1))
@@ -655,7 +655,7 @@ noncomputable instance MFastAckClientCache_access_load_mu (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance MFastAckClientCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MFastAckClientCache) (mu' : sync.Mutex) :
+noncomputable instance MFastAckClientCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MFastAckClientCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MFastAckClientCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MFastAckClientCache go!"mu" l) mu' (DFrac.own 1))
@@ -712,7 +712,7 @@ noncomputable instance MLightSlowAckCache_access_load_mu (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance MLightSlowAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MLightSlowAckCache) (mu' : sync.Mutex) :
+noncomputable instance MLightSlowAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MLightSlowAckCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MLightSlowAckCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MLightSlowAckCache go!"mu" l) mu' (DFrac.own 1))
@@ -769,7 +769,7 @@ noncomputable instance MAcceptCache_access_load_mu (l : Loc) (v : github_com.imd
  by
   solve_pointsto_access_struct
 
-noncomputable instance MAcceptCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MAcceptCache) (mu' : sync.Mutex) :
+noncomputable instance MAcceptCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MAcceptCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MAcceptCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MAcceptCache go!"mu" l) mu' (DFrac.own 1))
@@ -826,7 +826,7 @@ noncomputable instance MNewLeaderCache_access_load_mu (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance MNewLeaderCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MNewLeaderCache) (mu' : sync.Mutex) :
+noncomputable instance MNewLeaderCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MNewLeaderCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MNewLeaderCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MNewLeaderCache go!"mu" l) mu' (DFrac.own 1))
@@ -883,7 +883,7 @@ noncomputable instance SDepCache_access_load_mu (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance SDepCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.SDepCache) (mu' : sync.Mutex) :
+noncomputable instance SDepCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.SDepCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.SDepCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.SDepCache go!"mu" l) mu' (DFrac.own 1))
@@ -940,7 +940,7 @@ noncomputable instance MShareStateCache_access_load_mu (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance MShareStateCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MShareStateCache) (mu' : sync.Mutex) :
+noncomputable instance MShareStateCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MShareStateCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MShareStateCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MShareStateCache go!"mu" l) mu' (DFrac.own 1))
@@ -997,7 +997,7 @@ noncomputable instance MOptAcksCache_access_load_mu (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance MOptAcksCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MOptAcksCache) (mu' : sync.Mutex) :
+noncomputable instance MOptAcksCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MOptAcksCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MOptAcksCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MOptAcksCache go!"mu" l) mu' (DFrac.own 1))
@@ -1054,7 +1054,7 @@ noncomputable instance MPingCache_access_load_mu (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance MPingCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MPingCache) (mu' : sync.Mutex) :
+noncomputable instance MPingCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MPingCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MPingCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MPingCache go!"mu" l) mu' (DFrac.own 1))
@@ -1111,7 +1111,7 @@ noncomputable instance MSlowAckCache_access_load_mu (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance MSlowAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MSlowAckCache) (mu' : sync.Mutex) :
+noncomputable instance MSlowAckCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MSlowAckCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MSlowAckCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MSlowAckCache go!"mu" l) mu' (DFrac.own 1))
@@ -1168,7 +1168,7 @@ noncomputable instance MAcksCache_access_load_mu (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance MAcksCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MAcksCache) (mu' : sync.Mutex) :
+noncomputable instance MAcksCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MAcksCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MAcksCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MAcksCache go!"mu" l) mu' (DFrac.own 1))
@@ -1225,7 +1225,7 @@ noncomputable instance MReplyCache_access_load_mu (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance MReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MReplyCache) (mu' : sync.Mutex) :
+noncomputable instance MReplyCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MReplyCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MReplyCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MReplyCache go!"mu" l) mu' (DFrac.own 1))
@@ -1282,7 +1282,7 @@ noncomputable instance MNewLeaderAckNCache_access_load_mu (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance MNewLeaderAckNCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckNCache) (mu' : sync.Mutex) :
+noncomputable instance MNewLeaderAckNCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckNCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckNCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MNewLeaderAckNCache go!"mu" l) mu' (DFrac.own 1))
@@ -1339,7 +1339,7 @@ noncomputable instance MCollectCache_access_load_mu (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance MCollectCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MCollectCache) (mu' : sync.Mutex) :
+noncomputable instance MCollectCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MCollectCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MCollectCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MCollectCache go!"mu" l) mu' (DFrac.own 1))
@@ -1396,7 +1396,7 @@ noncomputable instance MPingRepCache_access_load_mu (l : Loc) (v : github_com.im
  by
   solve_pointsto_access_struct
 
-noncomputable instance MPingRepCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MPingRepCache) (mu' : sync.Mutex) :
+noncomputable instance MPingRepCache_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.MPingRepCache) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MPingRepCache go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.MPingRepCache go!"mu" l) mu' (DFrac.own 1))
@@ -1453,7 +1453,7 @@ noncomputable instance DelayEntry_access_load_now (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance DelayEntry_access_store_now (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.DelayEntry) (now' : time.Time) :
+noncomputable instance DelayEntry_access_store_now (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.DelayEntry) (now' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.DelayEntry go!"now" l) v.now' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.DelayEntry go!"now" l) now' (DFrac.own 1))

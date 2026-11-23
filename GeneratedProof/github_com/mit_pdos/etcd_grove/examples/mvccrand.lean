@@ -159,7 +159,7 @@ noncomputable instance Config_access_load_Drain (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Drain (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.Config) (Drain' : time.Duration) :
+noncomputable instance Config_access_store_Drain (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.Config) (Drain' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.Config go!"Drain" l) v.Drain' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.Config go!"Drain" l) Drain' (DFrac.own 1))
@@ -459,7 +459,7 @@ noncomputable instance history_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance history_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.history) (mu' : sync.RWMutex) :
+noncomputable instance history_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.history) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.history go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.history go!"mu" l) mu' (DFrac.own 1))
@@ -507,7 +507,7 @@ noncomputable instance history_access_load_published (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance history_access_store_published (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.history) (published' : sync.atomic.Int64) :
+noncomputable instance history_access_store_published (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.history) (published' : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.history go!"published" l) v.published' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.history go!"published" l) published' (DFrac.own 1))
@@ -523,7 +523,7 @@ noncomputable instance history_access_load_aboveFloor (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance history_access_store_aboveFloor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.history) (aboveFloor' : sync.atomic.Int64) :
+noncomputable instance history_access_store_aboveFloor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.history) (aboveFloor' : _root_.Perennial.sync.atomic.Int64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.history go!"aboveFloor" l) v.aboveFloor' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.history go!"aboveFloor" l) aboveFloor' (DFrac.own 1))
@@ -637,7 +637,7 @@ noncomputable instance rangeReq_access_load_ro (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance rangeReq_access_store_ro (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.rangeReq) (ro' : go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) :
+noncomputable instance rangeReq_access_store_ro (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.rangeReq) (ro' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.RangeOptions) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.rangeReq go!"ro" l) v.ro' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.rangeReq go!"ro" l) ro' (DFrac.own 1))
@@ -760,7 +760,7 @@ noncomputable instance writer_access_load_kv (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance writer_access_store_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.writer) (kv' : go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV) :
+noncomputable instance writer_access_store_kv (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.writer) (kv' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.writer go!"kv" l) v.kv' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.writer go!"kv" l) kv' (DFrac.own 1))
@@ -776,7 +776,7 @@ noncomputable instance writer_access_load_le (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance writer_access_store_le (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.writer) (le' : go_etcd_io.etcd.server.v3.lease.Lessor) :
+noncomputable instance writer_access_store_le (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.writer) (le' : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.Lessor) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.writer go!"le" l) v.le' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.writer go!"le" l) le' (DFrac.own 1))
@@ -1038,7 +1038,7 @@ noncomputable instance watchCheck_access_load_mu (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance watchCheck_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.watchCheck) (mu' : sync.Mutex) :
+noncomputable instance watchCheck_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.mvccrand.watchCheck) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.watchCheck go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.mvccrand.watchCheck go!"mu" l) mu' (DFrac.own 1))

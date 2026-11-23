@@ -110,7 +110,7 @@ noncomputable instance Server_access_load_mu (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (mu' : sync.RWMutex) :
+noncomputable instance Server_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (mu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) mu' (DFrac.own 1))

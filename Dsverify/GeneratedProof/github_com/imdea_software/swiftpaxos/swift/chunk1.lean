@@ -142,7 +142,7 @@ noncomputable instance BatcherOp_access_load_msg (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance BatcherOp_access_store_msg (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.BatcherOp) (msg' : github_com.imdea_software.swiftpaxos.rpc.Serializable) :
+noncomputable instance BatcherOp_access_store_msg (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.BatcherOp) (msg' : _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.BatcherOp go!"msg" l) v.msg' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.BatcherOp go!"msg" l) msg' (DFrac.own 1))
@@ -228,7 +228,7 @@ noncomputable instance CommunicationSupply_access_load_maxLatency (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommunicationSupply_access_store_maxLatency (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.CommunicationSupply) (maxLatency' : time.Duration) :
+noncomputable instance CommunicationSupply_access_store_maxLatency (l : Loc) (v : github_com.imdea_software.swiftpaxos.swift.CommunicationSupply) (maxLatency' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.CommunicationSupply go!"maxLatency" l) v.maxLatency' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.swift.CommunicationSupply go!"maxLatency" l) maxLatency' (DFrac.own 1))

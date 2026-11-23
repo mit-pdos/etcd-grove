@@ -66,7 +66,7 @@ noncomputable instance WatchEvent_access_load_Object (l : Loc) (v : k8s_io.apima
  by
   solve_pointsto_access_struct
 
-noncomputable instance WatchEvent_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Object' : k8s_io.apimachinery.pkg.runtime.RawExtension) :
+noncomputable instance WatchEvent_access_store_Object (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent) (Object' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) v.Object' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.WatchEvent go!"Object" l) Object' (DFrac.own 1))

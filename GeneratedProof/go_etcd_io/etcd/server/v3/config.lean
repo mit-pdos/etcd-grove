@@ -129,7 +129,7 @@ noncomputable instance ServerConfig_access_load_DiscoveryCfg (l : Loc) (v : go_e
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_DiscoveryCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DiscoveryCfg' : go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) :
+noncomputable instance ServerConfig_access_store_DiscoveryCfg (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DiscoveryCfg' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery.DiscoveryConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DiscoveryCfg" l) v.DiscoveryCfg' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DiscoveryCfg" l) DiscoveryCfg' (DFrac.own 1))
@@ -145,7 +145,7 @@ noncomputable instance ServerConfig_access_load_ClientURLs (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ClientURLs' : go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+noncomputable instance ServerConfig_access_store_ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ClientURLs' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientURLs" l) v.ClientURLs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ClientURLs" l) ClientURLs' (DFrac.own 1))
@@ -161,7 +161,7 @@ noncomputable instance ServerConfig_access_load_PeerURLs (l : Loc) (v : go_etcd_
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (PeerURLs' : go_etcd_io.etcd.client.pkg.v3.types.URLs) :
+noncomputable instance ServerConfig_access_store_PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (PeerURLs' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerURLs" l) v.PeerURLs' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerURLs" l) PeerURLs' (DFrac.own 1))
@@ -257,7 +257,7 @@ noncomputable instance ServerConfig_access_load_BackendBatchInterval (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BackendBatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BackendBatchInterval' : time.Duration) :
+noncomputable instance ServerConfig_access_store_BackendBatchInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BackendBatchInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchInterval" l) v.BackendBatchInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendBatchInterval" l) BackendBatchInterval' (DFrac.own 1))
@@ -289,7 +289,7 @@ noncomputable instance ServerConfig_access_load_BackendFreelistType (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BackendFreelistType' : go_etcd_io.bbolt.FreelistType) :
+noncomputable instance ServerConfig_access_store_BackendFreelistType (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BackendFreelistType' : _root_.Perennial.go_etcd_io.bbolt.FreelistType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendFreelistType" l) v.BackendFreelistType' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BackendFreelistType" l) BackendFreelistType' (DFrac.own 1))
@@ -305,7 +305,7 @@ noncomputable instance ServerConfig_access_load_InitialPeerURLsMap (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_InitialPeerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (InitialPeerURLsMap' : go_etcd_io.etcd.client.pkg.v3.types.URLsMap) :
+noncomputable instance ServerConfig_access_store_InitialPeerURLsMap (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (InitialPeerURLsMap' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialPeerURLsMap" l) v.InitialPeerURLsMap' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"InitialPeerURLsMap" l) InitialPeerURLsMap' (DFrac.own 1))
@@ -353,7 +353,7 @@ noncomputable instance ServerConfig_access_load_PeerTLSInfo (l : Loc) (v : go_et
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_PeerTLSInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (PeerTLSInfo' : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) :
+noncomputable instance ServerConfig_access_store_PeerTLSInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (PeerTLSInfo' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerTLSInfo" l) v.PeerTLSInfo' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"PeerTLSInfo" l) PeerTLSInfo' (DFrac.own 1))
@@ -449,7 +449,7 @@ noncomputable instance ServerConfig_access_load_BootstrapTimeout (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_BootstrapTimeout (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BootstrapTimeout' : time.Duration) :
+noncomputable instance ServerConfig_access_store_BootstrapTimeout (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (BootstrapTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapTimeout" l) v.BootstrapTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"BootstrapTimeout" l) BootstrapTimeout' (DFrac.own 1))
@@ -465,7 +465,7 @@ noncomputable instance ServerConfig_access_load_AutoCompactionRetention (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_AutoCompactionRetention (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (AutoCompactionRetention' : time.Duration) :
+noncomputable instance ServerConfig_access_store_AutoCompactionRetention (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (AutoCompactionRetention' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionRetention" l) v.AutoCompactionRetention' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"AutoCompactionRetention" l) AutoCompactionRetention' (DFrac.own 1))
@@ -513,7 +513,7 @@ noncomputable instance ServerConfig_access_load_CompactionSleepInterval (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CompactionSleepInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CompactionSleepInterval' : time.Duration) :
+noncomputable instance ServerConfig_access_store_CompactionSleepInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CompactionSleepInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionSleepInterval" l) v.CompactionSleepInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactionSleepInterval" l) CompactionSleepInterval' (DFrac.own 1))
@@ -593,7 +593,7 @@ noncomputable instance ServerConfig_access_load_WarningApplyDuration (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WarningApplyDuration' : time.Duration) :
+noncomputable instance ServerConfig_access_store_WarningApplyDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WarningApplyDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningApplyDuration" l) v.WarningApplyDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningApplyDuration" l) WarningApplyDuration' (DFrac.own 1))
@@ -609,7 +609,7 @@ noncomputable instance ServerConfig_access_load_WarningUnaryRequestDuration (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_WarningUnaryRequestDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WarningUnaryRequestDuration' : time.Duration) :
+noncomputable instance ServerConfig_access_store_WarningUnaryRequestDuration (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WarningUnaryRequestDuration' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) v.WarningUnaryRequestDuration' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WarningUnaryRequestDuration" l) WarningUnaryRequestDuration' (DFrac.own 1))
@@ -721,7 +721,7 @@ noncomputable instance ServerConfig_access_load_CorruptCheckTime (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CorruptCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CorruptCheckTime' : time.Duration) :
+noncomputable instance ServerConfig_access_store_CorruptCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CorruptCheckTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CorruptCheckTime" l) v.CorruptCheckTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CorruptCheckTime" l) CorruptCheckTime' (DFrac.own 1))
@@ -737,7 +737,7 @@ noncomputable instance ServerConfig_access_load_CompactHashCheckTime (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_CompactHashCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CompactHashCheckTime' : time.Duration) :
+noncomputable instance ServerConfig_access_store_CompactHashCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (CompactHashCheckTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactHashCheckTime" l) v.CompactHashCheckTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"CompactHashCheckTime" l) CompactHashCheckTime' (DFrac.own 1))
@@ -769,7 +769,7 @@ noncomputable instance ServerConfig_access_load_SocketOpts (l : Loc) (v : go_etc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_SocketOpts (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (SocketOpts' : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) :
+noncomputable instance ServerConfig_access_store_SocketOpts (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (SocketOpts' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SocketOpts" l) v.SocketOpts' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"SocketOpts" l) SocketOpts' (DFrac.own 1))
@@ -817,7 +817,7 @@ noncomputable instance ServerConfig_access_load_LeaseCheckpointInterval (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_LeaseCheckpointInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (LeaseCheckpointInterval' : time.Duration) :
+noncomputable instance ServerConfig_access_store_LeaseCheckpointInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (LeaseCheckpointInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LeaseCheckpointInterval" l) v.LeaseCheckpointInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"LeaseCheckpointInterval" l) LeaseCheckpointInterval' (DFrac.own 1))
@@ -881,7 +881,7 @@ noncomputable instance ServerConfig_access_load_WatchProgressNotifyInterval (l :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_WatchProgressNotifyInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WatchProgressNotifyInterval' : time.Duration) :
+noncomputable instance ServerConfig_access_store_WatchProgressNotifyInterval (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (WatchProgressNotifyInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WatchProgressNotifyInterval" l) v.WatchProgressNotifyInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"WatchProgressNotifyInterval" l) WatchProgressNotifyInterval' (DFrac.own 1))
@@ -913,7 +913,7 @@ noncomputable instance ServerConfig_access_load_DowngradeCheckTime (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_DowngradeCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DowngradeCheckTime' : time.Duration) :
+noncomputable instance ServerConfig_access_store_DowngradeCheckTime (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (DowngradeCheckTime' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DowngradeCheckTime" l) v.DowngradeCheckTime' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"DowngradeCheckTime" l) DowngradeCheckTime' (DFrac.own 1))
@@ -993,7 +993,7 @@ noncomputable instance ServerConfig_access_load_ServerFeatureGate (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ServerConfig_access_store_ServerFeatureGate (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ServerFeatureGate' : go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate) :
+noncomputable instance ServerConfig_access_store_ServerFeatureGate (l : Loc) (v : go_etcd_io.etcd.server.v3.config.ServerConfig) (ServerFeatureGate' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ServerFeatureGate" l) v.ServerFeatureGate' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.config.ServerConfig go!"ServerFeatureGate" l) ServerFeatureGate' (DFrac.own 1))

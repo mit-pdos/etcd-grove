@@ -1153,7 +1153,7 @@ noncomputable instance MessageState_access_load_NoUnkeyedLiterals (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance MessageState_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance MessageState_access_store_NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -1169,7 +1169,7 @@ noncomputable instance MessageState_access_load_DoNotCompare (l : Loc) (v : goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance MessageState_access_store_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCompare' : google_golang_org.protobuf.internal.pragma.DoNotCompare) :
+noncomputable instance MessageState_access_store_DoNotCompare (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCompare' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCompare) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) v.DoNotCompare' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCompare" l) DoNotCompare' (DFrac.own 1))
@@ -1185,7 +1185,7 @@ noncomputable instance MessageState_access_load_DoNotCopy (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance MessageState_access_store_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCopy' : google_golang_org.protobuf.internal.pragma.DoNotCopy) :
+noncomputable instance MessageState_access_store_DoNotCopy (l : Loc) (v : google_golang_org.protobuf.internal.impl.MessageState) (DoNotCopy' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) v.DoNotCopy' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.MessageState go!"DoNotCopy" l) DoNotCopy' (DFrac.own 1))
@@ -1565,7 +1565,7 @@ noncomputable instance «struct#09ab9bd9_access_load_NoUnkeyedLiterals» (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#09ab9bd9_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance «struct#09ab9bd9_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#09ab9bd9») (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#09ab9bd9» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -1641,7 +1641,7 @@ noncomputable instance «struct#69fc66c6_access_load_NoUnkeyedLiterals» (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#69fc66c6_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance «struct#69fc66c6_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#69fc66c6») (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -1792,7 +1792,7 @@ noncomputable instance «struct#26ca81e8_access_load_NoUnkeyedLiterals» (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#26ca81e8_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#26ca81e8») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance «struct#26ca81e8_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#26ca81e8») (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#26ca81e8» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#26ca81e8» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
@@ -1852,7 +1852,7 @@ noncomputable instance «struct#f228ed0d_access_load_NoUnkeyedLiterals» (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance «struct#f228ed0d_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (NoUnkeyedLiterals' : google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance «struct#f228ed0d_access_store_NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.internal.impl.«struct#f228ed0d») (NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
       (typedPointsto (structFieldRef google_golang_org.protobuf.internal.impl.«struct#f228ed0d» go!"NoUnkeyedLiterals" l) NoUnkeyedLiterals' (DFrac.own 1))
