@@ -72,7 +72,7 @@ theorem isEtcdLease_of_lessor
     iapply (wp_Grant l [addr] etcdLeaseGrantSpecAny
       (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗ etcdReached m.hdr.revision)) ctx cs ttl) $$ []
     · iframe #
-      unfold etcdLeaseGrantSpecAny
+      unfold etcdLeaseGrantSpecAny etcdLeaseGrantSpecAnyW
       iintro !> !> %m %Hid #Hr
       simp only
       iframe #
@@ -105,7 +105,7 @@ theorem isEtcdLease_of_lessor
     iapply (wp_Revoke l [addr] etcdLeaseRevokeSpec
       (fun m => iprop(etcdReached m.hdr.revision)) ctx cs id) $$ []
     · iframe #
-      unfold etcdLeaseRevokeSpec
+      unfold etcdLeaseRevokeSpec etcdLeaseRevokeSpecW
       iintro !> !> %m #Hr
       iexact Hr
     inext

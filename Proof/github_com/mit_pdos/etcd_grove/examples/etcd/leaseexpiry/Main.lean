@@ -241,9 +241,9 @@ theorem Main.wp_proof
         lease.leaseReqIs (mvcc.api.mvccLeases E.γ) m.id (W64 1))) gctx gcd) as %gr %gerr Hgr
   · iframe #
     imodintro; inext
-    iunfold etcdLeaseGrantSpecLive
-    iunfold etcdLeaseGrantSpecGR
-    iunfold etcdLeaseGrantSpecG
+    iunfold etcdLeaseGrantSpecLive, etcdLeaseGrantSpecLiveW
+    iunfold etcdLeaseGrantSpecGRW
+    iunfold etcdLeaseGrantSpecGW
     isplitr
     · ipureintro; rfl
     iintro %m - - Hgi
@@ -401,7 +401,7 @@ theorem Main.wp_proof
         as %lsr %lerr Hls
     · iframe #
       imodintro; inext
-      iunfold etcdLeaseLeasesSpecLive
+      iunfold etcdLeaseLeasesSpecLive, etcdLeaseLeasesSpecLiveW
       iexists k
       iframe Hlbk
       iintro %m Hm

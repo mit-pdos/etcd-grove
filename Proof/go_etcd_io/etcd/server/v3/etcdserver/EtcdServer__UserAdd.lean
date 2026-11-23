@@ -59,10 +59,10 @@ theorem EtcdServer.UserAdd.wp_proof
         iapply HΦ; ileft; iframe HP
         isplitr
         · ipureintro; exact ⟨rfl, by simp⟩
-        rcases hk with hp | ⟨hty, hkey⟩
+        rcases hk with hp | ⟨hty, hkey, hnde⟩
         · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG, hF⟩
           iunfold errMsgOk; iexact Hm
-        · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF
+        · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF (deTypedErr_of_ty _ hnde)
           iunfold errMsgOk; iexact Hm
       · cases Hnil
     icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
@@ -166,10 +166,10 @@ theorem EtcdServer.UserAdd.wp_proof
           iapply HΦ; ileft; iframe HP
           isplitr
           · ipureintro; exact ⟨rfl, by simp⟩
-          rcases hk with hp | ⟨hty, hkey⟩
+          rcases hk with hp | ⟨hty, hkey, hnde⟩
           · iapply applyErrIs_leaf _ ⟨hp, hl, hIs, hG, hF⟩
             iunfold errMsgOk; iexact Hm
-          · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF
+          · iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF (deTypedErr_of_ty _ hnde)
             iunfold errMsgOk; iexact Hm
         · cases Hnil
       icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)

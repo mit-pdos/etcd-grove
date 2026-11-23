@@ -120,7 +120,7 @@ theorem ContextError.wp_proof
             · unfold go_etcd_io.etcd.cache.v3.ctxErrIs
               iexists e3', m3
               isplitl []
-              · ipureintro; exact Hm3
+              · ipureintro; exact ⟨Hm3.1, Hm3.2.1, Hm3.2.2.1⟩
               · iexact Hmsg3
             iapply HΦ
             isplitr
@@ -149,7 +149,7 @@ theorem ContextError.wp_proof
               · unfold go_etcd_io.etcd.cache.v3.ctxErrIs
                 iexists e3', m3
                 isplitl []
-                · ipureintro; exact Hm3
+                · ipureintro; exact ⟨Hm3.1, Hm3.2.1, Hm3.2.2.1⟩
                 · iexact Hmsg3
               iapply HΦ
               isplitr
