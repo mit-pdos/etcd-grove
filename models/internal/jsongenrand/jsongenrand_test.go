@@ -288,7 +288,7 @@ func dedupe(xs []string) []string {
 	return out
 }
 
-var statsRe = regexp.MustCompile(`JSONGEN-STATS types=(\d+) enc_equal=(\d+) enc_err=(\d+) enc_panic=(\d+) dec_equal=(\d+) dec_err=(\d+) dec_syntax=(\d+) dec_panic=(\d+)`)
+var statsRe = regexp.MustCompile(`JSONGEN-STATS types=(\d+) enc_equal=(\d+) enc_err=(\d+) enc_stuck=(\d+) dec_equal=(\d+) dec_err=(\d+) dec_syntax=(\d+) dec_stuck=(\d+)`)
 
 func TestRandomTypes(t *testing.T) {
 	s := newSetup(t)
@@ -323,8 +323,8 @@ func TestRandomTypes(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("%d modules, %d types: encodings equal %d, errors agreed %d, NotModelled %d; decodings equal %d, "+
-		"errors agreed %d, syntax errors agreed %d, NotModelled %d",
+	t.Logf("%d modules, %d types: encodings equal %d, errors agreed %d, stuck (not modelled) %d; decodings equal %d, "+
+		"errors agreed %d, syntax errors agreed %d, stuck (not modelled) %d",
 		n, tot[0], tot[1], tot[2], tot[3], tot[4], tot[5], tot[6], tot[7])
 }
 

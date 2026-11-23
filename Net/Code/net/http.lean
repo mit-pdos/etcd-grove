@@ -125,7 +125,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   socksConn_instance : socksConn.TypeAssumptions
   socksDialer_instance : socksDialer.TypeAssumptions
   socksUsernamePassword_instance : socksUsernamePassword.TypeAssumptions
-  notModelled_instance : notModelled.TypeAssumptions
   errorReader_instance : errorReader.TypeAssumptions
   byteReader_instance : byteReader.TypeAssumptions
   transferWriter_instance : transferWriter.TypeAssumptions
@@ -293,7 +292,6 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.socksConn_instance
   Assumptions.socksDialer_instance
   Assumptions.socksUsernamePassword_instance
-  Assumptions.notModelled_instance
   Assumptions.errorReader_instance
   Assumptions.byteReader_instance
   Assumptions.transferWriter_instance

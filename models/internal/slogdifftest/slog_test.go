@@ -14,6 +14,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"models.lab/internal/stuck"
 )
 
 // A transcript is what a test observed of log/slog, line by line: run.sh runs the tests against
@@ -216,31 +218,22 @@ func (h progHandler) Handle(context.Context, slog.Record) error { *h.calls++; re
 func (h progHandler) WithAttrs([]slog.Attr) slog.Handler        { return h }
 func (h progHandler) WithGroup(string) slog.Handler             { return h }
 
-// TestProgramHandler: a Handler the program supplies is outside the model (a NotModelled panic at
-// New in the model; Go's calls it), here also one obtained by wrapping DiscardHandler.
+// TestProgramHandler: a Handler the program supplies is outside the model (New blocks forever
+// in the model, not modelled; Go's calls it), here also one obtained by wrapping DiscardHandler.
 func TestProgramHandler(t *testing.T) {
 	n := 0
-	r := notModelledPanic(func() { slog.New(progHandler{&n}).Info("m") })
+	r := stuck.IsStuck(func() { slog.New(progHandler{&n}).Info("m") })
 	if model && !r {
-		t.Errorf("model: New(program handler) did not panic NotModelled")
+		t.Errorf("model: New(program handler) did not block (not modelled)")
 	}
 	if !model && (r || n != 2) {
-		t.Errorf("Go: panicked %v, handler calls %d", r, n)
+		t.Errorf("Go: blocked %v, handler calls %d", r, n)
 	}
 	type wrapped struct{ slog.Handler }
-	r = notModelledPanic(func() { slog.New(wrapped{slog.DiscardHandler}).Info("m") })
+	r = stuck.IsStuck(func() { slog.New(wrapped{slog.DiscardHandler}).Info("m") })
 	if model != r {
-		t.Errorf("wrapped DiscardHandler: NotModelled %v (model %v)", r, model)
+		t.Errorf("wrapped DiscardHandler: blocked %v (model %v)", r, model)
 	}
-}
-
-func notModelledPanic(f func()) (nm bool) {
-	defer func() {
-		r := recover()
-		_, nm = r.(interface{ NotModelled() })
-	}()
-	f()
-	return false
 }
 
 // TestConcurrent: calls from many goroutines at once return.
@@ -299,12 +292,12 @@ func TestNoOutput(t *testing.T) {
 }
 
 // TestAttrString: Attr's String, which fmt reaches: outside the model (an Attr the program makes),
-// a NotModelled panic in the model; Go's text otherwise.
+// it blocks forever in the model (not modelled); Go's text otherwise.
 func TestAttrString(t *testing.T) {
 	var a slog.Attr
-	r := notModelledPanic(func() { _ = a.String() })
+	r := stuck.IsStuck(func() { _ = a.String() })
 	if model != r {
-		t.Errorf("Attr.String: NotModelled %v (model %v)", r, model)
+		t.Errorf("Attr.String: blocked %v (model %v)", r, model)
 	}
 	if !model && a.String() != "=<nil>" {
 		t.Errorf("Go: Attr{}.String() = %q", a.String())

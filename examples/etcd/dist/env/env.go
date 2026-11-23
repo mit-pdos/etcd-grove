@@ -9,7 +9,7 @@ import "os"
 // (rafthttp's transports, the lease and member requests between members) and grpc's proxy dialer
 // read the proxy variables once, at their first use, which is after this; with non-loopback
 // addresses that is what lets the theorem do without a proxy premise (etcd-grove#24: the net/http
-// model treats a non-nil proxy as NotModelled). It also clears ETCD_VERIFY, so that verifyEnvOff
+// model treats a non-nil proxy as not modelled). It also clears ETCD_VERIFY, so that verifyEnvOff
 // becomes a fact of the program rather than a premise.
 // TODO(model): needs specs of os.Unsetenv and of the environment as machine-local state
 // (notes/perennial-changes.md).

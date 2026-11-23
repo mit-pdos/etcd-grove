@@ -1954,11 +1954,6 @@ func (c *conn) serve(ctx context.Context) {
 	var inFlightResponse *response
 	defer func() {
 		if err := recover(); err != nil && err != ErrAbortHandler {
-			// MODEL: what the model does not model is not a handler's panic: it stops the
-			// program (textproto_model.go).
-			if nm, ok := err.(interface{ NotModelled() }); ok {
-				panic(nm)
-			}
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
@@ -1986,7 +1981,7 @@ func (c *conn) serve(ctx context.Context) {
 	}
 	if _, ok := c.rwc.(connectionStater); ok {
 		// MODEL: a TLS connection is not modelled (textproto_model.go).
-		panic(notModelled("net/http model: serving a TLS connection is not modelled"))
+		select {} // MODEL: not modelled (stuck): net/http model: serving a TLS connection is not modelled
 	}
 
 	// HTTP/1.x or unencrypted HTTP/2.
@@ -2014,7 +2009,7 @@ func (c *conn) serve(ctx context.Context) {
 	protos := c.server.protocols()
 	if c.tlsState == nil && protos.UnencryptedHTTP2() {
 		// MODEL: unencrypted HTTP/2 is not modelled (textproto_model.go).
-		panic(notModelled("net/http model: unencrypted HTTP/2 is not modelled"))
+		select {} // MODEL: not modelled (stuck): net/http model: unencrypted HTTP/2 is not modelled
 	}
 	if !protos.HTTP1() {
 		return

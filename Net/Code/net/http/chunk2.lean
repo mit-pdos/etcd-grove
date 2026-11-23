@@ -889,20 +889,6 @@ attribute [instance] socksUsernamePassword.TypeAssumptions.type_repr
   socksUsernamePassword.TypeAssumptions.method_set
   socksUsernamePassword.TypeAssumptions.ptr_method_set
 
-class notModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq notModelled.ty notModelled.underlying
-  method_set : go.MethodSetIs notModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  NotModelled_unfold : MethodUnfold notModelled.ty go!"NotModelled" notModelled.NotModelled.impl
-  ptr_NotModelled_unfold : MethodUnfold (go.GoType.PointerType notModelled.ty) go!"NotModelled" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve notModelled.ty go!"NotModelled"))) (App (Val (GoInstruction (GoLoad notModelled.ty))) (Var "$r"))))
-
-attribute [instance] notModelled.TypeAssumptions.underlying
-  notModelled.TypeAssumptions.method_set
-  notModelled.TypeAssumptions.ptr_method_set
-  notModelled.TypeAssumptions.NotModelled_unfold
-  notModelled.TypeAssumptions.ptr_NotModelled_unfold
-
 class errorReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errorReader.underlying errorReader
   underlying : go.UnderlyingDirectedEq errorReader.ty errorReader.underlying
@@ -1169,6 +1155,19 @@ attribute [instance] bufioFlushWriter.TypeAssumptions.type_repr
   bufioFlushWriter.TypeAssumptions.set_w
   bufioFlushWriter.TypeAssumptions.method_set
   bufioFlushWriter.TypeAssumptions.ptr_method_set
+
+class connLRU.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying connLRU.underlying connLRU
+  underlying : go.UnderlyingDirectedEq connLRU.ty connLRU.underlying
+  isUnderlying : go.IsUnderlying connLRU.underlying connLRU.underlying
+  method_set : go.MethodSetIs connLRU.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType connLRU.ty) [(go!"net/http.add", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.len", (some (go.signature.Signature [] false [go.int]))), (go!"net/http.remove", (some (go.signature.Signature [(go.GoType.PointerType persistConn.ty)] false []))), (go!"net/http.removeOldest", (some (go.signature.Signature [] false [(go.GoType.PointerType persistConn.ty)])))]
+
+attribute [instance] connLRU.TypeAssumptions.type_repr
+  connLRU.TypeAssumptions.underlying
+  connLRU.TypeAssumptions.isUnderlying
+  connLRU.TypeAssumptions.method_set
+  connLRU.TypeAssumptions.ptr_method_set
 
 end net.http
 

@@ -61,11 +61,6 @@ noncomputable def State.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] State.ty
 
-noncomputable def rpcNotModelled.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"github.com/imdea-software/swiftpaxos-epaxos/examples/epaxosnet.rpcNotModelled" [])
-
-attribute [irreducible] rpcNotModelled.ty
-
 @[reducible] noncomputable def NC [GooseExts] [GoGlobalContext] : val :=
   #(W64 10)
 
@@ -2206,18 +2201,7 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (Var "$res0")))))
 
-/-- NotModelled marks the value as the models' panic.
-
-    go: rpc_gen.go:19:23 -/
-noncomputable def rpcNotModelled.NotModelled.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV BAnon
-  (Lam BAnon
-  (Seq (App (Val exceptionDo)
-  (App (Val doExecute)
-  (Val #())))
-  (Val #()))))
-
-/-- go: rpc_gen.go:21:6 -/
+/-- go: rpc_gen.go:14:6 -/
 noncomputable def rpcErrDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -2231,7 +2215,7 @@ noncomputable def rpcErrDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:25:6 -/
+/-- go: rpc_gen.go:18:6 -/
 noncomputable def rpcPutU64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -2257,7 +2241,7 @@ noncomputable def rpcPutU64.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:30:6 -/
+/-- go: rpc_gen.go:23:6 -/
 noncomputable def rpcGetU64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -2306,7 +2290,7 @@ noncomputable def rpcGetU64.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2"))))))))
 
-/-- go: rpc_gen.go:39:6 -/
+/-- go: rpc_gen.go:32:6 -/
 noncomputable def rpcGetTag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -2371,7 +2355,7 @@ noncomputable def rpcGetTag.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0")))))))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2"))))))))
 
-/-- go: rpc_gen.go:47:6 -/
+/-- go: rpc_gen.go:40:6 -/
 noncomputable def rpcPutTag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tag"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -2395,7 +2379,7 @@ noncomputable def rpcPutTag.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:54:6 -/
+/-- go: rpc_gen.go:47:6 -/
 noncomputable def rpcEnc_t6.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2418,7 +2402,7 @@ noncomputable def rpcEnc_t6.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:59:6 -/
+/-- go: rpc_gen.go:52:6 -/
 noncomputable def rpcDec_t6.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -2465,7 +2449,7 @@ noncomputable def rpcDec_t6.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:70:6 -/
+/-- go: rpc_gen.go:63:6 -/
 noncomputable def rpcEnc_t4.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2483,7 +2467,7 @@ noncomputable def rpcEnc_t4.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:74:6 -/
+/-- go: rpc_gen.go:67:6 -/
 noncomputable def rpcSent_t4.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2497,7 +2481,7 @@ noncomputable def rpcSent_t4.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:78:6 -/
+/-- go: rpc_gen.go:71:6 -/
 noncomputable def rpcDec_t4.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -2556,7 +2540,7 @@ noncomputable def rpcDec_t4.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "x") (Var "$r0"))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:89:6 -/
+/-- go: rpc_gen.go:82:6 -/
 noncomputable def rpcEnc_t8.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2600,7 +2584,7 @@ noncomputable def rpcEnc_t8.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:100:6 -/
+/-- go: rpc_gen.go:93:6 -/
 noncomputable def rpcDec_t8.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -2699,7 +2683,7 @@ noncomputable def rpcDec_t8.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:123:6 -/
+/-- go: rpc_gen.go:116:6 -/
 noncomputable def rpcEnc_t10.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2722,7 +2706,7 @@ noncomputable def rpcEnc_t10.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:128:6 -/
+/-- go: rpc_gen.go:121:6 -/
 noncomputable def rpcDec_t10.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -2769,7 +2753,7 @@ noncomputable def rpcDec_t10.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:139:6 -/
+/-- go: rpc_gen.go:132:6 -/
 noncomputable def rpcEnc_t14.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2794,7 +2778,7 @@ noncomputable def rpcEnc_t14.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:144:6 -/
+/-- go: rpc_gen.go:137:6 -/
 noncomputable def rpcSent_t14.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2808,7 +2792,7 @@ noncomputable def rpcSent_t14.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:148:6 -/
+/-- go: rpc_gen.go:141:6 -/
 noncomputable def rpcDec_t14.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -2870,7 +2854,7 @@ noncomputable def rpcDec_t14.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0"))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:159:6 -/
+/-- go: rpc_gen.go:152:6 -/
 noncomputable def rpcEnc_t13.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -2910,7 +2894,7 @@ noncomputable def rpcEnc_t13.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:167:6 -/
+/-- go: rpc_gen.go:160:6 -/
 noncomputable def rpcSent_t13.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -2925,7 +2909,7 @@ noncomputable def rpcSent_t13.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:171:6 -/
+/-- go: rpc_gen.go:164:6 -/
 noncomputable def rpcDec_t13.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -3028,7 +3012,7 @@ noncomputable def rpcDec_t13.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0"))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:192:6 -/
+/-- go: rpc_gen.go:185:6 -/
 noncomputable def rpcEnc_t16.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3060,7 +3044,7 @@ noncomputable def rpcEnc_t16.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:199:6 -/
+/-- go: rpc_gen.go:192:6 -/
 noncomputable def rpcSent_t16.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3074,7 +3058,7 @@ noncomputable def rpcSent_t16.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:203:6 -/
+/-- go: rpc_gen.go:196:6 -/
 noncomputable def rpcDec_t16.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -3115,7 +3099,7 @@ noncomputable def rpcDec_t16.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:213:6 -/
+/-- go: rpc_gen.go:206:6 -/
 noncomputable def rpcEnc_t15.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3155,7 +3139,7 @@ noncomputable def rpcEnc_t15.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:221:6 -/
+/-- go: rpc_gen.go:214:6 -/
 noncomputable def rpcSent_t15.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -3170,7 +3154,7 @@ noncomputable def rpcSent_t15.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:225:6 -/
+/-- go: rpc_gen.go:218:6 -/
 noncomputable def rpcDec_t15.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -3273,7 +3257,7 @@ noncomputable def rpcDec_t15.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "n") (Var "$r0"))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:246:6 -/
+/-- go: rpc_gen.go:239:6 -/
 noncomputable def rpcEnc_t12.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3359,7 +3343,7 @@ noncomputable def rpcEnc_t12.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:269:6 -/
+/-- go: rpc_gen.go:262:6 -/
 noncomputable def rpcDec_t12.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -3562,7 +3546,7 @@ noncomputable def rpcDec_t12.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:316:6 -/
+/-- go: rpc_gen.go:309:6 -/
 noncomputable def rpcEnc_t18.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3627,7 +3611,7 @@ noncomputable def rpcEnc_t18.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:333:6 -/
+/-- go: rpc_gen.go:326:6 -/
 noncomputable def rpcDec_t18.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -3778,7 +3762,7 @@ noncomputable def rpcDec_t18.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:368:6 -/
+/-- go: rpc_gen.go:361:6 -/
 noncomputable def rpcEnc_t20.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3885,7 +3869,7 @@ noncomputable def rpcEnc_t20.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:397:6 -/
+/-- go: rpc_gen.go:390:6 -/
 noncomputable def rpcDec_t20.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -4140,7 +4124,7 @@ noncomputable def rpcDec_t20.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:456:6 -/
+/-- go: rpc_gen.go:449:6 -/
 noncomputable def rpcEnc_t84.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4163,7 +4147,7 @@ noncomputable def rpcEnc_t84.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:461:6 -/
+/-- go: rpc_gen.go:454:6 -/
 noncomputable def rpcDec_t84.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -4210,7 +4194,7 @@ noncomputable def rpcDec_t84.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:472:6 -/
+/-- go: rpc_gen.go:465:6 -/
 noncomputable def rpcEnc_t26.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4228,7 +4212,7 @@ noncomputable def rpcEnc_t26.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:476:6 -/
+/-- go: rpc_gen.go:469:6 -/
 noncomputable def rpcSent_t26.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -4242,7 +4226,7 @@ noncomputable def rpcSent_t26.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:480:6 -/
+/-- go: rpc_gen.go:473:6 -/
 noncomputable def rpcDec_t26.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -4301,7 +4285,7 @@ noncomputable def rpcDec_t26.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "x") (Var "$r0"))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:491:6 -/
+/-- go: rpc_gen.go:484:6 -/
 noncomputable def rpcEnc_t86.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4366,7 +4350,7 @@ noncomputable def rpcEnc_t86.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:508:6 -/
+/-- go: rpc_gen.go:501:6 -/
 noncomputable def rpcDec_t86.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -4517,7 +4501,7 @@ noncomputable def rpcDec_t86.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:543:6 -/
+/-- go: rpc_gen.go:536:6 -/
 noncomputable def rpcEnc_t66.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4535,7 +4519,7 @@ noncomputable def rpcEnc_t66.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:547:6 -/
+/-- go: rpc_gen.go:540:6 -/
 noncomputable def rpcSent_t66.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -4549,7 +4533,7 @@ noncomputable def rpcSent_t66.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
-/-- go: rpc_gen.go:551:6 -/
+/-- go: rpc_gen.go:544:6 -/
 noncomputable def rpcDec_t66.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -4608,7 +4592,7 @@ noncomputable def rpcDec_t66.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "x") (Var "$r0"))))))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:562:6 -/
+/-- go: rpc_gen.go:555:6 -/
 noncomputable def rpcEnc_t88.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4652,7 +4636,7 @@ noncomputable def rpcEnc_t88.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:573:6 -/
+/-- go: rpc_gen.go:566:6 -/
 noncomputable def rpcDec_t88.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -4751,7 +4735,7 @@ noncomputable def rpcDec_t88.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
-/-- go: rpc_gen.go:596:6 -/
+/-- go: rpc_gen.go:589:6 -/
 noncomputable def rpcEnc_t90.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4774,7 +4758,7 @@ noncomputable def rpcEnc_t90.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: rpc_gen.go:601:6 -/
+/-- go: rpc_gen.go:594:6 -/
 noncomputable def rpcDec_t90.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "p"
@@ -4823,16 +4807,14 @@ noncomputable def rpcDec_t90.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- rpcEncode is the codec's Encode: a value of a listed type, or a non-nil pointer to one.
 
-    go: rpc_gen.go:611:6 -/
+    go: rpc_gen.go:604:6 -/
 noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "v" (App (Val (GoInstruction (GoAlloc go.any))) (Var "v"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a value of a type the codec does not list")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))))
   (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "v"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
@@ -4864,9 +4846,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.GetLeaderArgs (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty))) (Var "$y"))
@@ -4899,9 +4879,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.GetLeaderReply (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty))) (Var "$y"))
@@ -4934,9 +4912,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.GetReplicaListArgs (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty))) (Var "$y"))
@@ -4969,9 +4945,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.GetReplicaListReply (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty))) (Var "$y"))
@@ -5004,9 +4978,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.RegisterArgs (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty))) (Var "$y"))
@@ -5039,9 +5011,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.RegisterReply (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty))) (Var "$y"))
@@ -5074,9 +5044,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.BeTheLeaderArgs (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty))) (Var "$y"))
@@ -5109,9 +5077,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.BeTheLeaderReply (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty))) (Var "$y"))
@@ -5144,9 +5110,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.PingArgs (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty))) (Var "$y"))
@@ -5179,9 +5143,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Encode of a nil *defs.PingReply (gob: cannot encode nil pointer)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -5191,7 +5153,7 @@ noncomputable def rpcEncode.impl [GooseExts] [GoGlobalContext] : val :=
 /-- rpcDecode is the codec's Decode: into a non-nil pointer to a value of a listed type, of the
     encoded value's type.
 
-    go: rpc_gen.go:689:6 -/
+    go: rpc_gen.go:682:6 -/
 noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "data"
   (Lam "ptr"
@@ -5215,9 +5177,7 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a value of a type the codec does not list")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))))
   (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "ptr"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty)))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
@@ -5259,15 +5219,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderArgs"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.GetLeaderArgs is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.GetLeaderArgs")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)))) (Var "$y"))
@@ -5310,15 +5266,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderReply"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.GetLeaderReply is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetLeaderReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.GetLeaderReply")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty)))) (Var "$y"))
@@ -5361,15 +5313,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListArgs"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.GetReplicaListArgs is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.GetReplicaListArgs")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)))) (Var "$y"))
@@ -5412,15 +5360,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListReply"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.GetReplicaListReply is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.GetReplicaListReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.GetReplicaListReply")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty)))) (Var "$y"))
@@ -5463,15 +5407,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterArgs"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.RegisterArgs is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.RegisterArgs")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)))) (Var "$y"))
@@ -5514,15 +5454,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterReply"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.RegisterReply is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.RegisterReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.RegisterReply")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty)))) (Var "$y"))
@@ -5565,15 +5501,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderArgs"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.BeTheLeaderArgs is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.BeTheLeaderArgs")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty)))) (Var "$y"))
@@ -5616,15 +5548,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderReply"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.BeTheLeaderReply is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.BeTheLeaderReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.BeTheLeaderReply")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty)))) (Var "$y"))
@@ -5667,15 +5595,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingArgs"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.PingArgs is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingArgs.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.PingArgs")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty)))) (Var "$y"))
@@ -5718,15 +5642,11 @@ noncomputable def rpcDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "r") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")) (Val #(go!"github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingReply"))))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"net/rpc model: decoding a ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "tag")))) (Val #(go!" into a defs.PingReply is not modelled")))))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty)))) (Var "p")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.PingReply.ty)))) (Val UntypedNil)))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Decode into a nil *defs.PingReply")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
@@ -5772,9 +5692,7 @@ noncomputable def rpcReceiver.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "rcvr" (App (Val (GoInstruction (GoAlloc go.any))) (Var "rcvr"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert rpcNotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"net/rpc model: Register of a receiver of a type the codec does not list")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
+  (App (Val (GoInstruction SelectStmt)) (SelectStmtClauses none []))))
   (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "rcvr"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.master.Master.ty)))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
@@ -6330,32 +6248,12 @@ attribute [instance] State.TypeAssumptions.underlying
   State.TypeAssumptions.method_set
   State.TypeAssumptions.ptr_method_set
 
-abbrev rpcNotModelled [GooseExts] : Type := GoString
-
-@[reducible] noncomputable def rpcNotModelled.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.string
-
-class rpcNotModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq rpcNotModelled.ty rpcNotModelled.underlying
-  method_set : go.MethodSetIs rpcNotModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rpcNotModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  NotModelled_unfold : MethodUnfold rpcNotModelled.ty go!"NotModelled" rpcNotModelled.NotModelled.impl
-  ptr_NotModelled_unfold : MethodUnfold (go.GoType.PointerType rpcNotModelled.ty) go!"NotModelled" (LamV "$r"
-(App (Val (GoInstruction (MethodResolve rpcNotModelled.ty go!"NotModelled"))) (App (Val (GoInstruction (GoLoad rpcNotModelled.ty))) (Var "$r"))))
-
-attribute [instance] rpcNotModelled.TypeAssumptions.underlying
-  rpcNotModelled.TypeAssumptions.method_set
-  rpcNotModelled.TypeAssumptions.ptr_method_set
-  rpcNotModelled.TypeAssumptions.NotModelled_unfold
-  rpcNotModelled.TypeAssumptions.ptr_NotModelled_unfold
-
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   In_instance : In.TypeAssumptions
   Out_instance : Out.TypeAssumptions
   Entry_instance : Entry.TypeAssumptions
   Config_instance : Config.TypeAssumptions
   State_instance : State.TypeAssumptions
-  rpcNotModelled_instance : rpcNotModelled.TypeAssumptions
   ServerAddrs_unfold : FuncUnfold ServerAddrs [] ServerAddrs.impl
   ClientAddrs_unfold : FuncUnfold ClientAddrs [] ClientAddrs.impl
   digit_unfold : FuncUnfold digit [] digit.impl
@@ -6476,7 +6374,6 @@ attribute [instance] Assumptions.In_instance
   Assumptions.Entry_instance
   Assumptions.Config_instance
   Assumptions.State_instance
-  Assumptions.rpcNotModelled_instance
   Assumptions.ServerAddrs_unfold
   Assumptions.ClientAddrs_unfold
   Assumptions.digit_unfold

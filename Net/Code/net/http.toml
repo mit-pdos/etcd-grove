@@ -11,7 +11,7 @@
 # packages these bodies call (crypto/tls for a type assertion; the vendored httpguts through the
 # forwarding module Net/Code/golang_org/x/net/http/httpguts.lean).
 translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessageTooLarge",
-             "notModelled", "notModelled.*", "modelChunked", "Method*", "Status*", "!StatusText",
+             "modelChunked", "Method*", "Status*", "!StatusText",
              "ReadResponse", "Handle", "ServeMux.Handle", "ServeMux.register", "ServeMux.registerErr",
              "ServeMux.ServeHTTP", "ServeMux.Handler", "ServeMux.findHandler", "ServeMux.matchOrRedirect",
              "Serve", "ListenAndServe", "Server.Serve", "Server.ListenAndServe", "Server.newConn",

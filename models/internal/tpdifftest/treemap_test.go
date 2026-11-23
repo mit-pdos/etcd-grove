@@ -264,7 +264,7 @@ func TestTreemapEdges(t *testing.T) {
 	tr.save(t)
 }
 
-// TestTreemapOutside: what the model does not model panics with a NotModelled value in the model
+// TestTreemapOutside: what the model does not model blocks forever in the model
 // (a change to a map while an iterator over it is in use, Select's f included; JSON); gods does
 // something (not compared).
 func TestTreemapOutside(t *testing.T) {
@@ -293,12 +293,12 @@ func TestTreemapOutside(t *testing.T) {
 	}
 	for name, f := range cases {
 		nm := notModelled(f)
-		t.Logf("%s: NotModelled %v (model=%v)", name, nm, model)
+		t.Logf("%s: stuck (not modelled) %v (model=%v)", name, nm, model)
 		if model && !nm {
-			t.Errorf("model: %s did not panic NotModelled", name)
+			t.Errorf("model: %s did not block (not modelled)", name)
 		}
 		if !model && nm {
-			t.Errorf("gods: %s panicked NotModelled", name)
+			t.Errorf("gods: %s blocked", name)
 		}
 	}
 }

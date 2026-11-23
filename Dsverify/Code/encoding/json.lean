@@ -25,11 +25,6 @@ noncomputable def Codec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Codec.ty
 
-noncomputable def notModelled.ty [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.Named go!"encoding/json.notModelled" [])
-
-attribute [irreducible] notModelled.ty
-
 noncomputable def Unmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Unmarshaler" [])
 
@@ -288,20 +283,6 @@ attribute [instance] Codec.TypeAssumptions.type_repr
   Codec.TypeAssumptions.set_Scan
   Codec.TypeAssumptions.method_set
   Codec.TypeAssumptions.ptr_method_set
-
-abbrev notModelled [GooseExts] : Type := GoString
-
-@[reducible] noncomputable def notModelled.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  go.string
-
-class notModelled.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq notModelled.ty notModelled.underlying
-  method_set : go.MethodSetIs notModelled.ty [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notModelled.ty) [(go!"NotModelled", (some (go.signature.Signature [] false [])))]
-
-attribute [instance] notModelled.TypeAssumptions.underlying
-  notModelled.TypeAssumptions.method_set
-  notModelled.TypeAssumptions.ptr_method_set
 
 abbrev Unmarshaler [GooseExts] : Type := GoInterface
 
@@ -631,7 +612,6 @@ attribute [instance] Delim.TypeAssumptions.underlying
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Codec_instance : Codec.TypeAssumptions
-  notModelled_instance : notModelled.TypeAssumptions
   Unmarshaler_instance : Unmarshaler.TypeAssumptions
   UnmarshalTypeError_instance : UnmarshalTypeError.TypeAssumptions
   UnmarshalFieldError_instance : UnmarshalFieldError.TypeAssumptions
@@ -651,7 +631,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Delim_instance : Delim.TypeAssumptions
 
 attribute [instance] Assumptions.Codec_instance
-  Assumptions.notModelled_instance
   Assumptions.Unmarshaler_instance
   Assumptions.UnmarshalTypeError_instance
   Assumptions.UnmarshalFieldError_instance

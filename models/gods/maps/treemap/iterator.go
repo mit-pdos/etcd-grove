@@ -32,11 +32,11 @@ func (m *Map) Iterator() Iterator {
 	return Iterator{state: s, index: -1, changes: changes}
 }
 
-// MODEL: check panics with a NotModelled value if the map changed since the iterator was made
+// MODEL: check blocks forever (not modelled) if the map changed since the iterator was made
 // (after a nil dereference if the iterator has no state, as gods' Next on a zero Map).
 func (iterator *Iterator) check() {
 	if iterator.state.changes != iterator.changes {
-		panic(notModelled{"a change to a map while an iterator over it is in use"})
+		select {} // MODEL: not modelled (stuck): a change to a map while an iterator over it is in use
 	}
 }
 

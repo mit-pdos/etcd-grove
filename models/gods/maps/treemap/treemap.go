@@ -15,7 +15,7 @@
 // (SwiftPaxos's `state` package, in the swiftpaxos and epaxos kits): NewWith, Put, Get, Select,
 // Iterator and the iterator's Next and Value, and the methods Go's standard library reaches
 // through an interface: String (fmt.Stringer, gods' code) and MarshalJSON/UnmarshalJSON
-// (encoding/json; a panic with a NotModelled value). gods' red-black tree (trees/redblacktree) is
+// (encoding/json; each blocks forever, not modelled). gods' red-black tree (trees/redblacktree) is
 // replaced by a slice of the entries sorted by the comparator, behind a pointer as gods' tree is
 // (a Map's copies share it; a zero Map has none, and every operation but Iterator panics on it with
 // a nil dereference, as gods'). Every other exported name of the package is left out.
@@ -40,7 +40,7 @@
 //     and panics with a nil dereference when there is none (before the first Next, after the
 //     last), gods' runtime error.
 //   - String: gods' text ("TreeMap\nmap[k:v ...]").
-// Outside the model (a panic with a NotModelled value): a change to a map (a Put) while an
+// Outside the model (a call blocks forever, `select {}`): a change to a map (a Put) while an
 // iterator over it is in use, Select's f included (the model counts the map's changes); a map's
 // JSON (gods' ToJSON goes through utils.ToString and encoding/json of a map[string]interface{}).
 // Not claimed: how many times and on which pairs the comparator is called (the tree walks a path,
@@ -145,10 +145,6 @@ func (m *Map) String() string {
 
 }
 
-// MODEL: the models' panic value, for what the model does not model.
-type notModelled struct{ what string }
-
-func (e notModelled) Error() string { return "gods treemap model: not modelled: " + e.what }
-
-// NotModelled marks the value as the models' panic.
-func (notModelled) NotModelled() {}
+// MODEL: where the model does not model gods' treemap it blocks forever (`select {}`, after a comment `MODEL: not modelled (stuck): ...`), never a panic:
+// a panic can be recovered (Go's recover, Perennial's with_defer_recover), so a value panic would add
+// behaviors the library does not have; being stuck only removes behaviors (models/README.md).

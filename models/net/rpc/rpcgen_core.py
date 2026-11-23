@@ -62,11 +62,12 @@ THE DECODING, gob's (decode.go), which merges into the target:
   * Basic values are set. A top-level value is always sent (`encodeSingle`, `sendZero`) and
     decoded into `*p` as a field would be.
 
-THE DOCUMENTED DEVIATIONS (behaviors of gob the model does not reproduce, each a panic, so that a
-proof that the program does not panic shows they do not arise): decoding a value of one type
-into a value of another (gob matches struct fields by name and converts integers; the model
-panics); `Encode` of a nil value, a nil pointer or a value of an unlisted type (gob returns an
-error; the model panics); `Decode` into a nil pointer or an unlisted type (likewise); and, not
+THE DOCUMENTED DEVIATIONS (behaviors of gob the model does not reproduce, each blocking forever,
+`select {}`: never a panic, which a program could recover, adding behaviors gob does not have;
+blocking only removes behaviors, so a proof of the program says nothing of a run that reaches
+one, models/README.md): decoding a value of one type into a value of another (gob matches struct
+fields by name and converts integers; the model blocks); `Encode` of a nil value, a nil pointer
+or a value of an unlisted type (gob returns an error; the model blocks); `Decode` into a nil pointer or an unlisted type (likewise); and, not
 observable through net/rpc's API: the capacity of a slice gob allocates (it may allocate less and
 grow), the contents of the target after a decode that fails (only on malformed input, which no
 model peer sends: gob's errors there are not the model's).
@@ -415,13 +416,6 @@ def needs_sent(S):
 
 
 HELPERS = """
-// rpcNotModelled is the value the codec panics with outside the model (the net/http model's
-// server does not recover a panic whose value has a NotModelled method).
-type rpcNotModelled string
-
-// NotModelled marks the value as the models' panic.
-func (rpcNotModelled) NotModelled() {}
-
 func rpcErrDecode() error {
 	return errors.New("net/rpc model: malformed value")
 }
@@ -477,12 +471,12 @@ def codec_go(S, header, pkg):
         g, tag = S.go(i), S.tag(i)
         enc.append(f"\tcase {g}:\n\t\treturn rpcEnc_{fn(i)}(rpcPutTag({tag!r}), x)\n"
                    f"\tcase *{g}:\n\t\tif x == nil {{\n"
-                   f"\t\t\tpanic(rpcNotModelled(\"net/rpc model: Encode of a nil *{g} (gob: cannot encode nil pointer)\"))\n"
+                   f"\t\t\tselect {{}} // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *{g} (gob: cannot encode nil pointer)\n"
                    f"\t\t}}\n\t\treturn rpcEnc_{fn(i)}(rpcPutTag({tag!r}), *x)\n".replace("'", '"'))
         dec.append(f"\tcase *{g}:\n\t\tif p == nil {{\n"
-                   f"\t\t\tpanic(rpcNotModelled(\"net/rpc model: Decode into a nil *{g}\"))\n\t\t}}\n"
+                   f"\t\t\tselect {{}} // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *{g}\n\t\t}}\n"
                    f"\t\tif tag != {tag!r} {{\n"
-                   f"\t\t\tpanic(rpcNotModelled(\"net/rpc model: decoding a \" + tag + \" into a {g} is not modelled\"))\n"
+                   f"\t\t\tselect {{}} // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a {g}\n"
                    f"\t\t}}\n\t\tr, ok2 := rpcDec_{fn(i)}(rest, p)\n"
                    f"\t\tif !ok2 || len(r) != 0 {{\n\t\t\treturn rpcErrDecode()\n\t\t}}\n"
                    f"\t\treturn nil\n".replace("'", '"'))
@@ -491,7 +485,7 @@ def codec_go(S, header, pkg):
 func rpcEncode(v any) []byte {
 	switch x := v.(type) {
 """ + "".join(enc) + """	}
-	panic(rpcNotModelled("net/rpc model: Encode of a value of a type the codec does not list"))
+	select {} // MODEL: not modelled (stuck): net/rpc model: Encode of a value of a type the codec does not list
 }
 
 // rpcDecode is the codec's Decode: into a non-nil pointer to a value of a listed type, of the
@@ -503,7 +497,7 @@ func rpcDecode(data []byte, ptr any) error {
 	}
 	switch p := ptr.(type) {
 """ + "".join(dec) + """	}
-	panic(rpcNotModelled("net/rpc model: Decode into a value of a type the codec does not list"))
+	select {} // MODEL: not modelled (stuck): net/rpc model: Decode into a value of a type the codec does not list
 }
 """)
     return "".join(o)
@@ -555,7 +549,7 @@ func Register() {
 func rpcReceiver(rcvr any) *rpcmodel.Receiver {
 	switch rcvr.(type) {
 """ + "".join(cases) + """	}
-	panic(rpcNotModelled("net/rpc model: Register of a receiver of a type the codec does not list"))
+	select {} // MODEL: not modelled (stuck): net/rpc model: Register of a receiver of a type the codec does not list
 }
 """)
     o.extend(funcs)

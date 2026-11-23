@@ -5,7 +5,7 @@
 // the swiftpaxos kit): SHARD_COUNT, ConcurrentMap, ConcurrentMapShared, New, GetShard, Set,
 // Upsert (UpsertCb), Get, Has, Remove, IterCb (IterCb), Count and IsEmpty (the fork's tests call
 // IsEmpty, `swift/sw4_test.go`); and MarshalJSON, which encoding/json reaches through its
-// json.Marshaler interface, a panic with a NotModelled value. Every other function it keeps is
+// json.Marshaler interface, which blocks forever (not modelled). Every other function it keeps is
 // v1.0.0's code, unchanged (the same types, shards, fnv32 hash of the key, SHARD_COUNT read by New,
 // Count and every GetShard, the same locks, Upsert's and IterCb's callbacks called with their
 // shard's lock held). It leaves out what no program here calls and no interface of Go's reaches:
@@ -13,8 +13,8 @@
 // helpers snapshot and fanIn).
 //
 // The trusted claim: every behavior of v1.0.0 through this API, as the program observes it, is a
-// behavior of the model (the same code and types), but a map's JSON, outside the model (the
-// NotModelled panic). The evidence: models/diff.py concurrent-map and models/internal/tpdifftest
+// behavior of the model (the same code and types), but a map's JSON, outside the model (it blocks
+// forever). The evidence: models/diff.py concurrent-map and models/internal/tpdifftest
 // (run.sh: random operation sequences, sequential and concurrent, with several SHARD_COUNTs, and
 // fmt's printing, against v1.0.0 and the model).
 package cmap
@@ -144,19 +144,15 @@ func (m ConcurrentMap) IterCb(fn IterCb) {
 
 //Reviles ConcurrentMap "private" variables to json marshal.
 //
-// MODEL: a panic with a NotModelled value (v1.0.0: the items, gathered by IterBuffered's
+// MODEL: blocks forever, not modelled (v1.0.0: the items, gathered by IterBuffered's
 // goroutines and channels, encoded by encoding/json as a map[string]interface{}).
 func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
-	panic(notModelled{"MarshalJSON"})
+	select {} // MODEL: not modelled (stuck): MarshalJSON
 }
 
-// MODEL: the models' panic value, for what the model does not model.
-type notModelled struct{ what string }
-
-func (e notModelled) Error() string { return "concurrent-map model: not modelled: " + e.what }
-
-// NotModelled marks the value as the models' panic.
-func (notModelled) NotModelled() {}
+// MODEL: where the model does not model concurrent-map it blocks forever (`select {}`, after a comment `MODEL: not modelled (stuck): ...`), never a panic:
+// a panic can be recovered (Go's recover, Perennial's with_defer_recover), so a value panic would add
+// behaviors the library does not have; being stuck only removes behaviors (models/README.md).
 
 func fnv32(key string) uint32 {
 	hash := uint32(2166136261)

@@ -82,12 +82,12 @@ type dialOptions struct {
 	returnLastError bool
 	timeout         time.Duration
 	authority       string
-	// MODEL: no binaryLogger field (binary logging is not modelled: withBinaryLogger panics when
-	// NewClient applies it, where the model's NewClient panicked on it before).
+	// MODEL: no binaryLogger field (binary logging is not modelled: withBinaryLogger blocks forever
+	// when NewClient applies it).
 	copts       connectOptions // MODEL: transport.ConnectOptions (model_transport.go)
 	callOptions []CallOption
-	// MODEL: no channelzParent field (channelz is not modelled: WithChannelzParentID panics when
-	// NewClient applies it).
+	// MODEL: no channelzParent field (channelz is not modelled: WithChannelzParentID blocks
+	// forever when NewClient applies it).
 	disableServiceConfig        bool
 	disableRetry                bool
 	disableHealthCheck          bool
@@ -540,7 +540,7 @@ func WithStatsHandler(h stats.Handler) DialOption {
 // this ClientConn.
 func withBinaryLogger(bl binarylog.Logger) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
-		panic(notModelled("grpc: binary logging"))
+		select {} // MODEL: not modelled (stuck): grpc: binary logging
 	})
 }
 
@@ -644,7 +644,7 @@ func WithAuthority(a string) DialOption {
 // later release.
 func WithChannelzParentID(c channelz.Identifier) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
-		panic(notModelled("grpc: channelz"))
+		select {} // MODEL: not modelled (stuck): grpc: channelz
 	})
 }
 
@@ -808,9 +808,9 @@ func WithMaxCallAttempts(n int) DialOption {
 }
 
 func withBufferPool(bufferPool mem.BufferPool) DialOption {
-	// MODEL: a client buffer pool other than the default is not modelled: the option panics when
-	// NewClient applies it (connectOptions has no BufferPool field).
+	// MODEL: a client buffer pool other than the default is not modelled: the option blocks forever
+	// when NewClient applies it (connectOptions has no BufferPool field).
 	return newFuncDialOption(func(o *dialOptions) {
-		panic(notModelled("grpc: a client buffer pool"))
+		select {} // MODEL: not modelled (stuck): grpc: a client buffer pool
 	})
 }

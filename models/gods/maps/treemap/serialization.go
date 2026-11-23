@@ -5,16 +5,16 @@
 package treemap
 
 // MODEL: only the methods encoding/json reaches through its interfaces (json.Marshaler,
-// json.Unmarshaler), each a panic with a NotModelled value (gods: through the tree's ToJSON and
+// json.Unmarshaler), each blocking forever, not modelled (gods: through the tree's ToJSON and
 // FromJSON, utils.ToString and encoding/json of a map[string]interface{}); ToJSON and FromJSON, which
 // no interface of Go's reaches, are left out, and so are the assertions of containers' interfaces.
 
 // UnmarshalJSON @implements json.Unmarshaler
 func (m *Map) UnmarshalJSON(bytes []byte) error {
-	panic(notModelled{"UnmarshalJSON"})
+	select {} // MODEL: not modelled (stuck): UnmarshalJSON
 }
 
 // MarshalJSON @implements json.Marshaler
 func (m *Map) MarshalJSON() ([]byte, error) {
-	panic(notModelled{"MarshalJSON"})
+	select {} // MODEL: not modelled (stuck): MarshalJSON
 }

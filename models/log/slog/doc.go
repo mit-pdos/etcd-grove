@@ -29,7 +29,8 @@
 // zero Record or Attr would print differently) and does not observe the representation
 // (reflection, unsafe).
 //
-// Outside the model, a panic with a value that has a NotModelled method: a Handler the program
+// Outside the model, a call blocks forever (`select {}`; a panic could be recovered and would add
+// behaviors, models/README.md): a Handler the program
 // supplies to New (any but DiscardHandler: its methods run program code, with records the model
 // does not build).
 //

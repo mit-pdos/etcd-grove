@@ -224,7 +224,7 @@ type Options interface {
 //	jsonv2.Marshal(v, jsonv1.DefaultOptionsV1())
 //	jsonv2.Unmarshal(b, v, jsonv1.DefaultOptionsV1())
 func DefaultOptionsV1() Options {
-	panic(notModelled("encoding/json model: DefaultOptionsV1 (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: DefaultOptionsV1 (encoding/json/v2's options are not modelled)
 }
 
 // CallMethodsWithLegacySemantics specifies that calling of type-provided
@@ -263,7 +263,7 @@ func DefaultOptionsV1() Options {
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
 func CallMethodsWithLegacySemantics(v bool) Options {
-	panic(notModelled("encoding/json model: CallMethodsWithLegacySemantics (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: CallMethodsWithLegacySemantics (encoding/json/v2's options are not modelled)
 }
 
 // FormatByteArrayAsArray specifies that a Go [N]byte is
@@ -273,7 +273,7 @@ func CallMethodsWithLegacySemantics(v bool) Options {
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
 func FormatByteArrayAsArray(v bool) Options {
-	panic(notModelled("encoding/json model: FormatByteArrayAsArray (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: FormatByteArrayAsArray (encoding/json/v2's options are not modelled)
 }
 
 // FormatBytesWithLegacySemantics specifies that handling of
@@ -296,7 +296,7 @@ func FormatByteArrayAsArray(v bool) Options {
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
 func FormatBytesWithLegacySemantics(v bool) Options {
-	panic(notModelled("encoding/json model: FormatBytesWithLegacySemantics (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: FormatBytesWithLegacySemantics (encoding/json/v2's options are not modelled)
 }
 
 // FormatDurationAsNano specifies that a [time.Duration] is
@@ -306,7 +306,7 @@ func FormatBytesWithLegacySemantics(v bool) Options {
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
 func FormatDurationAsNano(v bool) Options {
-	panic(notModelled("encoding/json model: FormatDurationAsNano (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: FormatDurationAsNano (encoding/json/v2's options are not modelled)
 }
 
 // MatchCaseSensitiveDelimiter specifies that underscores and dashes are
@@ -319,7 +319,7 @@ func FormatDurationAsNano(v bool) Options {
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
 func MatchCaseSensitiveDelimiter(v bool) Options {
-	panic(notModelled("encoding/json model: MatchCaseSensitiveDelimiter (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: MatchCaseSensitiveDelimiter (encoding/json/v2's options are not modelled)
 }
 
 // MergeWithLegacySemantics specifies that unmarshaling into a non-zero
@@ -346,7 +346,7 @@ func MatchCaseSensitiveDelimiter(v bool) Options {
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
 func MergeWithLegacySemantics(v bool) Options {
-	panic(notModelled("encoding/json model: MergeWithLegacySemantics (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: MergeWithLegacySemantics (encoding/json/v2's options are not modelled)
 }
 
 // OmitEmptyWithLegacySemantics specifies that the `omitempty` tag option
@@ -364,7 +364,7 @@ func MergeWithLegacySemantics(v bool) Options {
 // This only affects marshaling and is ignored when unmarshaling.
 // The v1 default is true.
 func OmitEmptyWithLegacySemantics(v bool) Options {
-	panic(notModelled("encoding/json model: OmitEmptyWithLegacySemantics (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: OmitEmptyWithLegacySemantics (encoding/json/v2's options are not modelled)
 }
 
 // ParseBytesWithLooseRFC4648 specifies that when parsing
@@ -377,7 +377,7 @@ func OmitEmptyWithLegacySemantics(v bool) Options {
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
 func ParseBytesWithLooseRFC4648(v bool) Options {
-	panic(notModelled("encoding/json model: ParseBytesWithLooseRFC4648 (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: ParseBytesWithLooseRFC4648 (encoding/json/v2's options are not modelled)
 }
 
 // ParseTimeWithLooseRFC3339 specifies that a [time.Time]
@@ -390,7 +390,7 @@ func ParseBytesWithLooseRFC4648(v bool) Options {
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
 func ParseTimeWithLooseRFC3339(v bool) Options {
-	panic(notModelled("encoding/json model: ParseTimeWithLooseRFC3339 (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: ParseTimeWithLooseRFC3339 (encoding/json/v2's options are not modelled)
 }
 
 // ReportErrorsWithLegacySemantics specifies that Marshal and Unmarshal
@@ -443,7 +443,7 @@ func ParseTimeWithLooseRFC3339(v bool) Options {
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
 func ReportErrorsWithLegacySemantics(v bool) Options {
-	panic(notModelled("encoding/json model: ReportErrorsWithLegacySemantics (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: ReportErrorsWithLegacySemantics (encoding/json/v2's options are not modelled)
 }
 
 // StringifyWithLegacySemantics specifies that the `string` tag option
@@ -470,7 +470,7 @@ func ReportErrorsWithLegacySemantics(v bool) Options {
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
 func StringifyWithLegacySemantics(v bool) Options {
-	panic(notModelled("encoding/json model: StringifyWithLegacySemantics (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: StringifyWithLegacySemantics (encoding/json/v2's options are not modelled)
 }
 
 // UnmarshalArrayFromAnyLength specifies that Go arrays can be unmarshaled
@@ -483,5 +483,5 @@ func StringifyWithLegacySemantics(v bool) Options {
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
 func UnmarshalArrayFromAnyLength(v bool) Options {
-	panic(notModelled("encoding/json model: UnmarshalArrayFromAnyLength (encoding/json/v2's options are not modelled)"))
+	select {} // MODEL: not modelled (stuck): encoding/json model: UnmarshalArrayFromAnyLength (encoding/json/v2's options are not modelled)
 }

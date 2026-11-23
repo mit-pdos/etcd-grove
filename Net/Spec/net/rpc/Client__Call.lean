@@ -5,7 +5,7 @@ encoded arguments, with the reply `rep` decoded into `reply` (`Θ rep true`). Th
 obligation `□ (D -∗ ∀ rep, Φ rep "" -∗ C.dec rep reply (Θ rep))` is asked only of the replies the
 method answers with, its answer `Φ rep ""` in hand (it goes to the decoding: `Θ` keeps of it what
 the caller needs): a generated codec decodes only bytes of the reply's type (on a value of another
-listed type its `Decode` panics, `rpcNotModelled`), and it is the method's spec that says its
+listed type its `Decode` blocks forever, not modelled), and it is the method's spec that says its
 replies are of that type;
 `ServerError(msg)` for a non-empty `msg` after one run, with its answer `Φ rep msg` and the
 decoding resource `D` back; or another error, which is not a `ServerError`, after at most one run

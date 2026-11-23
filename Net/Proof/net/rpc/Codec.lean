@@ -9,8 +9,8 @@ functions stand in for gob and reflection.
   `Receiver`'s `Method`s): `enc v Ψ` is what `Encode(v)` needs, and it returns a fresh slice of
   bytes `bs` with `Ψ bs`; `dec bs ptr Ψ` is what `Decode(bs, ptr)` needs, and it returns `nil`
   with `Ψ true` or an error (some error, `errAny`) with `Ψ false`. A generated codec's `dec` can
-  hold only of bytes whose type tag names `ptr`'s element type (`Decode` panics `rpcNotModelled`
-  on another listed type's value, a documented deviation from gob), so a caller asks for it only
+  hold only of bytes whose type tag names `ptr`'s element type (`Decode` blocks forever, not
+  modelled, on another listed type's value, a documented deviation from gob), so a caller asks for it only
   of the bytes the protocol can deliver there (`bodyDecG`); and a decoding that fails partway
   leaves the fields decoded so far written, so its `Ψ false` can say only that the target holds
   some value of its type (the codec's own ownership of it), not its old or zero value. `rcv rcvr Ψ` is what
@@ -87,7 +87,7 @@ def encOk (C : CodecSpec GF) (fe : GoFunc) : IProp GF :=
 /-- A decoding error: a fresh `errors.New` error (an `*errors.errorString`) whose `Error()` returns
 its message `msg`, not empty, persistently. The generated codec's `Decode` returns no other error:
 only `rpcErrDecode()`, `errors.New("net/rpc model: malformed value")`
-(`models/net/rpc/rpcgen_core.py`), on bytes that do not parse. It also panics (`rpcNotModelled`)
+(`models/net/rpc/rpcgen_core.py`), on bytes that do not parse. It also blocks forever (not modelled)
 on a type tag that parses but names another type than the target's, and on a `nil` or unlisted
 target: outside any `C.dec` a generated codec meets, so a caller that has `C.dec` of its bytes
 excludes them (`bodyDecG`: the client asks it only of the replies the protocol delivers, the
