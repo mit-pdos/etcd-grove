@@ -27,6 +27,19 @@ def conv(t):
     t = re.sub(r'\bdsverify_lab\.harness\b', 'github_com.imdea_software.swiftpaxos_epaxos.kvs', t)
     for a in ['KvsInput', 'KvsOutput', 'Option']:
         t = t.replace(a + ' GoString', a + ' (List w8)')
+    # proof files: the lab's net world (`netDistGF`, `netConnExts`) -> the part's generic GF
+    t = re.sub(r'attribute \[local instance\] netConnExts netConnExtsSemantics netConnExtsInterp\s*\n\s*'
+               r'GooseGlobalGS\.gooseInvGS netConnExts_has',
+               'attribute [local instance] GooseGlobalGS.gooseInvGS', t)
+    t = re.sub(r'variable \[GoGlobalContext\] \[hG : HeapGS \.hasLC netDistGF\] \[go\.Semantics\]',
+               'variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]\n'
+               'variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]', t)
+    t = t.replace('variable [state.Assumptions]\n',
+                  'variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions]\n'
+                  '  [TH : TreemapHyp GF]\n')
+    t = t.replace('netDistGF', 'GF').replace('(hG := hG)', '(GF := GF)')
+    t = t.replace(' Dsv github_com.', ' github_com.')
+    t = re.sub(r'(?m)^(theorem \S+\.spec_holds : \S+\.spec) :=', r'\1 (GF := GF) :=', t)
     return t
 
 for p in sys.argv[1:]:

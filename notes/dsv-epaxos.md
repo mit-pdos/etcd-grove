@@ -6,6 +6,14 @@ Source: dsverify-lab `master` `915f964`, `examples/epaxos/` (run **`epaxos-e1nog
 verified run of EPaxos: clients on nodes of their own, Perennial `3afd77e35`, the E1-opt1/opt2 perf
 fixes; proof `c276a91` tag `final`; fork `71d99d4`). Read only: nothing in the lab changed.
 
+**Merges (2026-11-23):** `origin/dsv-infra` (`a1046d9c4f`, then `884cb306c9`): the kit's goose
+project and gen-init configuration are now `etc/dsv/epaxos.py` only (no shared lines of
+`etc/goose.py`/`etc/gen-init.py` are this kit's; `gen-init.py --check`, `goose.py --check --project
+dsv-epaxos` up to date). `origin/models-rpc-server` (`040ef5e808`, not landed: waits for the human
+reviewer; the coordinator's instruction): the whole net/rpc server proved on Lean's three axioms;
+the kit builds against its server specs directly (no mirrored hypotheses for net/rpc's server).
+It also brought `origin/lean` (`92eb404dbc`: dsv-tpmodels' gods/uuid/concurrent-map/slog models).
+
 **State (2026-11-23):** the Go, the translation, the package initializers (all 32 packages and the
 17 programs' `PkgTable`s build, no axiom: the names-only inits are `InitHyp` hypotheses) and the
 mechanical port of the pure model (below, "Proof port: progress") are done. The code proofs, the
@@ -112,6 +120,20 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `serverAddrs`/`replicaAddrs` the kit's `ServerAddrs()` (7501..7506; replicas 7502..7506); the
    lab's `is_sys`, `orchShareEp`, `clientShareEp` are gone (remote's start and `Op(addrs, c, in)`
    replace them). `solve_ndisj` (the lab harness's) → `nclose_subseteq`.
+3b. **`Interface/Treemap.lean`**: gods' treemap as the hypothesis class `TreemapHyp GF` (abstract
+   `isTreeMap`/`iterVal`/`ownIter`; `NewWith_spec`, `Put_spec`, `Get_spec`, `Select_spec`,
+   `Iterator_spec`, `iter_alloc`, `Next_spec`, `Value_spec`); `Interface/State.lean` over it.
+   Every theorem that uses the store takes `[TreemapHyp GF]`. (dsv-tpmodels' Go model
+   `models/gods` has landed but no spec of it is proved; once one is, translate gods through
+   `module_models` and discharge the class.)
+3c. **The `state` package's proofs: done** (`wire/State/*.lean`, the lab's files via
+   `etc/dsv-epaxos/port.py`, which now also rewrites the proof-file headers to the generic `GF`):
+   `InitState`, `NIL`, `NOOP`, `Conflict`, `ConflictBatch`, `concat`, `formatUint10`,
+   `Key/Value/Command.String`, `KeyComparator`, `Command.Execute`. Changed: the lab's
+   `Treemap*.lean` (its cut-down treemap's proofs) are not ported; `Execute`'s `SCAN` case is
+   re-proved over `TreemapHyp` (`Select_spec` with the closure's triple, `Iterator_spec`, a loop
+   over `ownIter`; pure: `ScanPure.scan_flatten_sorted`, `Execute.vals_es`); `ScanPure` defines
+   `keysSorted` (was `TreemapLemmas`'). `#print axioms`: Lean's three (2026-11-23).
 4. **Not started:** the rest of the model layer's bridge to remote and the kit's model (the lab's
    `Interface/*` beyond `Wire`: they are stated over the lab's harness `EpaxosNetSpec`, the
    `netConnExts` world and its `kvScan` escrow; here they must be restated over `Net/`'s specs and
