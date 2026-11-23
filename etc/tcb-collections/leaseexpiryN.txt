@@ -13,7 +13,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/Results\.
 axiom Client.Close.wp_proof
 axiom Client.Endpoints.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
-axiom DescribeConfChange.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
@@ -180,7 +179,6 @@ axiom probing.NewProber.wp_proof
 axiom promSrvMetrics
 axiom promSrvMetrics_persistent
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof

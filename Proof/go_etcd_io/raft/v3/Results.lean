@@ -10,7 +10,8 @@ entries) and `MemoryStorage`'s instance of the `Storage` contract; since stage R
 pointer messages (every function of the layer: the struct's helpers, the `Step` dispatch and its
 branches, `stepLeader`/`stepCandidate`/`stepFollower`, the constructor `newRaft`, with
 `fmt.Sprintf` and `strings.Join` copied from the old tree and `DescribeConfChange` at the trust
-boundary); since stage R5 the node layer over pointer messages (`rawnode.go` and `node.go`:
+boundary until 2026-11-23, then proved over Perennial's `strings.Builder` and `fmt.Fprintf`, #25);
+since stage R5 the node layer over pointer messages (`rawnode.go` and `node.go`:
 every `RawNode` method, `readyWithoutAccept`/`acceptReady` and their composition `Ready`,
 `Advance`, the `node` API and its `run` loop, `NewRawNode`, `newNode`, `RestartNode`,
 `confChangeToMsg`, and the storage-response helpers `needStorageAppendRespMsg`/

@@ -6,7 +6,8 @@
 # raftpb.ConfChangeType.String restated for v3.7; R3: the log layer; R4: raft.go, adding
 # DescribeConfChange, a log formatter; R5: the node layer, no new axiom). The old tree's
 # gogoproto axioms (gogoproto.Equal, reflect.DeepEqual, the Marshal/Unmarshal of ConfChange(V2))
-# went with it.
+# went with it. DescribeConfChange proved since 2026-11-23 (#25), over trusted models of
+# ConfChangeType.String and ConfChangeTransition.String.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/raft.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/raft.txt --check    against the lines below
@@ -18,7 +19,6 @@
 # node API's `ctx.Done()` case returns `ctx.Err()`, named (`Canceled`/`DeadlineExceeded`) for the
 # server's contract.
 roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
-axiom DescribeConfChange.wp_proof
 axiom pbEntryC_reg
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof
