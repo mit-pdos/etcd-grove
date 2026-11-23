@@ -559,6 +559,21 @@ specs (KitSpecs/KitProof: Codec, Gen, Orch, Client, opMaybe) + Client/*. After t
 B/NewReplica, Server/Specs, B/Boot, Server/Boot(Iface), the start (StartInit/Start over remote's
 start, as paxos's TopLevelRobustness), Mains, Linked, the statement, the TCB collection.
 
+**Status (session 6, latest):** committed and checking: all H layers (H1..H3), X, B/{Handler,
+Tables, BootLem, Rcvr, Register, …}, N (all but SpecsCheck), Replica2/{Specs, SpecsN}, Rpc/*,
+Shares, Server/{Deploy, RpcEnv, MasterDefs, SpecsDefs, MasterRegister, MasterServe}, the kit
+(`Kit`, `KitSpecs`, `KitProof`: Codec, Gen, Orch, Client, Op as `opMaybe` over `op.spec`),
+Client/Defs. In progress: F9 `op.spec` (Client/{Conn, Stream, Op}); F10 Replica2/Link, B/Registry,
+B/Init, B/NewReplica; F11 Server/{MasterNew, MasterRun, ServeProof, RegisterProof, MasterBoot,
+SpecsReq}. Then: Server/Specs, B/Boot, Server/Boot(Iface), the start (StartInit/Start/Top over
+remote's start, paxos's TopLevelRobustness), Mains (eleven commands; replicas through their owned
+boots `wp_initialize'_own` + `RpcBootHyp.wp_init_own`), Linked, `gryff_remote_robust`, TCB.
+Hypotheses added since: `lib.MathPowHyp` (`Lib/MathHyps.lean`), `RpcEnvHyp` (`Server/RpcEnv.lean`:
+net/rpc's and net/http's package variables as their inits set them), `lib.io.ReadFull.specLt`
+(a premise; proved by `Lib/ReadFullLtProof.lean`'s `wp_proofLt`, rabia's, linked at the top).
+Caveat (F2, F6): `etc/lean-check.py` reported "0 errors" on new files that `lake build` then
+rejected; confirm new files with a targeted `lake build`.
+
 **The Rpc layer as built (F4):** `Rpc/Defs` (rpcgen's bytes `encRegArgs`, …; addresses
 `masterRpcAddr = 127.0.0.1:7501`, listeners `masterRpcLis = ":7501"`, `replicaRpcLis k =
 ":850(2+k)"`; `masterSvc δ R := withErr (masterSvc0 δ R)`, `replicaSvc := withErr replicaSvc0`;
