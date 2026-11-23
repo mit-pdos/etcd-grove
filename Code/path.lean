@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.errors
-public import Code.internal.bytealg
+public import Perennial.Code.internal.bytealg
 public import Perennial.Golang.Defn
 
 @[expose] public section

@@ -1,8 +1,14 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
 # notes/k8s-etcd3-goose.md). It imports `logr` (names only), so that the alias `Logger = logr.Logger`
 # translates (client-go's workqueue names it; notes/k8s-clientgo-goose.md, gap C3).
-translate = ["!*"]
-imports = ["!*", "github.com/go-logr/logr"]
+# (klog-leaves, 2026-11-23, etcd-grove#25) with bodies: `V` and what it runs (`VDepth`, `newVerbose`,
+# `Level.get`), and the variable `logging` they read (allocated zero: no initializer; its fact,
+# `klog.loggingOk`, Proof/k8s_io/klog/v2/Base.lean). For `loggingT` to translate (so that `logging`
+# and its fields have a type), the packages its fields' types name are imported (`sync`, `io`,
+# `time`, `sync/atomic` and `runtime` for `VDepth`'s calls, klog's `internal/severity`, names only).
+translate = ["!*", "V", "VDepth", "newVerbose", "Level.get", "logging"]
+imports = ["!*", "github.com/go-logr/logr", "sync", "sync/atomic", "io", "time", "runtime",
+  "k8s.io/klog/v2/internal/severity"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

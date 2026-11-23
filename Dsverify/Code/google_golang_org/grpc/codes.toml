@@ -1,0 +1,4 @@
+# Names only (notes/dsv-quepaxa.md): the generated service's `codes.Unimplemented`.
+translate = ["!*"]
+imports = ["!*"]
+translate_types = true

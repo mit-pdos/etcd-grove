@@ -1,0 +1,5 @@
+# (project dsv-rabia, notes/dsv-rabia.md) `Proxy.redisExecuteCmd` names only: its `err == redis.Nil`
+# makes goose convert to go-redis's `internal/proto.RedisError` without importing that package's
+# module (a translator gap, notes/perennial-changes.md, 2026-11-23). The kit runs Rabia's in-memory
+# store (Conf.StorageMode 0), never Redis, so no proof calls it.
+translate = ["*", "!Proxy.redisExecuteCmd"]

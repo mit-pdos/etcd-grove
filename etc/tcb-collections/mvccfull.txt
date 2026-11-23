@@ -40,12 +40,10 @@ axiom Perennial.hash.crc32.crcUpdByte_tableOf._native.bv_decide.ax_1_12
 axiom Perennial.hash.crc32.crcUpdByte_tableOf._native.bv_decide.ax_1_7
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
-axiom Perennial.net.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
 axiom Perennial.runtime.initFuncsOk
 axiom Perennial.runtime.opaqueInitsOk
-axiom addrUnclaimed
 axiom backend.newBoltLoggerZap.wp_proof
 axiom dataDirAbsent
 axiom dataDirFresh
@@ -53,13 +51,10 @@ axiom dataDirsApart
 axiom envVerifyOffTok
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start
-axiom httpProtoFree
 axiom lease.Lease.expired.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom netAddrFree
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom prometheus.ExponentialBuckets.wp_proof
 axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewGauge.wp_proof

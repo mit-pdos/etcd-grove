@@ -22,7 +22,6 @@ axiom encoding.json.Marshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -38,7 +37,6 @@ axiom grpcResolverAt
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom klog.Errorf.wp_proof
-axiom klog.V.wp_proof
 axiom klog.Verbose.InfoS.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom klog.Warningf.wp_proof
@@ -65,7 +63,6 @@ axiom pbTxnResponseT_reg
 axiom peer.Peer.String.wp_proof
 axiom proto.Clone.wp_proof
 axiom rand.Float64.wp_proof
-axiom reflect.KindCompare.wp_proof
 axiom reflect.New.wp_proof
 axiom reflect.Type.Elem.wp_proof
 axiom reflect.TypeOf.wp_proof
@@ -78,8 +75,6 @@ axiom reflect.Value.Len.wp_proof
 axiom reflect.Value.Set.wp_proof
 axiom reflect.Value.Type.wp_proof
 axiom reflect.ValueOf.wp_proof
-axiom reflectM.value_intoVal_inj
-axiom reflectM.value_into_val_typed
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.FromError.wp_proof

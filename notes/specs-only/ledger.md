@@ -25,6 +25,197 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: six server-side trust-boundary axioms -- their errors' `deadlineExceededError`s hold `deadlineExceededError{}` (errors-is-deadline, #31)
+
+- **Spec.** Five axioms whose posts promise `applyErrIs`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Base.lean`). The first four promise it directly,
+  `NewAuthStore` through its auth checks' `authApplyErrIs`:
+  - `leasehttp.RenewHTTP.spec`
+  - `EtcdServer.leaseTimeToLive.spec`
+  - `EtcdServer.rangeStream.spec`
+  - `proto.MarshalIRR.spec`
+  - `auth.NewAuthStore.spec`
+
+  And `bcrypt.GenerateFromPassword.spec`, whose non-pointer error `UserAdd` makes an `applyErrIs`
+  (`applyErrIs_valLeaf`). No spec-plan counterparts.
+- **Defect.** Too weak for `togRPCError`'s `errors.Is(err, context.DeadlineExceeded)`, which every
+  handler error reaches (`srvErrIs` ⊇ `applyErrIs`). Perennial's `errors.Is` needs the tree's errors
+  of the target's type to hold a value of it (`errors.ComparableErr`), and the model does not type
+  interface values.
+- **Evidence.** `errors.IsDeadlineExceeded.spec`'s `⌜deTyped S⌝` (entry below), at `togRPCError`'s
+  tree for `context.DeadlineExceeded` (`applyErrIs_treeDE`).
+- **Proposed change.** `applyErrIs`'s tree (and `errTreeOk`) gains `deTyped S`. This strengthens what
+  the five axioms post, and their docstrings say so. Go's typing makes it true of every Go error:
+  `deadlineExceededError` is a field-less struct, whose only value is `deadlineExceededError{}`.
+  `bcrypt.GenerateFromPassword`'s non-pointer branch gains `ei.ty ≠ deadlineExceededError.ty`: it
+  is an `InvalidCostError`, a named type of bcrypt's own. The proved constructors of `applyErrIs`
+  discharge it: `nil`; pointer leaves; `%w` wraps; `applyErrIs_valLeaf`, which takes
+  `deTypedErr e`, given by the context errors (`deadlineExceeded_deTypedErr`) and bcrypt's new
+  conjunct.
+- **Decision.** Accepted by the coordinator under the user's approval of the same typing class
+  (2026-11-23); review requested on #31.
+
+## 2026-11-23: grpc's `ctxErrsErr` (and the client's `ctxErrClient`) -- an error of type `deadlineExceededError` holds `deadlineExceededError{}` (errors-is-deadline, #31)
+
+- **Spec.** `ctxErrsErr` (`Proof/google_golang_org/grpc/InvGrpc.lean`, the trust boundary's contract
+  of a context's `Err()` outside Perennial's model), and `ctxErrClient`
+  (`Proof/go_etcd_io/etcd/client/v3/InvKVConn.lean`), which is `rfl`-equal to it
+  (`ctxErrClient_eq_errs`). No spec-plan counterpart.
+- **Defect.** Too weak for `errors.IsDeadlineExceeded`'s proof. The model does not type interface
+  values: an error whose dynamic type is `deadlineExceededError` may hold any value. Perennial's
+  `errors.Is` compares the target `context.DeadlineExceeded` with the tree's errors of its type, and
+  for that it needs them to hold a value of the type (`errors.ComparableErr`).
+- **Evidence.** `deadlineExceededError_comparable` (`Proof/errors/CtxErr.lean`) needs
+  `∀ ii ∈ S, ii.ty = deadlineExceededError.ty → ii.v = #(zero_val deadlineExceededError)`. The
+  client's `contextErrToGRPCErr` passes `errors.Is` the error `Err()` returned (`ctxErrLeaf`), and
+  nothing says what it holds.
+- **Proposed change.** The non-nil disjunct's pure conjunct gains, at its end, `e.ty =
+  deadlineExceededError.ty → e.v = #(zero_val deadlineExceededError)`. Go guarantees this by typing:
+  the field-less struct's only value. Producers: Perennial's contexts (`ctxErrClientAllW_of`:
+  `Canceled` is a pointer, `DeadlineExceeded` holds the zero value, by `context`'s `isInit`), k8s's
+  `channelContext` (`Canceled`), and the quiet contexts (no non-nil error). `ctxErrLeaf` carries the
+  fact (`ctxErrLeaf_of_isCtxErr`, `ctxErrLeaf_of_errs`).
+- **Decision.** Accepted by the user 2026-11-23 (a trust-boundary contract, relayed by the
+  coordinator; #24 notified).
+
+## 2026-11-23: `errors.IsDeadlineExceeded` takes `isPkgInit context` and the tree's typing (errors-is-deadline, #31)
+
+- **Spec.** `errors.IsDeadlineExceeded.spec` (`Spec/errors/IsDeadlineExceeded.lean`); no spec-plan
+  counterpart.
+- **Defect.** Unprovable once it is no longer an axiom, for two reasons.
+  - The precondition gives of `target` only the cell `context.DeadlineExceeded` it was read from.
+  - Go's `err == target` on the tree's errors of `target`'s type, a field-less struct, needs those
+    errors to hold `deadlineExceededError{}`. The model does not type interface values
+    (`errors.ComparableErr`, perennial#677).
+- **Evidence.** The proof over `errors.wp_Is` needs `ComparableTarget S target`. Its
+  `deadlineExceededError_comparable` (`Proof/errors/CtxErr.lean`) takes the typing of `S`.
+- **Proposed change.** The precondition gains `isPkgInit pkg_id.context`, which pins `target` to
+  `deadlineExceededError{}` (`isInit`'s `"#HDeadlineExceededTy"`). It also gains `⌜deTyped S⌝`
+  (`Proof/errors/CtxErr.lean`): every error of `S` whose type is `deadlineExceededError` holds
+  `deadlineExceededError{}`.
+  - Server's `togRPCError`: `applyErrIs`'s tree carries `deTyped` (`apply/Base.lean`).
+    `applyErrIs_valLeaf` takes it of its leaf. Its callers pass context errors, and `isCtxErr_deTypedErr`
+    gives it for them.
+  - Client's `contextErrToGRPCErr`: `ctxErrLeaf` carries it, from `ctxErrsErr`'s new conjunct
+    (entry above).
+  - The post is unchanged.
+- **Decision.** Accepted (internal: premises both callers meet; the spec stops being a trust
+  boundary, and the axiom `errors.IsDeadlineExceeded.wp_proof` is retired), upamanyus-agent
+  2026-11-23. The server's side needs the typing fact of six trust-boundary axioms (entry above).
+## 2026-11-23: `DescribeConfChange` proved; `ConfChangeType.String`/`ConfChangeTransition.String` trusted models with exact specs (builder-fprintf-leaves, #25)
+
+- **Spec.** `Spec/go_etcd_io/raft/v3/DescribeConfChange.lean` (unchanged; `DescribeConfChange.wp_proof` an
+  axiom until this change, now a theorem); new: `Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`,
+  `ConfChangeTransition__String.lean` (exact: `raftpb.ccTypeString`/`ccTransitionString`, the name table's
+  entry else the decimal), against the plan's `SpecPlan/Spec/go_etcd_io/raft/v3/raftpb/ConfChangeType__String.lean`
+  (assumed, some string). raftpb's package fact (`Proof/go_etcd_io/raft/v3/Base.lean`) grows by the two tables.
+- **Defect.** None in a statement: the axiom's triple was unprovable only for want of models. `%v` of the
+  transition and of each change's type calls their `String()`, which raftpb translated names-only, and
+  Perennial's `fmt` admits such an argument only with a `stringMethodSpec`.
+- **Evidence.** `Proof/go_etcd_io/raft/v3/DescribeConfChange.lean`, over Perennial `9da0efb89`'s
+  `strings.Builder` and `7b2259a12`'s `fmt.wp_Fprintf`/`wp_Fprintf_bytes`. Go test
+  `TestConfChangeEnumStringIsNameTable` (`examples/raft/tracecheck/msgtype_string_test.go`).
+- **Proposed change.** The two methods trusted (`Code/go_etcd_io/raft/v3/raftpb.toml`; models in
+  `TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, `MessageType.String`'s precedent, Q9), their specs exact as
+  `MessageType.String`'s (stronger than the plan's; the plan's follows when its raftpb is next reworked).
+  Trust base: -1 axiom (`DescribeConfChange.wp_proof`), +2 trusted models.
+- **Decision.** Trusted models approved by the coordinator under the user's delegation (2026-11-23); review
+  requested on etcd-grove#25. Applied (builder-fprintf-leaves).
+## 2026-11-23: `addFeatureGateMetrics.spec` -- `isFeatureGate` does not give what the body needs (featuregate-2, claim #36)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean`, `addFeatureGateMetrics.spec`
+  (the premise `isFeatureGate fg`, `Proof/go_etcd_io/etcd/server/v3/features/Defs.lean`); the plan's
+  `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/addFeatureGateMetrics.lean` (over `Features.serverGate`).
+- **Defect.** Unprovable over the real body (`server.go:2496-2506`) as stated. `isFeatureGate fg` is only a
+  contract on `Enabled(f)` for `f ∈ serverFeatures`. The body calls `fg.(MutableFeatureGate).GetAll()`, which
+  loads `f.known`: the premise owns nothing of the gate's fields, so the load cannot be stepped (and in the
+  logic a `*featureGate` whose `enabled` holds the server's features but whose `known` is empty meets the
+  premise, and `GetAll`'s type assertion of `nil` panics). And `GetAll` returns `known`, which holds
+  `featuregate`'s own `AllAlpha` and `AllBeta` (`defaultFeatures`, cloned by `New`), not in `serverFeatures`:
+  the loop's `fg.Enabled("AllAlpha")` is outside the contract.
+- **Evidence.** The body read against the predicate; no proof attempted (the gate's provider,
+  `features.NewDefaultServerFeatureGate.wp_proof`, is still an axiom: its post states `isFeatureGate`).
+- **Proposed change.** `isFeatureGate fg` also gives `GetAll`'s contract: it returns a fresh map whose keys
+  are features `Enabled` answers (the contract's feature set widened from `serverFeatures` to a set `S ⊇
+  serverFeatures` the gate's `known` has, `AllAlpha`/`AllBeta` included) and whose `PreRelease` strings are
+  valid UTF-8 (`labelMapOk` for `serverFeatureEnabled`'s `With`). The five proofs that destructure the
+  predicate (`EtcdServer__{FeatureEnabled,NewUberApplier,Txn}`, `NewServer`, `NewServerR`) take one more
+  component. Made after `NewDefaultServerFeatureGate` is proved (until then the change strengthens that
+  axiom's post, a trust-boundary spec).
+- **Decision.** Pending: waits for `NewDefaultServerFeatureGate`'s proof (blocked on `maps.Clone`,
+  `notes/perennial-changes.md`).
+
+## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
+
+- **Spec.** `models/net/rpc/codec.go` (the model, trusted): `serverCodec` gains `rerr`, the first frame read
+  error, which every later `ReadRequestHeader`/`ReadRequestBody` returns without reading.
+  `Net/Spec/net/rpc/serverCodec__{ReadRequestHeader,ReadRequestBody}.lean`: a premise `rerr ↦ r0`; with `r0`
+  not `nil` the read returns `r0` and reads nothing, otherwise as before, `rerr` then holding a frame read's
+  error (`nil` after a success or a header that does not parse). `newServerCodec.spec` gives `rerr ↦ nil` and
+  `closed ↦ false` too. `Net/Proof/net/rpc/ServerDefs.lean`: `readerSt` (prepared, unused) redefined over
+  the frames read and the count `k` (`reqPls` via `reqPlsFrom`); `srvEnv`'s `invalidRequest` is the unit
+  `struct{}{}` value (it was an interface value, of the wrong type for the load); new `rdrOwn`, `rdrMid`,
+  `callReady`, `ansRes`, `errCont`, `rdErr`, `srvCodecAt`, `srvCodecOwn`.
+- **Defect.** Found proving `ServeCodec`. Go's `ServeCodec` answers a request whose body read failed and reads
+  on (`readRequest` returns `keepReading` true); gob's decoder keeps no read error, so the next header is
+  read from the middle of the failed request. The net extension's semantics lets a read return bytes after a
+  read error (a `sys` error on a cut direction with unread bytes kept), so the reader could decode bytes no
+  client wrote as a request, and run a method on them without a deposit: the server's guarantee (each run
+  answers a request a client deposited) is unprovable over the unchanged model.
+- **Evidence.** `models/net/rpc/server.go` (`ServeCodec`, `readRequest`); Go 1.27.3's `encoding/gob`
+  (`DecodeValue` resets `dec.err`); `GooseLang/Ext/Net/Impl.lean` (`ReadAvail`'s `sys` case, `ReadOutcome`'s
+  break keeping a prefix); Linux: a read error comes once the unread bytes are read, then EOF
+  (`examples/net/semantics`' `TestResetInNetwork`, `TestKilledWithUnreadInput`, `TestTimeoutOnBreak`), but for
+  a read deadline's timeout. `nonissues/go-netrpc-server-reads-on-after-body-read-error.md`.
+- **Proposed change.** As above: the model's codec, Go's behavior over Linux when the program sets no read
+  deadline on a served connection (the model's claim says so, `codec.go`'s doc);
+  `models/internal/rpcdifftest/run.sh` still passes. The client codec is unchanged (its reader stops at the
+  first error). Not done: `Register`/`RegisterName`'s premises excluding the logging paths (entry below) could
+  now go, `log.Println` being modelled and specified (`Net/Spec/log/Println.lean`).
+- **Decision.** Applied (branch `models-rpc-server`) for the sticky error and the specs; the premises' removal
+  pending. The sticky error narrows the model's trusted claim (no read deadlines on served connections): for
+  the user to confirm.
+
+## 2026-11-23: net/rpc model's server -- `decErr` gains a non-empty message; `CodecSpec` gains `rcv`; the net model's `OpError.Error` is never empty
+
+- **Spec.** `Net/Proof/net/rpc/Codec.lean`: `decErr err` (a decoding error) now also says its message is not
+  empty; `CodecSpec` gains a field `rcv : GoInterface → (Loc → IProp) → IProp` (what `Receiver(rcvr)` needs,
+  returning a `*Receiver` with `Ψ`), and `codecIs` holds `rcvOk C v.Receiver'`. `Net/TrustedCode/net.lean`
+  (trusted): `OpError.Error.impl` returns an arbitrary string that is not empty (was any string).
+- **Defect.** Found stating the server's request loop. When a request's header reads but its body does not
+  read or decode, `ServeCodec` answers it with `sendResponse(..., err.Error())`; with a message `""`
+  `sendResponse` sends a *success* response, encoding the placeholder `invalidRequest`, which no generated codec
+  lists (its `Encode` panics). Both errors that can reach there were allowed an empty message: a decoding error
+  (`decErr`) and the `Read`'s `*OpError` (the model's `AnyString`). And `register`'s dispatch goes through the
+  codec's `Receiver`, about which `CodecSpec` said nothing (the first part had left it "to state").
+- **Evidence.** `models/net/rpc/server.go` (`ServeCodec`, `sendResponse`, `readRequest`); the generated
+  codec's decoding error is `errors.New("net/rpc model: malformed value")` (`rpcgen_core.py`); Go's
+  `(*OpError).Error()` starts with `e.Op` (`net.go`), measured: `TestErrorsAreOpErrors`
+  (`examples/net/semantics/errors_test.go`, now checking every message starts with the operation and holds `": "`).
+- **Proposed change.** As above. The client's proofs destructure the longer `codecIs` and `decErr` (patterns
+  only); `errAny_opErr` is derived from the new `errNE_opErr` (`Errs.lean`). No client statement changes.
+- **Decision.** Applied (branch `models-rpc-server`): strengthenings the generated codec and Go meet; the
+  `OpError.Error` model change is a narrowing of trusted behaviour backed by the measured test (D14).
+
+## 2026-11-23: net/rpc model's server -- `Register`/`RegisterName` cover only the receivers they accept without logging; a method spec must accept error answers
+
+- **Spec.** `Net/Spec/net/rpc/Server__{register,Register,RegisterName}.lean` vs dsverify-lab's
+  `Server.RegisterName.spec`/`Register.spec` (`old/dsverify/.../ServerDefs.lean`), and `errOk`/`srvServes`
+  (`Net/Proof/net/rpc/ServerDefs.lean`) vs dsverify's `srvServes`/`rcvrOk`.
+- **Defect.** dsverify's statements return "`nil` and the registration, or some error" for any receiver. Go's
+  `register` logs (`log.Print`) before returning three of its errors (no service name, not exported, no suitable
+  methods), and Perennial has no model of `log.Print` (names only), so those paths are stuck. And dsverify's
+  `rcvrOk` gave `Φ reply msg` only through the method's run; Go's server also answers requests it does not run
+  (the body did not read or decode, the method is not registered) with an error message.
+- **Evidence.** `Net/Code/net/rpc.lean`, `Server.register.impl` (`FuncResolve log.Print`); Perennial
+  `Code/log.toml` (`trusted = ["Printf", "Println", ...]`). `server.go`'s `ServeCodec` error path.
+- **Proposed change.** `register`'s premise `regNameOk` (a non-empty `name` with `useName`; without it, `rcvr`
+  not a nil pointer, where Go panics, and its type's name starting with an upper-case ASCII letter, where the
+  model's `IsExported` is exact) and `rcvrIs`'s at-least-one-method; the remaining error (a name taken) stays.
+  `srvServes` asks each service spec for `errOk S` (an error answer, message not empty, from the deposit).
+  When Perennial models `log.Print` (`notes/perennial-changes.md`, 2026-11-23), the premises can go.
+- **Decision.** Applied (branch `models-rpc-server`); kits register receivers of exported types with methods,
+  and their specs' continuations accept `ServerError`s (Go's client returns them for any call).
 ## 2026-11-22: `errors.IsCtxErr` takes `isPkgInit context` (errors-is-axioms, #31)
 
 - **Spec.** `errors.IsCtxErr.spec` (`Spec/errors/IsCtxErr.lean`); no spec-plan counterpart.
@@ -5081,3 +5272,129 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `Recover` translated and proved over it, and the cluster's construction in `bootstrap` verified so that
   `bootOk`'s `isRaftCluster` is proved, not assumed.
 - **Decision.** Applied (reverted).
+## 2026-11-23: `Client.Call.spec` asks the codec to decode only the method's answers (net/rpc model)
+
+- **Spec.** `Net/Spec/net/rpc/Client__Call.lean` (and `Client__Go.lean`, `Client__send.lean`): the decoding
+  obligation `□ (D -∗ ∀ rep, C.dec rep reply (Θ rep))` becomes `□ (D -∗ ∀ rep, Φ rep [] -∗ C.dec rep reply
+  (Θ rep))`; `Call`'s success post `Rargs ∗ ∃ rep, Φ rep [] ∗ Θ rep true` becomes `Rargs ∗ ∃ rep, Θ rep true`
+  (the answer went into the decoding; `Θ` keeps what the caller needs of it), as `callPost`'s `nil` case
+  (`ClientDefs.lean`). `callRes` holds `bodyDecG C reply D (fun rep => Φ rep []) Θ`.
+  `Net/Spec/net/rpc/clientCodec__ReadResponseBody.lean`: `bodyDec C body D Θ` becomes `bodyDecG C body D G Θ`
+  (`Codec.lean`: the `dec` of every payload `pl` with `G pl`), with a new premise `□ (∀ pl, ⌜pl.length ≤
+  maxFrameN⌝ -∗ P (frameOf pl) -∗ ▷ (P (frameOf pl) ∗ G pl))` (the guard from the reader predicate, a step
+  after the read; `guard_true` for a `nil` body). `decErr`'s docstring (`Codec.lean`): the generated `Decode`
+  also panics `rpcNotModelled` on a tag naming another type (and on a `nil` or unlisted target), outside any
+  `C.dec` a generated codec meets; `CodecSpec`'s: a decoding that fails partway leaves fields written, so
+  `dec`'s `Ψ false` can only promise some value of the target's type.
+- **Defect.** No program using rpcgen's codec with two types or more could meet `Call`'s premise: its
+  `rpcDecode` (`models/net/rpc/rpcgen_core.py`) panics `rpcNotModelled("... decoding a <tag> into a <T> is not
+  modelled")` when the tag parses but names another listed type (a documented deviation from gob), so
+  `C.dec rep reply Ψ` is false of such `rep` and `∀ rep, C.dec rep reply _` unprovable: a kit cannot call
+  `Call`.
+- **Evidence.** kaashoek's craq port, report on etcd-grove#24. The new statement is proved:
+  `Client.input`'s proof (`Net/Proof/net/rpc/Client__input.lean`) trades the call's collection token for the
+  answer `Φ reply []` at the header (`resp_hdr`, `ans_trade`), before the body, and gives `ReadResponseBody`
+  the guard `pl = reply` (`body_guard`: by `resp_body` and the `ans` element's agreement, the body frame is
+  that answer's reply); `lake build Net.Proof.net.rpc.Results` green, every linked result Lean's three axioms.
+- **Why true of the code.** A success response's body is the server's encoding of the handler's reply
+  (`sendResponse`, `callRet`: `C.enc replyv (fun eb => Φ eb [])`), and `Φ rep []` reaches the client only
+  through the run's answer (`answerRes`, `replyEscrow`), so a method spec that gives `Φ rep []` only for `rep`
+  an encoding of the reply type (as a caller's `Φ` can require) makes the decoding provable. `decOk`'s failure
+  branch claimed nothing about the target (it is `C.dec`'s `Ψ false`, the codec spec's choice); no concrete
+  `CodecSpec` exists yet to overclaim.
+- **Proposed change.** As above; callers updated (`Client.input`'s, `Client.send`'s, `Client.Call`'s,
+  `ReadResponseBody`'s proofs). Open, same defect: the server's `methodOk` (`ServerDefs.lean`) gives
+  `bodyDec C argv D Θ`, a decoding of every request body, which a generated codec with two types does not meet
+  either (`serverCodec.ReadRequestBody`, `Server.readRequest`); the same guard from the deposit `S m args Φ`
+  would fix it.
+- **Decision.** Applied for the client (branch `models-rpc-server`); the server's request decoding closed the
+  same day (next entry).
+
+## 2026-11-23: `methodOk` asks the codec to decode only the arguments a client deposited (net/rpc model, server)
+
+- **Spec.** `Net/Proof/net/rpc/ServerDefs.lean`: `methodOk`'s `NewArg` gave `bodyDec C argv D Θ`, i.e.
+  `codecSet C ∗ □ (D -∗ ∀ pl, C.dec pl argv (Θ pl))`; it now gives `argDec C argv D Sm Θ :=
+  codecSet C ∗ □ (D -∗ ∀ args Φ, Sm args Φ -∗ Sm args Φ ∗ C.dec args argv (Θ args))` (the method's deposit
+  is the guard, and is kept: the call obligation `Sm args Φ -∗ Θ args true -∗ callObl …` and the error
+  answers through `errOk` use it after the decoding, unchanged). `Net/Spec/net/rpc/serverCodec__ReadRequestBody.lean`:
+  `bodyDec C body D Θ` becomes `bodyDecG C body D G Θ` with the guard premise `□ (∀ pl, ⌜pl.length ≤
+  maxFrameN⌝ -∗ P (frameOf pl) -∗ ▷ (P (frameOf pl) ∗ G pl))`, as `clientCodec.ReadResponseBody.spec`'s.
+  `bodyDec` (`Codec.lean`) is gone, no user left.
+- **Defect.** The server twin of the previous entry's: a generated codec with two types or more panics
+  `rpcNotModelled` decoding another listed type's value, so no kit could prove its methods' `methodOk` (the
+  decoding of every request body into the argument).
+- **Evidence.** Proved: `Server.readRequest`'s proof (`Net/Proof/net/rpc/Server__readRequest.lean`) applies
+  `argDec` to the request's deposit `S m r.body Φ` (taken at the header, `take_req`) before the body read,
+  getting the deposit back and `C.dec r.body argv (Θ r.body)` as `ReadRequestBody`'s decoding resource, with
+  the guard `pl = r.body` (`req_guard`, `ServerGhost.lean`: by `req_body`, the body frame after request
+  `k`'s header is its argument bytes). On a read failure the resource is dropped and the deposit pays the
+  error answer, as before. `ServeCodec`'s proof unchanged. `lake build Net.Proof.net.rpc.Results` green,
+  every linked result Lean's three axioms.
+- **Why true of the code.** A request's body is the client's encoding of `args` (`Call`'s `C.enc args (fun bs
+  => S M bs Φ ∗ …)`), so the deposit's bytes are what the method's spec says a client sends; a method spec that
+  deposits only for `args` an encoding of the argument type (as a kit's can) makes the decoding provable. The
+  guard does not consume the deposit: a decoding needs to know the bytes' type, not to spend the call.
+- **Proposed change.** As above; callers updated (`readRequest`'s and `ReadRequestBody`'s proofs). The client
+  is unchanged. At-most-once and the other guarantees unchanged.
+- **Decision.** Applied (branch `models-rpc-server`); closes the previous entry's open item.
+
+## 2026-11-23: `remote.ServeClient`'s `newClient` is a persistent triple, and no call budget reaches the far side (#28, #24)
+
+- **Spec.** `Net/Spec/.../lib/remote/ServeClient.lean`: the premise `{{ True }} newClient(c) {{ sys, RET #sys;
+  tok sys }}` (persistent). `Net/Proof/.../lib/remote/Defs.lean`: `reqP S`, `svcOp S tok op`, `opMaybe R tok op`
+  carried no bound on the number of calls a node serves.
+- **Defect.** (1) `ServeClient` calls `newClient` once, but the triple's `□` forbids it to consume anything, so the
+  client machine's system cannot hold exclusive per-client state (VR's request numbers and ghost state; rabia's
+  kit worked around it with a mutex). (2) The kits rely on a per-client operation budget (rabia's `SeqBudget`,
+  VR's request numbers), but nothing told a client machine it serves at most `ops`-many calls.
+- **Evidence.** `ServeClient`'s proof uses the premise once (`wp_apply HnewClient`). The orchestrator makes
+  `ops` operations per client (`perclient.Run`), each at most `ReadTries` attempts (`Do`), one connection each.
+- **Proposed change.** (a) The premise becomes the caller's one-shot WP `∀ Φ, ▷ (∀ sys, tok sys -∗ Φ #sys) -∗
+  WP newClient(c) {{ Φ }}`. (b) Call budgets in ghost state (`notes/remote-port-plan.md`, "`ServeClient`'s
+  one-shot `newClient` and call budgets"): `RemoteGS.bud`, a unit `budUnit a` per call in `reqP S a`'s slot,
+  handed to `svcOp S a`/`opMaybe R a`; `budUsed_add` bounds the count; `Check`/`Run` take `nb ≥ ops * readTries`
+  units per client address. Go unchanged.
+- **Decision.** Approved by the user (Upamanyu agreed on #24); applied on branch `remote-serveclient` for review on #28.
+## 2026-11-23: the TLS fallback and the lease-TTL row as parameters of the auth-on table specs (phase 7 S2, O2)
+
+- **Spec.** The client-facing auth vocabulary took the server's location `s : Loc` only to state `srvTLSId s`
+  (its config's `ClientCertAuthEnabled ↦□ true`) and, for `LeaseTimeToLive`, `leaseTTLRow s γl`. It now takes
+  the facts themselves, `T : IProp GF` (TLS) and `R : IProp GF` (row): `v3rpc.infoBoundT`, `principalBound`,
+  `v3rpc.{hdrBoundT, rangeAuthed, txnAuthed, writeGrantOn, opGrantT, kvOpAuOn, kvOpAuM, leaseGrantResT,
+  leaseRevokeResT, adminReplied, userAddReplied, authHistAuT}`, `leaseCheckFrom`, `client.txnAuthOn`, and the
+  table specs `client.etcd{Put,Delete,Range,Txn}Spec{On,M}`, `client.etcdLease{TTL,Leases}SpecMd`,
+  `client.etcdLease{Grant,Revoke}SpecOn`, `v3rpc.etcd{UserAdd,UserGrantRole,RoleAdd,RoleGrantPermission,
+  AuthEnable}Spec` (`T`) and `etcdLeaseTTLSpecLive`, `client.etcdLeaseTTLSpecMd` (`R`). Each table spec is a
+  heap-free `…W` over the message models plus its old name at the message types (as the auth-off batch,
+  `ae188a5c42`); every server-side statement passes `T := srvTLSId s`, `R := leaseTTLRow s γl`, so it says
+  what it said.
+- **Defect.** None in meaning: `srvTLSId s` and `leaseTTLRow s γl` name a machine's heap (the server's config
+  struct, its raft node), so a service table, which holds no machine's heap (#24, O2), could not state the
+  auth-on specs.
+- **Evidence.** Mechanical: the definitions' bodies used `s` only through `srvTLSId s` (and `leaseTTLRow s γl`);
+  every call site rewritten to `(srvTLSId s)`/`(leaseTTLRow s γl)`; `etc/heapfree-check.py` checks the `…W`s;
+  full build green with no new axiom or `sorry`.
+- **Proposed change.** As above, with one-way monotonicity laws for the bridge at `Serve`: each table spec
+  `S T R` satisfies `□ (T1 -∗ T2) ∗ □ (R2 -∗ R1) ∗ S T2 R2 ⊢ S T1 R1` (`…W_mono`; a registration at the
+  server's facts serves a caller at the table's, `isGrpcRpc_mono_with`), and `srvTLSId_iff`:
+  `srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ tls ⊢ (srvTLSId s ∗-∗ ⌜tls = true⌝)`. A table takes
+  `T := ⌜tls = true⌝`, `R := ⌜row = true⌝`.
+- **Decision.** Applied (branch `prove-ps2-s2flags/2026-11-23`), as agreed with upamanyus-agent on #24
+  (parameters, not a `Bool` through the server's specs).
+
+## 2026-11-23: the client side of the auth-on KV and lease calls over the TLS fact `T` (phase 7 S2, O2, #24 item 3)
+
+- **Spec.** Following the previous entry, the client's auth-on vocabulary and results take `T : IProp GF` for the
+  server's `s : Loc`, which they used only as `srvTLSId s`: `client.clientGrant`, `clientOpAuOn`, `txnUpdAtOn`,
+  `clientHistAu` and their lemmas (`clientOpAuOn_attempt`, `clientOpAuOn_of_au1`, `txnUpdAtOn_write`,
+  `clientHistAu_attempt`, `txnAuthOn_write`, `kvOpAuM_of_au1`, `kvOpAuM_of_on`, `etcd{Put,Delete,Range,Txn}SpecM_
+  {true,false}`, `etcdRangeSpecE_M`, `kvOpAuOn_lease{Grant,Revoke}`), and `ResultsOn`'s `client_put_on`,
+  `client_put_on_nil`, `client_range_on`, `client_delete_on`, `client_txn_on`, `client_lease_{grant,revoke}_on`
+  (each with `[Persistent T]`). Every use (the examples', the server's linking modules) passes `srvTLSId s`.
+- **Defect.** None: the statements are generalized (at `T := srvTLSId s` they are the old ones), so that a client
+  can take its registrations from a service table at `T := ⌜tls = true⌝`.
+- **Evidence.** Mechanical; `kvOpAuM_of_au1`/`kvOpAuM_of_on` were proved through the server's `kvDepOwnM_*`
+  (which take `s`) and are now proved directly. Full build green; no axiom or `sorry`.
+- **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
+  the table.
+- **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).

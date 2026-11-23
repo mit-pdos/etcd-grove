@@ -53,6 +53,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.etcd.putget',
+         # putget_safe (2026-11-23, notes/putget-dist-plan.md): the member and client machines' package
+         'github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget',
          # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
          'github_com.mit_pdos.etcd_grove.examples.etcd.compacted',
          # the client's `kv.Compact` (2026-11-01): putgetc under compaction pressure
@@ -255,6 +257,12 @@ def instances(proof='Proof/'):
 
 inv = inventory()
 inst = instances()
+# (net-swap, etcd-dist D2, 2026-11-22) the main tree's `net` is the part `Net/`'s translation (over the
+# net extension; `etc/goose.py`'s `net=Net`), with its `IsPkgInit` instance in `Net/Proof/net/Base.lean`
+# (`isInit`); its `Init.lean` is generated here over the main tree's imports (`Net/`'s own imports the
+# part's copies of `os`'s initializers). `@` marks a full module name.
+inv['net'] = inventory('Net/Code')['net']
+inst['net'] = [('@Net.Proof.net.Base', 'isInit')]
 
 # Per-package configuration of the packages with facts or translated initializers.
 SPECIAL = {}
@@ -559,21 +567,30 @@ _BBOLT_ROOT_ERRS = ['ErrDatabaseNotOpen', 'ErrInvalid', 'ErrInvalidMapping', 'Er
 # and `runtime.GOARCH` (constants, axiom `val`s of Perennial's names-only `runtime`) are `"linux"`
 # and `"amd64"`. Stated here, in
 # `runtime`'s initialization, since it is a fact of the platform the program starts on; `runtime`'s
-# `IsPkgInit` instance is Perennial's (fact `True`), so the fact is surfaced through bbolt's, the one
+# `IsPkgInit` instance is Perennial's (its fact: `buildVersion` holds some string), so the fact is surfaced through bbolt's, the one
 # package that branches on `GOOS` (`Proof/go_etcd_io/bbolt/PkgInit.lean`, `bboltRootInit`).
 SPECIAL['runtime'] = dict(
-    doc='''Its fact is `True`. Its initializer initializes its imports, runs the untranslated
+    doc='''Its fact (Perennial's `runtime.isInit`, `Perennial/Proof/runtime/Base.lean`): `buildVersion`,
+which `Version` returns, holds some string, read-only for good. Its initializer runs the trusted
+model of `buildVersion`'s initialization (Perennial's `TrustedCode/runtime.lean`: it allocates the
+variable and stores an arbitrary string, the linker's; Perennial's `runtime.wp_buildVersion_init`,
+whose cell is made persistent here), initializes its imports, runs the untranslated
 initializers of its variables (`X.init`, axioms of the translation), which the
 trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+`init` functions, which the trust-boundary axiom `initFuncsOk` says return. (Until Perennial
+`160fcf12a`, 2026-11-23, its fact was `True` and `buildVersion` untranslated.)
 
 And the trust-boundary assumptions `GOOS_linux` and `GOARCH_amd64`: the program runs on
 linux/amd64 (`runtime.GOOS` and `runtime.GOARCH`, constants that goose leaves axiom `val`s, are
 `"linux"` and `"amd64"`), as the repository's other platform facts
 assume linux/amd64 (`os.Getpagesize` returns 4096, `Spec/os/Getpagesize.lean`; the Linux file
-extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, with the fact `True`, so the
+extension `fsExt`). `runtime`'s `IsPkgInit` instance is Perennial's, whose fact says nothing of
+`GOOS`/`GOARCH`, so the
 packages that read `GOOS`/`GOARCH` state them in their own facts from these axioms (bbolt's root package,
 `bboltRootInit`).''',
+    # (pin bump 160fcf12a, 2026-11-23) Perennial's trusted model of `buildVersion`'s initialization
+    trusted={'buildVersion': ['wp_apply _root_.Perennial.runtime.wp_buildVersion_init as ⟨%bv, Hbv⟩']},
+    finish=['ipersist Hbv'] + FIN_PRE[:6] + ['iexists _', 'iexact Hbv'],
     pre=['namespace runtime', '',
          '/-- **The trust boundary: the program runs on Linux.** `runtime.GOOS` is the constant',
          '`"linux"` (Go\'s `GOOS` of the build; goose translates `runtime` names-only, so it is an',
@@ -1251,20 +1268,8 @@ trusted initializers of its other variables (models in `TrustedCode/` that do no
             'iframe HErrClosed HerrClosed', 'iexists _', 'iexact HerrTimeout'],
 )
 
-# (2026-10-26) `ValidString` with its body: the tables it reads are translated
-SPECIAL['unicode.utf8'] = dict(
-    doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
-their values (`firstTable`, `acceptTable`), read-only for good. Its initializer allocates them and
-stores their translated array literals.''',
-    alloc_types={'first': 'GoArray w8 256',
-                 'acceptRanges': 'GoArray _root_.Perennial.unicode.utf8.acceptRange 16'},
-    # `first`'s literal is 256 `let`s
-    pre=['set_option maxRecDepth 20000', ''],
-    heavy=True,
-    finish=['ipersist Hfirst', 'ipersist HacceptRanges'] + FIN_PRE + [
-        'unfold EtcdGrove.utf8.utf8Init', 'isplit',
-        '· iExactEq Hfirst', '  rfl', '· iExactEq HacceptRanges', '  rfl'],
-)
+# (net-swap, 2026-11-22) the main tree's `net` is `Net/`'s: the same initializer proof
+SPECIAL['net'] = NET_SPECIAL['net']
 
 # (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
 # package into the closure) its five error variables, translated `errors.New` calls
@@ -1480,28 +1485,24 @@ the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", 
 
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
     doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultMutableFeatureGate` and
-`DefaultFeatureGate` hold the same feature gate. Its initializer initializes its import
-(`component-base/featuregate`, names-only) and runs its variables' untranslated initializers
-(`feature_gate.go`); the trust-boundary axioms `DefaultMutableFeatureGate_init`
-(`featuregate.NewFeatureGate()`: a gate) and `DefaultFeatureGate_init` (`DefaultFeatureGate =
-DefaultMutableFeatureGate`: the same gate) state them. (Sweep repairs 1, B5, 2026-11-08: until then
+`DefaultFeatureGate` hold the same feature gate. Its initializer allocates `DefaultFeatureGate`,
+initializes its import (`component-base/featuregate`, names-only), runs `DefaultMutableFeatureGate`'s
+untranslated initializer (`feature_gate.go`), which the trust-boundary axiom
+`DefaultMutableFeatureGate_init` (`featuregate.NewFeatureGate()`: a gate) states, and
+`DefaultFeatureGate`'s translated one (`DefaultFeatureGate = DefaultMutableFeatureGate`, a conversion
+between interface types, which keeps the gate). (Sweep repairs 1, B5, 2026-11-08: until then
 `DefaultFeatureGate_init` gave a gate whose `Enabled` answered any `bool` for any feature, false of an
 unregistered one, and `DefaultMutableFeatureGate` was `opaqueInitsOk`'s, unlinked; the gate's specs
-are now `features`' registration's, `features.init_0_ok`.)''',
+are now `features`' registration's, `features.init_0_ok`. Until 2026-11-23, #36, `DefaultFeatureGate`'s
+initializer was untranslated, the trust-boundary axiom `DefaultFeatureGate_init`.)''',
+    alloc_types={'DefaultFeatureGate': 'GoInterface'},
     custom={
         'DefaultMutableFeatureGate': dict(
             doc='/-- `DefaultMutableFeatureGate = featuregate.NewFeatureGate()` (`feature_gate.go`): a feature gate, no Kubernetes feature registered yet (`features`\' `init` registers them, `features.init_0_ok`). -/',
             post='∃ g : GoInterfaceOk, globalAddr DefaultMutableFeatureGate ↦ GoInterface.ok g',
-            pat='⟨%g@, H@⟩'),
-        'DefaultFeatureGate': dict(
-            doc='/-- `DefaultFeatureGate = DefaultMutableFeatureGate` (`feature_gate.go`): the same gate. -/',
-            binder='∀ g : GoInterfaceOk,',
-            pre='globalAddr DefaultMutableFeatureGate ↦□ GoInterface.ok g',
-            post='globalAddr DefaultFeatureGate ↦ GoInterface.ok g',
-            apply=['ipersist HDefaultMutableFeatureGate',
-                   'wp_apply (DefaultFeatureGate_init gDefaultMutableFeatureGate) $$ [] as HDefaultFeatureGate',
-                   '· iframe #'])},
-    finish=['ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
+            pat='⟨%g@, H@⟩')},
+    before={'DefaultFeatureGate': ['try wp_auto']},
+    finish=['ipersist HDefaultMutableFeatureGate', 'ipersist HDefaultFeatureGate'] + FIN_PRE[:6] + [
             'imodintro', 'iexists _', 'iframe #'],
 )
 
@@ -2889,7 +2890,7 @@ _MV_REPORT = ['reportDbTotalSizeInBytes', 'reportDbTotalSizeInUseInBytes', 'repo
 SPECIAL['go_etcd_io.etcd.server.v3.storage.mvcc'] = dict(
     doc="""Its fact (`mvccInit`, `Base.lean`): its error variables (translated `errors.New` calls), its
 metrics (`metrics.go`, translated: `prometheus.NewCounter`, `NewGauge` and `NewHistogram` of an
-options literal, the trust-boundary axioms of those constructors and of `ExponentialBuckets`; a
+options literal, the trust-boundary axioms of those constructors and `ExponentialBuckets`'s spec; a
 counter's `Add` only of a non-negative value), its constants, and `schema`'s two compaction key names (from `schema`'s
 fact). (prove-initmisc, 2026-11-20) Its other metrics (`totalEventsCounter`, `hashSec`,
 `hashRevSec`, and the `NewGaugeFunc` gauges, over that constructor's spec) and `_` (`var _
@@ -3903,6 +3904,24 @@ their translated initializers: {_what} (prove-smallinits, 2026-11-20; until then
 axiom `opaqueInitsOk`).''', alloc_types=_ALLOC_ANY,
         # the `&T{}` allocations
         before={'$end': ['try wp_auto', 'repeat (wp_alloc_anon; try wp_auto)']} if _p in _K8S_ALLOCS else {})
+# (klog-leaves, 2026-11-23; etcd-grove#25) klog's `logging`, translated (zero: no initializer) for `V`
+SPECIAL['k8s_io.klog.v2'] = dict(doc='''Its fact (`klogInit`, `storage/etcd3/Base.lean`): of the global `logging`, `verbosity` holds
+some level, `filterLength` is 0 and `logger` is `nil`, read-only for good. Its initializer
+initializes its imports, allocates `logging` (zero: it has no initializer; the allocation gives its
+fields' points-tos) and runs its `init` functions (trusted no-ops, `TrustedCode/k8s_io/klog/v2.lean`:
+`init.1` writes 0 to `verbosity` and `filterLength`, as the zero value has them; klog-leaves,
+2026-11-23).''',
+    alloc_types={'logging': 'k8s_io.klog.v2.loggingT'},
+    finish=['iStructNamed Hlogging', 'iStructNamed settings',
+            'ipersist verbosity', 'ipersist filterLength', 'ipersist logger'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold k8s_io.apiserver.pkg.storage.etcd3.klogInit',
+            'isplitl []', '· iexists _; iexact verbosity', 'isplitl []',
+            # the zero value's fields, by `rfl`
+            "· have hz : (zero_val k8s_io.klog.v2.loggingT).settings'.filterLength' = W32 0 := rfl",
+            '  rw [← hz]', '  iexact filterLength',
+            "· have hz : (zero_val k8s_io.klog.v2.loggingT).settings'.logger' = null := rfl",
+            '  rw [← hz]', '  iexact logger'],
+)
 # (prove-k8s, 2026-11-20) more k8s lists translated (until then each package's `opaqueInitsOk`); their
 # facts are `True`.
 SPECIAL['k8s_io.utils.trace'] = dict(doc='''Its fact is `True`. Its initializer initializes its imports, allocates its variables and runs
@@ -4352,7 +4371,8 @@ def gen(p, cfg=None):
     d = inv[p]
     k = plain(p)
     imods = inst.get(k) or inst.get(p)
-    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else 'Proof.' + imods[0][0].replace('/', '.')
+    inst_mod = PERENNIAL_INST[p] if p in PERENNIAL_INST else (
+        imods[0][0][1:] if imods[0][0].startswith('@') else 'Proof.' + imods[0][0].replace('/', '.'))
     cl = closure(p)
     needs_ctx = 'context' in cl
     needs_raft = 'go_etcd_io.raft.v3' in cl
@@ -4795,9 +4815,8 @@ def gen_ext():
 
 # The programs whose closed theorem needs the package table of their import closure (item 9,
 # D19r, 2026-10-18): the root package and the module of the generated table.
-PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/leaseexpiryN/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
+# (net-swap, 2026-11-22) etcd/all's, k8s/all's and leaseexpiryN's tables went with their closed theorems
+PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/counter/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv':
             'Proof/github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkv/PkgTable.lean',
@@ -4814,17 +4833,17 @@ PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiryN':
             'github_com.mit_pdos.etcd_grove.examples.raft.kvreconf':
             'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.k8s.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/all/PkgTable.lean',
-            'github_com.mit_pdos.etcd_grove.examples.etcd.all':
-            'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/all/PkgTable.lean'}
+            'Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/PkgTable.lean'}
 # (R10, 2026-11-07) mvcc's randomized tester
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/PkgTable.lean'
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
+# (2026-11-23) putget_safe's package (both machines' boot programs run its initializer), for its
+# distributed theorem (notes/putget-dist-plan.md)
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/PkgTable.lean'
 # (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
@@ -5482,6 +5501,10 @@ def dsv_kit_raw(k, base):
     pkgs, programs = getattr(k, 'PKGS', []), getattr(k, 'PROGRAMS', {})
     hyp = list(getattr(k, 'HYP_INITS', []))
     hyp_imports = getattr(k, 'HYP_IMPORTS', 'all')
+    # (a dict: per package, `'all'` for a package it does not list)
+    hyp_mode = (lambda q: hyp_imports.get(q, 'all')) if isinstance(hyp_imports, dict) \
+        else (lambda q: hyp_imports)
+    hyp_none = [q for q in hyp if hyp_mode(q) == 'none']
     main = list(getattr(k, 'MAIN', []))
     main_gen = list(getattr(k, 'MAIN_GEN', main))
     own = set(getattr(k, 'OWN', ()))
@@ -5490,10 +5513,10 @@ def dsv_kit_raw(k, base):
     try:
         CFG_OVERRIDE = NET_SPECIAL
         RAFT_INIT = RAFT_INIT - set(main)  # a `MAIN` package's `Init` is the part's
-        if hyp_imports == 'none':
+        if hyp_none:
             # a hypothesis package's imports, as its `GetIsPkgInitWf` sees them: none (its
             # `Init.lean`), so the programs' tables stop there
-            pkginfo_imports = lambda q: [] if q in hyp else saved_pi(q)
+            pkginfo_imports = lambda q: [] if q in hyp_none else saved_pi(q)
         inv, inst = dict(net_inv), dict(net_inst)
         _DSV_KEEP.append(inv)  # (`split`'s cache is keyed by `id(inv)`)
         for p in NET_MAIN:
@@ -5518,9 +5541,9 @@ def dsv_kit_raw(k, base):
         # class `InitHyp`): external here, their imports as `HYP_IMPORTS` says
         for q in hyp:
             inv[q] = dict(inv[q], perennial=True)
-            if hyp_imports == 'none':
+            if hyp_mode(q) == 'none':
                 inv[q]['imports'] = []
-            elif hyp_imports == 'known':
+            elif hyp_mode(q) == 'known':
                 inv[q]['imports'] = [i for i in inv[q]['imports'] if i in inv]
         PERENNIAL_HERE.difference_update(hyp)
         gen_pkgs = [p for p in pkgs if os.path.exists(f'{DSV_ROOT}/Code/{dirof(p)}.lean')] + main_gen

@@ -5,7 +5,7 @@
 **Draft for review** (`notes/etcd-dist-plan.md`): not built, nothing imports it. What is a
 placeholder is marked `PLACEHOLDER`; each names the stage of the plan that replaces it.
 
-The deployment `etcd_dist_safe` quantifies over: one etcd cluster of `k ≥ 1` members, each on a
+The deployment `etcd_safe` quantifies over: one etcd cluster of `k ≥ 1` members, each on a
 machine of its own that may crash and restart (`servers`), and client machines that never crash,
 each running one workload against the members' client addresses (`clients`). Its premise is one
 decidable predicate, `Deployment.WellFormed` (addresses, names, ids, the server configuration in

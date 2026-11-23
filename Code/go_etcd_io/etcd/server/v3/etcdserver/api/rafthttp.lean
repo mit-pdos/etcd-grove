@@ -31,7 +31,7 @@ public import Code.go_etcd_io.etcd.pkg.v3.httputil
 public import Code.github_com.Masterminds.semver.v3
 public import Code.go_etcd_io.etcd.client.pkg.v3.transport
 public import Code.net.url
-public import Code.net
+public import Net.Code.net
 public import Perennial.Golang.Defn
 
 @[expose] public section

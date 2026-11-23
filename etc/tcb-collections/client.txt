@@ -15,13 +15,13 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
+axiom addrClaim
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom credentials.perRPCCredential.GetRequestMetadata.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
-axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -42,7 +42,6 @@ axiom grpcSrvNew
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
-axiom netListenerAt
 axiom os.Getenv.wp_proof
 axiom pbAuthEnableRequestT_reg
 axiom pbAuthEnableResponseT_reg

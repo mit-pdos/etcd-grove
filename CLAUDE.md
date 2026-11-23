@@ -156,6 +156,10 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   line naming it; `--check` in CI; a file without that line is the part's own); its initializers
   from `etc/gen-init.py`'s `PARTS`, its Links from `etc/gen-link.py --raft-noax`/`--kvdurable-noax`.
   Nothing outside it imports it; trust base: `etc/tcb-collections/raft-noax.txt`.
+- `Net/` is another: the net extension's `net` and the programs over it (`examples/net`, `examples/lib/remote`,
+  the models' codecs and `net/{http,rpc}`). Since the net swap (etcd-dist D2, 2026-11-22) its `net` is also the
+  main tree's (`net=Net` in every project; `Proof/net/InvNet.lean` defines the address predicates over it):
+  the main tree imports `Net/`'s `net` modules, never the part's other modules.
 - `KvNet/` is another: kvnet's proof (`notes/kvnet-part.md`), over raft-noax's raft, `Net/`'s `net` and
   `WalTester/`'s bodied `durable` in one closure: project `kvnet` and parts of projects raft-noax, net,
   durable and etcd translated into it, copies of those parts' (and the main tree's) modules its own
