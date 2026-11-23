@@ -24,6 +24,8 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace sp
 
+variable [GobFmt]
+
 /-- After the frames of `done`, a type byte `c` and bytes `d`, in a prefix of the frames of the
 well-formed `ms`: `d` is a prefix of a well-formed message's body of type `c`. -/
 theorem frames_nextOk_pure {ok : Msg → Prop} {done ms : List Msg} {c : w8} {d : List w8}

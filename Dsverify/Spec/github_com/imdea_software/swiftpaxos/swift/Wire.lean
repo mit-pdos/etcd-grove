@@ -21,8 +21,14 @@ sequences of these a stream may hold; the readers' proofs show that `Unmarshal` 
   bytes little-endian);
 * the kit's codec (`rpc_gen.go`): `KitVal`, the values of the listed rpc types, and
   `KitVal.encode` (the type's tag as 8 bytes, then its fields; strings, slices and maps as an
-  8-byte count then the elements); the gob model's frame (`gobFrame`: an 8-byte length, then the
-  codec's encoding).
+  8-byte count then the elements). An `MSync`'s is kept as a size measure only (`SyncWire.cEnc`):
+  `MSync.Marshal` writes it with the real `encoding/gob`;
+* `GobFmt`, **the real `encoding/gob`'s format, abstractly**: `bytes m bs`, the bytes a fresh
+  `gob.Encoder` writes for an `*MSync` holding `m` (its type descriptors, then the value), with
+  the two laws of gob's format the readers need (`peel`: such streams are self-delimiting and
+  determine `m`), and `fits` (the value's message is within gob's size limit) with its law
+  `fits_of` (a bound on `m`'s size measure). A premise of the statement (a parent of
+  `SwiftLibs`), true of Go's `encoding/gob`; see `GobFmt`'s docstring.
 
 Messages registered in the rpc table but never sent in this deployment (`MSlowAck`, `MAccept`,
 `MPing`, `MPingRep`, `MCollect`; `MAccept` is sent only with a proxy and optimistic execution
@@ -198,8 +204,10 @@ inductive Msg where
   | newLeader (rep bal : w32)
   /-- `MNewLeaderAckN` (a recovery report): replica, ballot, the reporter's `cballot`, entries -/
   | newLeaderAckN (rep bal cbal : w32) (es : List RepEntry)
-  /-- `MSync` (through the gob model) -/
-  | sync (m : SyncWire)
+  /-- `MSync`, written with `encoding/gob` as the bytes `bs` (`GobFmt.bytes m bs`, required
+  by `Msg.wf`: the bytes are not a function of `m`, as a fresh encoder's type ids depend on the
+  process's earlier uses of gob) -/
+  | sync (m : SyncWire) (bs : List w8)
 
 /-- `defs.RPC_TABLE`: the first rpc table id. -/
 def rpcTable : Nat := 9
@@ -291,9 +299,58 @@ def KitVal.encode (v : KitVal) : List w8 :=
   | .beTheLeaderReply l n => cI32 l ++ cI32 n
   | .msync m => m.cEnc
 
-/-- The gob model's frame of a value: the encoding's length (8 bytes little-endian), then the
-encoding (`Encoder.Encode`, one `Write`). -/
-def gobFrame (body : List w8) : List w8 := u64Le (W64 body.length) ++ body
+/-- Two codec values that differ only in the iteration order of an `MSync`'s maps (the encoder
+iterates Go maps in an arbitrary order). -/
+def KitVal.equiv : KitVal → KitVal → Prop
+  | .msync m, .msync m' => m.rep = m'.rep ∧ m.bal = m'.bal ∧
+      Option.Rel List.Perm m.phases m'.phases ∧ Option.Rel List.Perm m.cmds m'.cmds ∧
+      Option.Rel List.Perm m.deps m'.deps
+  | x, y => x = y
+
+/-- The value is well formed: an `MSync`'s map listings have distinct keys (what Go maps
+encode). -/
+def KitVal.wf : KitVal → Prop
+  | .msync m => (m.phases.map (fun l => (l.map Prod.fst).Nodup)).getD True ∧
+      (m.cmds.map (fun l => (l.map Prod.fst).Nodup)).getD True ∧
+      (m.deps.map (fun l => (l.map Prod.fst).Nodup)).getD True
+  | _ => True
+
+/-- **The real `encoding/gob`'s format for an `*MSync`, abstractly** (a premise of the
+statement, as a parent of `SwiftLibs`; the gob specs, `Spec/encoding/gob/*`, are stated over it).
+Each field is true of Go's `encoding/gob` (go1.2x, `encoder.go`, `decoder.go`), taking for
+`bytes` and `fits` their meaning below:
+
+* `bytes m bs`: `bs` is what a fresh `gob.Encoder` may write for one `*MSync` whose struct holds
+  `m`, its maps listed in the order the encoder iterates them: the type-definition messages
+  (negative type ids) of the types it has not sent yet (all of them, the encoder being fresh),
+  then the value's message (positive type id); each message is its length as a gob unsigned
+  integer, then its contents. Not a function of `m`: the type ids are the process's (assigned
+  at a type's first use).
+* `peel`: such a stream is self-delimiting and determines `m`. A gob stream is read message by
+  message, each delimited by its length; the first value message ends the value, so two such
+  streams that agree up to the shorter's end are equal; and the value message (with the type
+  definitions before it) determines the fields `Replica` and `Ballot` and each map (nil or not:
+  gob sends a non-nil empty map, and not a nil one) with its entries in the order sent.
+* `fits m`: the value's message is shorter than the encoder's limit (`tooBig`, `1 << 33` on
+  64-bit platforms; `Encode` fails with `gob: encoder: message too big` otherwise, after
+  writing the type definitions).
+* `fits_of`: a value whose size measure `m.cEnc` (the lab codec's encoding: 8 bytes per integer,
+  a byte for a map's presence) is below `2 ^ 31` bytes fits: gob writes each integer in at most
+  9 bytes plus a 1-byte field delta, a struct's end in 1 byte, a map's or slice's count in at most
+  9 bytes, so each item takes at most twice its measure (a `CommandId` 21 bytes against 16, a map
+  entry of a `Cmd` `52 + |val|` against `40 + |val|`, a dependency list `9 + 21 n` against
+  `8 + 16 n`), and the type id and the struct's end at most 10 bytes more: under
+  `2 ^ 32 + 10 < 2 ^ 33`.
+* `exists_bytes`: an `*MSync` holding `m` (distinct keys: a Go map's) that fits is encoded:
+  `Encode` with no failing `Write` writes a stream of some listing of it. -/
+class GobFmt where
+  bytes : SyncWire → List w8 → Prop
+  peel : ∀ {a b : SyncWire} {ba bb x y : List w8}, bytes a ba → bytes b bb →
+    ba ++ x = bb ++ y → a = b ∧ ba = bb
+  fits : SyncWire → Prop
+  fits_of : ∀ m : SyncWire, m.cEnc.length < 2 ^ 31 → fits m
+  exists_bytes : ∀ m : SyncWire, KitVal.wf (.msync m) → fits m →
+    ∃ (m' : SyncWire) (bs : List w8), KitVal.equiv (.msync m) (.msync m') ∧ bytes m' bs
 
 /-- A message's `Marshal`. -/
 def Msg.body : Msg → List w8
@@ -313,7 +370,7 @@ def Msg.body : Msg → List w8
       varintLen es.length ++ (es.map (fun e => le64 e.phase)).flatten ++
       RepEntry.encCmds es ++
       varintLen es.length ++ (es.map (fun e => encDep e.dep)).flatten
-  | .sync m => gobFrame (KitVal.msync m).encode
+  | .sync _ bs => bs
 
 /-- A message on the wire: its type byte, then its `Marshal`. -/
 def Msg.frame (m : Msg) : List w8 := m.code :: m.body

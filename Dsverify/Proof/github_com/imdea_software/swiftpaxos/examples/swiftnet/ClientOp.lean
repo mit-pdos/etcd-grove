@@ -230,7 +230,7 @@ theorem Op.wp_proof (γ : SwiftNames netDistGF) (c : Nat)
     ⟨%Hv, «$res0», «$res1», Hst⟩)
   · subst Hv
     wp_auto
-    have hsq : sq < 2 ^ 25 := by omega
+    have hsq : sq < 2 ^ 10 := by omega
     cases i with
     | put k v =>
       obtain ⟨hk, hv, hvlen⟩ := hpre

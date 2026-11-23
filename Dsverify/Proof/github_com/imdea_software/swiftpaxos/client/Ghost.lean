@@ -55,7 +55,7 @@ abbrev client.Ghost.Invoke.specG : Prop :=
       sp.allPredsReg γ γc ∗ sp.clientSeq γ x.cl x.seq.toNat ∗
       sp.cmdAU γl c Ψ ∗ vsl ↦*□ c.val ∗
       ⌜x.cl.toInt ≥ 1 ∧ (c.isPut ∨ c.isGet) ∧ c.val.length < 2 ^ 16 ∧ 0 ≤ x.seq.toInt ∧
-        x.seq.toNat < 2 ^ 25⌝ }}
+        x.seq.toNat < 2 ^ 10⌝ }}
     (App (App (App (App (App (Val (g @!! go.GoType.PointerType client.Ghost.ty @!! go!"Invoke"))
       (Val #c.op)) (Val #x.cl)) (Val #x.seq)) (Val #c.key)) (Val #vsl))
   {{ RET #(); sp.cmdIs γ x c ∗ sp.clientSeq γ x.cl (x.seq.toNat + 1) ∗ sp.pend γ x Ψ }}

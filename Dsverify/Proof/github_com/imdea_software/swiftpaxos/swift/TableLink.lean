@@ -44,7 +44,6 @@ variable [examples.swiftnet.Assumptions]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [swift.Assumptions] [io.Assumptions] [errors.Assumptions]
   [bufio.Assumptions] [replica.defs.Assumptions] [state.Assumptions]
-variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 
 /-- The persistent facts of the table's entries. -/
 def ctxTbl (v : Bool) : IProp netDistGF :=

@@ -2,16 +2,25 @@
 Ported from dsverify-lab examples/swiftpaxos/proof/Spec/gob/Decoder__Decode.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
-`dec.Decode(ptr)` over an `io.Reader` (a replica's peer `*bufio.Reader` in `MSync.Unmarshal`:
-`bufio.bufioReadsOk`): reads exactly one frame (`io.ReadFull` of its 8-byte length, then of its
-body) and decodes the body into `*ptr` with the codec.
+`dec.Decode(v)`, `dec` fresh over a `*bufio.Reader` `rd` (`ownDecoder`: no read-ahead), `v` an
+`*MSync` holding the zero value (the kit's `MSync.New()`). What Go's `Decoder.Decode` does
+(`decoder.go`): it reads messages, each by `io.ReadFull` of its length (a gob unsigned integer)
+and then of its contents, until a value message, installing the type definitions before it, and
+decodes the value into `*v` (a map sent is made and filled: `v` held zero maps). So it reads some
+bytes `data` from `rd` (`readsOk`), and when it returns nil:
+* `data` ends with the value's message, so if the stream holds a fresh encoder's gob stream `bs` of
+  some `m` (`GobFmt.bytes m bs`) where `data` began, `data` is `bs` (it read through the first
+  value message, `bs`'s last), and
+* `*v` holds `m` up to the maps' order (`KitVal.equiv`: the decoded maps' listing is the run
+  time's).
+Given for every such `m` and `bs`: the decoder does not know what the stream was meant to hold.
+On an error (a short read, the connection's, or bytes that are not such a stream) `*v` is given
+up (it may be partly filled).
 -/
 module
 
 public import Dsverify.Spec.encoding.gob.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
-
--- PORT: lab imports dropped: Harness.Proof.bufio.ReadFull, Harness.Proof.bufio.Writer
 
 @[expose] public section
 
@@ -29,34 +38,23 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
-variable [net.rpc.RpcCodec GF]
 
-/-- `dec.Decode(ptr)`: the reader delivers `data`; `nil` exactly when `data` is one whole
-frame `gobFrame bs` (`bs` shorter than `2 ^ 64`, change log C17) and the codec decoded `bs` into
-`ptr` (`Ψ bs true`); otherwise an error
-(with some message) after a short read or a frame over `MaxFrame` (the decoding resource `D`
-back) or a failed decoding (`Ψ bs false`). The decoding premise is given for whatever body is
-read: `□ (D -∗ ∀ bs, RpcCodec.dec bs ptr (Ψ bs))`. -/
+/-- `dec.Decode(v)` (see the file header). -/
 abbrev Decoder.Decode.spec : Prop :=
-  ∀ (dec : Loc) (dq : DFrac) (rd : GoInterface) (I : List w8 → IProp GF) (R : List w8)
-    (ptr : GoInterface) (D : IProp GF) (Ψ : List w8 → Bool → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob ∗ codecSet (GF := GF) ∗
-      isPkgInit (PROP := IProp GF) pkg_id.io ∗
-      bufio.readsOk rd I ∗ I R ∗ encoding.gob.ownDecoder dec dq (rd) ∗
-      D ∗ □ (D -∗ ∀ bs, net.rpc.RpcCodec.dec bs ptr (Ψ bs)) }}
+  ∀ (dec : Loc) (rd : GoInterface) (I : List w8 → IProp GF) (R : List w8) (l : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
+      bufio.readsOk rd I ∗ I R ∗ encoding.gob.ownDecoder dec rd ∗
+      l ↦ (Perennial.zero_val github_com.imdea_software.swiftpaxos.swift.MSync) }}
     (App (Val (dec @!! go.GoType.PointerType encoding.gob.Decoder.ty @!! go!"Decode"))
-      (Val #ptr))
-  {{ (e : GoInterface), RET #e; encoding.gob.ownDecoder dec dq (rd) ∗
-      ∃ data : List w8, I (R ++ data) ∗
-      -- change log C17 (SWC-G1): the frame's body is shorter than `2 ^ 64` (its length is an
-      -- 8-byte field)
-      ((⌜e = interface.nil⌝ ∗ ∃ bs, ⌜data = github_com.imdea_software.swiftpaxos.sp.gobFrame bs ∧
-          bs.length < 2 ^ 64⌝ ∗ Ψ bs true) ∨
-        (⌜e ≠ interface.nil⌝ ∗ net.rpc.errAny e ∗
-          (D ∨ ∃ bs, ⌜data = github_com.imdea_software.swiftpaxos.sp.gobFrame bs⌝ ∗ Ψ bs false))) }}
+      (Val #(interface.mkOk (go.GoType.PointerType github_com.imdea_software.swiftpaxos.swift.MSync.ty) #l)))
+  {{ (e : GoInterface), RET #e; ∃ data : List w8, I (R ++ data) ∗
+      ((⌜e = interface.nil⌝ ∗ ∃ m' : github_com.imdea_software.swiftpaxos.sp.SyncWire,
+          ⌜∀ (m : github_com.imdea_software.swiftpaxos.sp.SyncWire) (bs u w : List w8),
+            encoding.gob.gobBytes (GF := GF) m bs → data ++ u = bs ++ w →
+            data = bs ∧ github_com.imdea_software.swiftpaxos.sp.KitVal.equiv (.msync m) (.msync m')⌝ ∗
+          syncOwn l (DFrac.own 1) m') ∨
+        ⌜e ≠ interface.nil⌝) }}
 
 end spec
 
 end Perennial.encoding.gob
-

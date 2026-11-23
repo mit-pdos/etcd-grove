@@ -33,7 +33,7 @@ shared with the reply it came in). -/
 abbrev client.BufferClient.Read.spec : Prop :=
   ∀ (b : Loc) (γ : sp.Names) (γc γm γl : GName) (cid : w32) (s : Nat) (key : w64),
   ⊢ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client -∗
-    client.ready b γ γc γm γl cid s -∗ ⌜s < 2 ^ 25⌝ -∗
+    client.ready b γ γc γm γl cid s -∗ ⌜s < 2 ^ 10⌝ -∗
     <<{ ∀∀ σ, linOwn γl σ }>>
       (App (Val (b @!! go.GoType.PointerType client.BufferClient.ty @!! go!"Read")) (Val #key))
       @ ↑sp.spN

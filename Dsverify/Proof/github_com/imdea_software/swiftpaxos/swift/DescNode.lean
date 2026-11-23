@@ -159,7 +159,7 @@ theorem swift.insAll_lookup {V : Type} (O : GMap (Nat × sp.CmdId) V) (b : Nat) 
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- The epoch: the replica's ballot and `cballot` (see the file header). -/
 def swift.epochOf (st : sp.RState) : Nat × Nat := (st.ballot, st.cballot)
@@ -269,7 +269,7 @@ end defs
 
 section nodeX
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- `nodeX` along a step that keeps `cballot` and the reports, grows the acceptances and does
 not lower the ballot. -/
@@ -378,7 +378,7 @@ end nodeX
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 theorem swift.nodeN_diff : ↑sp.spN ⊆ (⊤ \ ↑swift.nodeN : CoPset) := by
   intro e he

@@ -22,7 +22,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- `swift.handle_stepD` with the numbering (change log C22, M3): the run loop's node `k`, its
 next number `n`, numbers `x` (`sp.upd_handleN`). -/

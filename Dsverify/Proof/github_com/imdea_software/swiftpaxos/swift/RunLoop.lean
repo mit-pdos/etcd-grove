@@ -653,14 +653,14 @@ theorem swift.Replica.run.wp_proof (X : Type)
       iunfold sp.chanMsgP at Hv
       icases Hv with ⟨%m, Hr, #Hok, %Hc⟩
       cases m <;> simp [sp.Msg.code, sp.rpcTable] at Hc
-      rename_i m0
+      rename_i m0 bs0
       iunfold swift.msgRep at Hr
       iunfold swift.msgRepM at Hr
       icases Hr with ⟨%l0, %x0, %Hv, Hl⟩
       obtain ⟨Hv, Hx⟩ := Hv
       subst Hv
       wp_auto_lc 2
-      wp_apply ar.sync l0 m0 $$ [$HI Hl] as HI
+      wp_apply ar.sync l0 m0 bs0 $$ [$HI Hl] as HI
       · iframe Hok
         iunfold swift.msgRepM
         iexists l0, x0

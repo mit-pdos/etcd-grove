@@ -30,7 +30,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF] [github_com.imdea_software.swiftpaxos.SwiftHyps GF]
-variable [replica.defs.Assumptions] [state.Assumptions] [io.Assumptions]
+variable [sp.GobFmt] [replica.defs.Assumptions] [state.Assumptions] [io.Assumptions]
   [errors.Assumptions] [encoding.binary.Assumptions]
 
 set_option goose.wp.extras true

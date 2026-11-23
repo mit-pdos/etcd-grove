@@ -42,21 +42,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Net
 
 namespace sp
 
-/-- Two codec values that differ only in the iteration order of an `MSync`'s maps (the encoder
-iterates Go maps in an arbitrary order). -/
-def KitVal.equiv : KitVal → KitVal → Prop
-  | .msync m, .msync m' => m.rep = m'.rep ∧ m.bal = m'.bal ∧
-      Option.Rel List.Perm m.phases m'.phases ∧ Option.Rel List.Perm m.cmds m'.cmds ∧
-      Option.Rel List.Perm m.deps m'.deps
-  | x, y => x = y
-
-/-- The value is well formed: an `MSync`'s map listings have distinct keys (what Go maps
-encode). -/
-def KitVal.wf : KitVal → Prop
-  | .msync m => (m.phases.map (fun l => (l.map Prod.fst).Nodup)).getD True ∧
-      (m.cmds.map (fun l => (l.map Prod.fst).Nodup)).getD True ∧
-      (m.deps.map (fun l => (l.map Prod.fst).Nodup)).getD True
-  | _ => True
+-- `KitVal.equiv`, `KitVal.wf`: moved to Spec/swift/Wire.lean (eighth session; `GobFmt` uses them).
 
 /-- gob's merge of a decoded value `y` into a target holding `x` of the same type
 (`rpcMerge_*`): a zero field of `y` (gob does not send it), an empty slice, and a nil map leave

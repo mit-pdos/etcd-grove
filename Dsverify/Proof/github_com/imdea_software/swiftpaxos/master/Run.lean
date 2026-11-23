@@ -6,7 +6,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/master/Run.lean (lab ma
 (`master.createdFull`), the specs of `run` and of the receiver (`master.rcvr.spec`: what
 `rpc.Register` asks of the codec's `Receiver` for `*Master`), over net/rpc's HTTP path
 (`RpcHttpHyp`: `Register_spec`, `HandleHTTP_spec`, `Serve_spec`) and `Net/`'s wildcard `Listen`
-(`net.Listen.labProof` over the `lisProto` that `rpcLisP` gives).
+(`net.Listen.labProofU` over the update that `rpcLisP_lis` gives).
 -/
 module
 
@@ -201,8 +201,7 @@ theorem master.Master.Run.wp_proof_full
   have hdec : decimal 7001 = go!"7001" := by simp [decimal, decimalNat_eq, digitByte]
   have hport : go!":" ++ decimal (sint.Z (W64 7001)) = go!":7001" := by
     rw [show sint.Z (W64 7001) = (7001 : Int) from rfl, hdec]; rfl
-  ihave #Hlis := H.rpcLisP_lis W go!":7001" _ _ $$ Hlp
-  icases Hlis with ⟨%P, %Q, #Hlis⟩
+  ihave %Hlok := H.rpcLisP_ok W go!":7001" _ _ $$ Hlp
   wp_apply wp_slice_literal (V := GoInterface) [interface.mkOk go.int #(W64 7001)]
   isplitr
   · ipureintro; rfl
@@ -211,7 +210,8 @@ theorem master.Master.Run.wp_proof_full
   wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001)) ArgsWf.nil)
     $$ [$Hs3] as %str ⟨-, %Hstr⟩
   rw [master.sprintf_colon_d _ _ Hstr, hport]
-  wp_apply net.Listen.labProof go!":7001" P Q $$ Hlis as %lv %lerr Hl
+  wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv %lerr Hl
+  · iapply H.rpcLisP_lis W go!":7001" _ _ $$ Hlp
   -- the retry loop: listen until it succeeds
   ihave HI : (∃ (lv lerr : GoInterface), l_ptr ↦ lv ∗ err_ptr ↦ lerr ∗
       ((∃ (l : Loc) (lid : w64),
@@ -270,7 +270,8 @@ theorem master.Master.Run.wp_proof_full
       wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001))
         ArgsWf.nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
       rw [master.sprintf_colon_d _ _ Hstr', hport]
-      wp_apply net.Listen.labProof go!":7001" P Q $$ Hlis as %lv2 %lerr2 Hl
+      wp_apply net.Listen.labProofU go!":7001" Hlok $$ [] as %lv2 %lerr2 Hl
+      · iapply H.rpcLisP_lis W go!":7001" _ _ $$ Hlp
       wp_for_post
       iframe
       iexists lv2, lerr2

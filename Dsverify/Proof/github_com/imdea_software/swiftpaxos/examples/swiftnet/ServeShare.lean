@@ -62,7 +62,7 @@ theorem nodeAddrs_replica (k : Nat) (hk : k < 5) :
     simp only [nodeAddrs, List.getD_cons_succ, List.getD_cons_zero, ← hc, ← hr, ← hp]
 
 section share
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 instance srv_rpcAddr_persistent (W : net.rpc.RpcWorld netDistGF) (a : GoString) :
     Persistent (net.rpc.rpcAddr W a) := by

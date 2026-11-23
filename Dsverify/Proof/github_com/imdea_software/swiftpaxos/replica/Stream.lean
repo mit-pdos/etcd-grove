@@ -43,6 +43,8 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace sp
 
+variable [GobFmt]
+
 /-- What a replica's reader knows of its stream (see the file header). -/
 inductive RdKind where
   | peerIn (id : w32)

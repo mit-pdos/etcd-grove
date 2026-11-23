@@ -221,10 +221,10 @@ structure swift.RunArms (rp : Loc) (γ : sp.Names) (γc γm : GName) (I : IProp 
         (Val #sa.CmdId')) (Val #(interface.mkOk (go.GoType.PointerType swift.MLightSlowAck.ty) #l)))
         (Val #slice.nil))
     {{ (d : Loc), RET #d; I }}
-  sync : ∀ (l : Loc) (m : sp.SyncWire),
+  sync : ∀ (l : Loc) (m : sp.SyncWire) (bs : List w8),
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗ I ∗
-        swift.msgRepM (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (.sync m) ∗
-        sp.msgOk γ γc γm (.sync m) }}
+        swift.msgRepM (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (.sync m bs) ∗
+        sp.msgOk γ γc γm (.sync m bs) }}
       (App (Val (rp @!! go.GoType.PointerType swift.Replica.ty @!! go!"handleSync")) (Val #l))
     {{ RET #(); I }}
   -- N2-loop: the end of each step, the rechecks its acceptances freed (DrainRechecks.lean)

@@ -23,6 +23,7 @@ public import Dsverify.GeneratedProof.github_com.emirpasic.gods.utils
 public import Dsverify.GeneratedProof.github_com.google.uuid
 public import Dsverify.GeneratedProof.os.signal
 public import Net.Proof.net.Base
+public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Wire
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Defs
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Base
 public import Proof.net.url.PkgInit
@@ -137,21 +138,25 @@ over, with the laws the proof uses of them, each named after the lab's definitio
 lab proved them over its own models). A deployment's proof is given them, with their specs
 (`SwiftHyps`), and proves `swiftpaxos_remote_robust` for any choice. -/
 class SwiftLibs (GF : BundledGFunctors) extends Net.NetProtoGS where
+  /-- The real `encoding/gob`'s format (Spec/swift/Wire.lean, `sp.GobFmt`): the instance
+  `swiftGobFmt` below. -/
+  gobFmt : sp.GobFmt
   /-- lab `Proof/treemap/Specs.lean` `treemap.isTreeMap`: the `*treemap.Map` at `tm` holds the
   sorted entries `es`, keys encoded by `enc`. -/
   isTreeMap : Loc → (w64 → GoInterface) → github_com.emirpasic.gods.maps.treemap.Entries → IProp GF
   /-- lab `treemap.isTreeMap_sorted`. -/
   isTreeMap_sorted : ∀ tm enc es, isTreeMap tm enc es ⊢
     isTreeMap tm enc es ∗ ⌜github_com.emirpasic.gods.maps.treemap.sortedE es⌝
-  /-- lab `Spec/gob/Defs.lean` `gob.codecSet`: the gob codec encodes and decodes as the kit's
-  `RpcCodec` (the lab's model held the kit's functions; the real `encoding/gob` here, names only,
-  is a hypothesis). -/
-  gobCodecSet : net.rpc.RpcCodec GF → IProp GF
-  gobCodecSet_persistent : ∀ C, Persistent (gobCodecSet C)
-  /-- The `*gob.Encoder` at `enc` writes to `w` (the lab's model's `enc ↦ Encoder{w}`). -/
-  gobEncoder : Loc → DFrac → GoInterface → IProp GF
-  /-- The `*gob.Decoder` at `dec` reads from `r` (the lab's model's `dec ↦ Decoder{r}`). -/
-  gobDecoder : Loc → DFrac → GoInterface → IProp GF
+  /-- A fresh `*gob.Encoder` at `enc` writing to `w` (Spec/encoding/gob/Defs.lean; the lab's
+  model's `enc ↦ Encoder{w}`). The format it writes is the parent `sp.GobFmt`'s. -/
+  gobEncoder : Loc → GoInterface → IProp GF
+  /-- A fresh `*gob.Decoder` at `dec` reading `r` directly (the lab's model's `dec ↦ Decoder{r}`). -/
+  gobDecoder : Loc → GoInterface → IProp GF
+
+/-- gob's format from the libraries at the deployment's ghost state: an instance with `GF` fixed
+(an instance through a parent projection would leave `GF` undetermined, which instance search
+does not solve). -/
+instance swiftGobFmt [l : SwiftLibs Dsv.netDistGF] : sp.GobFmt := l.gobFmt
 
 /-- The run's choice of each package's own post-initialization predicate (`isPkgInitDef`:
 its package-level state), for the kit's packages and the packages they import that have no

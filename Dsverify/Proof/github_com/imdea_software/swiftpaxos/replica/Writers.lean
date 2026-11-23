@@ -541,7 +541,7 @@ local macro "writeframeP" : tactic => `(tactic| (
     iexact HQ0
   wp_apply wire.wp_WriteByte_sink w cv _ _ W code $$ [Hs] as %e1 Hs
   · iframe Hwr Hs HQ1
-  ihave #Hsk := wire.bufio_sinkOk w cv _ _ $$ []
+  ihave #Hsk := wire.bufio_sinkOkE w cv _ _ $$ []
   · iframe Hwr; iPkgInit
   ihave #HQ2 : □ ∀ m : sp.Msg, ⌜Pm m⌝ -∗
       □ sp.WrKind.proto γ γc γm _ cid (W ++ [code] ++ m.body) $$ []

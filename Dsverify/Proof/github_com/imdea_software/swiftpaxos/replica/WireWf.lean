@@ -7,8 +7,8 @@ The SwiftPaxos frames decode uniquely (pure; `Spec/swift/Wire.lean`'s formats).
 What a replica's listener needs to tie a message it decoded off a stream to the message the
 stream's protocol (`sp.inP`/`sp.outQ`, `framesProto`) lists at that position: every frame is a
 prefix-free, injective encoding of a well-formed message (`Msg.wf`: hashes of 32 bytes, a
-command's value shorter than 2^16, varint lengths below 2^62, an `MSync`'s codec encoding below
-2^64 bytes), so if the bytes read so far are the frames of `done` and then the frame of `m`, and
+command's value shorter than 2^16, varint lengths below 2^62, an `MSync`'s bytes a gob stream of
+it, `GobFmt.peel`), so if the bytes read so far are the frames of `done` and then the frame of `m`, and
 the stream is a prefix of the frames of `ms`, then `ms` is `done`, `m`, then more
 (`frames_align`).
 
@@ -186,19 +186,6 @@ theorem pf_ack : PF Ack.wf Ack.enc := by
 theorem cU64_peel {a b : w64} {x y : List w8} (h : cU64 a ++ x = cU64 b ++ y) :
     a = b ∧ x = y := u64Le_peel h
 
-theorem sync_body_peel {a b : SyncWire} {x y : List w8} (ha : a.wf) (hb : b.wf)
-    (h : gobFrame (KitVal.msync a).encode ++ x = gobFrame (KitVal.msync b).encode ++ y) :
-    (KitVal.msync a).encode = (KitVal.msync b).encode ∧ x = y := by
-  unfold gobFrame at h
-  rw [List.append_assoc, List.append_assoc] at h
-  obtain ⟨hl, h⟩ := u64Le_peel h
-  have hl' : (KitVal.msync a).encode.length = (KitVal.msync b).encode.length := by
-    have := congrArg BitVec.toNat hl
-    unfold SyncWire.wf at ha hb
-    simp [W64] at this
-    omega
-  exact List.append_inj h hl'
-
 /-! ### The codec's encoding of an `MSync` (lengths bounded by the frame's) -/
 
 /-- `f` is injective and prefix-free on encodings that fit in `2^64` bytes. -/
@@ -301,50 +288,6 @@ theorem pfb_cmd : PFB cCmd := by
     simpa using this
   cases a; cases b; simp_all
 
-theorem syncEnc_inj {a b : SyncWire} (ha : a.wf)
-    (h : (KitVal.msync a).encode = (KitVal.msync b).encode) : a = b := by
-  unfold SyncWire.wf at ha
-  simp only [KitVal.encode, KitVal.tag, SyncWire.cEnc, List.append_assoc] at h ha
-  obtain ⟨-, h⟩ := u64Le_peel h
-  simp only [cU64, List.length_append, u64Le_length] at ha
-  obtain ⟨h1, h⟩ := cI32_peel h
-  obtain ⟨h2, h⟩ := cI32_peel h
-  have hp1 : PFB (fun p : CmdId × w64 => cCmdId p.1 ++ cU64 p.2) := by
-    intro p q x y hl h
-    simp only [List.append_assoc] at h hl
-    obtain ⟨e1, h⟩ := pfb_cmdId.peel hl h
-    obtain ⟨e2, h⟩ := u64Le_peel h
-    exact ⟨Prod.ext e1 e2, h⟩
-  have hp2 : PFB (fun p : CmdId × Cmd => cCmdId p.1 ++ cCmd p.2) := by
-    intro p q x y hl h
-    simp only [List.append_assoc] at h hl
-    obtain ⟨e1, h⟩ := pfb_cmdId.peel hl h
-    obtain ⟨e2, h⟩ := pfb_cmd.peel (by
-      simp only [List.length_append, cCmdId, cI32, cU64, u64Le_length] at hl ⊢; omega) h
-    exact ⟨Prod.ext e1 e2, h⟩
-  have hp3 : PFB (fun p : CmdId × List CmdId => cCmdId p.1 ++ cList cCmdId p.2) := by
-    intro p q x y hl h
-    simp only [List.append_assoc] at h hl
-    obtain ⟨e1, h⟩ := pfb_cmdId.peel hl h
-    obtain ⟨e2, h⟩ := cList_peel pfb_cmdId cCmdId_len (by
-      simp only [List.length_append, cCmdId, cI32, cU64, u64Le_length] at hl ⊢; omega) h
-    exact ⟨Prod.ext e1 e2, h⟩
-  have n1 : ∀ p : CmdId × w64, 1 ≤ (cCmdId p.1 ++ cU64 p.2).length := fun p => by
-    simp [cCmdId, cI32, cU64, u64Le_length]
-  have n2 : ∀ p : CmdId × Cmd, 1 ≤ (cCmdId p.1 ++ cCmd p.2).length := fun p => by
-    simp only [List.length_append, cCmdId, cI32, cU64, u64Le_length]; omega
-  have n3 : ∀ p : CmdId × List CmdId, 1 ≤ (cCmdId p.1 ++ cList cCmdId p.2).length := fun p => by
-    simp only [List.length_append, cCmdId, cI32, cU64, u64Le_length]; omega
-  have h' := h
-  obtain ⟨e3, h⟩ := cMapOpt_peel hp1 n1 (by
-    simp only [List.length_append, cI32, cU64, u64Le_length] at ha ⊢; omega) h
-  obtain ⟨e4, h⟩ := cMapOpt_peel hp2 n2 (by
-    simp only [List.length_append, cI32, cU64, u64Le_length] at ha ⊢; omega) h
-  obtain ⟨e5, -⟩ := cMapOpt_peel hp3 n3 (a := a.deps) (b := b.deps) (x := []) (y := [])
-    (by simp only [List.length_append, cI32, cU64, u64Le_length, List.length_nil] at ha ⊢; omega)
-    (by simpa using h)
-  cases a; cases b; simp_all
-
 /-! ### The newLeaderAckN's arrays -/
 
 theorem map_flatten_peel {α β : Type} {wf : β → Prop} {e : β → List w8} (h : PF wf e)
@@ -371,6 +314,9 @@ theorem repEntries_eq {es1 es2 : List RepEntry} (hl : es1.length = es2.length)
     Option.map_some, Option.some.injEq] at ei ep ec ed
   cases h : es1[n]; cases h' : es2[n]
   simp_all
+
+section gob
+variable [GobFmt]
 
 set_option maxHeartbeats 800000 in
 theorem pf_body (a b : Msg) (x y : List w8) (ha : a.wf) (hb : b.wf) (hc : a.code = b.code)
@@ -444,9 +390,9 @@ theorem pf_body (a b : Msg) (x y : List w8) (ha : a.wf) (hb : b.wf) (hc : a.code
       (fun e he => (hb.2 e he).2) (by simpa using h)
     refine ⟨?_, h⟩
     simp only [h1, h2, h3, repEntries_eq hl hi hp hc' hd]
-  case sync.sync m1 m2 =>
-    obtain ⟨he, h⟩ := sync_body_peel ha hb (by simpa using h)
-    exact ⟨by rw [syncEnc_inj ha he], h⟩
+  case sync.sync m1 b1 m2 b2 =>
+    obtain ⟨rfl, rfl⟩ := GobFmt.peel ha hb h
+    exact ⟨rfl, List.append_cancel_left h⟩
 
 /-- Frames of well-formed messages are prefix-free and injective. -/
 theorem frame_peel {a b : Msg} {x y : List w8} (ha : a.wf) (hb : b.wf)
@@ -496,6 +442,9 @@ theorem hello_peel {a b : w32} {x y : List w8} (h : helloBytes a ++ x = helloByt
   simp only [helloBytes, List.cons_append, List.cons.injEq] at h
   exact le32_peel h.2
 
+
+end gob
+
 end sp
 
 end Perennial.github_com.imdea_software.swiftpaxos
@@ -505,6 +454,8 @@ namespace Perennial.github_com.imdea_software.swiftpaxos
 namespace sp
 
 /-! ## Decoders: what a reader's `Unmarshal` establishes -/
+
+variable [GobFmt]
 
 /-- The bytes `data` read after the type byte `c` decode to `m`: `m` is well formed with type
 `c`, and whenever the bytes are a prefix of a well-formed message's body of type `c` (then

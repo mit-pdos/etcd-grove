@@ -430,10 +430,15 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace swift.tbl
 
+section pureGob
+variable [sp.GobFmt]
+
 theorem fastAck_of_next {d : List w8} (h : sp.nextOk (W8 9) d) : fastAckNext d := by
   obtain ⟨m, w, hw, -, hc, hp⟩ := h
   cases m <;> simp [sp.Msg.code, sp.rpcTable] at hc
   exact ⟨_, w, hw, hp⟩
+
+end pureGob
 
 section entries
 variable [go_gctx : GoGlobalContext]

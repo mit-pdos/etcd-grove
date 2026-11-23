@@ -64,7 +64,7 @@ theorem client_pkg_facts (hG : HeapGS .hasLC netDistGF) (s : go.Semantics)
     unfold defs.pkgSt
     exact .rfl
 
-variable [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- **The client nodes' callees**, linked: the test package's initialization (the packages'
 initializers, ClientPkgInits.lean), `registerRPC`, the client package's specs (group E,
@@ -94,7 +94,7 @@ theorem client_node_hyps : cnode.ClientNodeHyps pkgStates := by
 end link
 
 section parts
-variable [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- The start (Proof/swiftnet/Start.lean). -/
 theorem start_ok : StartOk := start_ok'

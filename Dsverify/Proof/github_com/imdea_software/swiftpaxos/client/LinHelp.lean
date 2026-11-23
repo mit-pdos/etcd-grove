@@ -170,7 +170,7 @@ end vals
 /-! ## Committing one client's atomic update -/
 
 section iris
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- **One commit**: the lock's half of the abstract state's ghost variable (the puts `ps`)
 commits a client's update of `c`: the state becomes `ps`'s with `c`'s put, the client's

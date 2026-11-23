@@ -38,7 +38,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [replica.defs.Assumptions] [state.Assumptions]
+variable [replica.defs.Assumptions] [state.Assumptions] [sp.GobFmt]
 
 /-- `(*Propose).Unmarshal(rd)`: see the file header. -/
 abbrev replica.defs.Propose.Unmarshal.spec : Prop :=

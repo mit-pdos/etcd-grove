@@ -8,7 +8,8 @@ every heap.
 
 `SwiftHyps` is a `Prop`-valued class over a machine's heap, its Go semantics and its package
 states (`SwiftNetPkgState`, which holds the libraries' representation predicates, `SwiftLibs`);
-each field quantifies over the packages' `Assumptions` it needs, and the gob specs over the codec.
+each field quantifies over the packages' `Assumptions` it needs. The gob specs are over the real
+`encoding/gob`'s format, `sp.GobFmt` (a parent of `SwiftLibs`).
 -/
 module
 
@@ -19,7 +20,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.LibSpecs
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Specs
 public import Dsverify.Spec.encoding.gob.NewEncoder
 public import Dsverify.Spec.encoding.gob.NewDecoder
-public import Dsverify.Spec.encoding.gob.Encoder__Encode
 public import Dsverify.Spec.encoding.gob.Encoder__EncodeW
 public import Dsverify.Spec.encoding.gob.Decoder__Decode
 
@@ -49,21 +49,15 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
   /-- lab `treemap.Map.Get.wp_proof` -/
   treemap_Get : ∀ [github_com.emirpasic.gods.maps.treemap.Assumptions],
     github_com.emirpasic.gods.maps.treemap.Map.Get.spec (GF := GF)
-  /-- lab `Spec/gob/NewEncoder.lean` `encoding.gob.NewEncoder.wp_proof` -/
-  gob_NewEncoder : ∀ [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
-    [net.rpc.Assumptions] [net.rpc.RpcCodec GF], encoding.gob.NewEncoder.spec (GF := GF)
+  /-- lab `Spec/gob/NewEncoder.lean` `encoding.gob.NewEncoder.wp_proof`, over the real gob
+  (`sp.GobFmt`; Spec/encoding/gob/Defs.lean) -/
+  gob_NewEncoder : ∀ [examples.swiftnet.Assumptions], encoding.gob.NewEncoder.spec (GF := GF)
   /-- lab `encoding.gob.NewDecoder.wp_proof` -/
-  gob_NewDecoder : ∀ [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
-    [net.rpc.Assumptions] [net.rpc.RpcCodec GF], encoding.gob.NewDecoder.spec (GF := GF)
-  /-- lab `encoding.gob.Encoder.Encode.wp_proof` -/
-  gob_Encode : ∀ [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
-    [net.rpc.Assumptions] [net.rpc.RpcCodec GF], encoding.gob.Encoder.Encode.spec (GF := GF)
+  gob_NewDecoder : ∀ [examples.swiftnet.Assumptions], encoding.gob.NewDecoder.spec (GF := GF)
   /-- lab `encoding.gob.Encoder.EncodeW.wp_proof` -/
-  gob_EncodeW : ∀ [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
-    [net.rpc.Assumptions] [net.rpc.RpcCodec GF], encoding.gob.Encoder.EncodeW.spec (GF := GF)
+  gob_EncodeW : ∀ [examples.swiftnet.Assumptions], encoding.gob.Encoder.EncodeW.spec (GF := GF)
   /-- lab `encoding.gob.Decoder.Decode.wp_proof` -/
-  gob_Decode : ∀ [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
-    [net.rpc.Assumptions] [net.rpc.RpcCodec GF], encoding.gob.Decoder.Decode.spec (GF := GF)
+  gob_Decode : ∀ [examples.swiftnet.Assumptions], encoding.gob.Decoder.Decode.spec (GF := GF)
 
   /-- lab `Harness/Proof/math/rand.lean` `math.rand.NewSource.wp_proof` (lib/LibSpecs.lean) -/
   math_rand_NewSource : math.rand.NewSource.spec (GF := GF)
@@ -71,9 +65,7 @@ class SwiftHyps [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS
   math_rand_New : ∀ [math.rand.Assumptions], math.rand.New.spec (GF := GF)
   /-- lab `math.rand.Intn.wp_proof` -/
   math_rand_Intn : math.rand.Intn.spec (GF := GF)
-  /-- lab `Harness/Proof/uuid/Specs.lean` `uuid.wp_New` -/
-  uuid_New : github_com.google.uuid.New.spec (GF := GF)
-  /-- lab `uuid.wp_ID` -/
+  /-- lab `uuid.wp_ID` (`uuid.wp_New` is the environment class `SwiftOsRandom`, below) -/
   uuid_ID : ∀ [github_com.google.uuid.Assumptions], github_com.google.uuid.UUID.ID.spec (GF := GF)
 
 /-- **The environment assumption** (not a library spec; dsv-rabia's `os.signal.NoSignals`): no
@@ -83,6 +75,15 @@ signal is sent to the deployment's processes, so the channel `hook.HookUser1` re
 class SwiftNoSignals [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
     [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
   notifyQuiet : os.signal.NotifyQuiet.spec (GF := GF)
+
+/-- **The environment assumption on the OS's randomness** (not a library spec): reading
+`crypto/rand.Reader` does not fail, so `uuid.New()` (`Must(NewRandom())`, which panics when it
+fails) returns (`lib/LibSpecs.lean`, `github_com.google.uuid.New.spec`, lab `uuid.wp_New`). A
+premise of `swiftpaxos_remote_robust` beside the library hypotheses and `SwiftNoSignals`, kept
+apart from them. -/
+class SwiftOsRandom [go_gctx : GoGlobalContext] (GF : BundledGFunctors)
+    [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics] [SwiftNetPkgState GF] : Prop where
+  uuid_New : github_com.google.uuid.New.spec (GF := GF)
 
 end github_com.imdea_software.swiftpaxos
 
@@ -119,11 +120,9 @@ theorem Map.wp_Get : Map.Get.spec (GF := GF) := h.treemap_Get
 end github_com.emirpasic.gods.maps.treemap
 
 namespace encoding.gob
-variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions] [net.Assumptions]
-  [net.FieldAssumptions] [net.rpc.Assumptions] [net.rpc.RpcCodec GF]
+variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
 theorem NewEncoder.wp_hyp : NewEncoder.spec (GF := GF) := h.gob_NewEncoder
 theorem NewDecoder.wp_hyp : NewDecoder.spec (GF := GF) := h.gob_NewDecoder
-theorem Encoder.Encode.wp_hyp : Encoder.Encode.spec (GF := GF) := h.gob_Encode
 theorem Encoder.EncodeW.wp_hyp : Encoder.EncodeW.spec (GF := GF) := h.gob_EncodeW
 theorem Decoder.Decode.wp_hyp : Decoder.Decode.spec (GF := GF) := h.gob_Decode
 end encoding.gob
@@ -138,7 +137,8 @@ theorem os.signal.NotifyQuiet.wp_hyp [hs : github_com.imdea_software.swiftpaxos.
     os.signal.NotifyQuiet.spec (GF := GF) := hs.notifyQuiet
 
 namespace github_com.google.uuid
-theorem wp_New : New.spec (GF := GF) := h.uuid_New
+theorem wp_New [hr : github_com.imdea_software.swiftpaxos.SwiftOsRandom GF] : New.spec (GF := GF) :=
+  hr.uuid_New
 theorem wp_ID [github_com.google.uuid.Assumptions] : UUID.ID.spec (GF := GF) := h.uuid_ID
 end github_com.google.uuid
 

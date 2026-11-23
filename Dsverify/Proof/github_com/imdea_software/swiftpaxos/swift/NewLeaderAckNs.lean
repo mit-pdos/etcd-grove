@@ -23,6 +23,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.RepsOkIn
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.NewSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.WriterSpecs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncFits
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.MsgRep
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.SyncSeq
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.swift.GhostSteps2
 
@@ -273,7 +274,7 @@ theorem swift.Replica.handleNewLeaderAckNs.wp_proof (EpR : GMap swift.CommandId 
   -- the `MSync` to all (C18: the wire `MSync` chosen at the write)
   ihave #Hgob : isPkgInit (PROP := IProp netDistGF) pkg_id.encoding.gob $$ []
   · iPkgInit
-  ihave #Hmar := hmarsh ls me v.ballot _ $$ [Hgob Hcset Hsent]
+  ihave #Hmar := hmarsh ls me v.ballot _ $$ [Hgob Hsent]
   · iframe #; ipureintro; exact hfits
   iunfold swift.sendCtxN at Hsend
   icases Hsend with ⟨%rr2, %s, %γw2, %γs, %csv, #Hrr2, #HisR2, #Hsnd, #Hbag, #Hcs, %Hcodes⟩
@@ -297,7 +298,7 @@ theorem swift.Replica.handleNewLeaderAckNs.wp_proof (EpR : GMap swift.CommandId 
       · unfold sp.msgsOk
         imodintro
         iintro %mm %Hc
-        obtain ⟨m, rfl, Hmf1, Hmf2, Hmf3, -⟩ := Hc
+        obtain ⟨m, bs, rfl, Hmf1, Hmf2, Hmf3, -⟩ := Hc
         simp only [sp.msgOk]
         iexists sp.recoverSync N reps, N, fr, l
         rw [Hmf2, ← hw1', hw1]
@@ -311,15 +312,22 @@ theorem swift.Replica.handleNewLeaderAckNs.wp_proof (EpR : GMap swift.CommandId 
       isplitr
       · unfold replica.freeOk; ileft; ipureintro; rfl
       ipureintro
-      refine ⟨⟨_, swift.syncWireOf me v.ballot _, rfl, rfl, rfl,
-        ⟨⟨_, rfl, List.Perm.refl _⟩, ⟨_, rfl, List.Perm.refl _⟩, ⟨_, rfl, List.Perm.refl _⟩⟩,
-        hfits⟩, fun mm hc => ?_⟩
-      obtain ⟨m, rfl, -, -, -, h4⟩ := hc
+      -- a candidate: gob encodes some listing of `M` (`GobFmt.exists_bytes`)
+      have hwfW : sp.KitVal.wf (.msync (swift.syncWireOf me v.ballot (sp.recoverSync N reps))) := by
+        simp only [sp.KitVal.wf, swift.syncWireOf, Option.map_some, Option.getD_some, List.map_map]
+        refine ⟨?_, ?_, ?_⟩ <;> simpa [Function.comp_def] using HMf.2.1
+      obtain ⟨m', bs', he', hb'⟩ := sp.GobFmt.exists_bytes _ hwfW (sp.GobFmt.fits_of _ hfits)
+      have hok0 : sp.syncWireOk (swift.syncWireOf me v.ballot (sp.recoverSync N reps))
+          (sp.recoverSync N reps) :=
+        ⟨⟨_, rfl, List.Perm.refl _⟩, ⟨_, rfl, List.Perm.refl _⟩, ⟨_, rfl, List.Perm.refl _⟩⟩
+      refine ⟨⟨_, m', bs', rfl, he'.1.symm, he'.2.1.symm, sp.syncWireOk_equiv hok0 he', hb'⟩,
+        fun mm hc => ?_⟩
+      obtain ⟨m, bs, rfl, -, -, -, h4⟩ := hc
       refine ⟨h4, ?_⟩
       rw [Hcodes.2.2.2.2.2.2.2.2.2.1]; rfl
     ipureintro
     intro mm hc
-    obtain ⟨m, rfl, -⟩ := hc
+    obtain ⟨m, bs, rfl, -⟩ := hc
     trivial
   -- the leader takes its `MSync`
   rw [← hw1', hw1]

@@ -167,7 +167,7 @@ end specs
 
 section ghost
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [sp.GobFmt]
 variable [swift.Assumptions]
 
 instance swift.ldSound_persistent (γ : sp.Names) (L b : Nat)

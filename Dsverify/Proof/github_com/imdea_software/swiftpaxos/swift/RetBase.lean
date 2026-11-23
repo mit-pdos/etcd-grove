@@ -121,7 +121,7 @@ instance swift.ClK.countable : Pos.Countable swift.ClK :=
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-! ## The execution record's persistent facts (moved from Deliver.lean) -/
 
@@ -288,7 +288,7 @@ end defs
 
 section instances
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 instance swift.exAt_persistent (γxm : GName) (b i : Nat) (e : swift.ExE) :
     Persistent (swift.exAt γxm b i e) := by unfold swift.exAt; infer_instance

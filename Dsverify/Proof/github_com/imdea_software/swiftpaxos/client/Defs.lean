@@ -37,7 +37,7 @@ namespace client
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-! Persistence of the slot's facts (unfolds of `Spec/swift/Inv.lean`'s definitions: missing
 laws, notes/prove-clientpkg.md). -/

@@ -96,7 +96,7 @@ theorem nodeOf_inj {l : List GoString} (hnd : l.Nodup) {r1 r2 k : Nat}
       exact (List.Nodup.getElem?_inj l2 hnd).mp (e2.trans e1.symm) |>.symm
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : Names} {γc γm γl : GName}
 
 instance nodeSt_timeless (k : Nat) (q : Qp) (st : RState) : Timeless (nodeSt γ k q st) := by

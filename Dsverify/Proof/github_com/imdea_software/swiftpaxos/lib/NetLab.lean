@@ -241,6 +241,46 @@ theorem net.Listen.labProof (la : GoString) (P Q : Proto GF) :
     iexists _
     ipureintro; rfl
 
+/-- `Listen("tcp", la)` at a listener address `la` (`listenOk`), with the right to listen there as
+`Net/`'s `Listen.spec` takes it (the update; models-rpc-http's `rpcLisP_lis` gives it). -/
+theorem net.Listen.labProofU (la : GoString) (hok : listenOk la = true) :
+    {{ |={⊤,∅}=> lisToks (NG (Gg := hG.goose_globalGS)) la ∗
+        (lisToks (NG (Gg := hG.goose_globalGS)) la ={∅,⊤}=∗ True) }}
+      (App (App (Val (@! net.Listen)) (Val #(go!"tcp"))) (Val #la))
+    {{ (lv er : GoInterface), RET (PairV #lv #er);
+        (∃ (ll : Loc) (lid : w64),
+          ⌜lv = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #ll ∧
+            er = interface.nil⌝ ∗ net.ownListener ll lid la) ∨
+        (∃ i, ⌜er = interface.ok i⌝) }} := by
+  iintro %Φ Hu HΦ
+  iapply wp_fupd
+  iapply net.Listen.wp_proof go!"tcp" net.tcpNet_tcp la $$ [Hu]
+  · isplitr
+    · ipureintro; exact hok
+    iexact Hu
+  iintro !> %lv %er Hres
+  icases Hres with (⟨%Her, %l, #Hli, Hnl, #Hon⟩ | ⟨%x, -, #Herr⟩)
+  · subst Her
+    imod lisInv_alloc ⊤ _ l la true $$ Hnl with #Hinv
+    imodintro
+    iapply HΦ
+    ileft
+    unfold net.isListener
+    icases Hli with ⟨%t, %x, %Hlt, #Hat⟩
+    iexists t, l
+    isplitr
+    · ipureintro; exact ⟨Hlt, rfl⟩
+    unfold net.ownListener
+    iexists x
+    iframe Hat Hon Hinv
+  · ihave %Hn := net.resErr_netErr _ _ _ _ _ _ _ $$ Herr
+    obtain ⟨pe, rfl⟩ := Hn.2 (by simp)
+    imodintro
+    iapply HΦ
+    iright
+    iexists _
+    ipureintro; rfl
+
 /-- The lab's `TCPListener.Accept` (shared listener), over `lisProto` (D21): a new end, the acceptor
 writing `Q`, reading `P`. -/
 theorem net.TCPListener.Accept.labProof (ll : Loc) (lid : w64) (la : GoString) (P Q : Proto GF) :

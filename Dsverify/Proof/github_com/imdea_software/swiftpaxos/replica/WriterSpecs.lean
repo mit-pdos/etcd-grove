@@ -58,12 +58,13 @@ instance marshalOk_persistent (msg : GoInterface) (m : Msg) (P : IProp netDistGF
 
 /-- (Change log C18) `msg.Marshal(wire)` writes the body of a message `m` with `Pm m`, chosen
 at the write (an encoder iterating Go maps picks their order at run time): the sink's protocol
-`Q` must hold after each candidate's body; the continuation gets the message written. -/
+`Q` must hold after each candidate's body; the continuation gets the message written. The sink
+is dead after a failed `Write` (`sinkOkE`: gob's `Encode` stops at one). -/
 def marshalOkP (msg : GoInterface) (Pm : Msg → Prop) (P : IProp netDistGF) : IProp netDistGF :=
   iprop(∃ e : GoInterfaceOk, ⌜msg = interface.ok e⌝ ∗
     □ ∀ (wr : GoInterface) (S Q : List w8 → IProp netDistGF) (W : List w8)
       (Φ : val → IProp netDistGF),
-      P -∗ sinkOk wr S Q -∗ S W -∗ bufio.prefixClosed Q -∗
+      P -∗ sinkOkE wr S Q -∗ S W -∗ bufio.prefixClosed Q -∗
       (□ ∀ m : Msg, ⌜Pm m⌝ -∗ □ Q (W ++ m.body)) -∗
       ▷ (∀ m : Msg, ⌜Pm m⌝ -∗ P -∗ S (W ++ m.body) -∗ Φ #()) -∗
       WP (App (Val #(methods e.ty go!"Marshal" e.v)) (Val #wr)) {{ Φ }})
@@ -209,7 +210,8 @@ theorem marshalOk_P (msg : GoInterface) (m : Msg) (P : IProp netDistGF) :
   isplitr
   · ipureintro; exact He
   imodintro
-  iintro %wr %S %Q %W %Φ HP #Hsk HS #Hpc #HQ HΦ
+  iintro %wr %S %Q %W %Φ HP #HskE HS #Hpc #HQ HΦ
+  ihave #Hsk := sinkOk_of_E wr S Q $$ HskE
   iapply HM $$ HP Hsk HS Hpc
   · imodintro; iapply HQ $$ %m %rfl
   inext

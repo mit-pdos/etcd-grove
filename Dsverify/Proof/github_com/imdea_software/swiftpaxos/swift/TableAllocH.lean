@@ -44,7 +44,6 @@ abbrev swift.ErrVarintFact : Prop :=
     errors.newVar swift.errVarintOverflow go!"binary: varint overflows a 64-bit integer"
 
 theorem swift.tableAllocH_proof (herr : swift.ErrVarintFact (hG := hG))
-    (hko : ⊢ net.rpc.kitCodecOk (GF := netDistGF))
     (wp_newFA : swift.newFastAck.specP (hG := hG))
     (wp_ND : encoding.gob.NewDecoder.spec (GF := netDistGF))
     (wp_Dec : encoding.gob.Decoder.Decode.spec (GF := netDistGF)) :
@@ -53,8 +52,6 @@ theorem swift.tableAllocH_proof (herr : swift.ErrVarintFact (hG := hG))
   iintro ⟨#Hs, #Hgcs, #Hu, Hch, %Ht⟩
   ihave #Hev := herr $$ Hs
   ihave ⟨%ov, #Hov, -, %Hovn⟩ := bufio.newVar_errOrNil _ _ $$ Hev
-  ihave #Hko : net.rpc.kitCodecOk (GF := netDistGF) $$ []
-  · iapply hko
   iapply (swift.tableOk_alloc (wp_newFA := fun w => wp_newFA w) wp_ND wp_Dec u γ γc γm v M)
   iframe Hch
   ihave #Hio : isPkgInit (PROP := IProp netDistGF) pkg_id.io $$ []
@@ -67,7 +64,7 @@ theorem swift.tableAllocH_proof (herr : swift.ErrVarintFact (hG := hG))
   · iPkgInit
   isplitl
   · unfold swift.tbl.ctxTbl swift.tbl.ctxFA swift.tbl.ctxV swift.tbl.ctxS swift.tbl.ctxIO
-    iframe Hs Hu Hgcs Hko Hio Hbuf Hbin Hgob
+    iframe Hs Hu Hio Hbuf Hbin Hgob
     iexists ov
     iframe Hov
     ipureintro; exact Hovn

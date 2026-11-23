@@ -305,7 +305,7 @@ namespace sp
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net Dsv
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : Names} {γc γm γl : GName}
 
 instance cmdIs_timeless (x : CmdId) (c : Cmd) : Timeless (cmdIs γ x c) := by

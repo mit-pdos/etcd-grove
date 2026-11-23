@@ -17,6 +17,8 @@ namespace Perennial.github_com.imdea_software.swiftpaxos
 
 namespace sp
 
+variable [GobFmt]
+
 /-- The bytes `Value.Unmarshal` accepts: two length bytes, two ignored bytes, the value. -/
 def decValue (l0 l1 x y : w8) (v : List w8) : List w8 := [l0, l1, x, y] ++ v
 

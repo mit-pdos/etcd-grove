@@ -32,7 +32,7 @@ variable [sync.Assumptions]
 
 set_option goose.wp.extras true
 
-omit [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
+omit [SwiftHyps netDistGF] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
   [sync.Assumptions] in
 /-- A fast ack's run-loop witness (`runAckW`): its sender's and ballot's wire bounds, and its
 sender is not its ballot's leader or it has a fast ack's witness (an `MOptAcks` fast entry's

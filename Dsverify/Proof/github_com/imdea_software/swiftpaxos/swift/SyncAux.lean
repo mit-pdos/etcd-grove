@@ -5,7 +5,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/SyncAux.lean (lab
 `handleSync`'s auxiliary lemmas (internal, the swift group's; round 13, sv-swa):
 
 * `sp.cmdIs_list_len`: distinct registered commands (persistent `cmdIs` facts) are at most
-  `6 · 2^25` (the clients' bounds in `sp.inv`, `sp.cmds_len`); `swift.props_size`: so are
+  `6 · 2^10` (the clients' bounds in `sp.inv`, `sp.cmds_len`); `swift.props_size`: so are
   `proposes`' entries (each with its `cmdIs`), hence `sortedProposes`' premise `≤ 2^62`.
 -/
 module
@@ -164,7 +164,7 @@ theorem sp.syncOrder_complete (M : sp.SyncMsg) (hnd : (M.map Prod.fst).Nodup) (x
     exact List.mem_mergeSort.mpr hx
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [sp.GobFmt]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 theorem sp.cmdIs_all (mC : GMap sp.CmdId sp.Cmd) (l : List sp.CmdId) :
@@ -189,10 +189,10 @@ theorem sp.cmdIs_all (mC : GMap sp.CmdId sp.Cmd) (l : List sp.CmdId) :
     · exact ⟨c, h1⟩
     · exact h2 x hx
 
-/-- Distinct registered commands are at most `6 · 2^25` (see the file header). -/
+/-- Distinct registered commands are at most `6 · 2^10` (see the file header). -/
 theorem sp.cmdIs_list_len (E : CoPset) (hE : ↑sp.spN ⊆ E) (l : List sp.CmdId) (hnd : l.Nodup) :
     sp.inv γ γc γm γl ∗ □ ([∗list] x ∈ l, ∃ c, sp.cmdIs γ x c) ⊢
-      |={E}=> ⌜l.length ≤ 6 * 2 ^ 25⌝ := by
+      |={E}=> ⌜l.length ≤ 6 * 2 ^ 10⌝ := by
   unfold sp.inv
   iintro ⟨#Hinv, #Hl⟩
   iinv Hinv with Hi Hclose

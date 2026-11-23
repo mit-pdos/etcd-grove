@@ -3,7 +3,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/IdBound.lean (lab
 -/
 /-
 GAP SWB-13 (round 14): a registered command's id is small (`sp.inv`'s body: its client is a
-tracked one, `1 ≤ cl ≤ 6`, and its number is below `2^25`), so a duplicate-free list of
+tracked one, `1 ≤ cl ≤ 6`, and its number is below `2^10`), so a duplicate-free list of
 registered ids is shorter than `6·2^32` — below `2^62`, what a fast ack's `depWf` needs.
 -/
 module
@@ -66,7 +66,7 @@ theorem swift.small_ids_len (l : List sp.CmdId) (hnd : l.Nodup) (hs : ∀ x ∈ 
   simpa using this
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- **A registered command's id is small** (`sp.inv`'s body). -/

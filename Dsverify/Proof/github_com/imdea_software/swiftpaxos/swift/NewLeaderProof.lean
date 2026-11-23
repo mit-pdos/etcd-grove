@@ -373,11 +373,11 @@ theorem swift.recArm_sync (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
     (wp_hs : swift.Replica.handleSync.specIR (hG := hG) (fun _ => swift.descDS γ γc γm x rp)
       (swift.descEpS γ γc γm x rp) (fun b => swift.descDF (x.DR γ b)) (swift.stopPS x) γ γc γm x.γl x.γw x.γv x.γd x.γe x.γo
       x.syncN rp x.rr (swift.descPC γ γc γm x rp))
-    (l : Loc) (m : sp.SyncWire) :
+    (l : Loc) (m : sp.SyncWire) (bs : List w8) :
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
         swift.recInv rp γ γc γm x ∗
-        swift.msgRepM (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (.sync m) ∗
-        sp.msgOk γ γc γm (.sync m) }}
+        swift.msgRepM (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (.sync m bs) ∗
+        sp.msgOk γ γc γm (.sync m bs) }}
       (App (Val (rp @!! go.GoType.PointerType swift.Replica.ty @!! go!"handleSync")) (Val #l))
     {{ RET #(); swift.runInvP rp γ γc γm x false }} := by
   iintro %Φ ⟨#Hpkg, Hinv, Hrep, #Hok⟩ HΦ
@@ -426,27 +426,18 @@ theorem swift.recArm_sync (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
   obtain ⟨hb0, hnd⟩ := HMf
   imod sp.syncIs_len ⊤ (fun _ _ => CoPset.mem_full) (sp.bal m.bal) M hnd $$ [Hspi HsI] with %Hlen
   · iframe Hspi HsI
-  have hwf : sp.KitVal.wf (.msync m) := by
-    obtain ⟨⟨ps, hp, hpp⟩, ⟨cs, hc, hcp⟩, ⟨ds, hd', hdp⟩⟩ := hwok
-    simp only [sp.KitVal.wf, hp, hc, hd', Option.map_some, Option.getD_some]
-    refine ⟨?_, ?_, ?_⟩
-    · have h := hpp.map Prod.fst
-      rw [List.map_map] at h
-      exact h.nodup_iff.2 (by simpa [Function.comp_def] using hnd)
-    · have h := hcp.map Prod.fst
-      rw [List.map_map] at h
-      exact h.nodup_iff.2 (by simpa [Function.comp_def] using hnd)
-    · have h := hdp.map Prod.fst
-      rw [List.map_map] at h
-      exact h.nodup_iff.2 (by simpa [Function.comp_def] using hnd)
   iunfold swift.msgRepM at Hrep
-  icases Hrep with ⟨%l1, %xv, %Hx, Hso⟩
+  icases Hrep with ⟨%l1, %m2, %Hx, Hso⟩
   obtain ⟨hl1, hxv⟩ := Hx
   have hl : l1 = l := go.IntoValInj.intoVal_inj (V := Loc)
     (by simpa [interface_mkOk_inj] using hl1.symm)
   subst hl
-  rw [hxv hwf]
-  imod swift.syncMaps_of_wire l1 m M hwok hnd $$ Hso with #HMaps
+  -- the decoded `MSync` lists `M` too (gob's decoding: `m` up to its maps' order)
+  have hwok2 := sp.syncWireOk_equiv hwok hxv
+  have hbal2 : m2.bal = m.bal := hxv.2.1.symm
+  have hmaps := swift.syncMaps_of_wire l1 m2 M hwok2 hnd
+  rw [hbal2] at hmaps
+  imod hmaps $$ Hso with #HMaps
   imodintro
   ihave ⟨%Hlok, Hrun⟩ := BI.persistent_entails_right
     (swift.runSt_localOk γ x.γv rp x.N x.r ld v M0 bs hd w) $$ Hrun
@@ -1027,7 +1018,7 @@ theorem swift.Replica.handleNewLeader.wp_proofN (rp : Loc) (γ : sp.Names) (γc 
       iunfold sp.chanMsgP at Hv
       icases Hv with ⟨%m, Hr, #Hok, %Hc⟩
       cases m <;> simp [sp.Msg.code, sp.rpcTable] at Hc
-      rename_i m0
+      rename_i m0 bs0
       iunfold swift.msgRep at Hr
       iunfold swift.msgRepM at Hr
       icases Hr with ⟨%l0, %x0, %Hv, Hl⟩
@@ -1035,7 +1026,7 @@ theorem swift.Replica.handleNewLeader.wp_proofN (rp : Loc) (γ : sp.Names) (γc 
       subst Hv
       wp_auto_lc 2
       simp only [swift.runInvR, Bool.false_eq_true, ↓reduceIte]
-      wp_apply (swift.recArm_sync rp γ γc γm x wp_hs l0 m0) $$ [HI Hl] as HP
+      wp_apply (swift.recArm_sync rp γ γc γm x wp_hs l0 m0 bs0) $$ [HI Hl] as HP
       · iframe #
         iframe HI
         iunfold swift.msgRepM

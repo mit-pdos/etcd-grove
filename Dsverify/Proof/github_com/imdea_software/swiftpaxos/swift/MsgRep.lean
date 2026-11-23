@@ -58,9 +58,27 @@ structure swift.CsNames where
   collect : ChanNames
   accept : ChanNames
 
+namespace sp
+
+/-- A permuted listing of a map stays a listing of `M`. -/
+theorem perm_some {A : Type} {o o' : Option (List A)} {l t : List A} (ho : o = some l)
+    (hp : l.Perm t) (hr : Option.Rel List.Perm o o') : ∃ l', o' = some l' ∧ l'.Perm t := by
+  subst ho
+  cases hr with
+  | some h => exact ⟨_, rfl, h.symm.trans hp⟩
+
+/-- `syncWireOk` is closed under the encoder's reorderings of the maps. -/
+theorem syncWireOk_equiv {m m' : SyncWire} {M : SyncMsg} (h : syncWireOk m M)
+    (he : KitVal.equiv (.msync m) (.msync m')) : syncWireOk m' M := by
+  obtain ⟨⟨ps, hp, hpp⟩, ⟨cs, hc, hcp⟩, ⟨ds, hd, hdp⟩⟩ := h
+  obtain ⟨-, -, h1, h2, h3⟩ := he
+  exact ⟨perm_some hp hpp h1, perm_some hc hcp h2, perm_some hd hdp h3⟩
+
+end sp
+
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- An `MNewLeaderAckN` entry's command and dependencies (owned). -/
 def swift.repEntryOwn (cm : state.Command) (sd : swift.SDep) (e : sp.RepEntry) :
@@ -105,10 +123,12 @@ def swift.msgRepM (o : GoInterface) : sp.Msg → IProp netDistGF
       dp ↦* dpL ∗ ⌜cmL.length = es.length ∧ dpL.length = es.length⌝ ∗
       [∗list] i ↦ e ∈ es, ∃ (cc : state.Command) (sd : swift.SDep),
         ⌜cmL[i]? = some cc ∧ dpL[i]? = some sd⌝ ∗ swift.repEntryOwn cc sd e)
-  | .sync m => iprop(∃ (l : Loc) (x : sp.KitVal),
+  -- the real `encoding/gob`'s decoding (Spec/encoding/gob/Decoder__Decode.lean): `m` up to its
+  -- maps' order
+  | .sync m _ => iprop(∃ (l : Loc) (m' : sp.SyncWire),
       ⌜o = interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l ∧
-        (sp.KitVal.wf (.msync m) → x = .msync m)⌝ ∗
-      structOwn swift.MSync.ty l (DFrac.own 1) x)
+        sp.KitVal.equiv (.msync m) (.msync m')⌝ ∗
+      structOwn swift.MSync.ty l (DFrac.own 1) (.msync m'))
   | _ => iprop(False)
 
 /-- The representation of the table's type `c` (`sp.tableOk`'s `Rep`): `msgRepM` (the code is

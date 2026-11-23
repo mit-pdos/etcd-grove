@@ -79,6 +79,18 @@ def WrKind.side : WrKind → Bool
 def peerWrKind (me : w32) (i : Nat) : WrKind :=
   if (i : Int) < me.toInt then .peerOut me else .peerIn
 
+section gob
+variable [GobFmt]
+
+/-- After a type byte `c`, the bytes `d` a peer stream delivers are a prefix of the body of a
+well-formed peer message of type `c` (then more). (No such message has the type of the five
+registered types the deployment never sends, `MSlowAck`, `MPing`, `MPingRep`, `MCollect`,
+`MAccept`, nor of the client messages `MFastAckClient`, `MReply`.) -/
+def nextOk (c : w8) (d : List w8) : Prop :=
+  ∃ (m : Msg) (w : List w8), m.wf ∧ m.isPeer ∧ m.code = c ∧ d <+: m.body ++ w
+
+end gob
+
 end sp
 
 section defs
@@ -120,13 +132,6 @@ def proposeP (γ : Names) (gp : Loc) : IProp netDistGF :=
 
 instance proposeP_persistent (γ : Names) (gp : Loc) : Persistent (proposeP γ gp) := by
   unfold proposeP; infer_instance
-
-/-- After a type byte `c`, the bytes `d` a peer stream delivers are a prefix of the body of a
-well-formed peer message of type `c` (then more). (No such message has the type of the five
-registered types the deployment never sends, `MSlowAck`, `MPing`, `MPingRep`, `MCollect`,
-`MAccept`, nor of the client messages `MFastAckClient`, `MReply`.) -/
-def nextOk (c : w8) (d : List w8) : Prop :=
-  ∃ (m : Msg) (w : List w8), m.wf ∧ m.isPeer ∧ m.code = c ∧ d <+: m.body ++ w
 
 /-- The stream law of the `*bufio.Reader` `br` (over `rd`, `I`) after it returned `R`: what it
 returns next satisfies `L`, a step later (persistent). -/

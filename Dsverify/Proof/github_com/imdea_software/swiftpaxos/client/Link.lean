@@ -43,6 +43,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section link
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+  [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 variable [bufio.Assumptions] [state.Assumptions] [encoding.binary.Assumptions]
 variable [replica.defs.Assumptions] [dlog.Assumptions]
@@ -96,6 +97,7 @@ end link
 section handler
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+  [SwiftOsRandom netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions]
 
@@ -139,6 +141,7 @@ end handler
 section newclient
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+  [SwiftOsRandom netDistGF]
 variable [swift.Assumptions] [replica.Assumptions] [client.Assumptions] [time.Assumptions]
   [dlog.Assumptions] [bytes.Assumptions] [net.Assumptions] [net.FieldAssumptions]
   [rpc.Assumptions] [replica.defs.Assumptions] [io.Assumptions]
@@ -162,6 +165,7 @@ end newclient
 section connect
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+  [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]
@@ -188,6 +192,7 @@ end connect
 section connectC
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+  [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]

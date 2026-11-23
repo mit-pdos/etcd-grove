@@ -2,14 +2,13 @@
 Ported from dsverify-lab examples/swiftpaxos/proof/Spec/gob/NewEncoder.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
-`gob.NewEncoder(w)`: a new encoder over the writer `w`.
+`gob.NewEncoder(w)`: a fresh encoder over the writer `w` (Go: `enc.w = []io.Writer{w}`, the
+type maps empty).
 -/
 module
 
 public import Dsverify.Spec.encoding.gob.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
-
--- PORT: lab imports dropped: Harness.Proof.bufio.ReadFull, Harness.Proof.bufio.Writer
 
 @[expose] public section
 
@@ -27,17 +26,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [github_com.imdea_software.swiftpaxos.SwiftNetPkgState GF]
 variable [github_com.imdea_software.swiftpaxos.examples.swiftnet.Assumptions]
-variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
-variable [net.rpc.RpcCodec GF]
 
-/-- `NewEncoder(w)` returns a fresh `*Encoder` holding `w`. -/
+/-- `NewEncoder(w)` returns a fresh `*Encoder` writing to `w`. -/
 abbrev NewEncoder.spec : Prop :=
   ∀ (w : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.gob }}
     (App (Val (@! encoding.gob.NewEncoder)) (Val #w))
-  {{ (enc : Loc), RET #enc; encoding.gob.ownEncoder enc (DFrac.own 1) (w) }}
+  {{ (enc : Loc), RET #enc; encoding.gob.ownEncoder enc w }}
 
 end spec
 
 end Perennial.encoding.gob
-

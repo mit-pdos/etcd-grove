@@ -50,7 +50,7 @@ namespace client
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-! ## The client's writers and fields (change log C4) -/
 
@@ -230,7 +230,7 @@ end defs
 
 section failed
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 
 /-- `Connect` failed: the client's struct, whatever it holds, with its master rpc client if any

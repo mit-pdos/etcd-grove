@@ -56,7 +56,7 @@ namespace client
 
 section defs
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- **The node's ghost lock's resource** once claimed for the predicted node `n`: the prophecy
 `p`'s values and the node's half of its future words in `sp.inv`, the same. -/

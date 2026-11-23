@@ -10,7 +10,7 @@ sequence without duplicates, or a permutation of such), and the registrations (`
 invariant's "put or get", D10) give the commands' kinds.
 
 The reports' total size `< 2^31` (GAP M-c, closed by D13): each report's entries are distinct
-registered commands (`sp.rep_ids_nodup`), so at most `6 · 2^25` (`sp.cmds_len`, the clients'
+registered commands (`sp.rep_ids_nodup`), so at most `6 · 2^10` (`sp.cmds_len`, the clients'
 bounds), and a majority of `N ≤ 7` replicas reports.
 -/
 module
@@ -103,23 +103,23 @@ theorem cmds_len {S : PState} {mC : GMap CmdId Cmd} {mQ : GMap w32 Nat}
     (hrepr : ∀ x, mC.lookup x = S.cmds x)
     (hcl : ∀ x c, mC.lookup x = some c → (∃ n, mQ.lookup x.cl = some n ∧ x.seq.toNat < n) ∧
       (c.isPut ∨ c.isGet) ∧ x.cl.toInt ≥ 1 ∧ c.val.length < 2 ^ 16 ∧ 0 ≤ x.seq.toInt ∧
-      x.seq.toNat < 2 ^ 25)
+      x.seq.toNat < 2 ^ 10)
     (hdom : ∀ cl n, mQ.lookup cl = some n → 1 ≤ cl.toInt ∧ cl.toInt ≤ 6)
-    (l : List CmdId) (hnd : l.Nodup) (hreg : ∀ x ∈ l, S.cmds x ≠ none) : l.length ≤ 6 * 2 ^ 25 := by
-  have hb : ∀ x ∈ l, 1 ≤ x.cl.toInt ∧ x.cl.toInt ≤ 6 ∧ x.seq.toNat < 2 ^ 25 := by
+    (l : List CmdId) (hnd : l.Nodup) (hreg : ∀ x ∈ l, S.cmds x ≠ none) : l.length ≤ 6 * 2 ^ 10 := by
+  have hb : ∀ x ∈ l, 1 ≤ x.cl.toInt ∧ x.cl.toInt ≤ 6 ∧ x.seq.toNat < 2 ^ 10 := by
     intro x hx
     obtain ⟨c, hc⟩ := Option.ne_none_iff_exists'.mp (hreg x hx)
     rw [← hrepr] at hc
     obtain ⟨⟨n, hn, -⟩, -, -, -, -, hs⟩ := hcl x c hc
     exact ⟨(hdom _ _ hn).1, (hdom _ _ hn).2, hs⟩
-  let f : CmdId → Nat := fun x => (x.cl.toInt.toNat - 1) * 2 ^ 25 + x.seq.toNat
+  let f : CmdId → Nat := fun x => (x.cl.toInt.toNat - 1) * 2 ^ 10 + x.seq.toNat
   have hf : ∀ x ∈ l, ∀ y ∈ l, f x = f y → x = y := by
     intro x hx y hy he
     obtain ⟨hx1, hx2, hx3⟩ := hb x hx
     obtain ⟨hy1, hy2, hy3⟩ := hb y hy
     simp only [f] at he
     have h1 : x.cl.toInt.toNat = y.cl.toInt.toNat := by
-      have := Nat.div_add_mod' ((x.cl.toInt.toNat - 1) * 2 ^ 25 + x.seq.toNat) (2 ^ 25)
+      have := Nat.div_add_mod' ((x.cl.toInt.toNat - 1) * 2 ^ 10 + x.seq.toNat) (2 ^ 10)
       omega
     have h2 : x.seq.toNat = y.seq.toNat := by omega
     have hcl : x.cl = y.cl := BitVec.toInt_inj.mp (by omega)
@@ -137,14 +137,14 @@ theorem cmds_len {S : PState} {mC : GMap CmdId Cmd} {mQ : GMap w32 Nat}
       have := hf y (hsub (List.mem_cons_of_mem _ hy)) a (hsub (List.mem_cons_self ..)) he
       subst this; exact hn'.1 hy
   have hnd' : (l.map f).Nodup := key l (fun _ h => h) hnd
-  have hsub : l.map f ⊆ List.range (6 * 2 ^ 25) := by
+  have hsub : l.map f ⊆ List.range (6 * 2 ^ 10) := by
     intro n hn
     obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hn
     obtain ⟨hx1, hx2, hx3⟩ := hb x hx
     rw [List.mem_range]
     simp only [f]
     have : x.cl.toInt.toNat - 1 ≤ 5 := by omega
-    have := Nat.mul_le_mul_right (2 ^ 25) this
+    have := Nat.mul_le_mul_right (2 ^ 10) this
     omega
   have := (List.subperm_of_subset hnd' hsub).length_le
   simpa using this
@@ -201,16 +201,16 @@ namespace swift
 open sp
 
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 /-- The reports' commands are registered (round 18, sv-swc; for `swift.syncFits`): any list of
-distinct reported ids has at most `6 · 2^25` entries (D13, `sp.cmds_len`), and every reported
+distinct reported ids has at most `6 · 2^10` entries (D13, `sp.cmds_len`), and every reported
 command's value is shorter than `2^16` (`Cmd.wf`, the registrations' fact behind `sp.cmdIs_wf`,
 C20). -/
 def RepsReg (reps : List (Nat × Report)) : Prop :=
   (∀ l : List CmdId, l.Nodup → (∀ x ∈ l, ∃ a ∈ reps, ∃ e ∈ a.2.entries, e.id = x) →
-    l.length ≤ 6 * 2 ^ 25) ∧
+    l.length ≤ 6 * 2 ^ 10) ∧
   (∀ a ∈ reps, ∀ e ∈ a.2.entries, e.cmd.val.length < 2 ^ 16)
 
 /-- **`RepsOk` from the reports' facts**: a majority's `reported` facts for ballot `b'`
@@ -252,13 +252,13 @@ theorem repsOk_inv2 (E : CoPset) (hE : ↑spN ⊆ E) (N : Nat) (fr : Bool) (l : 
       exact (Hcl e.id e.cmd hc).2.1
     have hsize : (reps.flatMap (·.2.entries)).length < 2 ^ 31 := by
       have hlen := (swift.majority_facts hmaj hN.1).2.2.1
-      have h1 := sp.flatMap_len_le reps (·.2.entries) (6 * 2 ^ 25) (fun a ha => by
+      have h1 := sp.flatMap_len_le reps (·.2.entries) (6 * 2 ^ 10) (fun a ha => by
         have hro := HI.rep_ok a.1 b' a.2 (hrep a ha)
         have := sp.cmds_len Hrepr.cmds Hcl Hdom.2 _ (sp.rep_ids_nodup HI hro) (fun x hx => by
           obtain ⟨e, he, rfl⟩ := List.mem_map.mp hx
           rw [((sp.PState.repOk_parts hro).2.2.2.2.2.2.2.2 e he).1]; simp)
         simpa using this)
-      have : reps.length * (6 * 2 ^ 25) ≤ 7 * (6 * 2 ^ 25) := Nat.mul_le_mul_right _ (by omega)
+      have : reps.length * (6 * 2 ^ 10) ≤ 7 * (6 * 2 ^ 10) := Nat.mul_le_mul_right _ (by omega)
       omega
     have hreg : RepsReg reps := by
       refine ⟨fun l' hnd hl => sp.cmds_len Hrepr.cmds Hcl Hdom.2 l' hnd (fun x hx => ?_),

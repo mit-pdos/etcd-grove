@@ -3,8 +3,8 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/RunArmSync.lean (
 -/
 /-
 The run loop's `sync` arm (round 33, sv-swc; prove-swift.md §38): `r.handleSync(msg)` for an
-`MSync` from the `syncChan` (a peer's, decoded by the codec: `swift.msgRepM … (.sync m)`, with its
-witness `sp.msgOk (.sync m)`) over `swift.runInv` (RunInvD.lean), from `handleSync.specIR`
+`MSync` from the `syncChan` (a peer's, decoded by gob: `swift.msgRepM … (.sync m bs)`, with its
+witness `sp.msgOk (.sync m bs)`) over `swift.runInv` (RunInvD.lean), from `handleSync.specIR`
 (SyncSpecs.lean; SW4 step 2: `specI = specIR`) at the descriptors' state (`descDS`, `descEpS`,
 `descDFA`; SyncLinkD's `wp_handleSyncD` is an instance).
 
@@ -108,7 +108,7 @@ theorem sp.syncIs_facts (E : CoPset) (hE : ↑sp.spN ⊆ E) (b : Nat) (M : sp.Sy
 /-- An `MSync`'s length bound (`cmdIs_list_len` over `syncIs_cmdIs`). -/
 theorem sp.syncIs_len (E : CoPset) (hE : ↑sp.spN ⊆ E) (b : Nat) (M : sp.SyncMsg)
     (hnd : (M.map Prod.fst).Nodup) :
-    sp.inv γ γc γm γl ∗ sp.syncIs γ b M ⊢ |={E}=> ⌜M.length ≤ 6 * 2 ^ 25⌝ := by
+    sp.inv γ γc γm γl ∗ sp.syncIs γ b M ⊢ |={E}=> ⌜M.length ≤ 6 * 2 ^ 10⌝ := by
   iintro ⟨#Hinv, #HM⟩
   imod sp.syncIs_cmdIs E hE b M $$ [Hinv HM] with #Hl
   · iframe Hinv HM
@@ -394,11 +394,11 @@ theorem swift.runArm_sync (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
     (wp_hs : swift.Replica.handleSync.specIR (hG := hG) (fun _ => swift.descDS γ γc γm x rp)
       (swift.descEpS γ γc γm x rp) (fun b => swift.descDF (x.DR γ b)) (swift.stopPS x) γ γc γm x.γl x.γw x.γv x.γd x.γe x.γo
       x.syncN rp x.rr (swift.descPC γ γc γm x rp))
-    (l : Loc) (m : sp.SyncWire) :
+    (l : Loc) (m : sp.SyncWire) (bs : List w8) :
     {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
         swift.runInv rp γ γc γm x ∗
-        swift.msgRepM (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (.sync m) ∗
-        sp.msgOk γ γc γm (.sync m) }}
+        swift.msgRepM (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #l) (.sync m bs) ∗
+        sp.msgOk γ γc γm (.sync m bs) }}
       (App (Val (rp @!! go.GoType.PointerType swift.Replica.ty @!! go!"handleSync")) (Val #l))
     {{ RET #(); swift.runInv rp γ γc γm x }} := by
   iintro %Φ ⟨#Hpkg, Hinv, Hrep, #Hok⟩ HΦ
@@ -428,27 +428,18 @@ theorem swift.runArm_sync (rp : Loc) (γ : sp.Names) (γc γm : GName) (x : swif
   obtain ⟨hb0, hnd⟩ := HMf
   imod sp.syncIs_len ⊤ (fun _ _ => CoPset.mem_full) (sp.bal m.bal) M hnd $$ [Hspi HsI] with %Hlen
   · iframe Hspi HsI
-  have hwf : sp.KitVal.wf (.msync m) := by
-    obtain ⟨⟨ps, hp, hpp⟩, ⟨cs, hc, hcp⟩, ⟨ds, hd', hdp⟩⟩ := hwok
-    simp only [sp.KitVal.wf, hp, hc, hd', Option.map_some, Option.getD_some]
-    refine ⟨?_, ?_, ?_⟩
-    · have h := hpp.map Prod.fst
-      rw [List.map_map] at h
-      exact h.nodup_iff.2 (by simpa [Function.comp_def] using hnd)
-    · have h := hcp.map Prod.fst
-      rw [List.map_map] at h
-      exact h.nodup_iff.2 (by simpa [Function.comp_def] using hnd)
-    · have h := hdp.map Prod.fst
-      rw [List.map_map] at h
-      exact h.nodup_iff.2 (by simpa [Function.comp_def] using hnd)
   iunfold swift.msgRepM at Hrep
-  icases Hrep with ⟨%l1, %xv, %Hx, Hso⟩
+  icases Hrep with ⟨%l1, %m2, %Hx, Hso⟩
   obtain ⟨hl1, hxv⟩ := Hx
   have hl : l1 = l := go.IntoValInj.intoVal_inj (V := Loc)
     (by simpa [interface_mkOk_inj] using hl1.symm)
   subst hl
-  rw [hxv hwf]
-  imod swift.syncMaps_of_wire l1 m M hwok hnd $$ Hso with #HMaps
+  -- the decoded `MSync` lists `M` too (gob's decoding: `m` up to its maps' order)
+  have hwok2 := sp.syncWireOk_equiv hwok hxv
+  have hbal2 : m2.bal = m.bal := hxv.2.1.symm
+  have hmaps := swift.syncMaps_of_wire l1 m2 M hwok2 hnd
+  rw [hbal2] at hmaps
+  imod hmaps $$ Hso with #HMaps
   imodintro
   ihave ⟨%Hlok, Hrun⟩ := BI.persistent_entails_right
     (swift.runSt_localOk γ x.γv rp x.N x.r ld v M0 bs hd w) $$ Hrun

@@ -18,6 +18,8 @@ namespace Perennial.github_com.imdea_software.swiftpaxos
 
 namespace swift.tbl
 
+variable [sp.GobFmt]
+
 open sp in
 /-- After the encodings of the well-formed `xs`, fewer than the well-formed `ys` whose
 encodings (then more) the bytes are a prefix of: the next bytes are a prefix of an element's

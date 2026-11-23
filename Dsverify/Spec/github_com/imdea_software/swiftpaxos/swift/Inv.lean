@@ -160,7 +160,7 @@ def linPuts (G : Seq) : List (GoString × GoString) :=
   (G.filter (fun p => p.2.isPut)).map (fun p => (lin.keyName p.2.key, p.2.val))
 
 section defs
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [sp.GobFmt]
 
 /-! ## Persistent facts -/
 
@@ -346,7 +346,7 @@ def msgOk (γ : Names) (γc γm : GName) : Msg → IProp netDistGF
       reported γ (rid r) (bal b) ⟨bal c, es⟩ ∗ ∃ N fr l, cfg γc γm N fr l ∗ ⌜rid r < N⌝)
   -- round 54 (D74 (2), 53-4): with the sender's (the ballot's leader's) `locLb` of the
   -- `MSync`'s sequence, so that a follower's sync entry keeps the leader's prefix
-  | .sync m => iprop(∃ (M : SyncMsg) (N : Nat) (fr : Bool) (l : List GoString),
+  | .sync m _ => iprop(∃ (M : SyncMsg) (N : Nat) (fr : Bool) (l : List GoString),
       syncIs γ (bal m.bal) M ∗ (cfg γc γm N fr l ∗ locLb γ (rid m.rep) (bal m.bal) (syncSeq M)) ∗
       ⌜wireOk m.rep m.bal ∧ syncWireOk m M ∧ rid m.rep = leaderOf N (bal m.bal)⌝)
 
@@ -365,7 +365,7 @@ def Msg.isToClient (cl : w32) : Msg → Prop
 /-- The messages a replica writes to a peer. -/
 def Msg.isPeer : Msg → Prop
   | .beacon _ | .beaconReply _ | .fastAck _ | .lightSlowAck _ | .acks _ _ | .optAcks _ _ _
-  | .newLeader _ _ | .newLeaderAckN _ _ _ _ | .sync _ => True
+  | .newLeader _ _ | .newLeaderAckN _ _ _ _ | .sync _ _ => True
   | _ => False
 
 /-- A stream of the messages `ms` (cut short anywhere), each well formed (`Msg.wf`,
@@ -613,11 +613,12 @@ def invBody (γ : Names) (γc γm γl : GName) : IProp netDistGF :=
         ⌜S.PInv N fr ∧ (∀ r k, r < N → nodeOf l r = some k → mN.lookup k = some (S.rs r)) ∧
           S.syncRows N ∧ HistOk N fr sh S ∧ decOk N S mD⌝) ∗
     -- the clients: each registered command's sequence number is below its client's next one
-    -- (and below 2^25: change log C13', decision D13)
+    -- (and below 2^10, change log C13', decision D13; the port lowered the lab's 2^25 so that a
+    -- new leader's `MSync` fits gob's size limit, `swift.syncFits_of`, `GobFmt.fits_of`)
     ([∗map] cl ↦ n ∈ mQ, ghostMapElem γ.seqs cl (DFrac.own (1 : Qp).half) n) ∗
     ⌜∀ x c, mC.lookup x = some c → (∃ n, mQ.lookup x.cl = some n ∧ x.seq.toNat < n) ∧
       (c.isPut ∨ c.isGet) ∧ x.cl.toInt ≥ 1 ∧ c.val.length < 2 ^ 16 ∧ 0 ≤ x.seq.toInt ∧
-      x.seq.toNat < 2 ^ 25⌝ ∗
+      x.seq.toNat < 2 ^ 10⌝ ∗
     -- an invoked command is registered (C12); a tracked client's id is in `1 .. 6` (C13, D13)
     ⌜(∀ x c, Ev.inv x c ∈ SHist.hist sh → mC.lookup x = some c) ∧
       (∀ cl n, mQ.lookup cl = some n → 1 ≤ cl.toInt ∧ cl.toInt ≤ 6)⌝ ∗
@@ -659,7 +660,7 @@ end defs
 /-! ## Laws (the Prove phase's) -/
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [sp.GobFmt]
 variable {γ : Names} {γc γm γl : GName}
 
 instance inv_persistent : Persistent (inv γ γc γm γl) := by unfold inv; infer_instance
@@ -1618,29 +1619,29 @@ theorem doneRes_agree (x : CmdId) (o1 o2 : List w8) :
   iapply ghostMapElem_agree $$ H1 H2
 
 /-- **The registered commands are fewer than `2 ^ 31`** (decision D13, GAP M-c of the swift
-group): from `invBody`'s client facts (ids `1 .. 6`, sequence numbers below `2 ^ 25`), any list of
-distinct registered commands is shorter than `6 · 2 ^ 25 < 2 ^ 31`. -/
+group): from `invBody`'s client facts (ids `1 .. 6`, sequence numbers below `2 ^ 10`), any list of
+distinct registered commands is shorter than `6 · 2 ^ 10 < 2 ^ 31`. -/
 theorem cmds_bound {S : PState} {mC : GMap CmdId Cmd} {mQ : GMap w32 Nat}
     (hrepr : ∀ x, mC.lookup x = S.cmds x)
     (hcl : ∀ x c, mC.lookup x = some c → (∃ n, mQ.lookup x.cl = some n ∧ x.seq.toNat < n) ∧
       (c.isPut ∨ c.isGet) ∧ x.cl.toInt ≥ 1 ∧ c.val.length < 2 ^ 16 ∧ 0 ≤ x.seq.toInt ∧
-      x.seq.toNat < 2 ^ 25)
+      x.seq.toNat < 2 ^ 10)
     (hdom : ∀ cl n, mQ.lookup cl = some n → 1 ≤ cl.toInt ∧ cl.toInt ≤ 6)
     (l : List CmdId) (hnd : l.Nodup) (hreg : ∀ x ∈ l, S.cmds x ≠ none) : l.length < 2 ^ 31 := by
-  have hb : ∀ x ∈ l, 1 ≤ x.cl.toInt ∧ x.cl.toInt ≤ 6 ∧ x.seq.toNat < 2 ^ 25 := by
+  have hb : ∀ x ∈ l, 1 ≤ x.cl.toInt ∧ x.cl.toInt ≤ 6 ∧ x.seq.toNat < 2 ^ 10 := by
     intro x hx
     obtain ⟨c, hc⟩ := Option.ne_none_iff_exists'.mp (hreg x hx)
     rw [← hrepr] at hc
     obtain ⟨⟨n, hn, -⟩, -, -, -, -, hs⟩ := hcl x c hc
     exact ⟨(hdom _ _ hn).1, (hdom _ _ hn).2, hs⟩
-  let f : CmdId → Nat := fun x => (x.cl.toInt.toNat - 1) * 2 ^ 25 + x.seq.toNat
+  let f : CmdId → Nat := fun x => (x.cl.toInt.toNat - 1) * 2 ^ 10 + x.seq.toNat
   have hf : ∀ x ∈ l, ∀ y ∈ l, f x = f y → x = y := by
     intro x hx y hy he
     obtain ⟨hx1, hx2, hx3⟩ := hb x hx
     obtain ⟨hy1, hy2, hy3⟩ := hb y hy
     simp only [f] at he
     have h1 : x.cl.toInt.toNat = y.cl.toInt.toNat := by
-      have := Nat.div_add_mod' ((x.cl.toInt.toNat - 1) * 2 ^ 25 + x.seq.toNat) (2 ^ 25)
+      have := Nat.div_add_mod' ((x.cl.toInt.toNat - 1) * 2 ^ 10 + x.seq.toNat) (2 ^ 10)
       omega
     have h2 : x.seq.toNat = y.seq.toNat := by omega
     have hcl : x.cl = y.cl := BitVec.toInt_inj.mp (by omega)
@@ -1658,14 +1659,14 @@ theorem cmds_bound {S : PState} {mC : GMap CmdId Cmd} {mQ : GMap w32 Nat}
       have := hf y (hsub (List.mem_cons_of_mem _ hy)) a (hsub (List.mem_cons_self ..)) he
       subst this; exact hn'.1 hy
   have hnd' : (l.map f).Nodup := key l (fun _ h => h) hnd
-  have hsub : l.map f ⊆ List.range (6 * 2 ^ 25) := by
+  have hsub : l.map f ⊆ List.range (6 * 2 ^ 10) := by
     intro n hn
     obtain ⟨x, hx, rfl⟩ := List.mem_map.mp hn
     obtain ⟨hx1, hx2, hx3⟩ := hb x hx
     rw [List.mem_range]
     simp only [f]
     have : x.cl.toInt.toNat - 1 ≤ 5 := by omega
-    have := Nat.mul_le_mul_right (2 ^ 25) this
+    have := Nat.mul_le_mul_right (2 ^ 10) this
     omega
   have := (List.subperm_of_subset hnd' hsub).length_le
   rw [List.length_map, List.length_range] at this
@@ -2054,7 +2055,7 @@ theorem loc_bound {S : PState} {N : Nat} {fr : Bool} (hI : S.PInv N fr) {mC : GM
     {mQ : GMap w32 Nat} (hrepr : ∀ x, mC.lookup x = S.cmds x)
     (hcl : ∀ x c, mC.lookup x = some c → (∃ n, mQ.lookup x.cl = some n ∧ x.seq.toNat < n) ∧
       (c.isPut ∨ c.isGet) ∧ x.cl.toInt ≥ 1 ∧ c.val.length < 2 ^ 16 ∧ 0 ≤ x.seq.toInt ∧
-      x.seq.toNat < 2 ^ 25)
+      x.seq.toNat < 2 ^ 10)
     (hdom : ∀ cl n, mQ.lookup cl = some n → 1 ≤ cl.toInt ∧ cl.toInt ≤ 6) (r b : Nat) :
     (S.loc r b).length < 2 ^ 31 :=
   cmds_bound hrepr hcl hdom _ (hI.loc_ok r b).1 (hI.loc_ok r b).2.1

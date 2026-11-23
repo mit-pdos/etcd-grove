@@ -33,7 +33,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 namespace sp.cw
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : Names} {γc γm : GName}
 
 instance connKind_persistent' (cid : Nat) (k : ConnKind) : Persistent (connKind γ cid k) := by
@@ -131,7 +131,7 @@ theorem outQ_frames (cid : Nat) (cl : w32) (ext : List w8) :
 end laws
 
 section reader
-variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : Names} {γc γm : GName}
 
 /-- The protocol fact of what a reader over a connection has read, a step later (dsv-bufio's

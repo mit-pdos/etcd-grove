@@ -3,40 +3,18 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/MarshalSync.lean 
 -/
 /-
 `(*MSync).Marshal` (swift/defs.go: `gob.NewEncoder(w).Encode(m)`), the hypothesis
-`swift.MSync.marshalHG` (Proof/swift/SyncFits.lean) of `handleNewLeaderAckNs`.
+`swift.MSync.marshalHG` (Proof/swift/SyncFits.lean) of `handleNewLeaderAckNs`: proved,
+`swift.MSync.marshal_proofG`, over the real `encoding/gob`'s specs (`NewEncoder.spec`,
+`Encoder.EncodeW.spec`; format `sp.GobFmt`).
 
-STATUS (round 18): proved, no sorry: `swift.MSync.marshal_proofP` (`marshalHP`, any `KitLike`
-codec) and `swift.MSync.marshal_proofG` (`marshalHG`, SyncFits.lean: `kitCodecOk` discharged;
-`handleNewLeaderAckNs`'s hypothesis). The old statement `marshalH` (a fixed wire `MSync`) is
-retired: it was not provable, for the reasons below (round 14's report), which C18 addressed
-(`marshalOkP`: the message chosen at the write; the gob facts as premises; `syncSent`'s keys;
-`syncFits`):
+The message is chosen at the write (`marshalOkP`): the encoder iterates Go's maps in the run
+time's order, so it writes a gob stream `bs` of a listing `m'` of the maps (`GobFmt.bytes m' bs`),
+a reordering of `M`'s (`syncWireOk_equiv`, MsgRep.lean). gob's size limit cannot be hit: every
+reordering has the size measure of `M`'s listing (`cEnc_length_equiv`), which `syncFits` bounds
+(`GobFmt.fits_of`). The sink is `marshalOkP`'s (`wire.sinkOkE`: dead after a failed `Write`).
 
-1. ORDER. `marshalH` fixes the wire `MSync` `m` before the call (`∃ m, marshalOk … (.sync m) …`),
-   and `marshalOk` requires exactly `m.body` to be written. The codec's `enc` (the frozen
-   `kitCodec`, Spec/swiftnet/Codec.lean) only promises the encoding of some `x'` with
-   `KitVal.equiv x x'` (Go's map iteration order is chosen by the encoder at run time), so the
-   bytes written cannot be fixed in advance (for maps of two or more entries). Needed: a
-   `marshalOk` whose message is chosen at the write among those satisfying a predicate (here
-   `fun m => m.rep = me ∧ m.bal = bl ∧ syncWireOk m M ∧ (Msg.sync m).wf`), with `□ Q` for each
-   of them; the lemmas below (`syncWireOk_equiv`, `syncWire_wf_equiv`) show the predicate is
-   closed under the encoder's reorderings.
-2. SINK. The frozen `encoding.gob.Encoder.Encode.spec` is stated over a `*bufio.Writer`
-   (`bufio.ownWriter`) and asks `□ Q (sent ++ pend ++ gobFrame bs)` even when the writer's error
-   is set; `marshalOk`'s writer is an abstract sink (`wire.sinkOk wr S Q`, `S W`), whose stream
-   is only known without an error. Needed: `Encode` over a sink (one `w.Write` of the frame:
-   `sinkOk w S Q ∗ S W ∗ RpcCodec.enc v (fun bs => □ Q (W ++ gobFrame bs) ∗ Θ bs)` gives
-   `∃ bs, Θ bs ∗ S (W ++ gobFrame bs)`), or `marshalOk` specialised to `bufio.wsink` with the
-   `□ Q` obligation only when the error is nil.
-3. FACTS. `NewEncoder`/`Encode` need `isPkgInit encoding.gob`, `codecSet`, `kitCodecOk` (and,
-   over a `bufio.Writer`, `isPkgInit bufio`, `writerOk`); neither `marshalOk`'s resources nor
-   `syncSent` give them. Needed: these persistent facts as premises of `marshalH`.
-4. KEYS. `syncSent`/`syncMaps` (Proof/swift/RecDefs.lean) tie only the phases map's keys to `M`;
-   the commands' and dependencies' maps contain `M`'s keys but may have more, so the wire lists
-   need not be permutations of `M`'s (`syncWireOk`). Needed: `∀ x, (cmM !! x).isSome ↔ toCmdId x
-   ∈ M.map Prod.fst` and the same for `dpM`.
-5. SIZE. `(Msg.sync m).wf` (the encoding shorter than `2 ^ 64`) needs a bound on `M`'s size
-   (entries, values' and dependency lists' lengths), absent from `syncSent`.
+**Port change.** The lab's gob model wrote one frame of the kit codec's bytes (`gobFrame`); the
+lab's rounds 14-18 (C17, C18) are superseded where they were about that frame.
 -/
 module
 
@@ -45,7 +23,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Codec
 public import Dsverify.Spec.encoding.gob.NewEncoder
 public import Dsverify.Spec.encoding.gob.Encoder__EncodeW
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
 
 @[expose] public section
 
@@ -60,20 +37,6 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace sp
 
-/-- A permuted listing of a map stays a listing of `M`. -/
-theorem perm_some {A : Type} {o o' : Option (List A)} {l t : List A} (ho : o = some l)
-    (hp : l.Perm t) (hr : Option.Rel List.Perm o o') : ∃ l', o' = some l' ∧ l'.Perm t := by
-  subst ho
-  cases hr with
-  | some h => exact ⟨_, rfl, h.symm.trans hp⟩
-
-/-- `syncWireOk` is closed under the encoder's reorderings of the maps. -/
-theorem syncWireOk_equiv {m m' : SyncWire} {M : SyncMsg} (h : syncWireOk m M)
-    (he : KitVal.equiv (.msync m) (.msync m')) : syncWireOk m' M := by
-  obtain ⟨⟨ps, hp, hpp⟩, ⟨cs, hc, hcp⟩, ⟨ds, hd, hdp⟩⟩ := h
-  obtain ⟨-, -, h1, h2, h3⟩ := he
-  exact ⟨perm_some hp hpp h1, perm_some hc hcp h2, perm_some hd hdp h3⟩
-
 theorem cMapOpt_length {A : Type} (f : A → List w8) {o o' : Option (List A)}
     (hr : Option.Rel List.Perm o o') : (cMapOpt f o).length = (cMapOpt f o').length := by
   cases hr with
@@ -82,14 +45,12 @@ theorem cMapOpt_length {A : Type} (f : A → List w8) {o o' : Option (List A)}
     simp only [cMapOpt, cList, List.length_cons, List.length_append, h.length_eq,
       ((h.map f).flatten).length_eq]
 
-/-- The encoding's length (hence `Msg.wf`) is the same for the encoder's reorderings. -/
-theorem syncWire_wf_equiv {m m' : SyncWire} (h : (Msg.sync m).wf)
-    (he : KitVal.equiv (.msync m) (.msync m')) : (Msg.sync m').wf := by
+/-- The size measure is the same for the encoder's reorderings. -/
+theorem cEnc_length_equiv {m m' : SyncWire} (he : KitVal.equiv (.msync m) (.msync m')) :
+    m.cEnc.length = m'.cEnc.length := by
   obtain ⟨hr, hb, h1, h2, h3⟩ := he
-  simp only [Msg.wf, SyncWire.wf, KitVal.encode, KitVal.tag, SyncWire.cEnc,
-    List.length_append] at h ⊢
-  rw [← hr, ← hb, ← cMapOpt_length _ h1, ← cMapOpt_length _ h2, ← cMapOpt_length _ h3]
-  exact h
+  simp only [SyncWire.cEnc, List.length_append]
+  rw [hr, hb, cMapOpt_length _ h1, cMapOpt_length _ h2, cMapOpt_length _ h3]
 
 end sp
 
@@ -220,12 +181,11 @@ theorem swift.mapOwn_intro {V A : Type} [ZeroVal V] (mp : Loc) (mv : val)
     simp [List.map_map, Function.comp_def]
   iapply key $$ HR
 
-/-- **The codec's view of a sent `MSync`**: `syncSent` gives the codec's ownership of the
-`MSync` (read-only) holding a wire `MSync` listing `M` (headers' items 1 and 4). -/
-theorem swift.syncSent_kitVal (ls : Loc) (me bl : w32) (M : sp.SyncMsg) :
+/-- **gob's view of a sent `MSync`**: `syncSent` gives the `MSync` (read-only) holding a wire
+`MSync` listing `M` (`syncOwn`). -/
+theorem swift.syncSent_syncOwn (ls : Loc) (me bl : w32) (M : sp.SyncMsg) :
     swift.syncSent ls me bl M ⊢ ∃ m0 : sp.SyncWire,
-      kitValOwn (GF := netDistGF) (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #ls)
-        DFrac.discard (.msync m0) ∗
+      encoding.gob.syncOwn (GF := netDistGF) ls DFrac.discard m0 ∗
       ⌜m0.rep = me ∧ m0.bal = bl ∧ sp.syncWireOk m0 M⌝ := by
   haveI := swift.hlog.cmdId_intoValInj (sem := sem)
   iintro #Hs
@@ -315,10 +275,7 @@ theorem swift.syncSent_kitVal (ls : Loc) (me bl : w32) (M : sp.SyncMsg) :
   iexists ⟨me, bl, some (psP.map (fun q => (goCmdId q.1, q.2))),
     some (psC.map (fun q => (goCmdId q.1, gC q))), some (psD.map (fun q => (goCmdId q.1, gD q)))⟩
   isplitl
-  · unfold kitValOwn structOwn
-    iexists swift.MSync.ty, ls
-    isplitr
-    · ipureintro; exact ⟨rfl, Hnn⟩
+  · unfold encoding.gob.syncOwn structOwn
     isplitr
     · ipureintro; rfl
     iexists ph, cm, dp
@@ -371,104 +328,59 @@ theorem swift.syncSent_kitVal (ls : Loc) (me bl : w32) (M : sp.SyncMsg) :
   · ipureintro
     exact ⟨rfl, rfl, ⟨_, rfl, permP⟩, ⟨_, rfl, permC⟩, ⟨_, rfl, permD⟩⟩
 
-/-- **`MSync.Marshal`, restated (change log C18)**: with gob's package and codec facts, an
-`MSync` as `recoveredSync` built it (`syncSent`) whose listing fits a frame (`syncFits`)
-marshals as a wire `MSync` listing `M`, chosen at the write (`marshalOkP`; Go's map order). -/
-abbrev swift.MSync.marshalHP [C : net.rpc.RpcCodec netDistGF] : Prop :=
-  ∀ (ls : Loc) (me bl : w32) (M : sp.SyncMsg),
-    isPkgInit (PROP := IProp netDistGF) pkg_id.encoding.gob ∗
-      encoding.gob.codecSet (GF := netDistGF) ∗ net.rpc.kitCodecOk (GF := netDistGF) ∗
-      swift.syncSent ls me bl M ∗ ⌜swift.syncFits me bl M⌝ ⊢
-    sp.marshalOkP (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #ls)
-      (swift.syncCands me bl M) iprop(True)
-
-theorem swift.MSync.marshal_proofP [C : net.rpc.RpcCodec netDistGF] [KitLike C]
+/-- **`swift.MSync.marshalHG`** (SyncFits.lean; `handleNewLeaderAckNs`'s hypothesis), over the
+real gob's `NewEncoder` and `Encode` (see the file header). -/
+theorem swift.MSync.marshal_proofG
     (wp_NewEnc : encoding.gob.NewEncoder.spec (GF := netDistGF))
     (wp_EncW : encoding.gob.Encoder.EncodeW.spec (GF := netDistGF)) :
-    swift.MSync.marshalHP (C := C) := by
+    swift.MSync.marshalHG (hG := hG) := by
   intro ls me bl M
-  iintro ⟨#Hgob, #Hcs, #Hko, #Hss, %Hfits⟩
+  iintro ⟨#Hgob, #Hss, %Hfits⟩
   unfold sp.marshalOkP
   iexists ⟨go.GoType.PointerType swift.MSync.ty, #ls⟩
   isplitr
   · ipureintro; rfl
   imodintro
   iintro %wr %S %Q %W %Φ - #Hsink HS #Hpc #HQ HΦ
-  ihave ⟨%m0, Hown, %Hm0⟩ := swift.syncSent_kitVal ls me bl M $$ Hss
+  ihave ⟨%m0, Hown, %Hm0⟩ := swift.syncSent_syncOwn ls me bl M $$ Hss
   obtain ⟨hrep, hbal, hok⟩ := Hm0
-  -- `m0` is a reordering of `M`'s listing: it fits
-  have hwf0 : (sp.Msg.sync m0).wf := by
-    apply sp.syncWire_wf_equiv Hfits
+  -- `m0` is a reordering of `M`'s listing, and so is every reordering of it: they fit
+  have h0 : sp.KitVal.equiv (.msync (swift.syncWireOf me bl M)) (.msync m0) := by
     obtain ⟨⟨ps, hp, hpp⟩, ⟨cs, hc, hcp⟩, ⟨ds, hd, hdp⟩⟩ := hok
     refine ⟨hrep.symm, hbal.symm, ?_, ?_, ?_⟩
     · rw [hp]; exact Option.Rel.some hpp.symm
     · rw [hc]; exact Option.Rel.some hcp.symm
     · rw [hd]; exact Option.Rel.some hdp.symm
+  have hfit : ∀ m', sp.KitVal.equiv (.msync m0) (.msync m') → sp.GobFmt.fits m' := by
+    intro m' he
+    apply sp.GobFmt.fits_of
+    rw [← sp.cEnc_length_equiv he, ← sp.cEnc_length_equiv h0]
+    exact Hfits
   wp_method_call
   wp_call
-  iunfold wire.sinkOk at Hsink
+  iunfold wire.sinkOkE at Hsink
   icases Hsink with ⟨%e, %He, #Hw⟩
   subst He
   wp_auto
   wp_apply wp_NewEnc (interface.ok e) as %enc Henc
   try wp_auto
-  wp_apply wp_EncW enc (DFrac.own 1) e S Q W
-      (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #ls)
-      (fun bs => iprop(⌜∃ m', swift.syncCands me bl M (.sync m') ∧
-        bs = (sp.KitVal.msync m').encode⌝))
-      $$ [Henc HS Hown] as %err ⟨%bs, %Hbs, Henc, HS⟩
-  · iframe Hcs Henc HS
-    isplitr
-    · unfold encoding.gob.writeSink; iexact Hw
-    rw [KitLike.enc_eq]
-    unfold net.rpc.RpcCodec.enc kitCodec
-    simp only
-    iexists DFrac.discard, sp.KitVal.msync m0
-    iframe Hown
-    iintro %x' %Hequiv -
-    obtain ⟨m', rfl⟩ : ∃ m', x' = sp.KitVal.msync m' := by
-      cases x' with
-      | msync m' => exact ⟨m', rfl⟩
-      | _ => simp [sp.KitVal.equiv] at Hequiv
-    have hc : swift.syncCands me bl M (.sync m') := by
-      have ⟨h1, h2, _⟩ := Hequiv
-      exact ⟨m', rfl, h1 ▸ hrep, h2 ▸ hbal, sp.syncWireOk_equiv hok Hequiv,
-        sp.syncWire_wf_equiv hwf0 Hequiv⟩
-    isplitr
-    · rw [show sp.gobFrame (sp.KitVal.msync m').encode = (sp.Msg.sync m').body from rfl]
-      iapply HQ $$ %(.sync m') %hc
-    ipureintro; exact ⟨m', hc, rfl⟩
-  obtain ⟨m', hc, rfl⟩ := Hbs
+  wp_apply wp_EncW enc e S Q W ls DFrac.discard m0 hfit $$ [Henc HS Hown]
+    as %err ⟨%m', %bs, ⟨%Heq, %Hb⟩, Hown, HS⟩
+  · iframe Hw Hpc Henc HS Hown
+    imodintro
+    iintro %m' %bs ⟨%Heq, %Hb⟩
+    have hc : swift.syncCands me bl M (.sync m' bs) :=
+      ⟨m', bs, rfl, Heq.1 ▸ hrep, Heq.2.1 ▸ hbal, sp.syncWireOk_equiv hok Heq, Hb⟩
+    rw [show bs = (sp.Msg.sync m' bs).body from rfl]
+    iapply HQ $$ %(.sync m' bs) %hc
+  have hc : swift.syncCands me bl M (.sync m' bs) :=
+    ⟨m', bs, rfl, Heq.1 ▸ hrep, Heq.2.1 ▸ hbal, sp.syncWireOk_equiv hok Heq, Hb⟩
   try wp_auto
-  iapply HΦ $$ %(.sync m') %hc []
+  iapply HΦ $$ %(.sync m' bs) %hc []
   · itrivial
   iExactEq HS
   rfl
 
 end proof
-
-section proofG
-variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [swift.Assumptions] [replica.Assumptions] [replica.defs.Assumptions] [rpc.Assumptions]
-variable [examples.swiftnet.Assumptions] [net.Assumptions] [net.FieldAssumptions]
-  [net.rpc.Assumptions]
-
-/-- **`swift.MSync.marshalHG`** (SyncFits.lean; `handleNewLeaderAckNs`'s hypothesis): `marshalHP`
-at any `KitLike` codec whose `kitCodecOk` holds (the link's `kitCodecC`: `kitCodecOkC_holds`). -/
-theorem swift.MSync.marshal_proofG [C : net.rpc.RpcCodec netDistGF] [KitLike C]
-    (wp_NewEnc : encoding.gob.NewEncoder.spec (GF := netDistGF))
-    (wp_EncW : encoding.gob.Encoder.EncodeW.spec (GF := netDistGF))
-    (hko : ⊢ net.rpc.kitCodecOk (GF := netDistGF)) :
-    swift.MSync.marshalHG (hG := hG) := by
-  intro ls me bl M
-  iintro ⟨#Hgob, #Hcs, #Hss, %Hfits⟩
-  ihave #Hko : net.rpc.kitCodecOk (GF := netDistGF) $$ []
-  · iapply hko
-  iapply swift.MSync.marshal_proofP (C := C) wp_NewEnc wp_EncW ls me bl M
-  iframe #
-  ipureintro; exact Hfits
-
-end proofG
 
 end Perennial.github_com.imdea_software.swiftpaxos

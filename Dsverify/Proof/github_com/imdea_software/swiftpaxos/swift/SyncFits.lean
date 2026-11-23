@@ -6,7 +6,7 @@ The new leader's `MSync` fits a gob frame, and what `MSync.Marshal` gives with i
 discharged (round 18, sv-swc; notes/prove-swift.md §22):
 
 * `swift.syncWireOf`, `swift.syncFits`, `swift.syncCands` (moved here from MarshalSync.lean).
-* `swift.syncFits_of`: an `MSync` of at most `6 · 2^25` entries, whose values are shorter than
+* `swift.syncFits_of`: an `MSync` of at most `6 · 2^10` entries, whose values are shorter than
   `2^16` and whose dependency lists are at most one longer than it, fits (`Msg.wf`).
 * `sp.lkAlong_length`, `sp.lkAlong_deps_len`, `sp.recoverSync_deps_len`: `recoverSync`'s
   dependency lists (`lkDeps` along its order) are at most one longer than it.
@@ -118,24 +118,25 @@ def swift.syncWireOf (me bl : w32) (M : sp.SyncMsg) : sp.SyncWire :=
 
 end pure
 
-/-- `M`'s encoding fits a gob frame (item 5 of MarshalSync.lean's header: the size bound, a
-premise of `marshalHP`; `swift.syncFits_of`). -/
+/-- `M`'s listing fits gob's size limit: its size measure is below `2 ^ 31` bytes
+(`GobFmt.fits_of`; a premise of `marshalHG`; `swift.syncFits_of`). -/
 def swift.syncFits (me bl : w32) (M : sp.SyncMsg) : Prop :=
-  (sp.Msg.sync (swift.syncWireOf me bl M)).wf
+  (swift.syncWireOf me bl M).cEnc.length < 2 ^ 31
 
 /-- The messages `MSync.Marshal` may write for an `MSync` listing `M` (Go's map order is chosen
-at the write): a wire `MSync` with the sender's fields listing `M`, well formed. -/
-def swift.syncCands (me bl : w32) (M : sp.SyncMsg) (mm : sp.Msg) : Prop :=
-  ∃ m : sp.SyncWire, mm = .sync m ∧ m.rep = me ∧ m.bal = bl ∧ sp.syncWireOk m M ∧
-    (sp.Msg.sync m).wf
+at the write): a wire `MSync` with the sender's fields listing `M`, written as a gob stream of
+it (`GobFmt.bytes`, `Msg.wf`). -/
+def swift.syncCands [sp.GobFmt] (me bl : w32) (M : sp.SyncMsg) (mm : sp.Msg) : Prop :=
+  ∃ (m : sp.SyncWire) (bs : List w8), mm = .sync m bs ∧ m.rep = me ∧ m.bal = bl ∧
+    sp.syncWireOk m M ∧ sp.GobFmt.bytes m bs
 
-/-- **An `MSync` fits a frame** when it has at most `6 · 2^25` entries (the registered
+/-- **An `MSync` fits a frame** when it has at most `6 · 2^10` entries (the registered
 commands' bound, D13), values shorter than `2^16` (`Cmd.wf`, C20) and dependency lists at most
 one longer than it. -/
-theorem swift.syncFits_of (me bl : w32) (M : sp.SyncMsg) (hn : M.length ≤ 6 * 2 ^ 25)
+theorem swift.syncFits_of (me bl : w32) (M : sp.SyncMsg) (hn : M.length ≤ 6 * 2 ^ 10)
     (hv : ∀ p ∈ M, p.2.1.val.length < 2 ^ 16) (hd : ∀ p ∈ M, p.2.2.length ≤ M.length + 1) :
     swift.syncFits me bl M := by
-  unfold swift.syncFits sp.Msg.wf sp.SyncWire.wf swift.syncWireOf
+  unfold swift.syncFits swift.syncWireOf
   have e1 := sp.flatten_map_len_le M
     ((fun p : sp.CmdId × w64 => sp.cCmdId p.1 ++ sp.cU64 p.2) ∘ (fun p => (p.1, sp.phCOMMIT)))
     24 (fun p _ => by simp [sp.cCmdId, sp.cI32, sp.cU64, u64Le_length])
@@ -149,36 +150,34 @@ theorem swift.syncFits_of (me bl : w32) (M : sp.SyncMsg) (hn : M.length ≤ 6 * 
   have e3 := sp.flatten_map_len_le M
     ((fun p : sp.CmdId × List sp.CmdId => sp.cCmdId p.1 ++ sp.cList sp.cCmdId p.2) ∘
       (fun p => (p.1, p.2.2)))
-    (24 + 16 * (6 * 2 ^ 25 + 1)) (fun p hp => by
+    (24 + 16 * (6 * 2 ^ 10 + 1)) (fun p hp => by
       have := hd p hp
       have e := sp.flatten_map_len_le p.2.2 sp.cCmdId 16
         (fun _ _ => by simp [sp.cCmdId, sp.cI32, sp.cU64, u64Le_length])
       simp only [Function.comp, sp.cCmdId, sp.cList, sp.cI32, sp.cU64,
         List.length_append, u64Le_length] at e ⊢
-      have : p.2.2.length * 16 ≤ (6 * 2 ^ 25 + 1) * 16 := Nat.mul_le_mul_right _ (by omega)
+      have : p.2.2.length * 16 ≤ (6 * 2 ^ 10 + 1) * 16 := Nat.mul_le_mul_right _ (by omega)
       omega)
   simp only [sp.KitVal.encode, sp.SyncWire.cEnc, sp.cMapOpt, sp.cList, sp.cI32, sp.cU64,
     List.length_append, List.length_cons, u64Le_length, List.length_map, List.map_map] at e1 e2 e3 ⊢
-  have m1 : M.length * 24 ≤ 6 * 2 ^ 25 * 24 := Nat.mul_le_mul_right _ hn
-  have m2 : M.length * (40 + 2 ^ 16) ≤ 6 * 2 ^ 25 * (40 + 2 ^ 16) := Nat.mul_le_mul_right _ hn
-  have m3 : M.length * (24 + 16 * (6 * 2 ^ 25 + 1)) ≤
-      6 * 2 ^ 25 * (24 + 16 * (6 * 2 ^ 25 + 1)) := Nat.mul_le_mul_right _ hn
+  have m1 : M.length * 24 ≤ 6 * 2 ^ 10 * 24 := Nat.mul_le_mul_right _ hn
+  have m2 : M.length * (40 + 2 ^ 16) ≤ 6 * 2 ^ 10 * (40 + 2 ^ 16) := Nat.mul_le_mul_right _ hn
+  have m3 : M.length * (24 + 16 * (6 * 2 ^ 10 + 1)) ≤
+      6 * 2 ^ 10 * (24 + 16 * (6 * 2 ^ 10 + 1)) := Nat.mul_le_mul_right _ hn
   omega
 
 section specs
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [C : net.rpc.RpcCodec netDistGF]
 variable [swift.Assumptions]
 
-/-- **`MSync.Marshal`** with gob's package and `codecSet` (change log C18; the kit codec's
-`kitCodecOk` discharged at the link: `swift.MSync.marshal_proofG`, MarshalSync.lean): an `MSync`
-as `recoveredSync` built it (`syncSent`) whose listing fits a frame marshals as a wire `MSync`
-listing `M`, chosen at the write (`marshalOkP`; Go's map order). -/
+/-- **`MSync.Marshal`** with gob's package (proved over the real gob's specs:
+`swift.MSync.marshal_proofG`, MarshalSync.lean): an `MSync` as `recoveredSync` built it
+(`syncSent`) whose listing fits gob's limit marshals as a wire `MSync` listing `M`, chosen at
+the write (`marshalOkP`; Go's map order). -/
 abbrev swift.MSync.marshalHG : Prop :=
   ∀ (ls : Loc) (me bl : w32) (M : sp.SyncMsg),
     isPkgInit (PROP := IProp netDistGF) pkg_id.encoding.gob ∗
-      encoding.gob.codecSet (GF := netDistGF) ∗
       swift.syncSent ls me bl M ∗ ⌜swift.syncFits me bl M⌝ ⊢
     sp.marshalOkP (interface.mkOk (go.GoType.PointerType swift.MSync.ty) #ls)
       (swift.syncCands me bl M) iprop(True)

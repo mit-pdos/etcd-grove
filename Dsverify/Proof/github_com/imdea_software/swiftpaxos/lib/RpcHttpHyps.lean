@@ -23,8 +23,11 @@ protocols are per address (`reqProto W a` names `a` in `isRpcConn W a`), so `rpc
 of the addresses a wildcard takes cannot be made by `lis_set_proto`. Hence (a finding for
 models-rpc-http, notes "Design findings"):
 * `rpcLisP W la hs hsAns` (persistent): every valid address listener address `la` takes serves `W`
-  behind the handshake (`rpcLisP_addr`), and the right to listen at `la` with those protocols. It
-  is made once from `lisUnset la` at the boot (`rpcLisP_set`); for a valid `la` it is one address.
+  behind the handshake (`rpcLisP_addr`), the right to listen at `la` (`rpcLisP_lis`: `Listen.spec`'s
+  update) and `listenOk la` (`rpcLisP_ok`). It is made once from `lisUnset la` at the boot
+  (`rpcLisP_set`, in a world giving every address `la` takes that handshake). These are the exact
+  shapes of models-rpc-http `e6b232b2f6` (`Net/Proof/net/rpc/Proto.lean`, over `lisProtoD`); when it
+  lands, the fields are replaced by its definitions and theorems.
 * `muxHas W A path`: `DefaultServeMux` routes `path` to a handler serving `W` at every address of
   the set `A` (for a wildcard `lisAccepts la`). `HandleHTTP` asks `srvServes` at each of them
   (vacuous at an address where `W` lists no service).
@@ -70,17 +73,28 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   rpcAddrP_persistent : ∀ W a hs hsAns, Persistent (rpcAddrP W a hs hsAns)
   /-- Raw net/rpc is the empty handshake. -/
   rpcAddrP_raw : ∀ W a, rpcAddrP W a [] [] ⊣⊢ rpcAddr (Gg := hG.goose_globalGS) W a
+  /-- The world's handshake at an address, the dialer's and the acceptor's answer: models-rpc-http's
+  `RpcWorld.hs`/`RpcWorld.hsAns` (fields that `lean`'s `RpcWorld` does not have yet). -/
+  worldHs : RpcWorld GF → GoString → List w8
+  worldHsAns : RpcWorld GF → GoString → List w8
   /-- A listener address's rpc protocols (the file header). -/
   rpcLisP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
   rpcLisP_addr : ∀ W la hs hsAns a, addrOk a = true → lisAccepts la a →
     rpcLisP W la hs hsAns ⊢ rpcAddrP W a hs hsAns
-  /-- They include the right to listen at `la` with some protocols (`Listen.spec`'s). -/
+  /-- They include the right to listen at `la` (`net.Listen.spec`'s update; models-rpc-http
+  `e6b232b2f6`'s `rpcLisP_lis`). -/
   rpcLisP_lis : ∀ W la hs hsAns,
-    rpcLisP W la hs hsAns ⊢ ∃ P Q, lisProto (Gg := hG.goose_globalGS) la P Q
-  /-- The boot sets them once, from the addresses `la` takes, unset. -/
+    rpcLisP W la hs hsAns ⊢
+      |={⊤,∅}=> lisToks (NG (Gg := hG.goose_globalGS)) la ∗
+        (lisToks (NG (Gg := hG.goose_globalGS)) la ={∅,⊤}=∗ True)
+  /-- `la` is a listener address (models-rpc-http's `rpcLisP_ok`). -/
+  rpcLisP_ok : ∀ W la hs hsAns, rpcLisP W la hs hsAns ⊢ ⌜listenOk la = true⌝
+  /-- The boot sets them once, from the addresses `la` takes, unset, in a world that gives every
+  address `la` takes the handshake `hs`/`hsAns` (models-rpc-http's `rpcLisP_set`). -/
   rpcLisP_set : ∀ (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8),
     listenOk la = true →
+    (∀ a, addrOk a = true ∧ lisAccepts la a → worldHs W a = hs ∧ worldHsAns W a = hsAns) →
     regCtx (Gg := hG.goose_globalGS) -∗ inv regN' (regInv (Gg := hG.goose_globalGS) W) -∗
       lisUnset (Gg := hG.goose_globalGS) la ={E}=∗ rpcLisP W la hs hsAns
   handlerOk : RpcWorld GF → (GoString → Prop) → GoString → GoInterface → IProp GF

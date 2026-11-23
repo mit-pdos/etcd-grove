@@ -30,6 +30,9 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace swift.tbl
 
+section pureGob
+variable [sp.GobFmt]
+
 /-! ## `MNewLeaderAckN`'s stream (pure) -/
 
 /-- A command as `Command.Unmarshal` decodes it (the value's two ignored bytes `x`, `y`). -/
@@ -247,6 +250,8 @@ theorem dep_v1 {d : List w8} (ht : sp.uvTerm d) (h : depNext d) :
   refine ⟨ds.length, ?_, hw⟩
   apply uv_count (X := []) ht
   simpa [sp.encDep, List.append_assoc] using hp
+
+end pureGob
 
 section specs2
 variable [go_gctx : GoGlobalContext]

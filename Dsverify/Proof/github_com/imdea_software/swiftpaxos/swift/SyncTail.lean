@@ -44,7 +44,7 @@ theorem swift.rid_leaderS (bw : w32) (N b : Nat) (hN : 1 ≤ N ∧ N ≤ 7) (hb 
 
 section lemmas
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- A proposal's `cmdIs`. -/
 theorem swift.propIs_cmdIs (γ : sp.Names) (gp : Loc) (x : sp.CmdId) (c : sp.Cmd) :
@@ -98,7 +98,7 @@ end lemmas
 
 section log
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [log.Assumptions] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [log.Assumptions] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 
 /-- An argument `log.Println` formats without calling a method of it (the condition under which
 Perennial's trusted model of `log.Println`, which does nothing, is faithful,

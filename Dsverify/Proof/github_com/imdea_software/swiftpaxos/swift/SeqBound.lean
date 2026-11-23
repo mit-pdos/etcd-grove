@@ -87,7 +87,7 @@ theorem swift.seq_len_bound (s : sp.Seq) (hnd : (s.map Prod.fst).Nodup)
 /-! ## The registered commands of a `locLb` -/
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : sp.Names} {γc γm γl : GName}
 
 theorem swift.bigSepL_cl : ∀ (s : sp.Seq) (Φ : Nat → sp.CmdId × sp.Cmd → IProp netDistGF),

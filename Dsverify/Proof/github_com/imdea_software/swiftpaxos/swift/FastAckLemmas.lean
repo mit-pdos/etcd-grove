@@ -29,7 +29,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 namespace sp
 section ghost
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : Names} {γc γm γl : GName}
 
 /-- A replica's own pre-acceptance fact is in its state (an identity step of `node_step`). -/
@@ -170,7 +170,7 @@ end sp
 
 section dstep
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable [swift.Assumptions]
 
 /-- **The replica's own pre-acceptance of `y` in its epoch `b` is `y`'s row token's**. -/

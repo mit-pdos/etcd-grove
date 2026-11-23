@@ -180,7 +180,7 @@ variable [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF] [client.Assumptions]
 ready at `s + 1`. -/
 theorem wp_Write_au (wp_Write : client.BufferClient.Write.spec) (γ : SwiftNames netDistGF)
     (b : Loc) (cid : w32) (s : Nat) (key : w64) (vsl : GoSlice) (v : List w8)
-    (hv : v ≠ []) (hlen : v.length < 2 ^ 16) (hs : s < 2 ^ 25)
+    (hv : v ≠ []) (hlen : v.length < 2 ^ 16) (hs : s < 2 ^ 10)
     (Q : (kv GoString GoString).State → (kv GoString GoString).State →
       (kv GoString GoString).Output → IProp netDistGF) :
     ⊢ ∀ Φ : val → IProp netDistGF,
@@ -202,7 +202,7 @@ theorem wp_Write_au (wp_Write : client.BufferClient.Write.spec) (γ : SwiftNames
 /-- `b.Read(key)` with the driver's update for the get: the update's commit with output
 `got ov`, the returned slice holding `ov.getD []`, client ready at `s + 1`. -/
 theorem wp_Read_au (wp_Read : client.BufferClient.Read.spec) (γ : SwiftNames netDistGF)
-    (b : Loc) (cid : w32) (s : Nat) (key : w64) (hs : s < 2 ^ 25)
+    (b : Loc) (cid : w32) (s : Nat) (key : w64) (hs : s < 2 ^ 10)
     (Q : (kv GoString GoString).State → (kv GoString GoString).State →
       (kv GoString GoString).Output → IProp netDistGF) :
     ⊢ ∀ Φ : val → IProp netDistGF,

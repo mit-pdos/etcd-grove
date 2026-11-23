@@ -67,9 +67,13 @@ abbrev os.signal.NotifyQuiet.spec : Prop :=
       (App (App (Val (@! os.signal.Notify)) (Val #c)) (Val #sig))
     {{ RET #(); sig ↦*{dq} [interface.mkOk syscall.Signal.ty #(W64 10)] }}
 
-/-- lab `Harness/Proof/uuid/Specs.lean` `uuid.wp_New` (see the file header). -/
+/-- lab `Harness/Proof/uuid/Specs.lean` `uuid.wp_New` (see the file header): `New()` returns some
+`UUID`. Go's `New` is `Must(NewRandom())`: it reads 16 bytes from `crypto/rand.Reader` (the OS's
+randomness) and panics if that read fails. That it does not fail is **an assumption of the
+environment**, not a fact of the library: so this is the separate class `SwiftOsRandom`
+(Hyps.lean), not a `SwiftHyps` field. -/
 abbrev github_com.google.uuid.New.spec : Prop :=
-    {{ (True : IProp GF) }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.google.uuid }}
       (App (Val (@! github_com.google.uuid.New)) (Val #()))
     {{ (u : github_com.google.uuid.UUID), RET #u; True }}
 

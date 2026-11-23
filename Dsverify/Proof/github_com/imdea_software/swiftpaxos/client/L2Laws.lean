@@ -146,7 +146,7 @@ theorem predsOf_upd {N : Nat} {mW : GMap PNode (List w64)} {l : List GoString} {
     · rfl
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : Names} {γc γm γl : GName}
 
 attribute [local instance] cfg_timeless_acc
@@ -293,7 +293,7 @@ node's future words lose the invocation's. -/
 theorem l2_invoke (E : CoPset) (hE : ↑spN ⊆ E) (x : CmdId) (c : Cmd)
     (Ψ : List w8 → IProp netDistGF) (γΨ : GName) (W' : List w64) :
     ⌜x.cl.toInt ≥ 1 ∧ (c.isPut ∨ c.isGet) ∧ c.val.length < 2 ^ 16 ∧ 0 ≤ x.seq.toInt ∧
-      x.seq.toNat < 2 ^ 25⌝ ∗
+      x.seq.toNat < 2 ^ 10⌝ ∗
     inv γ γc γm γl ∗ allPredsReg γ γc ∗ clientSeq γ x.cl x.seq.toNat ∗ cmdAU γl c Ψ ∗
     savedPredOwn γΨ .discard Ψ ∗
     ghostMapElem γ.pred (PNode.cl (clOf x)) (DFrac.own (1 : Qp).half) (encP (.inv x c) ++ W') ⊢

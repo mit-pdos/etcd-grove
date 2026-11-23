@@ -10,6 +10,10 @@ Writing a message through an `io.Writer` (the generated `Marshal` methods' view 
   its results are not inspected.
 * `wsink bw wr J Q W`: a `*bufio.Writer` whose bytes so far are `W` unless it has a sticky
   error (then nothing more is sent); `bufio_sinkOk`: such a writer is a sink.
+* `sinkOkE wire S Q` (persistent): `sinkOk` that also says the stream is dead (`∀ X, S X`)
+  after a `Write` that fails (`encoding.gob.writeSink`; what gob's `Encode`, which stops at a
+  failed `Write`, needs); `bufio_sinkOkE`: a `*bufio.Writer` (its error is sticky) is one;
+  `sinkOk_of_E`.
 -/
 module
 
@@ -57,6 +61,14 @@ def wsink (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF) (W : List w
   iprop(∃ (sent pend : List w8) (err : GoInterface), bufio.ownWriter bw wr J Q sent pend err ∗
     ⌜err = interface.nil → sent ++ pend = W⌝)
 
+/-- `sinkOk`, and the stream is dead after a failed `Write` (see the file header). -/
+def sinkOkE (wire : GoInterface) (S Q : List w8 → IProp GF) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, ⌜wire = interface.ok e⌝ ∗ encoding.gob.writeSink e S Q)
+
+instance sinkOkE_persistent (wire : GoInterface) (S Q : List w8 → IProp GF) :
+    Persistent (sinkOkE wire S Q) := by
+  unfold sinkOkE; infer_instance
+
 end defs
 
 section proofs
@@ -96,6 +108,76 @@ theorem bufio_sinkOk (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF) 
       as %nn ⟨Hp, Hown⟩
     · iframe
     iapply HΦ $$ %nn %err [Hown] Hp
+    iexists sent, pend, err
+    iframe
+    ipureintro
+    intro h; exact absurd h herr
+
+theorem sinkOk_of_E (wire : GoInterface) (S Q : List w8 → IProp GF) :
+    sinkOkE wire S Q ⊢ sinkOk wire S Q := by
+  iintro #H
+  unfold sinkOkE sinkOk
+  icases H with ⟨%e, %He, #Hw⟩
+  iexists e
+  isplitr
+  · ipureintro; exact He
+  imodintro
+  iintro %p %dq %W %bs %Φ HS #HQ Hp HΦ
+  unfold encoding.gob.writeSink
+  iapply Hw $$ %p %dq %W %bs %Φ HS HQ Hp
+  inext
+  iintro %nn %err Hr Hp
+  icases Hr with (⟨-, HS⟩ | ⟨-, HS⟩)
+  · iapply HΦ $$ %nn %err HS Hp
+  · iapply HΦ $$ %nn %err [HS] Hp
+    iapply HS
+
+theorem bufio_sinkOkE (bw : Loc) (wr : GoInterface) (J Q : List w8 → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ bufio.writerOk wr J Q ⊢
+      sinkOkE (interface.mkOk (go.GoType.PointerType bufio.Writer.ty) #bw) (wsink bw wr J Q) Q := by
+  iintro ⟨#Hpkg, #Hwr⟩
+  unfold sinkOkE
+  iexists ⟨go.GoType.PointerType bufio.Writer.ty, #bw⟩
+  isplitr
+  · ipureintro; rfl
+  unfold encoding.gob.writeSink
+  imodintro
+  iintro %p %dq %W %bs %Φ Hs #HQ Hp HΦ
+  unfold wsink
+  icases Hs with ⟨%sent, %pend, %err, Hown, %Hw⟩
+  by_cases herr : err = interface.nil
+  · subst herr
+    have hw := Hw rfl
+    wp_apply bufio.wp_Write bw wr J Q sent pend interface.nil p dq bs $$ [$Hpkg $Hwr Hown Hp]
+      as %nn %e ⟨%k, %sent', %pend', %Hk, Hp, Hown⟩
+    · iframe; rw [hw]; iexact HQ
+    iapply HΦ $$ %nn %e [Hown] Hp
+    by_cases he : e = interface.nil
+    · ileft
+      isplitr
+      · ipureintro; exact he
+      iexists sent', pend', e
+      iframe
+      ipureintro
+      intro _
+      obtain ⟨-, -, h3, -, h5, -⟩ := Hk
+      rw [h3, hw, h5 he, List.take_length]
+    · iright
+      isplitr
+      · ipureintro; exact he
+      iintro %X
+      iexists sent', pend', e
+      iframe
+      ipureintro
+      intro h; exact absurd h he
+  · wp_apply bufio.wp_Write_err bw wr J Q sent pend err p dq bs herr $$ [Hown Hp]
+      as %nn ⟨Hp, Hown⟩
+    · iframe
+    iapply HΦ $$ %nn %err [Hown] Hp
+    iright
+    isplitr
+    · ipureintro; exact herr
+    iintro %X
     iexists sent, pend, err
     iframe
     ipureintro

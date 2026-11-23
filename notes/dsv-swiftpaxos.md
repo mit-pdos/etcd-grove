@@ -57,7 +57,7 @@ The list asked for. They are named after the lab's specs, with the reason each i
 |---|---|---|---|
 | gods treemap | `treemap.wp_NewWith`, `Map.wp_Put`, `Map.wp_Get` (`Proof/treemap/{NewWith,Map__Put,Map__Get}`; statements in `Dsverify/Proof/.../treemap/Specs.lean`) | 3 | gods |
 | concurrent-map | none: the lab's proofs (`Proof/cmap/*`, copied to `Dsverify/Proof/github_com/orcaman/concurrent_map/`) build over the translated code (`Dsverify/Code/github_com/orcaman/concurrent_map.lean` has the bodies, `fnv32.impl` etc.), e.g. `ConcurrentMap.wp_IterCbOwn`: Lean's three axioms. To check: `concurrent-map.toml` says names only (`translate = ["!*"]`), which the generated file does not match; rerun `etc/goose.py` for the project before landing. | 27 | |
-| encoding/gob | `gob.{NewEncoder, NewDecoder, Encoder.EncodeW, Decoder.Decode, SetCodec, getCodec}.wp_proof` (`Spec/gob/*`, `Proof/gob/*`) | 8 | gob (the lab's gob model) |
+| encoding/gob | `NewEncoder`, `NewDecoder`, `Encoder.EncodeW`, `Decoder.Decode` (`Spec/encoding/gob/*`; lab `Spec/gob/*`), restated over **the real gob's format** (eighth session): the pure class `sp.GobFmt` (Spec/swift/Wire.lean; the field `SwiftLibs.gobFmt`, instance `swiftGobFmt` at `netDistGF`, so a premise of the statement) with `bytes m bs` (a fresh encoder's stream for an `*MSync` holding `m`), `peel` (self-delimiting, determines `m`), `fits`/`fits_of` (gob's 8 GiB message limit, from a size bound), `exists_bytes` (a value that fits is encoded: the writer's candidate). Each field and spec is argued true of Go's `encoding/gob` in its docstring. | 4 | gob (names only; no model in `models/`) |
 | bufio | none (fifth session): both halves are derived from dsv-bufio's specs and Perennial's `io.ReadFull`/`ReadAtLeast` (`lib/Bufio.lean`, `*.labProof`); see "State (fifth session)". | 50 | |
 | net/rpc client | `RpcHttpHyp.DialHTTP_spec` (`lib/RpcHttpHyps.lean`; Upamanyu's shape over `rpcAddrP … (connectReq defaultRPCPath) connectAns`), used through `DialHTTP_tcp`. `Client.Call`/`Close` are `Net/`'s proofs. | 13 | models-rpc-http |
 | net/rpc server | `RpcHttpHyp.{Register_spec, HandleHTTP_spec, Server_HandleHTTP_spec, Server_ServeHTTP_spec, defaultServer_init}` (lab: `net.rpc.{Register, HandleHTTP}`); the codec is `Net/`'s `codecSet` (SetCodec proved) | 6 | models-rpc-http |
@@ -65,7 +65,7 @@ The list asked for. They are named after the lab's specs, with the reason each i
 | net | none: wildcard `Listen` is `Net/`'s (`net-wildcard-listen`, landed); `TCPConn.{Close,RemoteAddr}` and `TCPAddr.String` are proved lab-shaped wrappers (`lib/NetConn.lean`), `DialTimeout`, `Dial`, `Listen` and `TCPListener.Accept` too (`lib/NetLab.lean`, over `lisProto`), `TCPConn.Write` (`lib/BufioNet.lean`) | | |
 | os/signal | not a `SwiftHyps` field: the **environment class `SwiftNoSignals`** (`Hyps.lean`), field `notifyQuiet : os.signal.NotifyQuiet.spec` (`lib/LibSpecs.lean`): `Notify(c, sig)` with `sig ↦*{dq} [SIGUSR1]` (the literal `syscall.Signal(0xa)` `HookUser1` passes) does nothing, in a deployment where no signal is sent (`HookUser1`'s proof needs its channel to stay empty). As dsv-rabia's `os.signal.NoSignals`, restricted to the signal passed (Upamanyu's rabia review). A visible premise of the statement, apart from the library hypotheses. | 1 | os/signal (names only) |
 | math/rand | `math.rand.{NewSource, New, Intn}.wp_proof` (`Harness/Proof/math/rand`), in `SwiftHyps` | 10 | Perennial's `math/rand` translation is names only |
-| uuid | `uuid.wp_New`, `uuid.wp_ID` (results: some `UUID`, some `w32`; the lab's `isV4`/`idOf` are unused), in `SwiftHyps` | 2 | uuid (names only) |
+| uuid | `uuid.wp_ID` (result: some `w32`), in `SwiftHyps`. `uuid.wp_New` (some `UUID`, after `isPkgInit uuid`) is **not** a library fact (Go's `New` panics when the OS's randomness fails): it is the environment class `SwiftOsRandom` (Hyps.lean), a separate visible premise like `SwiftNoSignals` (eighth session). | 2 | uuid (names only) |
 
 **To prove, not hypotheses:**
 - the bufio/net bridge `bufio.readerOk_conn`, `writerOk_conn`, `readsOk_conn`, `connErr_errOrNil` (`Harness/Proof/bufio/Net`), over `Net/Spec/net/Conn__{Read,Write}` and `Proto.lean`'s `recvTok`/`sendTok`, as dsv-paxos's `NetProof`;
@@ -79,7 +79,7 @@ The list asked for. They are named after the lab's specs, with the reason each i
 **Vocabulary decisions.**
 - **net/rpc: `Net/`'s client, not hypotheses.** After merging `lean`, `Net/` has the rpc client's vocabulary and proofs (`RpcWorld`, `MethodSpec`, `CodecSpec`, `codecSet C`, `isClient`, `rpcAddr`, `Client.Call/Close/Dial`), which are the lab's restated. The lab's `RpcCodec` class is kept (in `Base`), and `RpcCodec.spec` is its `CodecSpec`. The lab's `kitCodecOk` is `True` here: the client's obligation is `codecSet RpcCodec.spec`, and the server's dispatch belongs to `Register`'s hypothesis. `connIface` is over `Net/`'s `connAt` + `connIs`.
 - **The HTTP path** (`DialHTTP`, `HandleHTTP`, `http.Serve`): `rpcHttpAddr W a` puts `Net/`'s rpc protocols behind the CONNECT/Connected heads (`httpReqP`, `httpRespP`), stated concretely. `DialHTTP`'s hypothesis returns `Net/`'s `isClient`, whose protocol has no head; realizing it needs `Net/`'s client generalized over a head (a finding).
-- **gob:** the lab's model (`Encoder{w}`, `Decoder{r}`, a `codec` variable holding the kit's functions) is replaced by abstract `SwiftLibs` fields: `gobEncoder`, `gobDecoder`, `gobCodecSet C`. The specs' frame format is the lab's (`sp.gobFrame`). Real gob writes type descriptors before the first value, so a hypothesis stated in the lab's frame format is not true of the real `encoding/gob`. A finding: the gob hypotheses must be restated over an abstract stream format before they can be realized.
+- **gob (eighth session; superseded the lab's model):** etcd-grove has no `encoding/gob` model (`models/` has none; `old/dsverify/harness/rpcmodel/src/encoding/gob` is the lab's, unused), and this translation has it names only (`Dsverify/Code/encoding/gob.toml`); so what runs is Go's real `encoding/gob`, and the specs are stated over its real format, abstractly: `sp.GobFmt` (above). The wire message is `Msg.sync (m : SyncWire) (bs : List w8)`, `Msg.body = bs`, `Msg.wf = GobFmt.bytes m bs` (the bytes are not a function of `m`: a fresh encoder's type ids are the process's). `Encode` (fresh encoder, `*MSync` holding `m` read with `dq`) over a writer whose stream dies after a failed `Write` (`encoding.gob.writeSink`; `wire.sinkOkE`, `bufio_sinkOkE`) gives the stream extended by some `bs` with `bytes m' bs`, `m'` a reordering of `m` (`KitVal.equiv`), provided every reordering `fits`. `Decode` (fresh decoder over a `*bufio.Reader`, which `NewDecoder` does not wrap; zero target) gives, on success, the bytes read `data` such that whatever gob stream `bs` of an `m` the reader held there, `data = bs` and the target holds a reordering of `m`. `SwiftLibs.gobCodecSet` is gone; `encoding.gob.codecSet` is `True` (kept as a name in the invariants that carry it; to drop). The `fits` bound needs the seq bound of the invariant lowered from the lab's `2^25` to `2^10` (`syncFits_of`): **the remote kit must cap each client below 1024 operations** (step 5).
 - **`NetProtoGS`** (`Net/`'s ghost names) is a parent of `SwiftLibs`, so every file with `SwiftNetPkgState` has it without a variable change.
 - **dsv-bufio** (origin/dsv-bufio `bb18c0f3ef`, under review) has the real specs. The lab's bufio hypotheses map onto it:
   - `EtcdGrove.bufio.NewReader.specOk`, `NewWriter.spec`, `Reader.ReadByte.spec`, `Writer.{Write,WriteByte,Flush}.spec`, over `ownBufReader`/`ownBufWriter` (`io.readerOk`/`io.streamWriterOk`);
@@ -116,7 +116,54 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, seventh session; resume here)
+## State (2026-11-23, eighth session; resume here)
+
+Read with the seventh session's state below (accurate where this does not say otherwise).
+
+**Done.**
+- **uuid** (coordinator: name the OS-randomness assumption): `SwiftHyps.uuid_New` is gone; the
+  environment class `SwiftOsRandom` (Hyps.lean) holds `uuid.New.spec`, whose precondition is now
+  `isPkgInit uuid` (Go's `New` reads package state). `client/NewClientLog` builds over it.
+- **gob restated over the real `encoding/gob`** (coordinator: no hypothesis false of real Go).
+  Which and why: etcd-grove has no gob model (`models/` none; only the lab's in `old/`), and the
+  translation has gob names only, so what runs is Go's gob: the specs are over its real stream
+  format, abstractly (`sp.GobFmt`, Spec/swift/Wire.lean), not over the lab model's frame. See
+  "Vocabulary decisions", gob, for the shapes. Files: Spec/swift/{Wire,WireWf,Inv}.lean,
+  Spec/encoding/gob/* (`Encoder__Encode.lean`, the bufio variant, deleted), Base (`SwiftLibs
+  extends NetProtoGS` with a field `gobFmt : sp.GobFmt` and the instance `swiftGobFmt` at
+  `netDistGF` (a parent class would give an instance with `GF` undetermined, which instance
+  search does not solve); `gobCodecSet` dropped), Hyps (4 gob fields, no codec argument),
+  client/Sink (`sinkOkE`, `sinkOk_of_E`, `bufio_sinkOkE`), replica/{WriterSpecs (`marshalOkP`'s
+  sink is `sinkOkE`), Writers, WireWf (pf_body's sync case by `GobFmt.peel`)}, swift/{MarshalSync
+  (rewritten: `marshal_proofG` over `NewEncoder`/`EncodeW`; `marshal_proofP`/`marshalHP` gone),
+  SyncFits (`syncFits` = size measure `< 2^31`; `syncCands` with bytes), TableSync (rewritten
+  Unmarshal), MsgRep (sync rep: a reordering, `KitVal.equiv`; `perm_some`, `syncWireOk_equiv`
+  moved here), RunArmSync, RunLoopSpecs, NewLeaderProof, NewLeaderAckNs, TableAllocH}.
+- **The clients' sequence bound `2^25` → `2^10`** everywhere (Inv's `invBody`, `BufferClient`
+  Read/Write specs, client ghost/ISpecs/L2Laws, RepsOkInv, IdBound, SyncAux, RunArmSync,
+  SyncFits, the lab kit's ClientAU/ClientOp): needed for `GobFmt.fits` (6·2^10 commands, each
+  dependency list ≤ 6·2^10+1, give a size measure ≈ 1.0e9 < 2^31). The remote kit (step 5)
+  must cap each client's operations below 1024 (e.g. `op` answers `Unknown` past `MaxOps`).
+- Files with `[π : NetProtoGS]` and no `SwiftNetPkgState` got `[…sp.GobFmt]` on that variable
+  line (Msg.wf needs it), pure ones a `variable [GobFmt]` (replica/{Stream,StreamLaw,Defs'
+  `nextOk`,defs/ProposeDec}); files with `SwiftNetPkgState` get it from `swiftGobFmt`.
+- **rpcLisP restated to models-rpc-http `e6b232b2f6`'s exact shapes** (coordinator, 2026-11-23;
+  `Net/Proof/net/rpc/Proto.lean` there, over `lisProtoD`): `RpcHttpHyp.rpcLisP_lis` now gives
+  `Listen.spec`'s update (`|={⊤,∅}=> lisToks la ∗ (lisToks la ={∅,⊤}=∗ True)`), not `∃ P Q,
+  lisProto la P Q`; new `rpcLisP_ok` (`listenOk la`); `rpcLisP_set` takes `listenOk la` and that
+  every address `la` takes has the handshake `hs`/`hsAns` — stated over two new fields
+  `worldHs`/`worldHsAns` standing for that branch's `RpcWorld.hs`/`.hsAns` (lean's `RpcWorld` has
+  none yet). `master/Run` listens through the new `lib/NetLab` `net.Listen.labProofU` (over the
+  update). Still hypotheses per that branch: net/http's server up to the hijack
+  (`Serve`/`ListenAndServe`, `ServeMux.ServeHTTP`, `Hijack` giving `hijackOk`) and `HandleHTTP`;
+  `rpc.Server.ServeHTTP.spec` and `Server.Accept.spec` (any valid or wildcard listener) are proved
+  there. **When models-rpc-http lands: merge it**, replace the `rpcLisP*` fields and
+  `worldHs`/`worldHsAns` by its definitions, and apply the saved DialHTTP patch (seventh session).
+- `KitVal.equiv`/`KitVal.wf` moved from the lab kit's Codec.lean to Wire.lean.
+- Step 2 started: `Spec/.../examples/swiftnet/RpcWire.lean` (pure): rpcgen's bytes of each
+  listed value (`KitVal.rpcEncode` = `rTag rpcName ++ rpcBody`), from `rpc_gen.go`; unused yet.
+
+## State (2026-11-23, seventh session; superseded where the eighth says so)
 
 Read with the sixth and fifth sessions' states below (accurate where this does not say otherwise).
 

@@ -26,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 namespace sp
 
 section laws
-variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS] [Perennial.github_com.imdea_software.swiftpaxos.sp.GobFmt]
 variable {γ : Names} {γc γm : GName}
 
 /-- A client's stream's first byte is a proposal's type byte. -/

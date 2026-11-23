@@ -22,6 +22,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
+  [SwiftOsRandom netDistGF]
 variable [client.Assumptions] [github_com.google.uuid.Assumptions]
 
 theorem client.NewClientLog.wp_proof : client.NewClientLog.spec (hG := hG) := by

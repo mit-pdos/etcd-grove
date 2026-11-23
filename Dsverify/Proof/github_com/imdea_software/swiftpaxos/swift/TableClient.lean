@@ -38,6 +38,9 @@ namespace swift.tbl
 open swift.handler (shashOf)
 open swift.rd
 
+section pureGob
+variable [sp.GobFmt]
+
 /-! ## Pure: the counts are the encoding's -/
 
 /-- What a reply decoder reads next: a reply with a non-empty checksum (see the header). -/
@@ -100,6 +103,8 @@ theorem nextOk_reply (d : List w8) (h : sp.nextOk (W8 15) d) : replyNext d := by
   exfalso
   obtain ⟨m, w, -, hp, hc, -⟩ := h
   cases m <;> simp [sp.Msg.isPeer, sp.Msg.code, sp.rpcTable] at hp hc
+
+end pureGob
 
 section law
 variable [go_gctx : GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF]

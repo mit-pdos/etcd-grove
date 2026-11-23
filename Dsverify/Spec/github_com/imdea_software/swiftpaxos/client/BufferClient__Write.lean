@@ -35,7 +35,7 @@ abbrev client.BufferClient.Write.spec : Prop :=
   ∀ (b : Loc) (γ : sp.Names) (γc γm γl : GName) (cid : w32) (s : Nat) (key : w64)
     (vsl : GoSlice) (v : List w8),
   ⊢ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client -∗
-    client.ready b γ γc γm γl cid s -∗ vsl ↦*□ v -∗ ⌜v.length < 2 ^ 16 ∧ s < 2 ^ 25⌝ -∗
+    client.ready b γ γc γm γl cid s -∗ vsl ↦*□ v -∗ ⌜v.length < 2 ^ 16 ∧ s < 2 ^ 10⌝ -∗
     <<{ ∀∀ σ, linOwn γl σ }>>
       (App (App (Val (b @!! go.GoType.PointerType client.BufferClient.ty @!! go!"Write"))
         (Val #key)) (Val #vsl)) @ ↑sp.spN
