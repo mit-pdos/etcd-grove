@@ -198,6 +198,18 @@ theorem fileAt_unique {R : Roots} {p : GoString} {j j' : Ino} {b b' : GoString}
   have := eq_of_nodup_map hR.1 hr hr' rfl
   exact ⟨(Prod.mk.inj this).2, rfl⟩
 
+/-- The directory of `d/b`, a file of `FileAt`, is the root `d`. -/
+theorem fileAt_root {R : Roots} {d b b' : GoString} {j : Ino} (h : FileAt R (child d b) j b')
+    (hb : NameOk b) : (d, j) ∈ R ∧ b' = b := by
+  obtain ⟨-, hb', r, hr, he⟩ := h
+  have h1 := congrArg baseOf he
+  rw [baseOf_child' _ _ hb, baseOf_child' _ _ hb'] at h1
+  subst h1
+  have h2 := congrArg parentOf he
+  rw [parentOf_child' _ _ hb, parentOf_child' _ _ hb] at h2
+  cases h2
+  exact ⟨hr, rfl⟩
+
 /-- A root names its directory, whatever the history. -/
 theorem lookupH_root {R : Roots} (hr : RootsOk R) {d : GoString} {j : Ino} (hd : (d, j) ∈ R)
     (V : Hist) : lookupH R V d = some (.dir j) := by
