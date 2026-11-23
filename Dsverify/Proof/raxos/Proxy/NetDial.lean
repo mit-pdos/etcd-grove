@@ -5,6 +5,8 @@ writer under `clientWritersMutex`).
 module
 
 public import Dsverify.Proof.raxos.Proxy.NetWriter
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.wire.Pkg
+public import Proof.bufio.NewWriterSize
 
 @[expose] public section
 
@@ -23,11 +25,10 @@ section proofs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [π : NetProtoGS] [qv : hyp.QpVocab GF]
- 
-  [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
-  [raxos.examples.quepaxanet.Assumptions]
+variable [raxos.replica.src.Assumptions] [raxos.proto.client.Assumptions]
+variable [_root_.Perennial.bufio.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 
-theorem clientInProto_hs (γ : QNames) (cl k : Nat) (hk : k < 2 ^ 16) (cid : w64) :
+theorem clientInProto_hs (γ : QNames) (cl k : Nat) (hk : k < 2 ^ 16) (cid : Nat) :
     ⊢ clientInProto (GF := GF) γ cl cid (hs k) := by
   unfold clientInProto
   iexists k, []
@@ -55,7 +56,7 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
   ihave Hsl := slice_array b_ptr 4 _ (by decide) $$ b
   ihave #Hproto : addrProto (clientAddr cl) (clientInProto γ cl) silentProto $$ [Hf]
   · unfold sharedFacts netProtos
-    icases Hf with ⟨-, -, -, ⟨-, #Hp, -⟩, -⟩
+    icases Hf with ⟨-, -, -, ⟨-, -, #Hp, -⟩, -⟩
     ihave Hp := BigSepL.bigSepL_lookup (Φ := fun _ c => addrProto (GF := GF) (clientAddr c)
       (clientInProto γ c) silentProto) (show (List.range 6)[cl]? = some cl by simp [hcl]) $$ Hp
     iexact Hp
@@ -68,10 +69,24 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
   · iexact HCM
   rw [peer_w64 cl hcl, HCM21 cl hcl]
   simp only [Option.getD_some]
-  wp_apply net.Dial.wp_proof (clientAddr cl) (clientInProto γ cl) silentProto $$ [$Hproto] as %cv %err Hres
-  iunfold net.newConnResult at Hres
-  icases Hres with (⟨%c, %cid, %Hcv, #Hown, ⟨Hs, Hr⟩, Hfr⟩ | ⟨%i, %Herr0, Herr⟩)
-  · obtain ⟨rfl, rfl⟩ := Hcv
+  ihave %Hok2 := addrTok_ok (clientAddr cl) $$ [Hproto]
+  · iapply addrProto_tok $$ Hproto
+  wp_apply net.Dial.wp_proof go!"tcp" net.tcpNet_tcp (clientAddr cl) iprop(True)
+      (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn false (clientInProto γ cl) silentProto [] [] ∗
+        connFresh (Gg := hG.goose_globalGS) cn false)) $$ []
+    as %cv %err (⟨%Herr, %cn, #Hc2, ⟨Hend, -⟩⟩ | ⟨-, %x, -, #Herr⟩)
+  · isplitr
+    · ipureintro; exact Hok2
+    isplit
+    · itrivial
+    · iapply dial_au (clientAddr cl) (clientInProto γ cl) silentProto $$ Hproto
+  · subst Herr
+    iunfold connEnd at Hend
+    icases Hend with ⟨Hs, -⟩
+    ihave #Hconn := sendTok_connIs cn false _ _ $$ Hs
+    iunfold net.isConn at Hc2
+    icases Hc2 with ⟨%t, %la, %ra, %Hct, #Hca⟩
+    subst Hct
     wp_auto
     irename HI => Hsl
     unfold sharedConsts
@@ -99,42 +114,67 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
     · unfold sharedFacts; icases Hf with ⟨%Hk, -⟩; ipureintro
       obtain ⟨⟨hn, -⟩, h1, h2⟩ := Hk; omega
     rw [hs_bytes k Hk]
-    ihave #Hhs := clientInProto_hs γ cl k (by omega) cid
-    wp_apply net.TCPConn.Write.wp_proof c cid false _ (hs k) (DFrac.own 1) (clientInProto γ cl) []
-      $$ [$Hown $Hs Hsl] as %n %err ⟨%k', %code, %Hk', Hsl, Hs, Herr⟩
-    · iframe Hsl; imodintro; simp only [List.nil_append]; iexact Hhs
-    cases err with
-    | ok ie =>
+    ihave #Hhs := clientInProto_hs γ cl k (by omega) cn
+    ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
+    · iPkgInit
+    ihave ⟨%ed, #Hed⟩ := github_com.mit_pdos.etcd_grove.examples.net.wire.ed_of_poll $$ Hpoll
+    wp_apply net.Conn.Write.wp_proof t cn false (clientAddr cl) la ra _ (hs k) (DFrac.own 1) ed
+        (writeP cn false (clientInProto γ cl) []) $$ [Hsl Hs]
+      as %n %err ⟨%w, %res, Hs, Hsl, %Hw, #HE⟩
+    · iframe Hca Hsl Hed
+      isplitl [Hs]
+      · iapply writeP_init $$ Hs
+      · iapply write_acc cn false (clientInProto γ cl) [] (hs k)
+        simp only [List.nil_append]; iexact Hhs
+    icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne
+    obtain ⟨hw, -, hnone, -⟩ := Hw
+    unfold writeP
+    cases res with
+    | some ke =>
+      obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
       wp_auto
-      wp_apply net.TCPConn.Close.wp_proof c cid false $$ [$Hown] as %e -
+      wp_apply net.Conn.Close.wp_proof t cn false (clientAddr cl) la ra (fun _ => iprop(True)) $$ []
+        as %e -
+      · iframe Hca
+        imod close_au cn false $$ Hconn with ⟨%st, %dd, Hst, Hdd, Hcl⟩
+        imodintro
+        iexists st, dd
+        iframe Hst Hdd
+        iintro %res %st' %d' %Hd' Hst Hdd
+        imod Hcl $$ %res %st' %d' %Hd' Hst Hdd with -
+        imodintro
+        itrivial
       wp_for_post
       iframe
       iexists _, _
       unfold hs
       iexact Hsl
-    | nil =>
-      have hk' : k' = (hs k).length := Hk'.2.2.2 rfl
-      rw [hk', List.take_length, List.nil_append] at *
+    | none =>
+      have herr := Hne.1 rfl
+      subst herr
+      have hw' : w = hs k := hnone rfl
+      subst hw'
+      simp only [List.nil_append]
       wp_auto
       wp_apply sync.Mutex.wp_Lock $$ [$Hwmu] as ⟨Hlocked, HR⟩
-      ihave #Hpc := clientInProto_prefixClosed (GF := GF) γ cl cid
-      ihave #Hconn : net.rpc.connIface (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #c)
-        cid false $$ []
-      · unfold net.rpc.connIface; iexists c; iframe Hown; ipureintro; rfl
-      ihave #Hnet : isPkgInit (PROP := IProp GF) pkg_id.net $$ []
+      ihave #Hwok := net.conn_streamWriterOk net.Conn.Write.wp_proof t cn false (clientAddr cl) la ra ed
+        (clientInProto γ cl) (clientInProto_prefixClosed γ cl) $$ [$Hca $Hed]
+      ihave #Hbufio : isPkgInit (PROP := IProp GF) pkg_id.bufio $$ []
       · iPkgInit
-      ihave #Hwok := bufio.writerOk_conn _ cid false (clientInProto γ cl) $$ [$Hnet $Hconn $Hpc]
-      wp_apply bufio.wp_NewWriter _ (sendTok cid false (clientInProto γ cl)) (clientInProto γ cl cid) (hs k)
-        $$ [$Hwok $Hs] as %w Hw
-      · imodintro; iexact Hhs
+      rw [show interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t = GoInterface.ok (net.connIface t)
+        from rfl]
+      wp_apply (EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof) (net.connIface t) (sendTok cn false (clientInProto γ cl))
+          (clientInProto γ cl cn) (net.connWriteE la ra ed) (hs k) $$ [Hs] as %w Hw
+      · iframe Hbufio Hwok Hs Hhs
+        ipureintro; exact net.connIface_ne_bufioWriter t
       imod inv_alloc wN ⊤ iprop(wSlot γ k (cOf (W64 (21 + cl))) w ∨
           ghostMapElem (γw (W64 (21 + cl))) w DFrac.discard ())
         $$ [Hw] with #Hwinv
       · inext; ileft
         rw [cOf_peer cl hcl]
         unfold wSlot
-        iexists _, cid, hs k, [], GoInterface.nil
-        iframe Hwok Hw
+        iexists _, cn, _, hs k, [], GoInterface.nil
+        iframe Hw
         iright
         iexists []
         isplitr
@@ -155,7 +195,8 @@ theorem connectToClient_proof : connectToClient.spec (GF := GF) (hG := hG) := by
         ipureintro; exact Hmu
       wp_for_post
       wp_end
-  · obtain ⟨rfl, rfl⟩ := Herr0
+  · icases net.resErr_netErr _ _ _ _ _ _ _ $$ Herr with %Hne
+    obtain ⟨pe, rfl⟩ := Hne.2 (by simp)
     wp_auto
     wp_for_post
     iframe
