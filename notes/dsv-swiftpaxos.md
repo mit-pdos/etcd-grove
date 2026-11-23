@@ -116,7 +116,71 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, twelfth session; resume here)
+## State (2026-11-23, thirteenth session; resume here)
+
+Read with the twelfth session's state below (accurate where this does not say otherwise).
+
+**Done (pushed, all `lean-check -a` clean).**
+- **The boot, proved** (coordinator's decision: the kit's own packages' first runs are proved;
+  `RpcFirstInit` is the approved visible per-heap premise for net/rpc's initializer only, stands
+  in for the per-machine net/rpc boot resource `Net/` will provide; never an instance):
+  - `etc/dsv/_swiftpaxos_boot.py` generates `examples/swiftnet/BootTable.lean` (from
+    `cmd/server2/PkgTable.lean`'s chain) and `BootCmds.lean`; `--check` exits 1 on a diff. Run
+    it after `etc/gen-init.py`.
+  - `BootTable.lean`: `gOff S G` (the table `G` with the packages of `S` at `False`: not yet
+    initialized; laws `gOff_ne/_off/_sub/_le/_nil`), `ownedPkgs` (swiftnet, swift,
+    concurrent-map, client, net/rpc, net/http), `KitG G` (one equality `G p = isPkgInit p` per
+    package of swiftnet's closure), `wf_p hk : GetIsPkgInitProp p G` for all, `wfO_p hk S hS :
+    GetIsPkgInitProp p (gOff S G)` for the packages whose closure avoids `ownedPkgs`.
+  - `BootLinked.lean` (a linking module; generic in `G` with `hk : KitG G`): `boot_cmap`
+    (`gOff bootS3 G` → `gOff bootS4 G`, `SHARD_COUNT ↦ 32`), `init_client` (the generic second
+    run at `G`, drops the ghost), `boot_client` (`gOff bootS4 G` → `G`; body at `gOff bootSR G`
+    until net/rpc's first run by `RpcFirstInit.wp_init_first`, then at `G`; returns
+    `client.ghostFresh ∗ rpcBootRes`), `boot_swift` (`gOff bootS2 G` → `G`; the pool, the
+    hooks, `errVarintOverflow`; returns `bootRes = client.ghostFresh ∗ swift.mutGlobalsInit ∗
+    rpcBootRes`), `boot_swiftnet` (`gOff bootS1 G` → `G`, returns `bootRes`),
+    `ownInitializing_of_empty`. Execution order of a goose initializer = the reverse of the
+    textual order of its `initialize'` calls (allocs first). Explicit step sequences, not
+    `repeat (first ...)` over tables: unifying `gOff S G` with another table makes `whnf` blow up.
+  - `BootCmds.lean`: per command `kitG : KitG getIsPkgInit` (`constructor <;> rfl`) and
+    `wp_boot : {{ ownGoState ∅ }} initialize' {{ ownInitializing getIsPkgInit ∗ isPkgInit cmd ∗
+    bootRes }}` (the shape `wp_bootR` of dsv-epaxos's TopLevelRobustness takes).
+  - `RpcFirstInit` now also requires `GetIsPkgInitProp net.http g'` (the run initializes
+    net/http; its entry must be satisfiable), docstring records the approval.
+  - Deleted the lab's `SrvInit`, `ClientInit`, `ClientPkgInits`, `PkgState` (`InitFirst` kept:
+    `wp_package_init_first`).
+- **`Mains.lean`**: the 13 `wp_main`s from `cnode.Orch.spec`, `cnode.Client.spec`,
+  `Server.spec`: pre `isPkgInit cmd ∗` (orch: `conf.writer γ ∗ common γ ∗` remote's
+  `clientAddrs` protocols `∗ mapCtx ∗ pendCtx ∗ pendLib`; client `c`: `clientRes γ γk c`;
+  server `s`: `serverRes γ (s-1)`).
+- **The statement** `Dsverify/Spec/.../examples/swiftnet/TopLevelRobustness.lean`
+  (`swiftpaxos_remote_robust.spec`, checked): premises `l : SwiftNetPkgState netDistGF` (incl.
+  `GobFmt`), the seven `InitHyp`s (math/rand, net/rpc, net/http, encoding/json, encoding/gob,
+  os/signal, uuid) per heap, `SwiftHyps`, `SwiftNoSignals`, `SwiftOsRandom` (per heap at
+  `libsAt l π`), `ra : RpcHttpAddr`, `rh : RpcHttpHyp`, `RpcFirstInit`; conclusion
+  `DistDeploy swAddrs (system σ) g → Robust [] (system σ) g threads (2 ^ 31 - 1)`.
+
+**Next.**
+1. `Link.lean` (namespace `Perennial.EtcdGrove.dsvswiftpaxos`): `wp_Orch`, `wp_Client`,
+   `wp_Server` from the machine proofs' callees (list in the eleventh session's state). The
+   deep part is `swift.New`'s link: the lab's `ServersLink.lean` (ported copy before its
+   deletion: `git show 871bdf6501^:Dsverify/Proof/github_com/imdea_software/swiftpaxos/examples/swiftnet/ServersLink.lean`)
+   links `swift.wp_New` (`swift/Results.lean`) over `SrvPkgFacts`, the batcher, the reply
+   channel, `HookUser1`, `run.wp_proof'` with `runLoopOk_of` and the arms; its pkg facts
+   (`srv_pkg_facts`, `srv_errvarint_fact`, `srv_pool_fact`, `srv_hooks_fact`) come now from
+   `isPkgInit_access` of `swift.pkgSt`/`replica.pkgSt`/`defs.pkgSt` (no `pkgStates`). Names
+   changed since (gob: `*.wp_hyp` → the `SwiftHyps` fields; `kitCodecOkC_holds` gone): adapt.
+   Client side: `swift.wp_NewClient` and `Connect.wp_proofG` take `ClientPkgFacts` (the same
+   kind of facts); `client.claimGhost.wp_proof` (Claim.lean); `master.wp_call_btl`.
+2. `TopLevelRobustness.lean` (proof), as dsv-epaxos's: `robust_of_distProtoLisRBT_sha`,
+   `sw_start`, `mapCtx_alloc`, `addrs_set_proto` at `clientAddrs`, `pend_alloc` from
+   `sysK γk swB.init`; per machine `wp_bootR` with `cmd.<n>.wp_boot` and `cmd.<n>.wp_main`
+   (`bootRes` → `clientRes`'s `client.ghostFresh`, `codecFresh` (from `rpcBootRes`), `cliBoot`
+   (`receiptBound`, `net.rpc.cliEnv` from `srvEnv`, `dialEnv`); `srvBoot` likewise, `swift.mutGlobals`
+   from `mutGlobalsInit_mutGlobals`).
+3. `#print axioms`, `etc/theorem-loc.py`, `etc/tcb-collections/dsv-swiftpaxos.txt`.
+
+## State (2026-11-23, twelfth session; superseded where the thirteenth says so)
 
 Read with the eleventh session's state below (accurate where this does not say otherwise).
 
