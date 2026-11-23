@@ -27,6 +27,7 @@ public import GooseLang.Ext.Fs.TreeShared
 public import GooseLang.Ext.Fs.TreeSharedCoh
 public import GooseLang.Ext.Fs.CrashRegion
 public import Perennial.Ghost.GhostVar
+public import Perennial.Std.Namespaces
 
 @[expose] public section
 
@@ -204,9 +205,9 @@ theorem regionCrashed_restrict {c : Claim} {rest : List Claim} {n : Nat} {m' : T
 /-! ## The region and its facts -/
 
 /-- The claim on `wal` alone, and merged with `wal.tmp`'s. -/
-def wO : NameSet := .only [walB]
-def wN : NameSet := .only [walB, wtB]
-def sN : NameSet := .only [segB]
+abbrev wO : NameSet := .only [walB]
+abbrev wN : NameSet := .only [walB, wtB]
+abbrev sN : NameSet := .only [segB]
 
 theorem wO_wal : wO.Mem walB := by simp [wO, NameSet.Mem]
 theorem wN_wal : wN.Mem walB := by simp [wN, NameSet.Mem]
@@ -214,7 +215,7 @@ theorem wN_wt : wN.Mem wtB := by simp [wN, NameSet.Mem]
 theorem sN_seg : sN.Mem segB := by simp [sN, NameSet.Mem]
 
 /-- The key of the claim on `wal`: alone, or merged (`mg`). -/
-def wKey : Bool → NameSet
+abbrev wKey : Bool → NameSet
   | false => wO
   | true => wN
 
@@ -328,6 +329,262 @@ theorem dinv_rekey {j : Ino} {ko : Option Ino} {hw : NamesH} (h : DInv j ko hw n
     · exact hn
     · exact absurd (h3 hn) (by rw [hnone]; exact hn)
   exact ⟨⟨fun i => by rw [hn]; simp, fun J hJ => by rw [hn] at hJ; cases hJ⟩, fun h => absurd hn h⟩
+
+/-! ## A fresh generation's claims -/
+
+theorem namesOf_nil (m : Tree) (j : Ino) (N : NameSet) : namesOf (m, []) j N = NamesH.init m j N := by
+  unfold namesOf NamesH.init
+  simp [Hist.now, Hist.ops, replay]
+
+theorem init_restrict (m : Tree) (j : Ino) (N : NameSet) :
+    (NamesH.init m j N).restrict j N = NamesH.init m j N := by
+  unfold NamesH.init NamesH.restrict
+  simp only [List.filter_nil, List.map_nil, restrictN_restrictN N N _ (fun _ hb => hb)]
+
+/-- The directory a name of `j` names, if any. -/
+def dirOf (m : Tree) (j : Ino) (b : GoString) : Option Ino :=
+  match m.entry j b with
+  | some (.dir J) => some J
+  | _ => none
+
+theorem dirOf_some {m : Tree} {j J : Ino} {b : GoString} (h : dirOf m j b = some J) :
+    m.entry j b = some (.dir J) := by
+  unfold dirOf at h
+  split at h
+  · cases h; assumption
+  · cases h
+
+theorem initSeg_eq (m : Tree) (j : Ino) :
+    initSeg m j = (dirOf m j walB).map (fun J => (J, NamesH.init m J sN)) := by
+  unfold initSeg dirOf
+  split <;> rfl
+
+/-- The directories a fresh generation's program needs: the root `j`, `wal`'s and `wal.tmp`'s
+(when directories), distinct and in the tree. -/
+theorem dirs_ok {R : Roots} {m : Tree} (hwf : TreeWf R m) {r : GoString} {j : Ino}
+    (hr : (r, j) ∈ R) :
+    j ∈ m ∧ (∀ J, dirOf m j walB = some J → J ∈ m ∧ J ≠ j) ∧
+      (∀ J, dirOf m j wtB = some J → J ∈ m ∧ J ≠ j ∧ dirOf m j walB ≠ some J) := by
+  refine ⟨hwf.1 j (.root r j hr), fun J hJ => ?_, fun J hJ => ?_⟩
+  · have he := dirOf_some hJ
+    exact ⟨(hwf.2.2.1 j walB _ he).2 J (by simp [Node.dirIno]), fun h => hwf.2.2.2.1 j walB J he r (h ▸ hr)⟩
+  · have he := dirOf_some hJ
+    refine ⟨(hwf.2.2.1 j wtB _ he).2 J (by simp [Node.dirIno]), fun h => hwf.2.2.2.1 j wtB J he r (h ▸ hr),
+      fun h => ?_⟩
+    exact wt_ne_wal (hwf.2.2.2.2 j wtB j walB _ he (dirOf_some h)).2
+
+section res
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+
+/-- A whole `.except []` claim of each directory of `o`. -/
+def optClaim (V : Hist) : Option Ino → IProp GF
+  | none => iprop(emp)
+  | some J => osNames (L := L) J (.except []) (DFrac.own 1) (namesOf V J (.except []))
+
+/-- `l` without `o`'s directory. -/
+def eraseOpt (l : List Ino) : Option Ino → List Ino
+  | none => l
+  | some J => l.erase J
+
+theorem bigSepL_take_opt (V : Hist) (l : List Ino) (o : Option Ino) (ho : ∀ J, o = some J → J ∈ l) :
+    ([∗list] J ∈ l, osNames (L := L) J (.except []) (DFrac.own 1) (namesOf V J (.except []))) ⊢
+      optClaim (L := L) V o ∗
+        [∗list] J ∈ eraseOpt l o,
+          osNames (L := L) J (.except []) (DFrac.own 1) (namesOf V J (.except [])) := by
+  cases o with
+  | none => unfold optClaim eraseOpt; iintro H; isplitr; · iempintro
+            iexact H
+  | some J =>
+    unfold optClaim eraseOpt
+    refine (BigSepL.bigSepL_perm (List.perm_cons_erase (ho J rfl))).1.trans ?_
+    exact BigSepL.bigSepL_cons.1
+
+theorem mem_erase_opt {l : List Ino} {o : Option Ino} {J : Ino} (h : J ∈ l)
+    (hne : o ≠ some J) : J ∈ eraseOpt l o := by
+  cases o with
+  | none => exact h
+  | some J' => unfold eraseOpt; exact (List.mem_erase_of_ne (fun e => hne (by rw [e]))).2 h
+
+/-- One name's claim taken out of an `.except X` claim of a fresh generation. -/
+theorem osNames_take1 (R : Roots) (V : Hist) (j : Ino) (X : List GoString) (b : GoString)
+    (hb : b ∉ X) {E : CoPset} (hE : ↑osShN ⊆ E) :
+    ⊢ osSharedInv (L := L) R -∗
+      osNames (L := L) j (.except X) (DFrac.own 1) (namesOf V j (.except X)) ={E}=∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) (namesOf V j (.only [b])) ∗
+      osNames (L := L) j (.except (X ++ [b])) (DFrac.own 1) (namesOf V j (.except (X ++ [b]))) := by
+  iintro #Hsh H
+  imod osNames_split R j (.except X) [b] _ hE $$ Hsh H with ⟨Hb, Hr⟩
+  have hi : (NameSet.except X).inter [b] = .only [b] := by
+    simp only [NameSet.inter, List.filter_cons, List.filter_nil]
+    rw [if_pos (decide_eq_true hb)]
+  have hd : (NameSet.except X).diff [b] = .except (X ++ [b]) := rfl
+  rw [namesOf_restrict V j (.except X) ((NameSet.except X).inter [b]) (fun c hc => by
+      rw [hi] at hc
+      simp only [NameSet.Mem, List.mem_singleton] at hc ⊢
+      subst hc; exact hb),
+    namesOf_restrict V j (.except X) ((NameSet.except X).diff [b]) (fun c hc => by
+      simp only [NameSet.diff, NameSet.Mem, List.mem_append, not_or] at hc ⊢
+      exact hc.1), hi, hd]
+  imodintro
+  iframe Hb Hr
+
+/-! ## The invariant -/
+
+def dsN : Namespace := nroot .@ "dirswap"
+
+theorem dsN_disj : ↑osN ⊆ (⊤ : CoPset) \ ↑dsN := mask_ndot_ne' nroot "osfs" "dirswap" (by decide)
+
+theorem dsN_shN : ↑osShN ⊆ (⊤ : CoPset) \ ↑dsN :=
+  mask_ndot_ne' nroot "osfsShared" "dirswap" (by decide)
+
+/-- The invariant's half of the segment's file of the key `ko`: of its `OsMeta` and bytes, every
+crash of which is `DataGood`. -/
+def keyRes : Option Ino → IProp GF
+  | none => iprop(emp)
+  | some k => iprop(∃ (m : OsMeta) (bs : List ByteG),
+      osMeta (L := L) k (DFrac.own (1 : Qp).half) m ∗
+      osBytes (L := L) k 0 (DFrac.own (1 : Qp).half) bs ∗
+      ⌜∀ fo, FileCrashedR m [(0, DFrac.own (1 : Qp).half, bs)] fo → DataGood fo⌝)
+
+instance keyRes_timeless (ko : Option Ino) : Timeless (keyRes (L := L) ko) := by
+  cases ko <;> unfold keyRes <;> unfold osMeta osBytes bytesG <;> infer_instance
+
+/-- The segment's file of the key `ko` as a generation starts with it: `DataGood`. -/
+def startFile : Option Ino → IProp GF
+  | none => iprop(emp)
+  | some k => iprop(∃ f : OsFile, ⌜DataGood (some f)⌝ ∗ osFileStart (L := L) k f)
+
+/-- The tracked `seg`'s claim, at the fraction `q`. -/
+def jcl (q : Qp) : Option (Ino × NamesH) → List (Claim × DFrac)
+  | none => []
+  | some (J, hs) => [((J, sN, hs), DFrac.own q)]
+
+theorem jcl_halves (hsO : Option (Ino × NamesH)) :
+    osClaims L (jcl 1 hsO) ⊣⊢ osClaims L (jcl (1 : Qp).half hsO) ∗ osClaims L (jcl (1 : Qp).half hsO) := by
+  cases hsO with
+  | none => unfold osClaims jcl; simp only [BigSepL.bigSepL_nil]; exact sep_emp.symm
+  | some p =>
+    obtain ⟨J, hs⟩ := p
+    unfold osClaims jcl
+    have h := osNames_frac (L := L) J sN (1 : Qp).half (1 : Qp).half hs
+    rw [Qp.half_add_half] at h
+    constructor
+    · iintro H
+      icases BigSepL.bigSepL_singleton.1 $$ H with H
+      icases h.1 $$ H with ⟨A, B⟩
+      isplitl [A]
+      · iapply BigSepL.bigSepL_singleton.2; iexact A
+      · iapply BigSepL.bigSepL_singleton.2; iexact B
+    · iintro ⟨A, B⟩
+      icases BigSepL.bigSepL_singleton.1 $$ A with A
+      icases BigSepL.bigSepL_singleton.1 $$ B with B
+      iapply BigSepL.bigSepL_singleton.2
+      iapply h.2; iframe A B
+
+/-- **One side's half** (the invariant's or the program's): the ghost variable, half of the claim
+on `wal`, half of the tracked `seg`'s. -/
+def dsHalf (j : Ino) (γ : GName) (ko : Option Ino) (mg : Bool) (hw : NamesH)
+    (hsO : Option (Ino × NamesH)) : IProp GF :=
+  iprop(ghostVar γ (1 : Qp).half (ko, mg, hw, hsO) ∗
+    osNames (L := L) j (wKey mg) (DFrac.own (1 : Qp).half) hw ∗ osClaims L (jcl (1 : Qp).half hsO))
+
+/-- **The crash invariant** of the root directory `j`. -/
+def dsInv (j : Ino) (γ : GName) : IProp GF :=
+  inv dsN iprop(∃ (ko : Option Ino) (mg : Bool) (hw : NamesH) (hsO : Option (Ino × NamesH)),
+    dsHalf (L := L) j γ ko mg hw hsO ∗ ⌜DInv j ko (hw.restrict j wO) hsO⌝ ∗ keyRes (L := L) ko)
+
+instance dsInv_persistent (j : Ino) (γ : GName) : Persistent (dsInv (L := L) j γ) := by
+  unfold dsInv; infer_instance
+
+/-- The invariant allocated, with the program's half. -/
+theorem ds_alloc (j : Ino) (ko : Option Ino) (mg : Bool) (hw : NamesH) (hsO : Option (Ino × NamesH))
+    (hD : DInv j ko (hw.restrict j wO) hsO) (E : CoPset) :
+    ⊢ osNames (L := L) j (wKey mg) (DFrac.own 1) hw -∗ osClaims L (jcl 1 hsO) -∗ keyRes (L := L) ko
+      ={E}=∗ ∃ γ, dsInv (L := L) j γ ∗ dsHalf (L := L) j γ ko mg hw hsO := by
+  iintro Hw Hs Hk
+  imod ghostVar_alloc (GF := GF) (ko, mg, hw, hsO) with ⟨%γ, Hv⟩
+  icases (ghostVar_split_half γ 1 (ko, mg, hw, hsO)).1 $$ Hv with ⟨Hv1, Hv2⟩
+  have h := osNames_frac (L := L) j (wKey mg) (1 : Qp).half (1 : Qp).half hw
+  rw [Qp.half_add_half] at h
+  icases h.1 $$ Hw with ⟨Hw1, Hw2⟩
+  icases (jcl_halves (L := L) hsO).1 $$ Hs with ⟨Hs1, Hs2⟩
+  imod inv_alloc dsN E iprop(∃ (ko : Option Ino) (mg : Bool) (hw : NamesH)
+      (hsO : Option (Ino × NamesH)), dsHalf (L := L) j γ ko mg hw hsO ∗
+      ⌜DInv j ko (hw.restrict j wO) hsO⌝ ∗ keyRes (L := L) ko) $$ [Hv1 Hw1 Hs1 Hk] with #Hinv
+  · inext; iexists ko, mg, hw, hsO; unfold dsHalf; iframe Hv1 Hw1 Hs1 Hk; ipureintro; exact hD
+  imodintro
+  iexists γ
+  isplitr
+  · unfold dsInv; iexact Hinv
+  unfold dsHalf; iframe Hv2 Hw2 Hs2
+
+/-- **A fresh generation's start**: from the tree's resources (`osShared`, nothing logged) on a
+`SafeT` tree, the invariant with the program's half, and the whole claims the program changes:
+`wal.tmp`'s, and the `.except []` claim of `wal.tmp`'s directory. -/
+theorem ds_start (R : Roots) (r : GoString) (j : Ino) (hr : (r, j) ∈ R) (m : Tree)
+    (hwf : TreeWf R m) (ko : Option Ino) (hs : SafeT j ko m) (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ⊢ osShared (L := L) R (m, []) -∗ keyRes (L := L) ko ={E}=∗
+      ∃ γ, dsInv (L := L) j γ ∗ dsHalf (L := L) j γ ko false (NamesH.init m j wO) (initSeg m j) ∗
+        osNames (L := L) j (.only [wtB]) (DFrac.own 1) (NamesH.init m j (.only [wtB])) ∗
+        optClaim (L := L) (m, []) (dirOf m j wtB) ∗
+        osSharedInv (L := L) R ∗ osAboveInv (L := L) ∗ osCallPerms (L := L) R ∗ osLogLb (L := L) 0 := by
+  obtain ⟨hj, hW, hT⟩ := dirs_ok hwf hr
+  have hnow : Hist.now ((m, []) : Hist) = m := by simp [Hist.now, Hist.ops, replay]
+  have mem : ∀ J, J ∈ m → J ∈ dirsOf (m, []) := fun J h => by
+    show J ∈ (GMap.toList (Hist.now ((m, []) : Hist))).map (·.1)
+    rw [hnow]
+    cases he : m !! J with
+    | none => have := (GMap.mem_iff _ _).1 h; rw [he] at this; cases this
+    | some d => exact List.mem_map.2 ⟨(J, d), (GMap.mem_toList _ _ _).2 he, rfl⟩
+  unfold osShared
+  iintro ⟨#Hsh, #Hab, Hperm, Hlb, Hall⟩ Hk
+  -- the root's claim
+  icases (BigSepL.bigSepL_perm (List.perm_cons_erase (mem j hj))).1 $$ Hall with Hall
+  icases BigSepL.bigSepL_cons.1 $$ Hall with ⟨Hj, Hall⟩
+  -- `wal`'s directory's
+  ihave Hall := bigSepL_take_opt (L := L) (m, []) _ (dirOf m j walB) (fun J hJ =>
+    (List.mem_erase_of_ne (hW J hJ).2).2 (mem J (hW J hJ).1)) $$ Hall
+  icases Hall with ⟨HW, Hall⟩
+  -- `wal.tmp`'s directory's
+  ihave Hall := bigSepL_take_opt (L := L) (m, []) _ (dirOf m j wtB) (fun J hJ =>
+    mem_erase_opt ((List.mem_erase_of_ne (hT J hJ).2.1).2 (mem J (hT J hJ).1))
+      (fun h => (hT J hJ).2.2 h)) $$ Hall
+  icases Hall with ⟨HT, -⟩
+  -- the root's claim split
+  imod osNames_take1 (L := L) R (m, []) j [] walB (by simp) hE $$ Hsh Hj with ⟨Hw, Hj⟩
+  rw [List.nil_append]
+  imod osNames_take1 (L := L) R (m, []) j [walB] wtB (by decide) hE $$ Hsh Hj with ⟨Ht, -⟩
+  -- `wal`'s directory's claim: its `seg`
+  ihave Hs : |={E}=> osClaims L (jcl 1 (initSeg m j)) $$ [HW]
+  · rw [initSeg_eq]
+    cases hd : dirOf m j walB with
+    | none => unfold optClaim; iclear HW; unfold osClaims; simp only [Option.map, jcl]
+              imodintro; iapply BigSepL.bigSepL_nil.2; iempintro
+    | some J =>
+      unfold optClaim
+      simp only [hd]
+      imod osNames_take1 (L := L) R (m, []) J [] segB (by simp) hE $$ Hsh HW with ⟨HS, -⟩
+      simp only [Option.map, jcl]
+      unfold osClaims
+      imodintro
+      iapply BigSepL.bigSepL_singleton.2
+      rw [namesOf_nil]
+      iexact HS
+  imod Hs
+  rw [namesOf_nil, namesOf_nil]
+  have hD := dinv_init hs
+  rw [← init_restrict m j wO] at hD
+  imod ds_alloc (L := L) j ko false (NamesH.init m j wO) (initSeg m j) hD E $$ Hw Hs Hk
+    with ⟨%γ, Hinv, Hh⟩
+  imodintro
+  iexists γ
+  iframe Hinv Hh Ht HT Hsh Hab Hperm
+  simp only [List.length_nil]
+  iexact Hlb
+
+end res
 
 end DS
 end osfs_walfs
