@@ -163,7 +163,7 @@ theorem swift.Replica.aliveQuorumBallot.wp_proof
         cases ok
         · -- `return b, false`
           wp_auto
-          unfold forMapPostcondition; iright; iright; iright
+          unfold forMapPostcondition; iright; iright; iright; ileft
           iexists _
           isplitr
           · ipureintro; rfl
