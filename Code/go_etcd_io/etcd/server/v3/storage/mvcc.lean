@@ -5953,6 +5953,24 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.MustRegister []))) (Val #())) (Var "$a0"))))))
   (Val #())))
 
+/-- ReportEventReceived reports that an event is received.
+    This function should be called when the external systems received an
+    event from mvcc.Watcher.
+
+    go: metrics.go:318:6 -/
+noncomputable def ReportEventReceived.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty go!"Add"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (App (Val (GoInstruction (GlobalVarAddr totalEventsCounter))) (Val #())))) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.int go.float64))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Sub"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr pendingEventsGauge))) (Val #())))) (Var "$a0")))))))
+  (Val #())))
+
 /-- go: metrics_txn.go:31:6 -/
 noncomputable def newMetricsTxnRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
@@ -12357,6 +12375,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   restoreChunk_unfold : FuncUnfold restoreChunk [] restoreChunk.impl
   sliceCapWithLimit_unfold : ∀ (S : go.GoType), FuncUnfold sliceCapWithLimit [S] (sliceCapWithLimit.impl S)
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
+  ReportEventReceived_unfold : FuncUnfold ReportEventReceived [] ReportEventReceived.impl
   newMetricsTxnRead_unfold : FuncUnfold newMetricsTxnRead [] newMetricsTxnRead.impl
   newMetricsTxnWrite_unfold : FuncUnfold newMetricsTxnWrite [] newMetricsTxnWrite.impl
   RevToBytes_unfold : FuncUnfold RevToBytes [] RevToBytes.impl
@@ -12462,6 +12481,7 @@ attribute [instance] Assumptions.kvHasher_instance
   Assumptions.restoreChunk_unfold
   Assumptions.sliceCapWithLimit_unfold
   Assumptions.«init.0_unfold»
+  Assumptions.ReportEventReceived_unfold
   Assumptions.newMetricsTxnRead_unfold
   Assumptions.newMetricsTxnWrite_unfold
   Assumptions.RevToBytes_unfold

@@ -43,6 +43,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   included.
 - **Status.** Not proposed yet.
 
+### `float64(c)` of an untyped integer constant did not step; prometheus's metric methods need `math.Float64bits` (2026-11-22, prove-ps2-metrics, claim #18)
+
+- **Limitation.** goose emits `Convert go.untypedInt go.float64` for a unary untyped-integer constant in a
+  float context (`g.Add(-1)` in `gauge.Dec`, `val * -1` in `gauge.Sub`), and `Float64Semantics` had no rule
+  for it: the translation was stuck. `gauge.Set`/`Add`/`Sub` and `counter.Add` call `math.Float64bits`/
+  `Float64frombits`, names-only at the pin.
+- **Work-around here.** None: the branch `prove-ps2-metrics/2026-11-22` is built against Perennial
+  `680fbbc03` and waits for the pin to reach it.
+- **Proposed (general).** mit-pdos/perennial#682 (the int-to-float conversions, through #676's `ratToFloat64`)
+  and mit-pdos/perennial#675 (the bit casts). **Status.** Both merged (#675 in the pin `1a0322fc6`, #682 as
+  `680fbbc03`); waits for the pin bump (#9).
 ### `math.Sqrt` names-only: translated over a trusted `sqrt` in mit-pdos/perennial#675 (2026-11-22, prove-ps2-succ)
 
 - **Limitation.** `math.Sqrt` had no body at the pin, so `v2stats.FollowerStats.Succ` (its standard deviation) stayed a
@@ -1594,7 +1605,7 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   now false of the struct literal: unused, declared still) and `newQueue` no longer needs
   `MutexLitSemantics`'s step (still taken as an instance); #16 deletes both.
 
-### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
+### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue) -- DONE (Perennial `680fbbc03`, perennial#682; class deleted on `prove-ps2-metrics/2026-11-22`)
 
 - **Missing.** `backoff > math.MaxInt64` with `backoff : float64` is emitted as `Convert
   go.untypedInt go.float64 #c` at run time, and `UntypedIntSemantics` converts untyped integers to
@@ -1604,7 +1615,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`, in `SEM_PREMISES`): it steps to
   an uninterpreted float of the integer, as `float64(n)` of a typed integer does.
 - **Proposed.** Goose folding the constant conversion, or the step in `UntypedIntSemantics`.
-- **Status.** Not started.
+- **Done.** mit-pdos/perennial#682 (`680fbbc03`): the step, to `ratToFloat64 c` (one rounding, #676's).
+  The local class and `UntypedIntToFloat.lean` are deleted (branch `prove-ps2-metrics/2026-11-22`, with the
+  pin that brings it): `When.wp_proof` and the work queue's Links lose the instance premise (a stronger
+  statement).
 
 ### Specs: `container/heap` (2026-10-27, client-go workqueue)
 
@@ -3821,3 +3835,52 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
 `crash-genstart`: PR mit-pdos/perennial#683, awaiting review; its exact shapes are in `TopBridge.lean`'s header). kvnet's proof states the bridge it expects as `RobustOfNetFsBootG`
 (`KvNet/Proof/.../kvnet/TopBridge.lean`) and uses it as a hypothesis until then; its boot and crash lemmas
 (`TopBoot.lean`: `kvGen_boot`, `kvGen_crash`) are proved against those shapes.
+
+## 2026-11-22: two facts of Perennial's channel idioms proved locally (net/rpc client, branch `models-rpc-client`)
+
+- **Limitation.** The future idiom (`Golang/Theory/Chan/Idioms/Future.lean`) fulfils a promise only
+  by a blocking send (`future_fulfill_au`, `wp_future_fulfill`); Go's `net/rpc` `Call.done` fulfils it
+  by a non-blocking one (`select` with a `default`). And nothing says two `isChan` of one channel
+  agree on its capacity (a channel made then turned into a future by `start_future` loses its names).
+- **Workaround here.** `future_fulfill_nb` (`Net/Proof/net/rpc/Call__done.lean`: the future's
+  fulfilment as `nonblockingSendAuInner`, the `Buffered` and `RcvPending` cases of
+  `future_fulfill_au`) and `isChan_cap_agree` (`Net/Proof/net/rpc/Client__Call.lean`, from the
+  `cap` field's persistent points-to).
+- **Proposed.** Both in Perennial, next to `future_fulfill_au` and `isChan_not_null`; or
+  `start_future` stating the future's channel names (`γmf.chanName = γ`).
+- **Status.** Not filed yet.
+
+## 2026-11-23: `errors.New.spec` does not say its result implements `error` (net/rpc client, branch `models-rpc-client`)
+
+- **Limitation.** `errors.New.spec` (`Perennial/Spec/errors/New.lean`) returns some `err : GoInterfaceOk` with
+  `IsPointerError err` (a pointer type, any `T`) and its `Error()`. A caller that passes the error on as
+  `errAny` (`models_lab/Errors.lean`: its dynamic type in `error`'s type set,
+  `go.typeSetContains err.ty go.error`) cannot show it: the spec leaves the type open.
+- **Workaround here.** `wp_errors_New'` (`Net/Proof/net/rpc/Client__input.lean`): the same triple with the
+  result `interface.mkOk (*errorString) #x`, proved from `errors.New`'s body as `errors.New.wp_proof` is (no
+  axiom); `Client.input.wp_proof` uses it instead of taking `errors.New.spec`.
+- **Proposed.** `errors.New.spec`'s post also gives `go.typeSetContains err.ty go.error = true` (true of
+  `*errorString`, which `errors.New.wp_proof` returns), or names the type outright.
+- **Status.** Not filed yet.
+
+## 2026-11-23: bufio's generic specs over an `io.Writer` contract and slice helpers kept locally (dsv-bufio, #24, branch `dsv-bufio`)
+
+- **Limitation.** Perennial has an `io.Reader` contract (`io.readerOk`, `Perennial/Proof/io/Reader.lean`)
+  but no `io.Writer` counterpart with short writes; and a few slice facts `*bufio.Reader`/`*bufio.Writer`
+  need (a sub-slice accessor `[r, w)`, the suffix accessor `b[n:]`, advancing a slice `p = p[k:]`,
+  `copy` within one slice) are not in its slice library.
+- **Workaround here.** `io.writerOk wi J Q Ew` (`Proof/io/WriterOk.lean`: `Write` accepts a prefix of the
+  bytes, `nil` only for all of them; `Q` closed under prefixes, `io.prefixClosed`) with `io.wp_writer_Write`;
+  the slice facts in `Proof/bufio/Base.lean` (`bufio.ownSlice_sub_acc`, `bufio.suffix_acc`,
+  `bufio.slice_advance`, `bufio.flush_shift`, ...).
+- **Not needed.** `io.ReadFull`/`io.ReadAtLeast`: translated and proved in Perennial at the pin
+  (`io.wp_ReadFull`, `io.wp_ReadAtLeast`, over `io.readerOk`); a `*bufio.Reader` is an `io.readerOk`
+  reader (`bufio.ownBufReader_readerOk`, `Proof/bufio/ReaderLaws.lean`), and so is a connection's end
+  (`net.conn_readerOk`, `Net/Proof/net/ConnIo.lean`), so they apply unchanged. The `copy` count trap
+  (#24 item 4: `copy`'s count as `sint.nat`) is gone at the pin: `wp_slice_copy_int` states
+  `sint.Z n = min ...`, used here. It remains in the net model's `Conn.Read` spec (`ReadOut`:
+  `sint.nat k = min ...`); `net.conn_readerOk` works around it by its precondition `0 < len(p)`
+  (with `readOutcome_got_le`, a read of `len(p) > 0` returns `k > 0` bytes, so `sint.nat` is exact).
+- **Proposed.** `io.writerOk` next to `io.readerOk` in `Perennial/Proof/io/`; the slice facts in
+  `Perennial/Proof/` slice library.
+- **Status.** Not filed yet.

@@ -4,6 +4,7 @@
 module
 
 public import Spec.bufio.Reader__Read
+public import Proof.bufio.Base
 
 @[expose] public section
 
@@ -20,28 +21,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.bufio.Assumptions]
-
-/-- `b.readErr()`: the pending error, cleared. -/
-theorem bufio.wp_readErr (b : Loc) (v : _root_.Perennial.bufio.Reader) :
-    {{ (b ↦ v : IProp GF) }}
-      (App (Val (b @!! go.GoType.PointerType _root_.Perennial.bufio.Reader.ty @!! go!"readErr"))
-        (Val #()))
-    {{ RET #v.err'; b ↦ { v with err' := GoInterface.nil } }} := by
-  wp_start as Hv
-  try wp_auto
-  iapply HΦ
-  iexact Hv
-
-/-- `b.Buffered()`: `w - r`. -/
-theorem bufio.wp_Buffered (b : Loc) (v : _root_.Perennial.bufio.Reader) :
-    {{ (b ↦ v : IProp GF) }}
-      (App (Val (b @!! go.GoType.PointerType _root_.Perennial.bufio.Reader.ty @!! go!"Buffered"))
-        (Val #()))
-    {{ RET #(v.w' - v.r'); b ↦ v }} := by
-  wp_start as Hv
-  try wp_auto
-  iapply HΦ
-  iexact Hv
 
 /-- `copy`'s result on the destination, as the copied prefix `ys` and the rest. -/
 theorem bufio.copy_list {α : Type} (xs sub : List α) :

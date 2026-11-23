@@ -134,12 +134,13 @@ theorem clientCodec.ReadResponseHeader.wp_proof (wp_readFrame : readFrame.spec (
     iexists (leToU64 (pl.take 8)), sm, e
     iframe Hr
     ipureintro
-    refine ⟨rfl, ?_⟩
     have hlen8 : (pl.take 8).length = 8 := by rw [List.length_take, Nat.min_eq_left hb8]
-    rw [Hgot, respHdr, leToU64_le _ hlen8]
-    congr 1
-    rw [Hr2, List.append_nil] at Hr1
-    rw [List.append_assoc, ← Hr1, List.take_append_drop]
+    have hpl : respHdr (leToU64 (pl.take 8)) sm e = pl := by
+      rw [respHdr, leToU64_le _ hlen8]
+      rw [Hr2, List.append_nil] at Hr1
+      rw [List.append_assoc, ← Hr1, List.take_append_drop]
+    rw [hpl]
+    exact ⟨rfl, Hgot, Hpl⟩
   · have hnz : rest2.len ≠ W64 0 := by
       intro h; apply hr2; rw [h] at Hl2
       exact List.length_eq_zero_iff.mp (Hl2.1.trans (by decide))
