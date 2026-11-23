@@ -38,7 +38,7 @@ public import Dsverify.Proof.github_com.emirpasic.gods.maps.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.trees.redblacktree.Base
 public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Base
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Dsverify.Proof.encoding.gob.Init
 public import Dsverify.Proof.github_com.google.uuid.Init
 public import Dsverify.Proof.os.signal.Init
