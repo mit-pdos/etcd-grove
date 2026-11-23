@@ -41,7 +41,13 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   a per-prefix heap-level `idPfxInv` holding them (both arguments that use them are per prefix, and a prefix is one
   machine's); `IdNames.gen`; `NewGenerator.spec`'s pre gains `idPfxInv γi.gen γi.pfx`; `NewServer.spec`/`NewServerR.spec`
   gain it; `idGen`'s body. No top-level theorem's statement changes (checked; the plan lists the files).
-- **Decision.** Pending (the coordinator posts it on #28 before implementation; idutil's specs are shared).
+- **Decision.** Accepted (no objection on #28 within the hour; the coordinator, 2026-11-23); implemented on branch
+  `d7-idsplit`. Refined in the implementation: each prefix's two names (its ids' map `γip`, its generators' map
+  `γgp`) are allocated by `idCluster_alloc` and recorded in the new global map `IdNames.gen` (`p ↪[gen]□ (γip, γgp)`,
+  persistent, so no authority stays in an invariant); `idClusterInv` therefore gains the parameter `gen` (its type
+  changes by one `GName`); a key's generator facts in the global invariant are heap-free (`idKeyGenFactsG`: the
+  prefix's names, `g ↪[γgp]□ k`, `id ↪[γip]□ g` per issued id), their heap halves (`idIssueFragD`, the `prefix`
+  points-to) in `idPfxInv gen p`; `idClusterOk`'s generator-distinctness clause is restricted to keys of one prefix.
 
 ## 2026-11-23: zap's logger and entry vocabulary -- `zapLoggerOk` narrowed to `NewNop`'s loggers, `zapcore.zapEntry` defined (zap Z0/Z1, #40)
 
