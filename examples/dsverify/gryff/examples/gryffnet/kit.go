@@ -320,11 +320,15 @@ type gens struct {
 	n  []uint64
 }
 
-// next is client c's next input (Gen(c, j) for its j-th call).
+// next is client c's next input (Gen(c, j) for its j-th call). A c outside the clients (remote's
+// gen contract allows any non-negative id) gets Gen(c, 0).
 func (g *gens) next(c int) any {
+	j := uint64(0)
 	g.mu.Lock()
-	j := g.n[c]
-	g.n[c] = j + 1
+	if 0 <= c && c < len(g.n) {
+		j = g.n[c]
+		g.n[c] = j + 1
+	}
 	g.mu.Unlock()
 	return Gen(uint64(c), j)
 }
