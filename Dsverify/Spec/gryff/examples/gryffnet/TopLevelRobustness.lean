@@ -6,7 +6,7 @@ operations against the register with compare-and-swap and pending operations), s
 master and three Gryff replicas (net/rpc over HTTP for registration, Gryff's wire protocol between
 replicas and with clients) -- deployed with the client machines at `gryffKitAddrs` (`DistDeploy`:
 those addresses distinct and valid, no connection, no listener; the servers listen at wildcards).
-In every execution of fewer than `2^63` steps, with any number of threads, no thread of any machine
+In every execution of fewer than `2 ^ 31 - 1` steps, with any number of threads, no thread of any machine
 is stuck and none has a top-level panic (`Robust`). Since the orchestrator panics unless porcupine
 accepts the history, this says porcupine accepts every history, under every fault the net
 extension allows.
@@ -20,7 +20,15 @@ varint functions (`BinaryVarintHyps`); `strings.Index` on a one-byte separator
 (`RpcHttpAddr`, the listeners' protocols, over the global state; `RpcHttpHyp`, the specs, per
 heap; Upamanyu's intended shapes); net/rpc's and net/http's owned initializations on a
 machine where they have not run yet (`RpcBootHyp`: the codec state, `DefaultServer`, the package
-variables their client and server read, the unclaimed `DefaultServeMux`). Each holds of every
+variables their client and server read, the unclaimed `DefaultServeMux`); Net's
+`rpc.DialHTTP.spec` (Net states it and models-rpc-http proves it over `http.ReadResponse.spec`;
+that proof does not compile at this branch's merge `1a4d9546c9`, so the spec is a premise until
+the next merge).
+
+The step bound: Net's net/rpc server (`Server.ServeCodec.spec`, so `RpcHttpHyp`'s `HandleHTTP`/
+`Serve`) needs the machine's thread bound `threadBound GF ≤ 2 ^ 31` (its wait group's counter is an
+`int32`), and the deployment bridge's thread bound is the step count plus 2
+(`Bridge.lean`'s `robust_of_distProtoLisRBT`, dsv-epaxos's). Each holds of every
 machine heap (`heapAt`) and protocol registry.
 -/
 module
@@ -88,9 +96,10 @@ def gryff_remote_robust.spec : Prop :=
       (H : ∀ G L (π : NetProtoGS), letI := heapAt G L; letI := RA G π; RpcHttpHyp remoteGF),
     (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := RA G π; letI := H G L π;
       RpcBootHyp remoteGF) →
+    (∀ G L (π : NetProtoGS), letI := heapAt G L; net.rpc.DialHTTP.spec (GF := remoteGF)) →
     ∀ (σ : Nat → state) (g : GlobalState) (threads : Nat),
     DistDeploy gryffKitAddrs (system σ) g →
-    Robustness.Robust [] (system σ) g threads (2 ^ 63)
+    Robustness.Robust [] (system σ) g threads (2 ^ 31 - 1)
 
 end gryff.examples.gryffnet
 end Perennial
