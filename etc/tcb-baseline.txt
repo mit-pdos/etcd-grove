@@ -168,8 +168,6 @@ axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
 axiom lease.Lease.expired.wp_proof
 axiom leasehttp.RenewHTTP.wp_proof
-axiom maps.Clone.wp_proof_strBool
-axiom maps.Equal.wp_proof_strBool
 axiom maps.Keys.wp_proof_objMap
 axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof

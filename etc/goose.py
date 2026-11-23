@@ -1561,16 +1561,15 @@ PROJECTS = [
                     # types only (the context sweep's fixes, 2026-11-13): runtime/trace's context
                     # key and `Task`, which `k8sctx.k8sCtxOk` names (Code/runtime/trace.toml)
                     "runtime/trace=",
-                    # (k8s 7g) go-cmp and the standard library's `maps`, names only, which the
-                    # driver's copy of Kubernetes' checker calls (their .toml)
-                    "github.com/google=", "maps="],
+                    # (k8s 7g) go-cmp, names only, which the driver's copy of Kubernetes'
+                    # checker calls (its .toml); `maps` is Perennial's (2026-11-23)
+                    "github.com/google="],
         packages=[
             ".",
             # (k8s 7g, notes/k8s-7g-scope.md §1.1) the driver's copy of Kubernetes' checker
             # (upstream plus etc/k8s-correctness/d30g.patch), with bodies (correctness.toml)
             "./correctness",
             "github.com/google/go-cmp/cmp",
-            "maps",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
             # the watch cache's store, with bodies (notes/kep-6404-plan.md)
@@ -1767,7 +1766,7 @@ PROJECTS = [
                os.path.join("github_com", "spf13"),
                os.path.join("encoding", "base64"), os.path.join("internal", "byteorder"),
                os.path.join("runtime", "trace"),
-               os.path.join("github_com", "google"), "maps",
+               os.path.join("github_com", "google"),
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8s", "etcd3")],
         counted_modules=["k8s.io/apiserver"],
     ),

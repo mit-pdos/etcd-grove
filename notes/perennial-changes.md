@@ -431,6 +431,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
      `Clone` (`m ↦$ M` fresh, or `nil` for `nil`).
 - **Status (2026-11-17).** Proposed only (no Perennial branch). To be designed and reviewed on a
   branch off Perennial's `lean` when the user wants it.
+- **Status (2026-11-23).** Item 1 done in Perennial `70706ce5e` (in the pin): `maps` translated with
+  bodies (`clone` over the semantics instruction `InternalMapClone`), with proved generic specs of
+  `Clone` and `Equal` (`maps.wp_Clone`, `maps.wp_Equal`). Here (branch `maps-featuregate`) the
+  names-only `Code/maps` is gone and `maps.Clone.wp_proof_strBool`/`maps.Equal.wp_proof_strBool` are
+  theorems from them (trust base -2). Still open: iterator specs (`Keys`, `slices.Sorted`/`Collect`,
+  item 3's protocol), so `maps.Keys.wp_proof_objMap` stays an axiom; and a spec of `maps.Copy`
+  (translated, no spec), which `featuregate.Add` needs.
 
 
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
