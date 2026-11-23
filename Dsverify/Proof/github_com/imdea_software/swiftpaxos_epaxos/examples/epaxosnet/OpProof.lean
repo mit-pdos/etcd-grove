@@ -304,7 +304,7 @@ theorem Op.wp_proof
     iright
     iexists KvsOutput.done
     iframe HΨ
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, by simp [examples.epaxosnet.outBytes]⟩
   | get k =>
     simp only [outShape] at Hsh
     simp only [inOf]
@@ -316,6 +316,7 @@ theorem Op.wp_proof
     iframe HΨ
     ipureintro
     simp only [examples.epaxosnet.outOk, outBytes_read o rval (.inl Hsh) hval]
+    exact ⟨trivial, Hrv⟩
   | scan k n =>
     simp only [outShape] at Hsh
     simp only [inOf]
@@ -327,6 +328,7 @@ theorem Op.wp_proof
     iframe HΨ
     ipureintro
     simp only [examples.epaxosnet.outOk, outBytes_read o rval (.inr Hsh) hval]
+    exact ⟨trivial, Hrv⟩
 
 end proof
 

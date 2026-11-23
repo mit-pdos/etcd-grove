@@ -240,14 +240,14 @@ variable [examples.epaxosnet.Assumptions]
 /-- **`Op(addrs, c, in)`** (see the file header): from the server addresses (read-only), the
 replicas' shared facts (`clientInvs`: the addresses' protocols and the role registry) and the
 update of input `i` (remote's `lin`, `opU`), it returns `outUnk` or `outOk o` with the update's
-postcondition of `o`. -/
+postcondition of `o` (its bytes below `2 ^ 16`: a reply's value length field). -/
 def Op.spec : Prop :=
   ∀ (γ : EpNames) (sl : GoSlice) (c : w64) (i : KvI) (Φ : KvO → IProp GF),
   inPre i → uint.nat c < 10 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet ∗
       sl ↦*□ serverAddrs ∗ clientInvs γ ∗ opU γ i Φ }}
     (App (App (App (Val (@! examples.epaxosnet.Op)) (Val #sl)) (Val #c)) (Val #(inOf i)))
-  {{ (o : Out), RET #o; ⌜o = outUnk⌝ ∨ ∃ r, ⌜o = outOk r⌝ ∗ Φ r }}
+  {{ (o : Out), RET #o; ⌜o = outUnk⌝ ∨ ∃ r, ⌜o = outOk r ∧ (outBytes r).length < 2 ^ 16⌝ ∗ Φ r }}
 
 end spec
 
