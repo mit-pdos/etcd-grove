@@ -17,7 +17,7 @@ set_option linter.unusedSectionVars false
 namespace Perennial.github_com.emirpasic.gods.trees.redblacktree
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-open github_com.emirpasic.gods.maps.treemap (cmpOk sortedE Entries lookupE putE)
+open github_com.emirpasic.gods.maps.treemap (cmpOk sortedE Entries lookupE putE sortedE_putE idxOf)
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -700,6 +700,57 @@ theorem Tree.insertCase1.wp_proof (wp_nc : nodeColor.spec (GF := GF))
         wp_auto
         iapply HΦ
         iexact Hfix
+
+theorem Tree.Put.wp_proof (wp_ic1 : Tree.insertCase1.spec (GF := GF)) :
+    Tree.Put.spec (GF := GF) := by
+  intro tr enc es k v
+  wp_start as Htr
+  iunfold isTree at Htr
+  icases Htr with ⟨%cmp, %T, %h, %D, Hraw, #Hcmp, %Hp⟩
+  obtain ⟨hs, hes, hrb⟩ := Hp
+  subst hes
+  ihave ⟨Hraw, %Hq⟩ := treeRaw_pure tr enc cmp T h D $$ Hraw
+  obtain ⟨hrep, hperm, hnd⟩ := Hq
+  have hndT := hperm.nodup_iff.mp hnd
+  iunfold treeRaw at Hraw
+  icases Hraw with ⟨%sz, Htr, Hns, -⟩
+  ihave #Hcmp' := Hcmp
+  iunfold cmpOk at Hcmp'
+  wp_auto
+  wp_if_destruct
+  · -- an empty tree
+    have hT : T = .leaf := (Rep_loc_eq_null hrep).mp Hif
+    subst hT
+    have hD : D = [] := List.Perm.eq_nil hperm
+    subst hD
+    wp_apply Hcmp' as %c _
+    dsimp only [red]
+    ihave ⟨Hl, %Hln⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
+    wp_apply (wp_ic1 tr enc cmp [] (upd h «$r0_ptr»
+      (Node.mk (enc k) v false null null null)) [«$r0_ptr»] «$r0_ptr» k v .leaf .leaf) $$ [Htr Hns Hl]
+    · isplitl
+      · iapply (treeRaw_of tr enc cmp (Ctx.plug [] (.node «$r0_ptr» k v .leaf .leaf)) _
+          [«$r0_ptr»] sz ⟨(by
+            show Rep enc _ (.node «$r0_ptr» k v .leaf .leaf) null
+            exact ⟨Hln, by simp [upd_apply, nodeOf], trivial, trivial⟩), by simp, by simp⟩)
+        simp only [Ctx.plug_nil, RB.loc_node, ownNodes_cons, ownNodes_nil, upd_same]
+        iframe
+      ipureintro; right; rfl
+    iintro Hfix
+    iunfold fixPost at Hfix
+    icases Hfix with ⟨%T', %h', Hraw, %Hq⟩
+    iunfold treeRaw at Hraw
+    icases Hraw with ⟨%sz', Htr, Hns, %Hr⟩
+    wp_auto
+    have heT' : T'.entries = putE RB.leaf.entries k v := by
+      rw [Hq.1]; simp [putE, idxOf]
+    have hsT' : sortedE T'.entries := by rw [heT']; exact sortedE_putE _ k v hs
+    iapply HΦ
+    iapply (isTree_of tr enc cmp T' h' [«$r0_ptr»] _ ⟨hsT', heT', Hq.2⟩)
+    isplitl
+    · iapply (treeRaw_of tr enc cmp T' h' _ _ Hr); iframe
+    iexact Hcmp
+  · done
 
 end proof
 

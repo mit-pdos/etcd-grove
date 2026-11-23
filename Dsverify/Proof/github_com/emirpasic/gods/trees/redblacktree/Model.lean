@@ -380,4 +380,111 @@ theorem lookupE_node_self {n : Loc} {k : w64} {v : α} {L R : RB α}
 
 end search
 
+/-! ## Insertion: `putE` on a split list -/
+
+section put
+variable [GooseExts] {α : Type u}
+
+open github_com.emirpasic.gods.maps.treemap (mem_putE sortedE_putE sortedE_cons)
+
+/-- Two sorted entry lists with the same members are equal. -/
+theorem sortedE_ext : ∀ {a b : List (w64 × α)}, sortedE a → sortedE b →
+    (∀ x, x ∈ a ↔ x ∈ b) → a = b
+  | [], [], _, _, _ => rfl
+  | [], y :: b, _, _, h => absurd ((h y).mpr (by simp)) (by simp)
+  | x :: a, [], _, _, h => absurd ((h x).mp (by simp)) (by simp)
+  | x :: a, y :: b, ha, hb, h => by
+    rw [sortedE_cons] at ha hb
+    have hxy : x = y := by
+      have hx : x ∈ y :: b := (h x).mp (by simp)
+      have hy : y ∈ x :: a := (h y).mpr (by simp)
+      rcases List.mem_cons.mp hx with e | hx
+      · exact e
+      rcases List.mem_cons.mp hy with e | hy
+      · exact e.symm
+      have h1 := hb.1 x hx
+      have h2 := ha.1 y hy
+      omega
+    subst hxy
+    congr 1
+    apply sortedE_ext ha.2 hb.2
+    intro z
+    constructor
+    · intro hz
+      have := (h z).mp (by simp [hz])
+      rcases List.mem_cons.mp this with e | hz'
+      · subst e; have := ha.1 z hz; omega
+      · exact hz'
+    · intro hz
+      have := (h z).mpr (by simp [hz])
+      rcases List.mem_cons.mp this with e | hz'
+      · subst e; have := hb.1 z hz; omega
+      · exact hz'
+
+/-- `putE` of a key already present replaces its value in place. -/
+theorem putE_found (A B : List (w64 × α)) (k : w64) (v0 v : α)
+    (hs : sortedE (A ++ (k, v0) :: B)) : putE (A ++ (k, v0) :: B) k v = A ++ (k, v) :: B := by
+  have hA : ∀ e ∈ A, sint.Z e.1 < sint.Z k := fun e he => sortedE_split hs e he (k, v0) (by simp)
+  have hB : ∀ e ∈ B, sint.Z k < sint.Z e.1 := by
+    have := sortedE_right hs; rw [sortedE_cons] at this; exact this.1
+  have hs' : sortedE (A ++ (k, v) :: B) := by
+    unfold sortedE at hs ⊢
+    rw [List.pairwise_append, List.pairwise_cons] at hs ⊢
+    refine ⟨hs.1, ⟨fun e he => hB e he, hs.2.1.2⟩, fun a ha b hb => ?_⟩
+    rcases List.mem_cons.mp hb with e | hb
+    · subst e; exact hA a ha
+    · exact hs.2.2 a ha b (by simp [hb])
+  apply sortedE_ext (sortedE_putE _ k v hs) hs'
+  intro ⟨k', x'⟩
+  rw [mem_putE _ k v hs]
+  constructor
+  · rintro (⟨rfl, rfl⟩ | ⟨hm, hne⟩)
+    · simp
+    · simp only [List.mem_append, List.mem_cons, Prod.mk.injEq] at hm ⊢
+      rcases hm with hm | ⟨e, -⟩ | hm
+      · exact Or.inl hm
+      · exact absurd e hne
+      · exact Or.inr (Or.inr hm)
+  · intro hm
+    simp only [List.mem_append, List.mem_cons, Prod.mk.injEq] at hm
+    rcases hm with hm | ⟨rfl, rfl⟩ | hm
+    · right; refine ⟨by simp [hm], fun e => ?_⟩
+      subst e; have := hA _ hm; simp at this
+    · left; exact ⟨rfl, rfl⟩
+    · right; refine ⟨by simp [hm], fun e => ?_⟩
+      subst e; have := hB _ hm; simp at this
+
+/-- `putE` of a new key between `A` and `B` inserts it there. -/
+theorem putE_between (A B : List (w64 × α)) (k : w64) (v : α) (hs : sortedE (A ++ B))
+    (hA : ∀ e ∈ A, sint.Z e.1 < sint.Z k) (hB : ∀ e ∈ B, sint.Z k < sint.Z e.1) :
+    putE (A ++ B) k v = A ++ (k, v) :: B := by
+  have hs' : sortedE (A ++ (k, v) :: B) := by
+    unfold sortedE at hs ⊢
+    rw [List.pairwise_append] at hs
+    rw [List.pairwise_append, List.pairwise_cons]
+    refine ⟨hs.1, ⟨fun e he => hB e he, hs.2.1⟩, fun a ha b hb => ?_⟩
+    rcases List.mem_cons.mp hb with e | hb
+    · subst e; exact hA a ha
+    · exact hs.2.2 a ha b hb
+  apply sortedE_ext (sortedE_putE _ k v hs) hs'
+  intro ⟨k', x'⟩
+  rw [mem_putE _ k v hs]
+  constructor
+  · rintro (⟨rfl, rfl⟩ | ⟨hm, -⟩)
+    · simp
+    · simp only [List.mem_append, List.mem_cons, Prod.mk.injEq] at hm ⊢
+      rcases hm with hm | hm
+      · exact Or.inl hm
+      · exact Or.inr (Or.inr hm)
+  · intro hm
+    simp only [List.mem_append, List.mem_cons, Prod.mk.injEq] at hm
+    rcases hm with hm | ⟨rfl, rfl⟩ | hm
+    · right; refine ⟨by simp [hm], fun e => ?_⟩
+      subst e; have := hA _ hm; simp at this
+    · left; exact ⟨rfl, rfl⟩
+    · right; refine ⟨by simp [hm], fun e => ?_⟩
+      subst e; have := hB _ hm; simp at this
+
+end put
+
 end Perennial.github_com.emirpasic.gods.trees.redblacktree

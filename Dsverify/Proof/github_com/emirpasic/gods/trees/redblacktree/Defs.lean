@@ -629,6 +629,14 @@ theorem color_recolor_ne (h : Loc → Node) (l : Loc) (c : Bool) (x : Loc) (hx :
     (upd h l { h l with color' := c } x).color' = (h x).color' := by
   rw [upd_ne h l x _ hx]
 
+/-- Replacing the subtree in a context by one at the same address. -/
+theorem Rep_plug_replace {C : Ctx GoInterface} {t t' : RB GoInterface} (h' : Loc → Node)
+    (hrep : Rep enc h (Ctx.plug C t) null) (hloc : t'.loc = t.loc)
+    (hC : ∀ x ∈ Ctx.locs C, h' x = h x) (ht' : Rep enc h' t' (Ctx.parent C null)) :
+    Rep enc h' (Ctx.plug C t') null := by
+  rw [Rep_plug] at hrep ⊢
+  exact ⟨hloc ▸ RepC_congr h' C t.loc null hC hrep.1, ht'⟩
+
 end heapfn
 
 /-! ## The points-tos -/
