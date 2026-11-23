@@ -370,4 +370,262 @@ theorem wp_lookup (sl : State) (es : List Entry) (E : List KEnt) (k : GoString) 
     · iapply ownSlice_nil
     · iapply ownSlice_nil
 
+theorem setL_eq (E : List KEnt) (k : GoString) (x : Ent) :
+    setL E k x = if E.findIdx (fun p => decide (p.1 = k)) < E.length then
+      E.set (E.findIdx (fun p => decide (p.1 = k))) (k, x) else E ++ [(k, x)] := rfl
+
+theorem wp_set (sl : State) (es : List Entry) (E : List KEnt) (k : GoString) (i : w64) (e : Entry)
+    (x : Ent) (hi : sint.nat i = E.findIdx (fun p => decide (p.1 = k))) (hi0 : 0 ≤ sint.Z i)
+    (hl : E.length < 2 ^ 62) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ es ∗ □ ([∗list] e;p ∈ es;E, entRep e p) ∗
+        entRep e (k, x) }}
+      (App (App (App (Val (@! raxos.examples.quepaxanet.set)) (Val #sl)) (Val #i)) (Val #e))
+    {{ (t : State), RET #t; ∃ es' : List Entry, t ↦*□ es' ∗
+        □ ([∗list] e;p ∈ es';setL E k x, entRep e p) }} := by
+  wp_start as ⟨#Hs, #HE, #He⟩
+  ihave %Hl := ownSlice_len _ _ _ $$ Hs
+  ihave %HlE := BigSepL2.bigSepL2_length $$ HE
+  have hfi := List.findIdx_le_length (p := fun p : KEnt => decide (p.1 = k)) (xs := E)
+  have hlen : sint.nat sl.len = E.length := by rw [← HlE, Hl.1]
+  wp_auto
+  wp_if_destruct
+  · -- a new key: appended
+    have hn : sint.nat (sl.len + W64 1) = es.length + 1 := by rw [Hl.1]; word
+    have hidx : E.findIdx (fun p => decide (p.1 = k)) = E.length := by
+      rw [← hi, hlen]
+    wp_apply wp_slice_make2 (V := Entry) $$ [] as %t ⟨Ht, -⟩
+    · ipureintro; word
+    rw [hn]
+    wp_apply wp_slice_copy $$ [$Ht $Hs] as %m ⟨-, Ht, -⟩
+    rw [List.length_replicate, List.take_of_length_le (by omega), List.drop_replicate,
+      show es.length + 1 - es.length = 1 by omega, List.replicate_one]
+    ihave %Htl := ownSlice_len _ _ _ $$ Ht
+    simp only [List.length_append, List.length_singleton] at Htl
+    rw [ite_eq_left (show 0 ≤ sint.Z sl.len ∧ sint.Z sl.len < sint.Z t.len by
+      constructor <;> word)]
+    wp_apply wp_store_slice_index t (sint.Z sl.len) _ e $$ [Ht] as Ht
+    · iframe Ht; ipureintro; simp only [List.length_append, List.length_singleton]; word
+    rw [show (sint.Z sl.len).toNat = es.length by rw [Hl.1],
+      List.set_append_right _ _ (by omega), Nat.sub_self, List.set_cons_zero]
+    iapply fupd_wp
+    imod ownSlice_persist _ _ _ $$ Ht with #Ht
+    imodintro
+    wp_auto
+    iapply HΦ
+    iexists es ++ [e]
+    iframe Ht
+    imodintro
+    rw [setL_eq, hidx, if_neg (Nat.lt_irrefl _)]
+    iapply BigSepL2.bigSepL2_snoc.2
+    iframe HE He
+  · -- a key with an entry: replaced
+    have hlt : sint.nat i < E.length := by
+      have : i ≠ sl.len := Hif
+      have : sint.Z i ≠ sint.Z sl.len := fun h => this (by word)
+      rw [← hlen]; word
+    have hidx : E.findIdx (fun p => decide (p.1 = k)) < E.length := hi ▸ hlt
+    wp_apply wp_slice_make2 (V := Entry) $$ [] as %t ⟨Ht, -⟩
+    · ipureintro; word
+    rw [← Hl.1]
+    wp_apply wp_slice_copy $$ [$Ht $Hs] as %m ⟨-, Ht, -⟩
+    rw [List.length_replicate, List.take_of_length_le (by omega), List.drop_replicate,
+      Nat.sub_self, List.replicate_zero, List.append_nil]
+    ihave %Htl := ownSlice_len _ _ _ $$ Ht
+    rw [ite_eq_left (show 0 ≤ sint.Z i ∧ sint.Z i < sint.Z t.len by
+      constructor <;> word)]
+    wp_apply wp_store_slice_index t (sint.Z i) _ e $$ [Ht] as Ht
+    · iframe Ht; ipureintro; word
+    iapply fupd_wp
+    imod ownSlice_persist _ _ _ $$ Ht with #Ht
+    imodintro
+    wp_auto
+    iapply HΦ
+    iexists es.set (sint.nat i) e
+    iframe Ht
+    imodintro
+    rw [setL_eq, if_pos hidx, ← hi]
+    list_elem es (sint.nat i) as e0
+    list_elem E (sint.nat i) as p0
+    icases BigSepL2.bigSepL2_insert_acc He0_lookup Hp0_lookup $$ HE with ⟨-, Hw⟩
+    iapply Hw
+    iexact He
+
+theorem wp_stepE (e : Entry) (k : GoString) (x : Ent) (inp : In) (o : Out)
+    (hn : x.all.length < 2 ^ 60) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ entRep e (k, x) }}
+      (App (App (App (Val (@! raxos.examples.quepaxanet.stepE)) (Val #e)) (Val #inp)) (Val #o))
+    {{ (ok : Bool) (e' : Entry), RET (PairV #ok #e');
+        ⌜ok = (raxos.pure.stepE x (kin inp) (kans o)).1⌝ ∗
+        entRep e' (k, (raxos.pure.stepE x (kin inp) (kans o)).2) }} := by
+  wp_start as #He
+  iunfold entRep at He
+  icases He with ⟨%Hk, #Hold, #Hnew⟩
+  obtain ⟨eK, ef, ev, eold, enew⟩ := e
+  obtain ⟨xf, xv, xold, xnew⟩ := x
+  obtain ⟨put, ik, iv⟩ := inp
+  obtain ⟨u, of, ov⟩ := o
+  simp only at Hk
+  obtain ⟨rfl, rfl, rfl⟩ := Hk
+  simp only [Ent.all, List.length_append] at hn
+  simp only
+  cases u
+  · cases put
+    · -- a get of known outcome
+      wp_auto
+      by_cases h1 : of = ef ∧ ov = ev
+      · obtain ⟨rfl, rfl⟩ := h1
+        simp only [_root_.decide_true]
+        wp_auto
+        iapply HΦ
+        simp only [raxos.pure.stepE, kin, kans, ↓reduceIte, Bool.false_eq_true, and_self]
+        iunfold entRep
+        iframe Hold Hnew
+        ipureintro; exact ⟨rfl, rfl, rfl⟩
+      · have hpure : raxos.pure.stepE ⟨ef, ev, xold, xnew⟩ (kin ⟨false, ik, iv⟩)
+            (kans ⟨false, of, ov⟩) = if of = true ∧ ov ∈ xold ++ xnew then
+              (true, ⟨true, ov, (xold ++ xnew).erase ov, []⟩) else (false, ⟨ef, ev, xold, xnew⟩) := by
+          simp [raxos.pure.stepE, kin, kans, h1, Ent.all]
+        by_cases h1a : of = ef
+        · subst h1a
+          have h1b : ¬ ov = ev := fun h => h1 ⟨rfl, h⟩
+          simp only [_root_.decide_true]
+          wp_auto
+          simp only [h1b, _root_.decide_false]
+          wp_auto
+          wp_apply +noauto wp_cat eold enew xold xnew (by omega) $$ [$Hold $Hnew] as %r Hr
+          iapply fupd_wp
+          imod ownSlice_persist _ _ _ $$ Hr with #Hr
+          imodintro
+          wp_auto
+          cases of
+          · wp_auto
+            iapply HΦ
+            rw [hpure]
+            simp only [Bool.false_eq_true, false_and, ↓reduceIte]
+            iunfold entRep
+            iframe Hold Hnew
+            ipureintro; exact ⟨rfl, rfl, rfl⟩
+          · wp_auto
+            wp_apply wp_has r (xold ++ xnew) ov $$ [$Hr]
+            by_cases h2 : ov ∈ xold ++ xnew
+            · rw [decide_eq_true h2]
+              wp_auto
+              wp_apply +noauto wp_erase r (xold ++ xnew) ov $$ [$Hr] as %q Hq
+              iapply fupd_wp
+              imod ownSlice_persist _ _ _ $$ Hq with #Hq
+              imodintro
+              wp_auto
+              iapply HΦ
+              rw [hpure]
+              simp only [true_and, h2, ↓reduceIte]
+              iunfold entRep
+              iframe Hq
+              isplitr
+              · ipureintro; exact ⟨rfl, rfl, rfl⟩
+              · iapply ownSlice_nil
+            · rw [decide_eq_false h2]
+              wp_auto
+              iapply HΦ
+              rw [hpure]
+              simp only [true_and, h2, ↓reduceIte]
+              iunfold entRep
+              iframe Hold Hnew
+              ipureintro; exact ⟨rfl, rfl, rfl⟩
+        · simp only [h1a, _root_.decide_false]
+          wp_auto
+          wp_apply +noauto wp_cat eold enew xold xnew (by omega) $$ [$Hold $Hnew] as %r Hr
+          iapply fupd_wp
+          imod ownSlice_persist _ _ _ $$ Hr with #Hr
+          imodintro
+          wp_auto
+          cases of
+          · wp_auto
+            iapply HΦ
+            rw [hpure]
+            simp only [Bool.false_eq_true, false_and, ↓reduceIte]
+            iunfold entRep
+            iframe Hold Hnew
+            ipureintro; exact ⟨rfl, rfl, rfl⟩
+          · wp_auto
+            wp_apply wp_has r (xold ++ xnew) ov $$ [$Hr]
+            by_cases h2 : ov ∈ xold ++ xnew
+            · rw [decide_eq_true h2]
+              wp_auto
+              wp_apply +noauto wp_erase r (xold ++ xnew) ov $$ [$Hr] as %q Hq
+              iapply fupd_wp
+              imod ownSlice_persist _ _ _ $$ Hq with #Hq
+              imodintro
+              wp_auto
+              iapply HΦ
+              rw [hpure]
+              simp only [true_and, h2, ↓reduceIte]
+              iunfold entRep
+              iframe Hq
+              isplitr
+              · ipureintro; exact ⟨rfl, rfl, rfl⟩
+              · iapply ownSlice_nil
+            · rw [decide_eq_false h2]
+              wp_auto
+              iapply HΦ
+              rw [hpure]
+              simp only [true_and, h2, ↓reduceIte]
+              iunfold entRep
+              iframe Hold Hnew
+              ipureintro; exact ⟨rfl, rfl, rfl⟩
+    · -- a put of known outcome
+      wp_auto
+      cases of
+      · simp only
+        wp_auto
+        by_cases hv : ov = []
+        · subst hv
+          simp only [decide_true, Bool.not_true]
+          wp_auto
+          wp_apply +noauto wp_cat eold enew xold xnew (by omega) $$ [$Hold $Hnew] as %r Hr
+          iapply fupd_wp
+          imod ownSlice_persist _ _ _ $$ Hr with #Hr
+          imodintro
+          wp_auto
+          iapply HΦ
+          simp only [raxos.pure.stepE, kin, kans, ↓reduceIte, Bool.false_eq_true, Bool.false_or,
+            ne_eq, not_true_eq_false, decide_false, Ent.all]
+          iunfold entRep
+          iframe Hr
+          isplitr
+          · ipureintro; exact ⟨rfl, rfl, rfl⟩
+          · iapply ownSlice_nil
+        · simp only [hv, decide_false, Bool.not_false]
+          wp_auto
+          iapply HΦ
+          simp only [raxos.pure.stepE, kin, kans, ↓reduceIte, Bool.false_eq_true, Bool.false_or,
+            ne_eq, hv, not_false_eq_true, decide_true]
+          iunfold entRep
+          iframe Hold Hnew
+          ipureintro; exact ⟨rfl, rfl, rfl⟩
+      · simp only
+        wp_auto
+        iapply HΦ
+        simp only [raxos.pure.stepE, kin, kans, ↓reduceIte, Bool.false_eq_true, Bool.true_or]
+        iunfold entRep
+        iframe Hold Hnew
+        ipureintro; exact ⟨rfl, rfl, rfl⟩
+  · cases put
+    · wp_auto
+      iapply HΦ
+      simp only [raxos.pure.stepE, kin, kans, ↓reduceIte, Bool.false_eq_true]
+      iunfold entRep
+      iframe Hold Hnew
+      ipureintro; exact ⟨rfl, rfl, rfl⟩
+    · wp_auto
+      wp_apply +noauto wp_push enew xnew iv (by omega) $$ [$Hnew] as %q Hq
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hq with #Hq
+      imodintro
+      wp_auto
+      iapply HΦ
+      simp only [raxos.pure.stepE, kin, kans, ↓reduceIte]
+      iunfold entRep
+      iframe Hold Hq
+      ipureintro; exact ⟨rfl, rfl, rfl⟩
+
 end proof
