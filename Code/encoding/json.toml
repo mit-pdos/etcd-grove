@@ -1,41 +1,15 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
-translate = ["!*"]
-imports = ["!*"]
+# notes/k8s-etcd3-goose.md). The names are the encoding/json model's (models/encoding/json, a
+# standard-library model: the std_models of the projects that map encoding/json here; its exported
+# names are Go 1.27.3's encoding/json's, plus the codec registry `Codec`, `SetCodec`), so that the
+# specs over the model's registered codec can be stated in the main tree before the bodies are
+# translated (mit-pdos/etcd-grove#24, item 1).
+# (#24 J2, 2026-11-23) with their bodies: the codec registry (`SetCodec`, `getCodec`, over `codecMu`,
+# `codec`), the per-type dispatch (`marshalAny`) and the entry points over them (`Marshal`, `Unmarshal`
+# with its validity check, `NewEncoder`, `Encoder.Encode`); the rest names only.
+translate = ["!*", "codecMu", "codec", "SetCodec", "getCodec", "marshalAny", "Marshal", "Unmarshal",
+  "valid", "skipSpace", "isSpace", "scanDone", "scanMore", "NewEncoder", "Encoder.Encode"]
+imports = ["!*", "sync", "io"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
-
-# --- skipped package variables (mit-pdos/etcd-grove#23) ---
-# Not translated: no Lean name, no initializer, no allocation (goose `[[skip]]`; until 2026-11-22
-# their initializers were untranslated, `opaqueInitsOk`). goose refuses a reference to one from
-# translated code, so no verified code reads them; each reason says why not running the
-# initializer is unobservable.
-[[skip]]
-names = ["numberType"]
-reason = """
-Its initializer calls, besides literals of constants and other variables' values:
-`reflect.TypeOf`/`TypeFor` (and `Elem`) read the static type descriptor of a type. So it terminates,
-cannot panic and has no effect beyond its variable."""
-
-[[skip]]
-names = ["export"]
-reason = """
-Its initializer calls, besides literals of constants and other variables' values:
-`jsontext.Internal.Export` returns a constant (the exporter value). So it terminates, cannot panic
-and has no effect beyond its variable."""
-
-[[skip]]
-names = ["errUnexpectedEnd"]
-reason = """
-Its initializer calls, besides literals of constants and other variables' values: `errors.New` of a
-constant allocates an `*errorString`. So it terminates, cannot panic and has no effect beyond its
-variable."""
-
-[[skip]]
-names = ["syntaxErrorReplacer"]
-reason = """
-Its initializer calls, besides literals of constants and other variables' values:
-`strings.NewReplacer` of an even number of constants allocates a replacer. So it terminates, cannot
-panic and has no effect beyond its variable."""
-# --- end of skipped package variables ---

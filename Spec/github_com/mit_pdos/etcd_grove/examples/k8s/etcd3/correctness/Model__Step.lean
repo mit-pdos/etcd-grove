@@ -12,6 +12,8 @@ model's response has no `RErr.other` error (the driver's requests never make one
 error is flat (`flatE`) and its object nil or a list for a list, nil or an object for a get.
 `IsTooManyRequests` answers `false` on every flat error, so `Step`'s first branch (and its panic on
 a write) is never taken. (k8s 7g step 3.)
+The model has fewer than `2^62` items (a write may add one; `itemsRO` keeps at most `2^62`, the bound of
+`slices.Sorted(maps.Keys(s.Items))`).
 -/
 module
 
@@ -48,6 +50,7 @@ abbrev Model.Step.spec : Prop :=
   (rexecL x m).1.err ≠ .other → flatE out.err →
   (x.Kind' = W64 4 → listOrNilD out.obj) →
   (isWriteL x = false → x.Kind' ≠ W64 4 → objOrNilD out.obj) →
+  GMap.size m.items < 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness ∗
       modelAt mp m ∗ reqRep r x ∗ respRep ro out }}
     (App (App (Val #(methods (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model.ty) go!"Step" #mp))

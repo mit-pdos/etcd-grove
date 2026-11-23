@@ -104,7 +104,7 @@ noncomputable instance perRPCCredential_access_load_authTokenMu (l : Loc) (v : g
  by
   solve_pointsto_access_struct
 
-noncomputable instance perRPCCredential_access_store_authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (authTokenMu' : sync.RWMutex) :
+noncomputable instance perRPCCredential_access_store_authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (authTokenMu' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) authTokenMu' (DFrac.own 1))

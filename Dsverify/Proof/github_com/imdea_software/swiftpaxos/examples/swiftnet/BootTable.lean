@@ -107,6 +107,7 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_go_token : G pkg_id.go.token = isPkgInit (PROP := IProp GF) pkg_id.go.token
   e_net_rpc : G pkg_id.net.rpc = isPkgInit (PROP := IProp GF) pkg_id.net.rpc
   e_cmp : G pkg_id.cmp = isPkgInit (PROP := IProp GF) pkg_id.cmp
+  e_iter : G pkg_id.iter = isPkgInit (PROP := IProp GF) pkg_id.iter
   e_slices : G pkg_id.slices = isPkgInit (PROP := IProp GF) pkg_id.slices
   e_sort : G pkg_id.sort = isPkgInit (PROP := IProp GF) pkg_id.sort
   e_github_com_anishathalye_porcupine : G pkg_id.github_com.anishathalye.porcupine = isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine
@@ -307,9 +308,13 @@ theorem wf_cmp {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.cmp G :=
   And.intro h.e_cmp True.intro
 
+theorem wf_iter {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.iter G :=
+  And.intro h.e_iter True.intro
+
 theorem wf_slices {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.slices G :=
-  And.intro h.e_slices ⟨wf_cmp h, wf_math_bits h, True.intro⟩
+  And.intro h.e_slices ⟨wf_cmp h, wf_iter h, wf_math_bits h, True.intro⟩
 
 theorem wf_sort {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sort G :=
@@ -361,7 +366,7 @@ theorem wf_github_com_emirpasic_gods_trees {G : GoString → IProp GF} (h : KitG
 
 theorem wf_encoding_json {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.encoding.json G :=
-  And.intro h.e_encoding_json True.intro
+  And.intro h.e_encoding_json ⟨wf_sync h, wf_io h, True.intro⟩
 
 theorem wf_github_com_emirpasic_gods_trees_redblacktree {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.trees.redblacktree G :=
@@ -642,10 +647,15 @@ theorem wfO_cmp {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.cmp ∉ ownedPkgs) (hS _ hm))).trans
     h.e_cmp) True.intro
 
+theorem wfO_iter {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.iter (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.iter ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_iter) True.intro
+
 theorem wfO_slices {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.slices (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.slices ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_slices) ⟨wfO_cmp h S hS, wfO_math_bits h S hS, True.intro⟩
+    h.e_slices) ⟨wfO_cmp h S hS, wfO_iter h S hS, wfO_math_bits h S hS, True.intro⟩
 
 theorem wfO_sort {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sort (gOff S G) :=
@@ -710,7 +720,7 @@ theorem wfO_github_com_emirpasic_gods_trees {G : GoString → IProp GF} (h : Kit
 theorem wfO_encoding_json {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.encoding.json (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.encoding.json ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_encoding_json) True.intro
+    h.e_encoding_json) ⟨wfO_sync h S hS, wfO_io h S hS, True.intro⟩
 
 theorem wfO_github_com_emirpasic_gods_trees_redblacktree {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.github_com.emirpasic.gods.trees.redblacktree (gOff S G) :=

@@ -67,7 +67,7 @@ noncomputable instance electionServer_access_load_UnsafeElectionServer (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance electionServer_access_store_UnsafeElectionServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (UnsafeElectionServer' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer) :
+noncomputable instance electionServer_access_store_UnsafeElectionServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (UnsafeElectionServer' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) UnsafeElectionServer' (DFrac.own 1))

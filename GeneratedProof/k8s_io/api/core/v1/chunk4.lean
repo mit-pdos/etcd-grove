@@ -471,7 +471,7 @@ noncomputable instance ResourceFieldSelector_access_load_Divisor (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ResourceFieldSelector_access_store_Divisor (l : Loc) (v : k8s_io.api.core.v1.ResourceFieldSelector) (Divisor' : k8s_io.apimachinery.pkg.api.resource.Quantity) :
+noncomputable instance ResourceFieldSelector_access_store_Divisor (l : Loc) (v : k8s_io.api.core.v1.ResourceFieldSelector) (Divisor' : _root_.Perennial.k8s_io.apimachinery.pkg.api.resource.Quantity) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceFieldSelector go!"Divisor" l) v.Divisor' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceFieldSelector go!"Divisor" l) Divisor' (DFrac.own 1))
@@ -643,7 +643,7 @@ noncomputable instance TCPSocketAction_access_load_Port (l : Loc) (v : k8s_io.ap
  by
   solve_pointsto_access_struct
 
-noncomputable instance TCPSocketAction_access_store_Port (l : Loc) (v : k8s_io.api.core.v1.TCPSocketAction) (Port' : k8s_io.apimachinery.pkg.util.intstr.IntOrString) :
+noncomputable instance TCPSocketAction_access_store_Port (l : Loc) (v : k8s_io.api.core.v1.TCPSocketAction) (Port' : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.TCPSocketAction go!"Port" l) v.Port' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.TCPSocketAction go!"Port" l) Port' (DFrac.own 1))
@@ -1280,7 +1280,7 @@ noncomputable instance ContainerStateRunning_access_load_StartedAt (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ContainerStateRunning_access_store_StartedAt (l : Loc) (v : k8s_io.api.core.v1.ContainerStateRunning) (StartedAt' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance ContainerStateRunning_access_store_StartedAt (l : Loc) (v : k8s_io.api.core.v1.ContainerStateRunning) (StartedAt' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ContainerStateRunning go!"StartedAt" l) v.StartedAt' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ContainerStateRunning go!"StartedAt" l) StartedAt' (DFrac.own 1))
@@ -1390,7 +1390,7 @@ noncomputable instance ContainerStateTerminated_access_load_StartedAt (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ContainerStateTerminated_access_store_StartedAt (l : Loc) (v : k8s_io.api.core.v1.ContainerStateTerminated) (StartedAt' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance ContainerStateTerminated_access_store_StartedAt (l : Loc) (v : k8s_io.api.core.v1.ContainerStateTerminated) (StartedAt' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ContainerStateTerminated go!"StartedAt" l) v.StartedAt' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ContainerStateTerminated go!"StartedAt" l) StartedAt' (DFrac.own 1))
@@ -1406,7 +1406,7 @@ noncomputable instance ContainerStateTerminated_access_load_FinishedAt (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ContainerStateTerminated_access_store_FinishedAt (l : Loc) (v : k8s_io.api.core.v1.ContainerStateTerminated) (FinishedAt' : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance ContainerStateTerminated_access_store_FinishedAt (l : Loc) (v : k8s_io.api.core.v1.ContainerStateTerminated) (FinishedAt' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ContainerStateTerminated go!"FinishedAt" l) v.FinishedAt' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.api.core.v1.ContainerStateTerminated go!"FinishedAt" l) FinishedAt' (DFrac.own 1))

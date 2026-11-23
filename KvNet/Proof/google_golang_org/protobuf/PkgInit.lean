@@ -15,6 +15,7 @@ public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import GeneratedProof.google_golang_org.protobuf.reflect.protoreflect
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.sync
+public import Perennial.Proof.strconv.Base
 
 @[expose] public section
 

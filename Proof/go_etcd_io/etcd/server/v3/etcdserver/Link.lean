@@ -517,8 +517,16 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker_
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__unreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.waitSchedule
 public import Proof.golang_org.x.time.rate.Every
+public import Proof.golang_org.x.time.rate.Limit__durationFromTokens
+public import Proof.golang_org.x.time.rate.Limit__tokensFromDuration
 public import Proof.golang_org.x.time.rate.Limiter__Wait
+public import Proof.golang_org.x.time.rate.Limiter__WaitN
+public import Proof.golang_org.x.time.rate.Limiter__advance
+public import Proof.golang_org.x.time.rate.Limiter__reserveN
+public import Proof.golang_org.x.time.rate.Limiter__wait
 public import Proof.golang_org.x.time.rate.NewLimiter
+public import Proof.golang_org.x.time.rate.Reservation__Cancel
+public import Proof.golang_org.x.time.rate.Reservation__CancelAt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__after
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__covers
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.replayTerms__termAt
@@ -1320,6 +1328,10 @@ theorem zap.wp_Bool :
     zap.Bool.spec (GF := GF) (hG := hG) :=
   zap.Bool.wp_proof
 
+theorem time.Duration.wp_Seconds_ptr :
+    time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=
+  time.Duration.Seconds_ptr.wp_proof
+
 theorem lease.lessor.wp_GetLease :
     lease.lessor.GetLease.spec (GF := GF) (hG := hG) :=
   lease.lessor.GetLease.wp_proof
@@ -1627,10 +1639,6 @@ theorem v2stats.wp_NewLeaderStats :
 theorem idutil.wp_NewGenerator :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) :=
   idutil.NewGenerator.wp_proof idutil.wp_lowbit
-
-theorem time.Duration.wp_Seconds_ptr :
-    time.Duration.Seconds_ptr.spec (GF := GF) (hG := hG) :=
-  time.Duration.Seconds_ptr.wp_proof
 
 theorem math.wp_Ceil :
     math.Ceil.spec (GF := GF) (hG := hG) :=
@@ -2699,9 +2707,41 @@ theorem transport.wp_IsClosedConnError :
     transport.IsClosedConnError.spec (GF := GF) (hG := hG) :=
   transport.IsClosedConnError.wp_proof strings.wp_Contains
 
+theorem rate.Limit.wp_tokensFromDuration :
+    rate.Limit.tokensFromDuration.spec (GF := GF) (hG := hG) :=
+  rate.Limit.tokensFromDuration.wp_proof time.Duration.wp_Seconds_ptr
+
+theorem rate.Limiter.wp_advance :
+    rate.Limiter.advance.spec (GF := GF) (hG := hG) :=
+  rate.Limiter.advance.wp_proof _root_.Perennial.time.Time.wp_Before _root_.Perennial.time.Time.wp_Sub rate.Limit.wp_tokensFromDuration
+
+theorem rate.Limit.wp_durationFromTokens :
+    rate.Limit.durationFromTokens.spec (GF := GF) (hG := hG) :=
+  rate.Limit.durationFromTokens.wp_proof
+
+theorem rate.Limiter.wp_reserveN :
+    rate.Limiter.reserveN.spec (GF := GF) (hG := hG) :=
+  rate.Limiter.reserveN.wp_proof _root_.Perennial.time.Time.wp_Add rate.Limiter.wp_advance rate.Limit.wp_durationFromTokens
+
+theorem rate.Reservation.wp_CancelAt :
+    rate.Reservation.CancelAt.spec (GF := GF) (hG := hG) :=
+  rate.Reservation.CancelAt.wp_proof _root_.Perennial.time.Time.wp_Before _root_.Perennial.time.Time.wp_Sub _root_.Perennial.time.Time.wp_Add _root_.Perennial.time.Time.wp_Equal rate.Limiter.wp_advance rate.Limit.wp_tokensFromDuration rate.Limit.wp_durationFromTokens
+
+theorem rate.Reservation.wp_Cancel :
+    rate.Reservation.Cancel.spec (GF := GF) (hG := hG) :=
+  rate.Reservation.Cancel.wp_proof _root_.Perennial.time.wp_Now rate.Reservation.wp_CancelAt
+
+theorem rate.Limiter.wp_wait :
+    rate.Limiter.wait.spec (GF := GF) (hG := hG) :=
+  rate.Limiter.wait.wp_proof _root_.Perennial.time.Time.wp_Sub rate.Limiter.wp_reserveN rate.Reservation.wp_Cancel
+
+theorem rate.Limiter.wp_WaitN :
+    rate.Limiter.WaitN.spec (GF := GF) (hG := hG) :=
+  rate.Limiter.WaitN.wp_proof _root_.Perennial.time.wp_Now rate.Limiter.wp_wait
+
 theorem rate.Limiter.wp_Wait :
     rate.Limiter.Wait.spec (GF := GF) (hG := hG) :=
-  rate.Limiter.Wait.wp_proof
+  rate.Limiter.Wait.wp_proof rate.Limiter.wp_WaitN
 
 theorem rafthttp.streamReader.wp_run :
     rafthttp.streamReader.run.spec (GF := GF) (hG := hG) :=
@@ -3041,7 +3081,7 @@ theorem EtcdServer.wp_revokeExpiredLeases :
 
 theorem wp_addFeatureGateMetrics :
     addFeatureGateMetrics.spec (GF := GF) (hG := hG) :=
-  addFeatureGateMetrics.wp_proof
+  addFeatureGateMetrics.wp_proof prometheus.GaugeVec.wp_With
 
 theorem auth.wp_NewAuthStore :
     auth.NewAuthStore.spec (GF := GF) (hG := hG) :=

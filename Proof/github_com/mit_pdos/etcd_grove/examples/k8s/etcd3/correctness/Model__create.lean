@@ -43,7 +43,7 @@ theorem Model.create.wp_proof
     (wp_Accessor : apimeta.Accessor.spec (GF := GF) (hG := hG))
     (wp_FormatUint : strconv.FormatUint.spec (GF := GF) (hG := hG)) :
     Model.create.spec (GF := GF) (hG := hG) := by
-  intro mp m x op
+  intro mp m x op hsz
   wp_start as ⟨Hm, #Hop⟩
   unfold modelOwn modelRep modelVal
   icases Hm with ⟨#Hinit, %il, %rl, %M, Hp, HI, #Hit, HR⟩
@@ -136,7 +136,7 @@ theorem Model.create.wp_proof
     ipersist «$r1»
     imodintro
     iapply HΦ
-    ihave #HD := itemsRO_insert M m.items (k8s_etcd3.storeKeyL x.Key') c ⟨(k8s_etcd3.splitKeyL x.Key').1, (k8s_etcd3.splitKeyL x.Key').2, x.UID', x.Val', x.Node', x.App', m.rv + W64 1, false⟩ $$ [Hit Hc]
+    ihave #HD := itemsRO_insert M m.items (k8s_etcd3.storeKeyL x.Key') c ⟨(k8s_etcd3.splitKeyL x.Key').1, (k8s_etcd3.splitKeyL x.Key').2, x.UID', x.Val', x.Node', x.App', m.rv + W64 1, false⟩ (size_insert_le_of_lt _ _ _ hsz) $$ [Hit Hc]
     · isplitl
       · iexact Hit
       · iexact Hc

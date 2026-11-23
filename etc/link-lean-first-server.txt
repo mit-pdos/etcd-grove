@@ -697,7 +697,7 @@ bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRa
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
 # the trust boundary (`axiom … .wp_proof`): the names-only callees whose contracts only say they
 # return (the stats, the cluster's `String`/`SetVersionChangedNotifier`,
-# `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
+# `PeerDialTimeout`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
 # their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
 # the Go code (unit N1: `auth.NewTokenProvider`, proved since the auth plan's E2g, 2026-10-25, over
@@ -716,7 +716,9 @@ membership_RaftCluster__SetVersionChangedNotifier:
 # `URLs.StringSlice` translated and proved (prove-ps2-misc, 2026-11-21), over `url.URL.String`'s spec.
 types_URLs__StringSlice: =http.URLStringAny_ok
 config_ServerConfig__PeerDialTimeout:
-addFeatureGateMetrics:
+# (featuregate-4, 2026-11-23) `addFeatureGateMetrics` translated and proved, over featuregate's
+# `GetAll`/`Enabled` (through `isFeatureGate`) and `GaugeVec.With`
+addFeatureGateMetrics: prometheus_GaugeVec__With
 newCorruptionChecker:
 schema_NewAuthBackend:
 schema_NewAlarmBackend:
@@ -1096,7 +1098,17 @@ httputil_GracefulClose:
 transport_IsClosedConnError: strings_Contains
 strings_Contains:
 transport_NewTimeoutTransport:
-rate_Limiter__Wait:
+# x/time/rate's `Wait` (rate-wait, 2026-11-23: proved over the real code, until then the trust
+# boundary): `WaitN`, `wait`, the token bucket (`reserveN`) and the reservation's `Cancel`
+rate_Limit__tokensFromDuration: time_Duration__Seconds_ptr
+rate_Limiter__advance: =_root_.Perennial.time.Time.wp_Before =_root_.Perennial.time.Time.wp_Sub rate_Limit__tokensFromDuration
+rate_Limit__durationFromTokens:
+rate_Limiter__reserveN: =_root_.Perennial.time.Time.wp_Add rate_Limiter__advance rate_Limit__durationFromTokens
+rate_Reservation__CancelAt: =_root_.Perennial.time.Time.wp_Before =_root_.Perennial.time.Time.wp_Sub =_root_.Perennial.time.Time.wp_Add =_root_.Perennial.time.Time.wp_Equal rate_Limiter__advance rate_Limit__tokensFromDuration rate_Limit__durationFromTokens
+rate_Reservation__Cancel: =_root_.Perennial.time.wp_Now rate_Reservation__CancelAt
+rate_Limiter__wait: =_root_.Perennial.time.Time.wp_Sub rate_Limiter__reserveN rate_Reservation__Cancel
+rate_Limiter__WaitN: =_root_.Perennial.time.wp_Now rate_Limiter__wait
+rate_Limiter__Wait: rate_Limiter__WaitN
 proto_MarshalPb:
 path_Split: =_root_.Perennial.internal.bytealg.wp_LastIndexByteString
 path_Clean: path_lazybuf__index path_lazybuf__append path_lazybuf__string

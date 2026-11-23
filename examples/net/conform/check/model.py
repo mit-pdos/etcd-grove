@@ -189,8 +189,8 @@ def read_avail(st, d, n, r, d2):
     # EOF: nothing unread, and the writer is done
     if d.bytes == b"" and d.status != OPEN and r == R_EOF and d2 == d:
         return True
-    # an error, once the connection broke
-    if d.status == CUT and r == R_ERR(SYS) and d2 == d:
+    # an error, once the connection broke and nothing is unread (v3.5)
+    if d.status == CUT and d.bytes == b"" and r == R_ERR(SYS) and d2 == d:
         return True
     # a timeout
     if st.rdl and r == R_ERR(TIMEOUT) and d2 == d:

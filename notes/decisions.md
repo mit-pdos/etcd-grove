@@ -42016,6 +42016,55 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
 *Not here:* `Message`'s and the WAL record's encoders (`msgEncC_ok`, `recEncC_ok`, stage S2),
 `ccDecodeV1` (still opaque: nothing needed it).
 
+## jsongen's subset extended to embedded structs, pointers and a type's own JSON methods (2026-11-23 · proving session 2, #18, item 1 of #24's split · branch `ps2-jsongen/2026-11-23`, not landed: for Upamanyu's review)
+
+**Context.** jsongen (`models/json/`, "The encoding/json model is of Go 1.27.3's default build; jsongen
+as a trusted generator", above) refused every etcd type the membership axioms need: `membership.Member`
+and `ConfigChangeContext` embed structs, `raftpb.ConfState` has `AutoLeave *bool`, `cluster_util` decodes
+`[]*membership.Member`; and go-vsr's `log.Logs` has its own `MarshalJSON`/`UnmarshalJSON`, so the vr kit had
+no codec (kaashoek's requirement on #24). The design note, `notes/jsongen-extension.md`, was posted on #24
+before the code; upamanyus-agent approved the design, asking for dominance collisions at equal depth in
+the random harness and for the method calls themselves (not only the bytes) to be compared.
+
+**Decision.** The trusted core reproduces encoding/json/v2's own field walk (`makeStructFields`, whose
+errors v1's options ignore) rather than v1's `typeFields`: breadth-first with the `visitChildren =
+!seen[tf]` rule, exact dominance (a name with no dominant field is dropped, silently, as Go), depth-first
+output, case-insensitive matching in breadth-first precedence; this also replaces two old refusals (equal
+and case-equal names in one struct). Pointers `*T` to every accepted non-pointer, non-interface type.
+A type's own `MarshalJSON`/`UnmarshalJSON` are called where Go's `CallMethodsWithLegacySemantics` calls
+them: a pointer receiver only on an addressable value, so the codec gets a second encoder `jencA_<T>(b, p,
+d)` for the types whose encoding depends on it; outputs go through `jencValue` (validated,
+nesting-checked, compacted, as a RawMessage); `UnmarshalJSON` gets `b[j:k:k]` and its error is recorded
+while decoding continues. The default structure of a type with methods is checked only in the direction
+it is used; text methods are accepted only where a JSON method shadows them. jsondesc (trusted with the
+core) now dumps which hook interfaces a type or its pointer implements (reflect's `Implements`) and its
+pointer's exported method names (for the promoted-selector check). Still refused, among others:
+unexported embedded pointers on a used path, embedded types with methods, `**T`, named pointers,
+`,string` on pointers or method types, `MarshalJSONTo`/`UnmarshalJSONFrom`, maps (so map keys and values
+never reach a method). k8s's unexported `storage.continueToken`, `etcd3.etcdHealth` and `controller`'s
+patch structs stay out structurally: a codec in another package cannot name them.
+
+**Evidence.** `models/internal/jsongenrand`: random embedded (exported, unexported, by pointer, repeated,
+self-embedded through a pointer, colliding Go and JSON names at equal and different depths, tagged and
+not), pointer and method types (value and pointer receivers; outputs with whitespace, fixed, invalid,
+nil, empty, failing, nested to the limit; decoders merging, recording their bytes, failing), reached in
+every context, a wrapper `{V M; P *M; S []M; A any}` per method type; the generated test compares bytes,
+values, errors-or-not and the logged method calls in order (`jtCallLog`). Nine mutants of the core (no
+dominance, no addressability, no allocation of embedded pointers, fold order reversed, the seen rule
+dropped, a pointer's null ignored, an `any`'s value addressable, the method's bytes with whitespace, a
+method's nil output taken as null) are each caught by a 12-module run (a tenth, a method's error made a
+NotModelled panic, survives by design: such panics are the model's allowed outcome). `TestRefusals` (one per refusal),
+`TestAccepted` (the formerly refused constructs). Regression codecs: `examples/models/jsonetcd` (Member,
+RaftAttributes, Attributes, ConfigChangeContext, `[]*Member`, DowngradeInfo, Versions, ConfState,
+HashKVRequest/Response) and `models/internal/jsonvsr` (go-vsr's current `log.go`, Logs' methods); the
+dsv-vr kit's own `json.toml` generates (checked in a scratch copy), and so do k8s's `v1.AvoidPods` and
+`metav1.OwnerReference` (`metav1.Time`: both methods, opaque). Goose translates the generated codecs
+(tried on jsonvsr and jsonetcd). The independent review (`notes/axiom-review/jsongen.md`) found three
+divergences: an `UnmarshalJSON` on a slice element ran on a temporary (fixed: decoded in place, the
+slice grown as `reflect.Value.Grow(1)` grows it), pointer cycles (fixed: `NotModelled` from depth 1000,
+where the real encoder's cycle detection starts), and a method's `*jsontext.SyntacticError` stopping the
+real decoding (a stated precondition: only jsontext/v2, outside the model, make one).
+
 ## The protobuf boundary's stage S2: `msgEncC`, `msgDecode`, `recDecode` concrete, `irrDecode`'s `AuthUserGrantRole` concrete; `msgEncC_ok`, `recEncC_ok`, `apply.irrDecode_utf8` theorems (2026-11-23 · #37 · branch `proto-s2`)
 
 **2026-11-23 · accepted (the plan's D3, mit-pdos/etcd-grove#37; stacked on stage S1)**
@@ -42080,3 +42129,64 @@ S3 proves the Go model of `proto` against these functions, the vectors are what 
   - `irrUgrDecodeRaw` on every input protobuf-go decodes: random requests with other fields set, records with invalid UTF-8, merged and repeated records, and mutations.
   - 252 further inputs protobuf-go rejects are not guarded, since the reader claims nothing there.
 - **The S1 caveat stands.** Zeldovich asked on #37 to run the 17.7M-input D1 harness with the Lean decoders as oracle; that is not done.
+
+## encoding/json per-type dispatch (J3) and the model's bodies (J2) (2026-11-23 · proving session 2, #24 · branch `prove-ps2-jsonj2/2026-11-23`)
+
+**Context.** The model's `Marshal`/`Unmarshal` were `getCodec().X(v)`: with bodies, every call needs a
+registered codec covering its type, a resource (`codecSetWith`) to thread through every spec from
+membership up to `etcdstart`, and a codec package cannot name k8s's unexported `storage.continueToken`
+(the design note on #24, issuecomment-7103223894).
+
+**Decision** (Upamanyu: J3 = (b); the exact statements, issuecomment-7113354607, approved by his
+coordinator). Per-type dispatch, the JSON twin of #37's D1: jsongen's same-package mode emits
+`JSONModelMarshal` (on `T`), `JSONModelMarshalPtr`, `JSONModelUnmarshal` (on `*T`) into each root's own
+package, under `goose || netmodel`, through goose's `-overlay`; the model calls them by the value's
+method set (`marshalAny`), the registered codec otherwise (nil, unnamed types: vr's frames). Each body
+accepts exactly `T`/`*T` and is not modelled otherwise (a type embedding `T` has the methods by
+promotion). In Lean the contract a call meets is an explicit `J : JsonCodec GF`, chosen per route:
+`typeCodecOk J F T` is a theorem of `T`'s package, the codec route `codecSetWith fm fu ∗ codecOkWith F
+fm fu`; `marshalVia`/`unmarshalVia` say which by `typeSetContains` of the dynamic type, a pure fact of
+the caller's `Assumptions`. `codecSetWith` gains `codecMu`'s mutex (`getCodec` locks it) and the
+registry follows net/rpc's (`codecInv`, `codecUnset` from a deployment's boot). Recursion (vr's `Logs`)
+needs no new form: every codec fact is persistent and used under a `WP`, so Löb cuts it. One overlay
+per project (`etc/goose.py`'s `model_overlay`, generators merged), shared with #37's pbmodel files.
+
+**Why not** a stronger `MarshalMember`: Upamanyu's decision (#24): `bootstrap`'s `ctxs = json.Marshal`
+of each member comes from `Marshal`'s proof at membership's own contract.
+
+## Two protobuf enums' `String` trusted over their name tables; etcdserver's `expvar` inits trusted no-ops (2026-11-23 · claim #39 · branch `etcd-small-3`)
+
+**Decision.** `etcdserverpb.AlarmType.String` and `mvccpb.Event_EventType.String` follow raftpb's
+`MessageType.String` (Q9, 2026-11-09): trusted models (`TrustedCode/go_etcd_io/etcd/api/v3/{etcdserverpb,
+mvccpb}.lean`) that look the value up in the generated `_name` table, else `strconv.Itoa`, as protobuf-go's
+`EnumStringOf` does (neither enum declares `allow_alias`); the tables are translated (no longer `[[skip]]`) and
+held read-only by the packages' facts (`etcdserverpb.alarmTypeNames` in `etcdserverpbInit`, a new
+`mvccpbInit` with `mvccpb.eventTypeNames`, `cache/v3/Base.lean`). Their specs are unchanged and proved over
+the models (`AlarmType.String`'s ASCII post from the table's names and `fmtInt`'s digits); the pointer calls
+step through goose's `ptr_String_unfold`. Evidence: `examples/premisefix/enumstring` (the real methods
+against the model, by value and through a pointer, and the tables against the descriptors). So that the
+model's `strconv.Itoa` is initialized, protobuf's `internal/impl` (which imports `strconv` in Go, for
+`EnumStringOf`) now has `strconv` among its translated imports. Trust base: −2 axioms
+(`etcdserverpb.AlarmType.String.wp_proof`, `mvccpb.Event_EventType.StringPtr.wp_proof`), +2 trusted models.
+
+etcdserver's `init.1`/`init.2` (`expvar.Publish` of `"raft.status"`, `"file_descriptor_limit"`) are trusted
+no-op models (`TrustedCode/go_etcd_io/etcd/server/v3/etcdserver.lean`: `Publish` panics only on a reused
+name; the closures run only when `expvar`'s registry is served, which no translated code or example does).
+`init.0` (the metrics' registration) is not: it calls `runtime.Version`, which Perennial does not name
+(`notes/perennial-changes.md`, 2026-11-23), so `initFuncsOk` stays, narrowed to `init.«0»`. The plan for it
+(etcdserver into `PRE_RES`, its 19 names added to the closed theorems' `namesUnclaimed` lists) was approved
+by the coordinator under the user's delegation; review requested (#39).
+
+## The net laws' read-deadline token and dead witness: variants, not new statements (2026-11-23 · #24 · branch `net-sticky-read`)
+
+Supersedes nothing. `notes/net-sticky-read.md`'s plan had the read-deadline token `rdlTok` "given at
+dial and accept". Adding it to `dial_au`'s and the `accept_*au` laws' results would change the
+statement every kit restates as its `Dial`/`Accept` post (twenty-odd files); instead the laws gain
+variants (`dial_rdl_au`, `accept_rdl_au`, `accept_shared_rdl_au`) whose results add the token, and
+the old laws are derived from them by dropping it, so only the proofs that set a read deadline (or,
+later, need no timeout) use the variants. `deadline_au` takes the token (anyone holding the
+connection could otherwise change the deadline the token records); a write deadline does not touch
+it, so `deadline_w_au` needs only `connIs`. `readDead` also covers a closed end (a counter per end,
+`c s`): a reader whose end may be closed by another thread has no exclusive knowledge that it is
+not, and `closed` is as sticky as EOF, so the witness says "reads nothing more" for either reason.
+
