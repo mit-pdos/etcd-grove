@@ -10,9 +10,11 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
@@ -1121,8 +1123,36 @@ func pbPanics(f func()) (p bool) {
 	return false
 }
 
-// TestProtoPanics: Unmarshal into a nil *T panics, as the real one does; the codec panics on a
-// value outside the codec types.
+// pbStuck runs f in a goroutine of its own and reports whether it blocked forever in an empty
+// select (a model's not-modelled point, models/README.md) rather than returning or panicking: that
+// goroutine's state in the runtime's goroutine dump. A stuck goroutine is never released.
+func pbStuck(f func()) bool {
+	ids := make(chan string, 1)
+	done := make(chan struct{})
+	go func() {
+		var b [64]byte
+		ids <- strings.Fields(string(b[:runtime.Stack(b[:], false)]))[1]
+		defer close(done)
+		defer func() { recover() }()
+		f()
+	}()
+	needle := "goroutine " + <-ids + " [select (no cases)"
+	for start := time.Now(); time.Since(start) < time.Minute; {
+		select {
+		case <-done:
+			return false
+		case <-time.After(time.Millisecond):
+		}
+		b := make([]byte, 1<<20)
+		if strings.Contains(string(b[:runtime.Stack(b, true)]), needle) {
+			return true
+		}
+	}
+	panic("pbStuck: f neither returned nor blocked in an empty select")
+}
+
+// TestProtoPanics: Unmarshal into a nil *T panics, as the real one does; outside the codec types
+// the codec blocks forever (not modelled; the methods' test helper pbModelOf panics instead).
 func TestProtoPanics(t *testing.T) {
 	for _, tp := range pbTypes() {
 		for _, data := range [][]byte{nil, {8, 1}} {
@@ -1141,8 +1171,12 @@ func TestProtoPanics(t *testing.T) {
 			}
 			continue
 		}
-		if !pbPanics(func() { pbMarshal(v) }) || !pbPanics(func() { pbUnmarshal(nil, v) }) {
-			t.Fatalf("the codec does not panic on %#v", v)
+		if pbExact {
+			if !pbPanics(func() { pbMarshal(v) }) || !pbPanics(func() { pbUnmarshal(nil, v) }) {
+				t.Fatalf("pbModelOf does not panic on %#v", v)
+			}
+		} else if !pbStuck(func() { pbMarshal(v) }) || !pbStuck(func() { pbUnmarshal(nil, v) }) {
+			t.Fatalf("the codec does not block on %#v", v)
 		}
 	}
 }

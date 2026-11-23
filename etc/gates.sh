@@ -281,10 +281,17 @@ for x in $pbinputs; do
 done
 # the same-package methods' prefix: no Go code names it but the generated files, the proto model and
 # their tests (#37, D1's condition 1: no other code may reach the methods)
-if git grep -n -E '\bPbModel(Size|Append|Unmarshal|Decode|DecodeField|IsInit|MergeFrom|Clone|IsNil)\b|\bpbmodel(codec|atomic)\b' -- '*.go' ':!*pbmodel_gen.go' ':!*pbmodel_gen_test.go' \
+if git grep -n -E '\bPbModel\w*|\bpbmodel(codec|atomic)\b' -- '*.go' ':!*pbmodel_gen.go' ':!*pbmodel_gen_test.go' \
      ':!models/protobuf-go/' ':!models/internal/pbmodeltest/' ':!models/internal/pbgenrand/cache_test.go' \
      ':!old/' >> "$tmp/nm.log" 2>&1; then
   echo "models: Go code outside the generated files names the PbModel prefix (above)" >> "$tmp/nm.log"; nm=1
+fi
+# not modelled is stuck (models/README.md, "Not modelled: stuck"; #37, the S3 review's item 1): no
+# model, generated codec or generator panics with a not-modelled value (a panic can be recovered,
+# which would add behaviors the library does not have); a not-modelled point is `select {}`
+if git grep -n -E '\b[Nn]otModelled\b' -- 'models/*.go' 'models/*.py' 'examples/*.go' ':!*_test.go' \
+     >> "$tmp/nm.log" 2>&1; then
+  echo "models: a not-modelled point is a NotModelled panic, not stuck (above)" >> "$tmp/nm.log"; nm=1
 fi
 for t in $(git ls-files '*protobuf.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$pbinputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }

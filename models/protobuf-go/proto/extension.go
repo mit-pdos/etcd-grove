@@ -17,22 +17,17 @@ func HasExtension(m Message, xt protoreflect.ExtensionType) bool {
 		return false
 	}
 
-	// As a special-case, we reports invalid or mismatching descriptors
-	// as always not being populated (since they aren't).
-	mr := m.ProtoReflect()
-	xd := xt.TypeDescriptor()
-	if mr.Descriptor() != xd.ContainingMessage() {
-		return false
-	}
-
-	return mr.Has(xd)
+	// MODEL: not modelled (stuck): HasExtension (the model's messages have no extensions: pbgen refuses them;
+	// reflection)
+	select {}
 }
 
 // ClearExtension clears an extension field such that subsequent
 // [HasExtension] calls return false.
 // It panics if m is invalid or if xt does not extend m.
 func ClearExtension(m Message, xt protoreflect.ExtensionType) {
-	m.ProtoReflect().Clear(xt.TypeDescriptor())
+	// MODEL: not modelled (stuck): ClearExtension (reflection)
+	select {}
 }
 
 // GetExtension retrieves the value for an extension field.
@@ -82,12 +77,8 @@ func ClearExtension(m Message, xt protoreflect.ExtensionType) {
 //
 // The mm variable is non-nil if and only if HasExtension reports true.
 func GetExtension(m Message, xt protoreflect.ExtensionType) any {
-	// Treat nil message interface as an empty message; return the default.
-	if m == nil {
-		return xt.InterfaceOf(xt.Zero())
-	}
-
-	return xt.InterfaceOf(m.ProtoReflect().Get(xt.TypeDescriptor()))
+	// MODEL: not modelled (stuck): GetExtension (reflection)
+	select {}
 }
 
 // SetExtension stores the value of an extension field.
@@ -123,25 +114,8 @@ func GetExtension(m Message, xt protoreflect.ExtensionType) any {
 // so that static analysis tools can verify type correctness.
 // This also enables a possible future migration to a type-safe extension API.
 func SetExtension(m Message, xt protoreflect.ExtensionType, v any) {
-	xd := xt.TypeDescriptor()
-	pv := xt.ValueOf(v)
-
-	// Specially treat an invalid list, map, or message as clear.
-	isValid := true
-	switch {
-	case xd.IsList():
-		isValid = pv.List().IsValid()
-	case xd.IsMap():
-		isValid = pv.Map().IsValid()
-	case xd.Message() != nil:
-		isValid = pv.Message().IsValid()
-	}
-	if !isValid {
-		m.ProtoReflect().Clear(xd)
-		return
-	}
-
-	m.ProtoReflect().Set(xd, pv)
+	// MODEL: not modelled (stuck): SetExtension (reflection)
+	select {}
 }
 
 // RangeExtensions iterates over every populated extension field in m in an
@@ -155,12 +129,6 @@ func RangeExtensions(m Message, f func(protoreflect.ExtensionType, any) bool) {
 		return
 	}
 
-	m.ProtoReflect().Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-		if fd.IsExtension() {
-			xt := fd.(protoreflect.ExtensionTypeDescriptor).Type()
-			vi := xt.InterfaceOf(v)
-			return f(xt, vi)
-		}
-		return true
-	})
+	// MODEL: not modelled (stuck): RangeExtensions (reflection)
+	select {}
 }

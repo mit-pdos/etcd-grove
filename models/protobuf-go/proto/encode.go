@@ -178,8 +178,8 @@ func (o MarshalOptions) MarshalAppend(b []byte, m Message) ([]byte, error) {
 // This method permits fine-grained control over the marshaler.
 // Most users should use [Marshal] instead.
 func (o MarshalOptions) MarshalState(in protoiface.MarshalInput) (protoiface.MarshalOutput, error) {
-	// MODEL: not modelled (a protoreflect.Message's methods).
-	panic(NotModelled("protobuf model: MarshalOptions.MarshalState"))
+	// MODEL: not modelled (stuck): MarshalOptions.MarshalState (a protoreflect.Message's methods)
+	select {}
 }
 
 // marshal is a centralized function that all marshal operations go through.

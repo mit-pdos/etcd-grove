@@ -78,8 +78,8 @@ func (o UnmarshalOptions) Unmarshal(b []byte, m Message) error {
 // This method permits fine-grained control over the unmarshaler.
 // Most users should use [Unmarshal] instead.
 func (o UnmarshalOptions) UnmarshalState(in protoiface.UnmarshalInput) (protoiface.UnmarshalOutput, error) {
-	// MODEL: not modelled (a protoreflect.Message's methods).
-	panic(NotModelled("protobuf model: UnmarshalOptions.UnmarshalState"))
+	// MODEL: not modelled (stuck): UnmarshalOptions.UnmarshalState (a protoreflect.Message's methods)
+	select {}
 }
 
 // unmarshal is a centralized function that all unmarshal operations go through.

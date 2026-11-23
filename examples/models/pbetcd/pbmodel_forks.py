@@ -5,14 +5,20 @@
 
 The same-package methods (models/protobuf/pbgen.py --pbmodel; models/protobuf/pbgen_core.py's doc,
 "THE SAME-PACKAGE METHODS") are written into each message type's own package. This script never
-writes into the forks: it copies the modules the examples' go.mod pins (etcd's api/v3 and
-server/v3 at the fork's edc800c, raft at d2c16c5: etc/goose.py's pins, which `etc/goose.py --check`
-keeps equal to examples/go.mod's) out of the module cache into a temporary directory, makes a
-module whose go.mod is the examples' with `replace`s of the three by the copies (and the examples'
-relative replaces made absolute), and there:
+writes into the forks: it copies the modules the examples' go.mod pins (etcd's api/v3, server/v3,
+client/v3 and pkg/v3 at the fork's edc800c, raft at d2c16c5: etc/goose.py's pins, which
+`etc/goose.py --check` keeps equal to examples/go.mod's) out of the module cache into a temporary
+directory, makes a module whose go.mod is the examples' with `replace`s of those by the copies (and
+the examples' relative replaces made absolute), and there:
 
-  1. checks that no Go file of the copies names a generated method (PbModelSize, ...) or the
-     generated file's import names: the methods are the only code that may (#37, D1's condition 1);
+  0. checks that no type embedding a message declares its own ProtoReflect or Reset
+     (embedcheck/: protobuf-go would dispatch to it, the protobuf model to the embedded message's
+     PbModel* methods; #37, the S3 review's item 3), in every package of the five modules at the
+     pins, of the examples' own module (the kits Goose translates) and of the grpc model
+     (models/grpc, through models/grpc/gomodel.py);
+  1. checks that no Go file of the copies, nor of the grpc model, names a generated method
+     (PbModel...) or the generated file's import names: the methods are the only code that may
+     (#37, D1's condition 1);
   2. runs pbgen --pbmodel on this directory's protobuf.toml (the roots of the codec mode, plus the
      types etcd keeps in bbolt or the WAL that zeldovich's review named), which writes
      pbmodel_gen.go and pbmodel_gen_test.go into every package of the closure;
@@ -35,11 +41,41 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 EXAMPLES = os.path.normpath(os.path.join(HERE, "..", ".."))
 ROOT = os.path.normpath(os.path.join(EXAMPLES, ".."))
 PBGEN = os.path.join(ROOT, "models", "protobuf", "pbgen.py")
-MODULES = ["go.etcd.io/etcd/api/v3", "go.etcd.io/etcd/server/v3", "go.etcd.io/raft/v3"]
-# the generated methods' names and the generated file's import names (etc/gates.sh checks the
-# repository's Go code for the same)
-PREFIX = re.compile(r"\bPbModel(Size|Append|Unmarshal|Decode|DecodeField|IsInit|MergeFrom|Clone|IsNil)\b|"
-                    r"\bpbmodel(codec|atomic)\b")
+MODULES = ["go.etcd.io/etcd/api/v3", "go.etcd.io/etcd/server/v3", "go.etcd.io/etcd/client/v3",
+           "go.etcd.io/etcd/pkg/v3", "go.etcd.io/raft/v3"]
+GRPC_MODEL = os.path.join(ROOT, "models", "grpc")
+EMBEDCHECK = os.path.join(HERE, "embedcheck")
+# the generated methods' names (every one starts with the prefix) and the generated file's import
+# names (etc/gates.sh checks the repository's Go code for the same)
+PREFIX = re.compile(r"\bPbModel\w*|\bpbmodel(codec|atomic)\b")
+
+
+def packages(mod, d):
+    """The import paths of the Go packages of module `mod` in directory d (no testdata, no nested
+    module, no test-only directory)."""
+    out = []
+    for dp, dns, fns in os.walk(d):
+        dns[:] = sorted(x for x in dns if x != "testdata" and not x.startswith((".", "_")))
+        if dp != d and os.path.exists(os.path.join(dp, "go.mod")):
+            dns[:] = []
+            continue
+        if any(f.endswith(".go") and not f.endswith("_test.go") for f in fns):
+            rel = os.path.relpath(dp, d)
+            out.append(mod if rel == "." else mod + "/" + rel.replace(os.sep, "/"))
+    return out
+
+
+def embedcheck(cmd, cwd, env, pkgs, what):
+    """go list -export -json -deps of pkgs (cmd: the go command, or gomodel.py's), into embedcheck."""
+    lst = subprocess.run(cmd + ["list", "-e", "-export", "-json", "-deps"] + pkgs, cwd=cwd, env=env,
+                         capture_output=True, text=True)
+    if lst.returncode != 0:
+        sys.exit(f"pbmodel_forks: go list for embedcheck ({what}) failed:\n{lst.stderr[-3000:]}")
+    r = subprocess.run(["go", "run", "."], cwd=EMBEDCHECK, env=env, input=lst.stdout, capture_output=True,
+                       text=True)
+    print(f"{what}: " + r.stdout.strip().replace("\n", f"\n{what}: "))
+    if r.returncode != 0:
+        sys.exit(f"pbmodel_forks: a type embedding a message declares ProtoReflect or Reset ({what}):\n{r.stderr}")
 
 
 def go(args, cwd, env, check=True):
@@ -72,9 +108,15 @@ def main():
                 for f in fns:
                     os.chmod(os.path.join(dp, f), 0o644)
             mods[m] = dst
+        # 0. no type embedding a message declares ProtoReflect or Reset: the five modules at the
+        # pins and the examples' own packages (in the examples' module), the grpc model
+        pins = [p for m, d in mods.items() for p in packages(m, d)]
+        embedcheck(["go"], EXAMPLES, env, pins + ["./..."], "the forks and the examples")
+        embedcheck([sys.executable, os.path.join(GRPC_MODEL, "gomodel.py"), EXAMPLES], EXAMPLES, env,
+                   packages("google.golang.org/grpc", GRPC_MODEL), "the grpc model")
         # 1. nothing but the generated methods names the prefix
         bad = []
-        for m, d in mods.items():
+        for m, d in list(mods.items()) + [("google.golang.org/grpc (model)", GRPC_MODEL)]:
             for dp, _, fns in os.walk(d):
                 for f in fns:
                     if f.endswith(".go"):
@@ -83,7 +125,8 @@ def main():
                             if PREFIX.search(line):
                                 bad.append(f"{os.path.relpath(p, d)}:{i}: {line.strip()}")
         if bad:
-            sys.exit("pbmodel_forks: the forks name the generated methods' prefix:\n" + "\n".join(bad))
+            sys.exit("pbmodel_forks: the forks or the grpc model name the generated methods' prefix:\n" +
+                     "\n".join(bad))
         # the scratch module: the examples' go.mod and go.sum, relative replaces made absolute, the
         # three modules replaced by the copies
         mod = os.path.join(tmp, "mod")

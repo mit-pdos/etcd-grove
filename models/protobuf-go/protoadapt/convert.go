@@ -8,7 +8,6 @@ package protoadapt
 import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/runtime/protoiface"
-	"google.golang.org/protobuf/runtime/protoimpl"
 )
 
 // MessageV1 is the original [github.com/golang/protobuf/proto.Message] type.
@@ -21,7 +20,18 @@ type MessageV2 = proto.Message
 // MessageV1Of converts a v2 message to a v1 message.
 // It returns nil if m is nil.
 func MessageV1Of(m MessageV2) MessageV1 {
-	return protoimpl.X.ProtoMessageV1Of(m)
+	// MODEL: protoimpl's ProtoMessageV1Of (internal/impl/api_export.go:95-108) on a message that is
+	// already a v1 message (protoc-gen-go's have Reset, String and ProtoMessage): the message as it
+	// is, nil for a nil interface; any other (a message protobuf-go wraps, legacyMessageWrapper) is
+	// not modelled.
+	if m == nil {
+		return nil
+	}
+	if v1, ok := m.(MessageV1); ok {
+		return v1
+	}
+	// MODEL: not modelled (stuck): protoadapt.MessageV1Of of a message that is not a v1 message
+	select {}
 }
 
 // MessageV2Of converts a v1 message to a v2 message.
@@ -37,5 +47,6 @@ func MessageV2Of(m MessageV1) MessageV2 {
 	if v2, ok := m.(MessageV2); ok {
 		return v2
 	}
-	panic(proto.NotModelled("protobuf model: protoadapt.MessageV2Of of a message that is not a v2 message"))
+	// MODEL: not modelled (stuck): protoadapt.MessageV2Of of a message that is not a v2 message
+	select {}
 }

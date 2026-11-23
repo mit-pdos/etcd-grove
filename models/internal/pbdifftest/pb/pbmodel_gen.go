@@ -10,7 +10,8 @@ import (
 )
 
 // The protobuf model's methods (models/protobuf-go/proto calls them in place of protobuf-go's
-// reflection: proto.Marshal, Unmarshal, Size, Clone, MarshalOptions), for the message types of
+// reflection: proto.Marshal, Unmarshal, Size, Clone, Merge, Reset, CheckInitialized,
+// MarshalOptions), for the message types of
 // this package below, derived by models/protobuf/pbgen.py (its pbmodel mode) from their
 // registered descriptors, over the wire format of models.lab/pbcodec. The trusted claim is the
 // generator's (models/protobuf/pbgen_core.py's doc, "THE SAME-PACKAGE METHODS", against
@@ -495,6 +496,34 @@ func (m *Args) PbModelIsNil() bool {
 	return m == nil
 }
 
+// PbModelReset is proto.Reset(m) (proto/reset.go:16-22): protoc-gen-go's generated Reset,
+// `*m = Args{}` (a nil m panicking, a nil dereference), the size cache and unknown fields
+// included; what it stores besides (the message state's MessageInfo, internal/impl) is not
+// a field of the model.
+func (m *Args) PbModelReset() {
+	*m = Args{}
+}
+
+// PbModelSelf: m, as proto.Merge's source (a type embedding this one promotes it, as it
+// promotes ProtoReflect: the model then merges from the embedded message, as protobuf-go).
+func (m *Args) PbModelSelf() interface{} {
+	return m
+}
+
+// PbModelMerge is proto.Merge(m, src) (proto/merge.go:25-37, then mergeMessage's
+// internal/impl merge, merge.go:23-34) for src another message's PbModelSelf: false, and
+// nothing changed, if src is not a *Args (protobuf-go panics there, a descriptor mismatch;
+// the model does not model it), else m.PbModelMergeFrom(src) (a nil m panics, a nil src
+// changes nothing).
+func (m *Args) PbModelMerge(src interface{}) bool {
+	o, ok := src.(*Args)
+	if !ok {
+		return false
+	}
+	m.PbModelMergeFrom(o)
+	return true
+}
+
 // --- arith.Empty
 
 // PbModelSize is the size of *m's encoding, as protobuf-go's sizePointer
@@ -632,6 +661,34 @@ func (m *Empty) PbModelClone() interface{} {
 // a nil *T is not a valid message).
 func (m *Empty) PbModelIsNil() bool {
 	return m == nil
+}
+
+// PbModelReset is proto.Reset(m) (proto/reset.go:16-22): protoc-gen-go's generated Reset,
+// `*m = Empty{}` (a nil m panicking, a nil dereference), the size cache and unknown fields
+// included; what it stores besides (the message state's MessageInfo, internal/impl) is not
+// a field of the model.
+func (m *Empty) PbModelReset() {
+	*m = Empty{}
+}
+
+// PbModelSelf: m, as proto.Merge's source (a type embedding this one promotes it, as it
+// promotes ProtoReflect: the model then merges from the embedded message, as protobuf-go).
+func (m *Empty) PbModelSelf() interface{} {
+	return m
+}
+
+// PbModelMerge is proto.Merge(m, src) (proto/merge.go:25-37, then mergeMessage's
+// internal/impl merge, merge.go:23-34) for src another message's PbModelSelf: false, and
+// nothing changed, if src is not a *Empty (protobuf-go panics there, a descriptor mismatch;
+// the model does not model it), else m.PbModelMergeFrom(src) (a nil m panics, a nil src
+// changes nothing).
+func (m *Empty) PbModelMerge(src interface{}) bool {
+	o, ok := src.(*Empty)
+	if !ok {
+		return false
+	}
+	m.PbModelMergeFrom(o)
+	return true
 }
 
 // --- arith.Inner
@@ -852,6 +909,34 @@ func (m *Inner) PbModelIsNil() bool {
 	return m == nil
 }
 
+// PbModelReset is proto.Reset(m) (proto/reset.go:16-22): protoc-gen-go's generated Reset,
+// `*m = Inner{}` (a nil m panicking, a nil dereference), the size cache and unknown fields
+// included; what it stores besides (the message state's MessageInfo, internal/impl) is not
+// a field of the model.
+func (m *Inner) PbModelReset() {
+	*m = Inner{}
+}
+
+// PbModelSelf: m, as proto.Merge's source (a type embedding this one promotes it, as it
+// promotes ProtoReflect: the model then merges from the embedded message, as protobuf-go).
+func (m *Inner) PbModelSelf() interface{} {
+	return m
+}
+
+// PbModelMerge is proto.Merge(m, src) (proto/merge.go:25-37, then mergeMessage's
+// internal/impl merge, merge.go:23-34) for src another message's PbModelSelf: false, and
+// nothing changed, if src is not a *Inner (protobuf-go panics there, a descriptor mismatch;
+// the model does not model it), else m.PbModelMergeFrom(src) (a nil m panics, a nil src
+// changes nothing).
+func (m *Inner) PbModelMerge(src interface{}) bool {
+	o, ok := src.(*Inner)
+	if !ok {
+		return false
+	}
+	m.PbModelMergeFrom(o)
+	return true
+}
+
 // --- arith.Reply
 
 // PbModelSize is the size of *m's encoding, as protobuf-go's sizePointer
@@ -1044,4 +1129,32 @@ func (m *Reply) PbModelClone() interface{} {
 // a nil *T is not a valid message).
 func (m *Reply) PbModelIsNil() bool {
 	return m == nil
+}
+
+// PbModelReset is proto.Reset(m) (proto/reset.go:16-22): protoc-gen-go's generated Reset,
+// `*m = Reply{}` (a nil m panicking, a nil dereference), the size cache and unknown fields
+// included; what it stores besides (the message state's MessageInfo, internal/impl) is not
+// a field of the model.
+func (m *Reply) PbModelReset() {
+	*m = Reply{}
+}
+
+// PbModelSelf: m, as proto.Merge's source (a type embedding this one promotes it, as it
+// promotes ProtoReflect: the model then merges from the embedded message, as protobuf-go).
+func (m *Reply) PbModelSelf() interface{} {
+	return m
+}
+
+// PbModelMerge is proto.Merge(m, src) (proto/merge.go:25-37, then mergeMessage's
+// internal/impl merge, merge.go:23-34) for src another message's PbModelSelf: false, and
+// nothing changed, if src is not a *Reply (protobuf-go panics there, a descriptor mismatch;
+// the model does not model it), else m.PbModelMergeFrom(src) (a nil m panics, a nil src
+// changes nothing).
+func (m *Reply) PbModelMerge(src interface{}) bool {
+	o, ok := src.(*Reply)
+	if !ok {
+		return false
+	}
+	m.PbModelMergeFrom(o)
+	return true
 }

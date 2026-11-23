@@ -25,9 +25,11 @@ import (
 //     winning), or an error where the real one errs (malformed input, a field number 0 or above
 //     2^29-1, invalid UTF-8 in a proto3 string field, messages nested deeper than 10000, a
 //     required field missing). Unknown fields are checked and skipped (the real one keeps them
-//     in the message: the model does not). A nil *T panics, as the real one does.
-//   - Any other value (another type, a non-pointer, a nil interface) panics: outside the
-//     subset.
+//     in the message: the model does not). A nil *T panics, a nil dereference, as the real
+//     one does.
+//   - Any other value (another type, a non-pointer, a nil interface) blocks forever: outside
+//     the subset, not modelled (models/README.md: a not-modelled point is stuck, never a panic
+//     a program could recover from).
 //
 // Only error-or-not is modeled, not the error values.
 
@@ -89,68 +91,58 @@ func pbMarshal(m interface{}) ([]byte, error) {
 		}
 		return b, nil
 	}
-	panic("protobuf model: marshaling a value of a type the codec was not generated for")
+	// MODEL: not modelled (stuck): marshaling a value of a type the codec was not generated for
+	select {}
 }
 
 // pbUnmarshal is the codec's Unmarshal.
 func pbUnmarshal(b []byte, m interface{}) error {
 	switch p := m.(type) {
 	case *pb.Args:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = pb.Args{}
 		if !pbdec_pb_Args(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *pb.Empty:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = pb.Empty{}
 		if !pbdec_pb_Empty(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *pb.Inner:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = pb.Inner{}
 		if !pbdec_pb_Inner(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *pb.Reply:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = pb.Reply{}
 		if !pbdec_pb_Reply(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *xpb.Kinds:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = xpb.Kinds{}
 		if !pbdec_xpb_Kinds(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *xpb.Other:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = xpb.Other{}
 		if !pbdec_xpb_Other(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	}
-	panic("protobuf model: unmarshaling into a value of a type the codec was not generated for")
+	// MODEL: not modelled (stuck): unmarshaling into a value of a type the codec was not generated for
+	select {}
 }
 
 // pbenc_pb_Args appends the encoding of *m's fields (real proto.Marshal's: the fields in no

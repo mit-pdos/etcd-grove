@@ -18,7 +18,13 @@ func CheckInitialized(m Message) error {
 		return nil
 	}
 
-	return checkInitialized(m.ProtoReflect())
+	// MODEL: the message's generated method (model.go) in place of m.ProtoReflect()'s (the type's
+	// CheckInitialized method, internal/impl/checkinit.go:15-23, checkInitializedPointer): nil, or
+	// the model's error of the class "required field not set" (protobuf-go's names the field).
+	if modelOf(m).PbModelIsInit() {
+		return nil
+	}
+	return errRequiredNotSet
 }
 
 // CheckInitialized returns an error if any required fields in m are not set.

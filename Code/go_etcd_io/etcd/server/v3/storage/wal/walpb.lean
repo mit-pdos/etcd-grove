@@ -71,7 +71,7 @@ noncomputable def file_record_proto_init [GooseExts] [GoGlobalContext] : GoStrin
     by its own PbModelSize, with the same cached) and the unknown fields', stored into the
     size cache, atomically, plus one (0 past math.MaxInt32-1: encode.go:118-130).
 
-    go: pbmodel_gen.go:29:18 -/
+    go: pbmodel_gen.go:30:18 -/
 noncomputable def Record.PbModelSize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "cached"
@@ -169,7 +169,7 @@ noncomputable def Record.PbModelSize.impl [GooseExts] [GoGlobalContext] : val :=
     PbModelSize(cached); its bytes must have that length (else nil and a size mismatch). A
     UTF-8-checked string that is not UTF-8: what was appended, with it, and an error.
 
-    go: pbmodel_gen.go:64:18 -/
+    go: pbmodel_gen.go:65:18 -/
 noncomputable def Record.PbModelAppend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "b"
@@ -265,7 +265,7 @@ noncomputable def Record.PbModelAppend.impl [GooseExts] [GoGlobalContext] : val 
     allowed (this message included: decode.go:105); false where it errs (required fields
     aside: PbModelIsInit checks them).
 
-    go: pbmodel_gen.go:88:18 -/
+    go: pbmodel_gen.go:89:18 -/
 noncomputable def Record.PbModelDecode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "b"
@@ -392,7 +392,7 @@ noncomputable def Record.PbModelDecode.impl [GooseExts] [GoGlobalContext] : val 
     protowire.ConsumeFieldValue skips it and kept, its tag re-encoded, in *m's unknown fields
     (decode.go:218-231).
 
-    go: pbmodel_gen.go:116:18 -/
+    go: pbmodel_gen.go:117:18 -/
 noncomputable def Record.PbModelDecodeField.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "b"
@@ -639,7 +639,7 @@ noncomputable def Record.PbModelDecodeField.impl [GooseExts] [GoGlobalContext] :
     checkInitializedPointer (internal/impl/checkinit.go:26-95) checks them; a nil m: the type
     has no required field of its own (checkinit.go:30-37).
 
-    go: pbmodel_gen.go:160:18 -/
+    go: pbmodel_gen.go:161:18 -/
 noncomputable def Record.PbModelIsInit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -662,7 +662,7 @@ noncomputable def Record.PbModelIsInit.impl [GooseExts] [GoGlobalContext] : val 
     (allocated if nil), a oneof's set member copied into a new wrapper (unless m's oneof holds
     one of its type: then into that), src's unknown fields appended to m's.
 
-    go: pbmodel_gen.go:171:18 -/
+    go: pbmodel_gen.go:172:18 -/
 noncomputable def Record.PbModelMergeFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "src"
@@ -731,7 +731,7 @@ noncomputable def Record.PbModelMergeFrom.impl [GooseExts] [GoGlobalContext] : v
     recursion limit 10000 (proto/decode.go:62), then its required fields checked
     (proto/decode.go:132-135).
 
-    go: pbmodel_gen.go:198:18 -/
+    go: pbmodel_gen.go:199:18 -/
 noncomputable def Record.PbModelUnmarshal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "b"
@@ -767,7 +767,7 @@ noncomputable def Record.PbModelUnmarshal.impl [GooseExts] [GoGlobalContext] : v
 /-- PbModelClone is proto.Clone(m) (proto/merge.go:41-60): m itself if nil (a typed nil),
     else a new message with *m merged into it (the size cache not copied).
 
-    go: pbmodel_gen.go:208:18 -/
+    go: pbmodel_gen.go:209:18 -/
 noncomputable def Record.PbModelClone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -804,7 +804,7 @@ noncomputable def Record.PbModelClone.impl [GooseExts] [GoGlobalContext] : val :
 /-- PbModelIsNil: m is nil (proto.Marshal's emptyBytesForMessage, proto/encode.go:141-146:
     a nil *T is not a valid message).
 
-    go: pbmodel_gen.go:219:18 -/
+    go: pbmodel_gen.go:220:18 -/
 noncomputable def Record.PbModelIsNil.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
@@ -817,6 +817,89 @@ noncomputable def Record.PbModelIsNil.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- PbModelReset is proto.Reset(m) (proto/reset.go:16-22): protoc-gen-go's generated Reset,
+    `*m = Record{}` (a nil m panicking, a nil dereference), the size cache and unknown fields
+    included; what it stores besides (the message state's MessageInfo, internal/impl) is not
+    a field of the model.
+
+    go: pbmodel_gen.go:228:18 -/
+noncomputable def Record.PbModelReset.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Record.ty)))) (Var "m"))
+  (Let "$r0" (App (Val (GoInstruction (CompositeLiteral Record.ty))) (LiteralValue []))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Record.ty))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Record.ty)))) (Var "m")) (Var "$r0")))))))
+  (Val #()))))
+
+/-- PbModelSelf: m, as proto.Merge's source (a type embedding this one promotes it, as it
+    promotes ProtoReflect: the model then merges from the embedded message, as protobuf-go).
+
+    go: pbmodel_gen.go:234:18 -/
+noncomputable def Record.PbModelSelf.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [])))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Record.ty)))) (Var "m"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Record.ty) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Record.ty)))) (Var "m")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [])))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "$res0"))))))
+
+/-- PbModelMerge is proto.Merge(m, src) (proto/merge.go:25-37, then mergeMessage's
+    internal/impl merge, merge.go:23-34) for src another message's PbModelSelf: false, and
+    nothing changed, if src is not a *Record (protobuf-go panics there, a descriptor mismatch;
+    the model does not model it), else m.PbModelMergeFrom(src) (a nil m panics, a nil src
+    changes nothing).
+
+    go: pbmodel_gen.go:243:18 -/
+noncomputable def Record.PbModelMerge.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "src"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Record.ty)))) (Var "m"))
+  (Let "src" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "src"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Record.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "src")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "o" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Record.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Record.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Record.ty)))) (Var "o"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Record.ty) go!"PbModelMergeFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Record.ty)))) (Var "m"))) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Record.ty)))) (Pair (Var "o") (Var "$r0")))))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- go: record.go:26:20 -/
@@ -1209,7 +1292,7 @@ class Record.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   get_sizeCache : ∀ (x : Record), go.IsGoStepPureDetTagged under (StructFieldGet Record.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : Record) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Record.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : Record)))
   method_set : go.MethodSetIs Record.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Record.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCrc", (some (go.signature.Signature [] false [go.uint32]))), (go!"GetData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetType", (some (go.signature.Signature [] false [go.int64]))), (go!"PbModelAppend", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [(go.GoType.SliceType go.byte), go.error]))), (go!"PbModelClone", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"PbModelDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.uint64] false [go.bool]))), (go!"PbModelDecodeField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.uint64, go.uint64, go.uint64] false [go.uint64, go.bool]))), (go!"PbModelIsInit", (some (go.signature.Signature [] false [go.bool]))), (go!"PbModelIsNil", (some (go.signature.Signature [] false [go.bool]))), (go!"PbModelMergeFrom", (some (go.signature.Signature [(go.GoType.PointerType Record.ty)] false []))), (go!"PbModelSize", (some (go.signature.Signature [go.bool] false [go.int]))), (go!"PbModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Validate", (some (go.signature.Signature [go.uint32] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Record.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCrc", (some (go.signature.Signature [] false [go.uint32]))), (go!"GetData", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetType", (some (go.signature.Signature [] false [go.int64]))), (go!"PbModelAppend", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.bool] false [(go.GoType.SliceType go.byte), go.error]))), (go!"PbModelClone", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"PbModelDecode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.uint64] false [go.bool]))), (go!"PbModelDecodeField", (some (go.signature.Signature [(go.GoType.SliceType go.byte), go.uint64, go.uint64, go.uint64] false [go.uint64, go.bool]))), (go!"PbModelIsInit", (some (go.signature.Signature [] false [go.bool]))), (go!"PbModelIsNil", (some (go.signature.Signature [] false [go.bool]))), (go!"PbModelMerge", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.bool]))), (go!"PbModelMergeFrom", (some (go.signature.Signature [(go.GoType.PointerType Record.ty)] false []))), (go!"PbModelReset", (some (go.signature.Signature [] false []))), (go!"PbModelSelf", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"PbModelSize", (some (go.signature.Signature [go.bool] false [go.int]))), (go!"PbModelUnmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Validate", (some (go.signature.Signature [go.uint32] false [go.error])))]
   ptr_GetCrc_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetCrc" Record.GetCrc.impl
   ptr_GetData_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetData" Record.GetData.impl
   ptr_GetType_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"GetType" Record.GetType.impl
@@ -1219,7 +1302,10 @@ class Record.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_PbModelDecodeField_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelDecodeField" Record.PbModelDecodeField.impl
   ptr_PbModelIsInit_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelIsInit" Record.PbModelIsInit.impl
   ptr_PbModelIsNil_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelIsNil" Record.PbModelIsNil.impl
+  ptr_PbModelMerge_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelMerge" Record.PbModelMerge.impl
   ptr_PbModelMergeFrom_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelMergeFrom" Record.PbModelMergeFrom.impl
+  ptr_PbModelReset_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelReset" Record.PbModelReset.impl
+  ptr_PbModelSelf_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelSelf" Record.PbModelSelf.impl
   ptr_PbModelSize_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelSize" Record.PbModelSize.impl
   ptr_PbModelUnmarshal_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"PbModelUnmarshal" Record.PbModelUnmarshal.impl
   ptr_ProtoMessage_unfold : MethodUnfold (go.GoType.PointerType Record.ty) go!"ProtoMessage" Record.ProtoMessage.impl
@@ -1251,7 +1337,10 @@ attribute [instance] Record.TypeAssumptions.type_repr
   Record.TypeAssumptions.ptr_PbModelDecodeField_unfold
   Record.TypeAssumptions.ptr_PbModelIsInit_unfold
   Record.TypeAssumptions.ptr_PbModelIsNil_unfold
+  Record.TypeAssumptions.ptr_PbModelMerge_unfold
   Record.TypeAssumptions.ptr_PbModelMergeFrom_unfold
+  Record.TypeAssumptions.ptr_PbModelReset_unfold
+  Record.TypeAssumptions.ptr_PbModelSelf_unfold
   Record.TypeAssumptions.ptr_PbModelSize_unfold
   Record.TypeAssumptions.ptr_PbModelUnmarshal_unfold
   Record.TypeAssumptions.ptr_ProtoMessage_unfold

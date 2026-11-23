@@ -243,3 +243,68 @@ mutated decodes, 6000 Size/Clone comparisons, 39,000 interleaved operations with
 etcd's and raft's packages (`pbmodel_forks.py`: authpb, etcdserverpb, membershippb, mvccpb, leasepb,
 walpb, raftpb, 16,329 generated lines): all their generated tests pass, and their `-race` run.
 `cache_test.go`'s named cases and `pbmodeltest` (9748 transcript lines equal across the builds).
+
+## Merge, Reset and CheckInitialized; not modelled is stuck (2026-11-23, branch `proto-models-stuck`, #37, the S3 review's items 1-3)
+
+Not a review: the author's account of the trusted-core change that implements the decisions on #37
+after the S3 Go side's review (proving session 2, items 1-3), for the review and sign-off the change
+needs.
+
+**What changed in the trusted core** (`pbgen_core.py`; the doc's "THE SAME-PACKAGE METHODS" lists
+each method with its protobuf-go citations).
+
+- Three methods more per message type, all named `PbModel*`, methods only as before:
+  - `PbModelReset()` is `proto.Reset` (`proto/reset.go:16-22`): a message of protoc-gen-go has a
+    `Reset` method and the fast path holds (`hasProtoMethods`), so protobuf-go calls the generated
+    `Reset`, `*x = T{}` (e.g. `types/known/emptypb/empty.pb.go:57-62`). That method also stores the
+    message state's `MessageInfo` (internal/impl); that store is not a field of the model.
+  - `PbModelSelf()` returns the receiver. It is `Merge`'s source: through an embedding it is
+    promoted as `ProtoReflect` is, so the model merges from the embedded message, as protobuf-go.
+  - `PbModelMerge(src)` is `proto.Merge(m, src)` (`proto/merge.go:25-37`) for `src` the source's
+    `PbModelSelf`. A source of another type gives false and changes nothing: protobuf-go panics there
+    (a descriptor mismatch, `merge.go:28-33`), and the model blocks. Otherwise it calls
+    `PbModelMergeFrom`, which is `mergePointer`, the type's `Merge` method that `mergeMessage`
+    calls (`internal/impl/merge.go:23-34`). That method was already trusted, through `Clone`.
+- `proto.CheckInitialized` needs no new method: the model composes it from `PbModelIsInit`
+  (`checkinit.go:14-33`, the type's `CheckInitialized` method, `internal/impl/checkinit.go:15-23`).
+- **The codec mode's not-modelled points are stuck.**
+  - A value of a type the codec was not generated for blocks forever (`select {}`); it used to
+    panic.
+  - The explicit nil check before `Unmarshal`'s reset is gone. Unmarshal into a nil `*T` now panics
+    at `*p = T{}`, a nil dereference, as protobuf-go's generated `Reset` does. It used to panic with
+    a string of its own.
+  - The codec mode's emitted code changes in these two places only. Its tests: `TestProtoPanics`
+    checks the blocking (`pbStuck`, a goroutine-state detector emitted into the generated test).
+
+**The proto model** (`models/protobuf-go`, trusted with the core).
+
+- `Merge`, `Reset` and `CheckInitialized` dispatch to the methods.
+- **Every not-modelled point is stuck**, never a value panic. This is zeldovich's item 1: Perennial's
+  panics can be recovered, so a recovered `NotModelled` would have been a behavior protobuf-go does
+  not have. The points:
+  - a type without the methods;
+  - a nil interface where protobuf-go dereferences it (`Unmarshal`, `Merge`, `Reset`);
+  - a `Merge` across types;
+  - `UnmarshalOptions` other than the defaults;
+  - `MarshalState`, `UnmarshalState`;
+  - `Equal`, `MessageName` and the five extension functions, past their nil guards;
+  - `protoadapt`'s conversions of a message that is not already of the other API.
+- `protoadapt.MessageV1Of` is modelled as the identity on a v1 message.
+- `model.go`'s doc lists every exported function of the package with its status (item 2).
+
+**Gates** (item 3).
+
+- **`embedcheck`.** `examples/models/pbetcd/embedcheck` is run by `pbmodel_forks.py`. It
+  type-checks, against `go list -export`'s export data:
+  - every package of etcd's api/v3, server/v3, client/v3, pkg/v3 and raft at the pins;
+  - the examples' own module;
+  - the grpc model.
+
+  It reports a type that embeds a message and declares its own `ProtoReflect` or `Reset`. For such
+  a type, protobuf-go would dispatch to the type's own method and the model to the embedded
+  message's. None exists. Packages that do not build in the examples' module are listed and
+  skipped (`client/v3/yaml`, `server/v3/embed`, ...), since nothing built there uses them.
+- **The name check.** `pbmodel_forks.py` now also covers client/v3, pkg/v3 and the grpc model,
+  with the regular expression widened to any `PbModel` identifier (as in `etc/gates.sh`).
+- **No `NotModelled` panic.** A gate in `etc/gates.sh`: no Go or Python file under `models/` or
+  `examples/` (tests aside) names a `NotModelled` value.

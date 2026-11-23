@@ -26,14 +26,17 @@ func Merge(dst, src Message) {
 	// TODO: Should nil src be treated as semantically equivalent to a
 	// untyped, read-only, empty message? What about a nil dst?
 
-	dstMsg, srcMsg := dst.ProtoReflect(), src.ProtoReflect()
-	if dstMsg.Descriptor() != srcMsg.Descriptor() {
-		if got, want := dstMsg.Descriptor().FullName(), srcMsg.Descriptor().FullName(); got != want {
-			panic(fmt.Sprintf("descriptor mismatch: %v != %v", got, want))
-		}
-		panic("descriptor mismatch")
+	// MODEL: the messages' generated methods (model.go) in place of their ProtoReflect()'s: the
+	// source's own message (PbModelSelf: through an embedding, the embedded one, as ProtoReflect),
+	// merged into the destination by the type's PbModelMerge (mergeMessage's fast path,
+	// internal/impl/merge.go:23-34, mergePointer: a nil destination panics, a nil source merges
+	// nothing). A nil interface (protobuf-go: a nil dereference), a type without the methods and a
+	// source of another type (protobuf-go: a descriptor-mismatch panic, lines 28-33 upstream) are
+	// not modelled.
+	if !modelOf(dst).PbModelMerge(modelOf(src).PbModelSelf()) {
+		// MODEL: not modelled (stuck): Merge of a message of another type
+		select {}
 	}
-	mergeOptions{}.mergeMessage(dstMsg, srcMsg)
 }
 
 // Clone returns a deep copy of m.
