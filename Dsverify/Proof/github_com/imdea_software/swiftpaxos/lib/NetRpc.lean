@@ -50,6 +50,11 @@ abbrev errAny [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF :
 class RpcKit where
   pkg : GoString
 
+/-- The lab's kit package (the lab's `SwiftNetSpec.rpcKit`). PORT: kitgen's functions
+(`rpcCall`, ...) are not in this kit, whose codec is rpcgen's; `kitFn` names them only in the
+lab's `RpcCodec.call`, to be replaced by rpcgen's dispatch (notes/dsv-swiftpaxos.md, step 5). -/
+instance swiftRpcKit : RpcKit := ⟨go!"github.com/imdea-software/swiftpaxos/examples/swiftnet"⟩
+
 /-- The kit's generated function `name` (in `RpcKit.pkg`). -/
 def kitFn [GooseExts] [GoSemanticsFunctions] [RpcKit] (name : GoString) : GoFunc :=
   functions (RpcKit.pkg ++ go!"." ++ name) []

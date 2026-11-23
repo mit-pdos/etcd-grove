@@ -15,8 +15,8 @@ net/rpc model's `Codec` and the encoding/gob model's both hold its `rpcEncode` a
   `y` of the target's type is merged into it as gob does, `KitVal.merge`; other bytes leave the
   target of some value of its type, or fail), `call` (the dispatch `rpcCall` itself: a receiver's
   `rcvrOk` is proved through the generated dispatch function), `methods`;
-* `kitCodecOk_holds`, `kitNameOk_holds`: the harness's obligations on the kit's codec functions
-  (Prove phase).
+* (the lab's `kitCodecOk_holds`, `kitNameOk_holds`, about kitgen's codec functions, are not
+  ported: this kit's codec is rpcgen's, whose `CodecSpec` is to be related to `kitCodec` in step 5.)
 
 Only pointers are covered by `kitValOwn` (every encode and decode of the deployment passes a
 pointer: the `Call`s' arguments and replies, `MSync.Marshal`'s and `Unmarshal`'s receiver); the
@@ -26,7 +26,9 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Wire
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.codec.Ok
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetRpc
+-- PORT: the lab kit's codec proofs (`examples/swiftnet/codec/Ok`, kitgen's `rpc_gen.go`) are not
+-- imported: the kit's codec here is rpcgen's (notes/dsv-swiftpaxos.md, step 5).
 
 @[expose] public section
 
@@ -190,65 +192,9 @@ instance kitCodec : net.rpc.RpcCodec GF where
   methods rcvr := iprop(⌜∃ p : Loc,
     rcvr = interface.mkOk (go.GoType.PointerType master.Master.ty) #p ∨
     rcvr = interface.mkOk (go.GoType.PointerType swift.Replica.ty) #p⌝)
-
-variable [HasExt netExt] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
-
-/-! The proofs (`Proof/swiftnet/codec/`) are about copies of this file's definitions
-(`Proof/swiftnet/codec/Own.lean`, `Ok.lean`: this module imports them, so they cannot import
-it); each copy is its original (`rfl`). -/
-
-theorem kitValOwn_eq_C : @kitValOwn = @kitValOwnC := rfl
-theorem merge_eq_C : @sp.KitVal.merge = @sp.KitVal.mergeC := rfl
-theorem wf_eq_C : @sp.KitVal.wf = @sp.KitVal.wfC := rfl
-theorem equiv_eq_C : @sp.KitVal.equiv = @sp.KitVal.equivC := rfl
-
-/-- The kit's codec functions meet `kitCodec` (Prove phase: from `rpc_gen.go`'s code). Proved
-but for decoding into a non-zero `MSync` (which `rpcDecode` refuses with a panic):
-`sorry -- HUB-REQUEST 2`. -/
-theorem kitCodecOk_holds : ⊢ net.rpc.kitCodecOk (GF := GF) := by
-  have hEnc : ⊢ net.rpc.encOk (GF := GF) (net.rpc.kitFn go!"rpcEncode") := by
-    exact examples.swiftnet.encOkC (GF := GF)
-  have hMeth : ⊢ net.rpc.methodsOk (GF := GF) (net.rpc.kitFn go!"rpcMethods") := by
-    exact examples.swiftnet.methodsOkC (GF := GF)
-  have hCall : ⊢ net.rpc.callOk (GF := GF) (net.rpc.kitFn go!"rpcCall") := by
-    exact examples.swiftnet.callOkC (GF := GF)
-  have hDec : ⊢ net.rpc.decOk (GF := GF) (net.rpc.kitFn go!"rpcDecode") := by
-    have h := examples.swiftnet.decOkC (GF := GF)
-    unfold net.rpc.decOk at h ⊢
-    unfold examples.swiftnet.kitCodecC at h
-    unfold kitCodec
-    dsimp only at h ⊢
-    rw [kitValOwn_eq_C, merge_eq_C, wf_eq_C]
-    iintro !> %data %dq %bs %ptr %Ψ %Φ Hd ⟨%x0, Hown, Hk⟩ HΦ
-    by_cases ht : examples.swiftnet.decTarget x0
-    · iapply h $$ %data %dq %bs %ptr %Ψ %Φ Hd [Hown Hk] HΦ
-      iexists x0; iframe; ipureintro; exact ht
-    · -- `rpcDecode` panics on a non-zero `MSync` target
-      sorry -- HUB-REQUEST 2
-  unfold net.rpc.kitCodecOk
-  isplitr
-  · iapply hEnc
-  isplitr
-  · iapply hDec
-  isplitr
-  · iapply hMeth
-  · iapply hCall
-
-/-- The kit's `rpcName` meets `kitNames` (Prove phase). Proved on the receivers `rpcName`
-accepts (`methods`); on any other value it panics: `sorry -- HUB-REQUEST 1`. -/
-theorem kitNameOk_holds : ⊢ net.rpc.kitNameOk (GF := GF) := by
-  have h := examples.swiftnet.nameOkC (GF := GF)
-  unfold net.rpc.kitNameOk net.rpc.nameOk
-  iintro !> %rcvr %Φ HΦ
-  by_cases hm : ∃ p : Loc,
-      rcvr = interface.mkOk (go.GoType.PointerType master.Master.ty) #p ∨
-      rcvr = interface.mkOk (go.GoType.PointerType swift.Replica.ty) #p
-  · rw [show net.rpc.RpcNames.name rcvr = examples.swiftnet.kitNameC rcvr from rfl]
-    iapply h $$ %rcvr %Φ [] HΦ
-    unfold examples.swiftnet.kitCodecC; dsimp only
-    ipureintro; exact hm
-  · -- `rpcName` panics on a receiver of an unlisted type
-    sorry -- HUB-REQUEST 1
+  -- PORT (step 5): `Net/`'s `CodecSpec.rcv` (the server's receiver wrapper), rpcgen's `Receiver`;
+  -- `False` until the kit's codec is related to rpcgen's.
+  rcv _ _ := iprop(False)
 
 end codec
 
