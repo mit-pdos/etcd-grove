@@ -9,7 +9,7 @@ name a directory, of its `seg`); the program holds the other half (`dsHalf`), th
 trivial update), writes and syncs the data, deposits the file under the key (`ds_deposit`), merges
 the claims on `wal` and `wal.tmp` (`ds_merge`) and renames `wal.tmp` onto `wal` (`wp_osRenameWal`).
 The spine to `wal.tmp`'s directory is built from half the claim on `wal.tmp` (`osPathS_child`), and
-`os.osPathS_unchild` with `osNames_agree` gives that half back.
+`pathS_unchild` with `osNames_agree` gives that half back.
 -/
 module
 
@@ -40,8 +40,7 @@ theorem except_inter_seg : (NameSet.except []).inter [segB] = sN := by
 
 theorem except_seg_mem (b : GoString) :
     (NameSet.except []).Mem b ↔ sN.Mem b ∨ ((NameSet.except []).diff [segB]).Mem b := by
-  simp only [NameSet.diff, NameSet.Mem, sN, List.nil_append, List.mem_singleton, List.not_mem_nil, not_false_eq_true,
-    iff_true]
+  simp only [NameSet.diff, NameSet.Mem, List.nil_append, List.mem_singleton, List.not_mem_nil, not_false_eq_true]
   exact iff_of_true trivial (Classical.em _)
 
 theorem create_flag :
@@ -84,6 +83,67 @@ theorem subRes_restrict (b : GoString) (h : NamesH) (j : Ino) (M : NameSet) (hb 
     subRes (L := L) b (h.restrict j M) ⊣⊢ subRes (L := L) b h := by
   unfold subRes; rw [restrict_cur _ _ _ _ hb]; exact .rfl
 
+/-- `os.osSpine_unsnoc` (`Proof/os/MkdirAllParts.lean`), restated here without that section's
+unused `os.fileStat.FieldAssumptions`. -/
+theorem spine_unsnoc (cs : List GoString) (c : GoString) (j0 : Ino) (dq : DFrac) (J : Ino) :
+    osSpine (L := L) j0 (cs ++ [c]) dq J ⊢ ∃ (j : Ino) (h : NamesH), osSpine (L := L) j0 cs dq j ∗
+      osNames (L := L) j (.only [c]) dq h ∗ ⌜h.cur !! c = some (.dir J)⌝ := by
+  induction cs generalizing j0 with
+  | nil =>
+    rw [List.nil_append, osSpine_cons]
+    iintro ⟨%h, %J', Hn, %hJ, Hs⟩
+    isimp only [osSpine_nil] at Hs
+    icases Hs with %he
+    subst he
+    iexists j0, h
+    rw [osSpine_nil]
+    iframe
+    isplitl [] <;> ipureintro
+    · rfl
+    · exact hJ
+  | cons x cs ih =>
+    rw [List.cons_append, osSpine_cons]
+    iintro ⟨%h, %J', Hn, %hJ, Hs⟩
+    icases ih J' $$ Hs with ⟨%j, %h', Hs, Hn', %hc⟩
+    iexists j, h'
+    rw [osSpine_cons]
+    iframe
+    isplitl [] <;> ipureintro
+    · exact hJ
+    · exact hc
+
+/-- `pathS_unchild` (`Proof/os/MkdirAllParts.lean`), restated here without that section's
+unused `os.fileStat.FieldAssumptions`: a spine to `d/b` and a spine to `d` give back a whole spine
+to `d` and the claim on `b`. -/
+theorem pathS_unchild (R : Roots) (d b : GoString) (j J : Ino) (e a : Qp) (hb : NameOk b) :
+    osPathS (L := L) R (child d b) (DFrac.own e) J ∗ osPathS (L := L) R d (DFrac.own a) j ⊢
+      ∃ h, osPathS (L := L) R d (DFrac.own (e + a)) j ∗ osNames (L := L) j (.only [b]) (DFrac.own e) h ∗
+        ⌜h.cur !! b = some (.dir J)⌝ := by
+  unfold osPathS
+  iintro ⟨⟨%r, %j0, %cs, %hp, Hs⟩, ⟨%r', %j0', %cs', %hp', Hs'⟩⟩
+  obtain ⟨hR, hm, hcs, he⟩ := hp
+  obtain ⟨-, hm', hcs', rfl⟩ := hp'
+  rw [← joinPath_snoc] at he
+  have hcsb : ∀ x ∈ cs' ++ [b], NameOk x := by
+    intro x hx; simp only [List.mem_append, List.mem_singleton] at hx
+    rcases hx with hx | rfl
+    · exact hcs' x hx
+    · exact hb
+  obtain ⟨hrj, rfl⟩ := root_split_unique hR hm' hm hcsb hcs he
+  simp only [Prod.mk.injEq] at hrj
+  obtain ⟨rfl, rfl⟩ := hrj
+  icases spine_unsnoc cs' b j0' (DFrac.own e) J $$ Hs with ⟨%j'', %h, Hs, Hn, %hJ⟩
+  icases osSpine_join cs' j0' e a j'' j $$ [Hs Hs'] with ⟨%hj, Hs⟩
+  · isplitl [Hs]; iexact Hs; iexact Hs'
+  subst hj
+  iexists h
+  isplitl [Hs]
+  · iexists _, _, cs'
+    iframe
+    ipureintro; exact ⟨hR, hm', hcs', rfl⟩
+  iframe
+  ipureintro; exact hJ
+
 end res
 
 /-! ## `Create` -/
@@ -118,23 +178,25 @@ theorem wp_rmTmpSeg (R : Roots) (d : GoString) (j : Ino) (ht : NamesH) :
     ihave Hpc := osPathS_child R d wtB _ j T ht wtB_ok hT $$ Hp1 Ht1
     icases osCallPerm_child R d wtB _ _ _ $$ Hp2 Hperm with ⟨Hp2, Hperm⟩
     rw [Qp.half_add_half]
+    iapply wp_fupd
     wp_apply wp_rmAny R (child d wtB) segB T _ (hT0.restrict T sN) segB_ok
       $$ [Hpc Hperm Hs Hsub] as %err Hr'
     · iframe; iframe #
     icases Hr' with ⟨Hpc, Hperm, %hs', Hs, -, -⟩
     imod osNames_merge R T sN ((NameSet.except []).diff [segB]) (.except []) hs' _ except_seg_mem
       CoPset.subseteq_top $$ Hsi Hs Hr with ⟨%hT1, HT, -⟩
-    icases os.osPathS_unchild R d wtB j T (1 : Qp).half (1 : Qp).half wtB_ok $$ [Hpc Hp2]
+    icases pathS_unchild R d wtB j T (1 : Qp).half (1 : Qp).half wtB_ok $$ [Hpc Hp2]
       with ⟨%h1, Hp, Ht1, %-⟩
     · iframe
     icases osNames_agree j (.only [wtB]) _ _ h1 ht $$ Ht1 Ht2 with %he
     subst he
     icases osCallPerm_unchild R d wtB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+    imodintro
     iapply HΦ
     rw [Qp.half_add_half]
     iframe Hp Hperm
     isplitl [Ht1 Ht2]
-    · iapply (osNames_frac j (.only [wtB]) (1 : Qp).half (1 : Qp).half h1).2; iframe
+    · iapply (osNames_join j _ _ _ h1 (Qp.half_add_half 1)).1; iframe
     iapply (subRes_dir hT).2
     iexists hT1; iexact HT
   · have hnd : ∀ T, ht.cur !! wtB ≠ some (.dir T) := fun T h => hd ⟨T, h⟩
@@ -254,7 +316,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne, -⟩⟩ := Hres
   rotate_left
   · cases err with
-    | nil => exact absurd rfl (by first | exact hne | exact hne.1)
+    | nil => exact absurd rfl hne
     | ok ie =>
     (try wp_auto)
     wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i', true, true, none, none⟩ $$ [Hos Hf Hfd] as %e -
@@ -296,7 +358,7 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     ipureintro; exact synced_good _ rfl ys hys'
   imod ds_deposit j γ ko false hw i' hA $$ Hinv Hh Hk with Hh
   -- the claim on `wal.tmp` back, merged with `wal`'s
-  icases os.osPathS_unchild R dir wtB j T (1 : Qp).half (1 : Qp).half wtB_ok $$ [Hpc Hp2]
+  icases pathS_unchild R dir wtB j T (1 : Qp).half (1 : Qp).half wtB_ok $$ [Hpc Hp2]
     with ⟨%h1, Hp, Ht1, %-⟩
   · iframe
   icases osNames_agree j (.only [wtB]) _ _ h1 ht3 $$ Ht1 Ht2 with %he
@@ -309,13 +371,11 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
   obtain ⟨hmw, hmt, -⟩ := hm
   have hT' : hw'.cur !! wtB = some (.dir T) := by
     have := congrArg (fun h : NamesH => h.cur !! wtB) hmt
-    simp only at this
     rw [restrict_cur _ _ _ _ (by simp [NameSet.Mem]), restrict_cur _ _ _ _ (by simp [NameSet.Mem])]
       at this
     rw [this]; exact hT3
   have hA' : hw'.cur !! walB = none := by
     have := congrArg (fun h : NamesH => h.cur !! walB) hmw
-    simp only at this
     rw [restrict_cur _ _ _ _ wO_wal, restrict_cur _ _ _ _ wO_wal] at this
     rw [this]; exact hA
   have hseg : (hs0.log x (crEnt T segB i' s0) (<[segB := .file i']> hs0.cur)).cur !! segB =
