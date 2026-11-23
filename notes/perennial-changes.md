@@ -4039,3 +4039,48 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   every spec built on it (bufio's constructors' `size` premise-free statements among them) inherits the
   gap: a Perennial-wide question about `make`'s model, not one for the bufio specs.
 - **Status.** Unchecked; recorded for Perennial's `make` model.
+
+## 2026-11-23: `sync.Map`'s typed points-to is `sorry` (dsv-quepaxa, #24, branch `dsv-quepaxa`)
+
+- **Limitation.** `Perennial/GeneratedProof/internal/sync.lean` (pin `7b2259a12`):
+  `HashTrieMap_typed_pointsto` and `HashTrieMap_into_val_typed` are `sorry -- axiomatized type`.
+  `sync.Map` has a `HashTrieMap` field, so its generated `Map_typed_pointsto`/`Map_into_val_typed`,
+  and those of any struct with a `sync.Map` field (QuePaxa's `ClientBatchStore`), depend on
+  `sorryAx`. A proof that merely steps through such a struct's methods with `wp_auto` picks these
+  instances up (opportunistically: with them erased, the same proofs go through) and its `#print
+  axioms` shows `sorryAx`.
+- **Work-around here.** `Dsverify/Proof/raxos/StoreInst.lean`: high-priority instances of
+  `sync.Map` from the deployment's hypothesis vocabulary (`QpVocab.map.tp`, the points-to, and
+  `MapHyp.ivt`, its `IntoValTypedUnderlying`; `Hyp.lean`) and `ClientBatchStore`'s restated over
+  them; `Proxy/Store.lean` erases the generated (`sorry`) instances of `sync.Map`,
+  `HashTrieMap` and `ClientBatchStore` (`attribute [-instance]`). `store_add_proof`,
+  `esp_handlerOk`, `fetch_handlerOk`: Lean's three axioms. (The lab's `StoreInst.lean` did the
+  same over its own `sync.Map` model.) So `MapHyp.ivt` is a hypothesis about Perennial's model
+  (it stands in for the `sorry` instances), not about Go's `sync.Map`; it is a premise of the
+  results until Perennial gives the instances (audit, 2026-11-23; `Hyp.lean`'s `MapHyp` says so).
+- **Proposed (general).** Perennial gives `internal/sync.HashTrieMap` (or `sync.Map` directly) a
+  model: a translated or hand-written `HashTrieMap`, or `sync.Map` as an opaque handle with a
+  heap-cell points-to and specs of `Load`/`Store`/`Delete`/`Range` (the shapes of `MapHyp`).
+  **Status.** Not proposed yet.
+## 2026-11-23: `strings.LastIndex` and `log.Print` have no model (net/rpc server, branch `models-rpc-server`)
+
+- **Limitation.** Perennial's `strings.toml` translates or trusts neither `LastIndex` (names only: its Go body
+  is Rabin-Karp over `internal/bytealg`), and `log.toml` trusts `Printf` and `Println` but not `Print`. A call
+  of either is stuck. The net/rpc model's server calls both: `readRequestHeader` splits every request's
+  `"Service.Method"` with `strings.LastIndex(sm, ".")`, and `register` and `Accept` log with `log.Print` before
+  returning an error (`register`: no name, not exported, no methods; `Accept`: the listener's error).
+- **Workaround here.** `register`'s logging paths are excluded by its premises (`regNameOk`, `rcvrIs`'s
+  methods; ledger 2026-11-23); `Register`, `RegisterName` are proved and linked. The request loop
+  (`readRequestHeader`, hence `ServeCodec`, `ServeConn`) and `Accept` are not proved: no axiom is stated for the
+  two functions (the branch adds none).
+- **Proposed.** In Perennial: `LastIndex` trusted with a GooseLang model (a loop from the end comparing the
+  substring, `Index`-style; or `LastIndexByte` translated and `LastIndex` of a one-byte `substr` modelled on it)
+  and a spec (`strings.LastIndex.spec`: the largest `i` with `substr` at `i`, or `-1`); `Print` trusted as
+  `Println` is (`λ: "vs", #()`), with a spec like `log.Printf.spec`'s (`fmt.ArgsWf` arguments).
+- **Status.** Not needed by this repository any more (2026-11-23): the net/rpc model replaced both by code
+  Perennial models (commit `e84c1d63c9`: `strings.LastIndex(sm, ".")` as a backwards byte loop, the same
+  index; `log.Print` of one string as `log.Println`, the same output), and the request loop and `Accept` are
+  proved over them. The general change (models of `LastIndex` and `Print`) stays proposed for other users.
+  Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
+  (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
+  beside `Printf`'s. Not filed yet.
