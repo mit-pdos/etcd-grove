@@ -164,6 +164,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   fakeLocker_instance : fakeLocker.TypeAssumptions
   connLRU_instance : connLRU.TypeAssumptions
   hasToken_unfold : FuncUnfold hasToken [] hasToken.impl
+  isToken_unfold : FuncUnfold isToken [] isToken.impl
   badStringError_unfold : FuncUnfold badStringError [] badStringError.impl
   ParseHTTPVersion_unfold : FuncUnfold ParseHTTPVersion [] ParseHTTPVersion.impl
   validMethod_unfold : FuncUnfold validMethod [] validMethod.impl
@@ -361,6 +362,7 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.fakeLocker_instance
   Assumptions.connLRU_instance
   Assumptions.hasToken_unfold
+  Assumptions.isToken_unfold
   Assumptions.badStringError_unfold
   Assumptions.ParseHTTPVersion_unfold
   Assumptions.validMethod_unfold

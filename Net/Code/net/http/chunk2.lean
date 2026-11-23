@@ -871,6 +871,7 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   ptr_initialReadLimitSize_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"initialReadLimitSize" Server.initialReadLimitSize.impl
   ptr_logf_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"logf" Server.logf.impl
   ptr_maxHeaderBytes_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"maxHeaderBytes" Server.maxHeaderBytes.impl
+  ptr_maxHeaderValueCount_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"maxHeaderValueCount" Server.maxHeaderValueCount.impl
   ptr_newConn_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"newConn" Server.newConn.impl
   ptr_onceSetNextProtoDefaults_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"onceSetNextProtoDefaults" Server.onceSetNextProtoDefaults.impl
   ptr_onceSetNextProtoDefaults_Serve_unfold : MethodUnfold (go.GoType.PointerType Server.ty) go!"onceSetNextProtoDefaults_Serve" Server.onceSetNextProtoDefaults_Serve.impl
@@ -953,6 +954,7 @@ attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.ptr_initialReadLimitSize_unfold
   Server.TypeAssumptions.ptr_logf_unfold
   Server.TypeAssumptions.ptr_maxHeaderBytes_unfold
+  Server.TypeAssumptions.ptr_maxHeaderValueCount_unfold
   Server.TypeAssumptions.ptr_newConn_unfold
   Server.TypeAssumptions.ptr_onceSetNextProtoDefaults_unfold
   Server.TypeAssumptions.ptr_onceSetNextProtoDefaults_Serve_unfold
