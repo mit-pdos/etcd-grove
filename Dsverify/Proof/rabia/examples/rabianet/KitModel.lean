@@ -250,7 +250,7 @@ instance entRep_persistent (ev : Entry) (e : EntV) : Persistent (entRep (GF := G
 
 /-- The entries `evs` (read-only) hold `es`. -/
 def entsRep (evs : List Entry) (es : List EntV) : IProp GF :=
-  iprop(⌜evs.length = es.length⌝ ∗ [∗list] j ↦ ev ∈ evs, ∃ e, ⌜es[j]? = some e⌝ ∗ entRep ev e)
+  iprop(⌜evs.length = es.length⌝ ∗ [∗list] p ∈ evs.zip es, entRep p.1 p.2)
 
 instance entsRep_persistent (evs : List Entry) (es : List EntV) :
     Persistent (entsRep (GF := GF) evs es) := by
