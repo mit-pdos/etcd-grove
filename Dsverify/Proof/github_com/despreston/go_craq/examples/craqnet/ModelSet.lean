@@ -52,10 +52,13 @@ abbrev KIn := {i : KvInput // inOk i}
 /-- `KIn`'s `BEq` is its decidable equality's (the instance linkv's pending lists erase with). -/
 @[reducible] instance (priority := high) KIn.beq : BEq KIn := instBEqOfDecidableEq
 
-/-- The store's outputs: a get's value (`none`: not found), a put's success. -/
+/-- The store's outputs: `got v`, a get's value (`none`: not found) or a put's success (`got
+none`: kit.go answers both with `Out{}`, so the store has one output for both, and which one it
+is depends on the input: `Kit.lean`'s `liftOut`); `bad`, an answer no operation gives (what an
+ill-formed `Out` decodes to; the store never outputs it). -/
 inductive KOut where
   | got (v : Option Str8)
-  | done
+  | bad
 deriving DecidableEq
 
 /-- The store's state: a key's bounded value, if any. -/
@@ -64,10 +67,10 @@ abbrev St := GoString → Option Str8
 /-- `a` with `k` mapped to `x`. -/
 def upd (a : St) (k : GoString) (x : Str8) : St := fun k' => if k' = k then some x else a k'
 
-/-- The step: a get answers its key's value; a put sets it. -/
+/-- The step: a get answers its key's value; a put sets it and answers `got none`. -/
 def kvStep : KIn → St → St × KOut
   | ⟨.get k, _⟩, a => (a, .got (a k))
-  | ⟨.put k x, h⟩, a => (upd a k ⟨x, h.2⟩, .done)
+  | ⟨.put k x, h⟩, a => (upd a k ⟨x, h.2⟩, .got none)
 
 /-- Whether an input is a put. -/
 def isPut (i : KIn) : Bool :=
@@ -96,7 +99,7 @@ theorem upd_ne (a : St) (k k' : GoString) (x : Str8) (h : k' ≠ k) : upd a k x 
   simp [upd, h]
 
 theorem step_put (k x : GoString) (h : inOk (.put k x)) (a : St) :
-    kvB.step ⟨.put k x, h⟩ a = (upd a k ⟨x, h.2⟩, .done) := rfl
+    kvB.step ⟨.put k x, h⟩ a = (upd a k ⟨x, h.2⟩, .got none) := rfl
 
 theorem step_get (k : GoString) (h : inOk (.get k)) (a : St) :
     kvB.step ⟨.get k, h⟩ a = (a, .got (a k)) := rfl
@@ -233,9 +236,9 @@ theorem sim_init : Sim kvB.init [] (pInit kvB) := by
 /-- kit.go's `step` on the decoded answer: its verdict and next state. -/
 def goStep (a : St) (P : List KIn) : KIn → Ans KOut → Option (St × List KIn)
   | i, .err => if isPut i then some (a, P ++ [i]) else some (a, P)
-  | ⟨.put k x, h⟩, .ok .done => some (upd a k ⟨x, h.2⟩, P)
-  | ⟨.put _ _, _⟩, .ok (.got _) => none
-  | ⟨.get _, _⟩, .ok .done => none
+  | ⟨.put k x, h⟩, .ok (.got none) => some (upd a k ⟨x, h.2⟩, P)
+  | ⟨.put _ _, _⟩, .ok (.got (some _)) => none
+  | _, .ok .bad => none
   | ⟨.get k, _⟩, .ok (.got none) => if a k = none then some (a, P) else none
   | ⟨.get k, hk⟩, .ok (.got (some x)) =>
     if a k = some x then some (a, P)
@@ -294,7 +297,7 @@ theorem sim_some {a : St} {P : List KIn} {S : PSet St KIn} (hS : Sim a P S) {i :
         · cases he
         · simp [hp'] at hw
         · exact Fall_reach (hF _ _ h0 hr) hr'
-  | .ok .done, ⟨.put k x, h⟩, hg =>
+  | .ok (.got none), ⟨.put k x, h⟩, hg =>
     simp only [goStep, Option.some.injEq, Prod.mk.injEq] at hg
     obtain ⟨rfl, rfl⟩ := hg
     constructor

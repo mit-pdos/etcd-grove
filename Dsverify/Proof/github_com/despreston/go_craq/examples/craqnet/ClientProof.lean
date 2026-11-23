@@ -14,9 +14,9 @@ applied to the net specs).
 * `newSys`: `awaitConf` in a goroutine, `<-ch` (`msgOk`), `Register()` (ServerProof.lean's
   `wp_Register` over the machine's fresh codec registry `codecFresh`, which gives `rpcReady`),
   `go s.remove(rs)`.
-* **Finding**: `Orch.wp_proof` takes `remote.Check.spec`'s premises `PendDec (kvR γ) kvS` and the
-  injectivity of the outputs' bytes as arguments; as `Kit.lean` stands both are false
-  (`kvR_encOut_not_inj`: `ovK (.got none) = ovK .done = Out{}`).
+* `Orch`: remote's `Check`, whose premises on the store (`PendDec (kvR γ) kvS`, the outputs'
+  bytes injective) are `ModelDefs.lean`'s `kvS_pendDec`, `kvR_encOut_inj` (finding F4: a put's
+  success and a get's not found are one output, `got none`).
 -/
 module
 
@@ -70,7 +70,7 @@ instance KIn_countable : Pos.Countable KIn :=
 /-- An output's code. -/
 def koutCode : KOut → Option (Option GoString)
   | .got v => some (v.map Subtype.val)
-  | .done => none
+  | .bad => none
 
 /-- The store's outputs' `Pos.Countable`. -/
 instance KOut_countable : Pos.Countable KOut :=
@@ -247,7 +247,8 @@ theorem wp_op
         iframe HΨ
         ipureintro
         rw [Hσ] at Ho'
-        rcases o' with (_ | ⟨w, hw⟩) | _ <;> simp only [liftOut, KvOutput.got.injEq, Option.map_none,
+        rcases o' with (_ | ⟨w, hw⟩) | _ <;> simp only [liftOut, isPut, Bool.false_and,
+          Bool.false_eq_true, ↓reduceIte, KvOutput.got.injEq, Option.map_none,
           Option.map_some, reduceCtorEq, Option.some.injEq] at Ho'
         subst Ho'
         rfl
@@ -260,7 +261,8 @@ theorem wp_op
         iframe HΨ
         ipureintro
         rw [Hσ] at Ho'
-        rcases o' with (_ | ⟨w, hw⟩) | _ <;> simp only [liftOut, KvOutput.got.injEq, Option.map_none,
+        rcases o' with (_ | ⟨w, hw⟩) | _ <;> simp only [liftOut, isPut, Bool.false_and,
+          Bool.false_eq_true, ↓reduceIte, KvOutput.got.injEq, Option.map_none,
           Option.map_some, reduceCtorEq] at Ho'
         rfl
       · obtain ⟨hnil, hnf, hns | ⟨msg, rfl⟩⟩ := Herr2
@@ -343,9 +345,10 @@ theorem wp_op
         iexists o'
         iframe HΨ
         ipureintro
-        cases o' with
-        | got v => cases Ho'
-        | done => rfl
+        rcases o' with (_ | v) | _ <;> simp only [liftOut, isPut, Option.isNone_none,
+          Option.isNone_some, Bool.and_self, Bool.and_false, Bool.false_eq_true, ↓reduceIte,
+          reduceCtorEq, ite_true] at Ho' ⊢
+        rfl
       · unfold models_lab.errAny
         icases Herr2 with ⟨%e2, %He2, -⟩
         subst He2
@@ -728,33 +731,15 @@ abbrev Orch.spec : Prop :=
     (App (Val (@! github_com.despreston.go_craq.examples.craqnet.Orch)) (Val #()))
   {{ RET #(); True }}
 
-/-- `Orch.wp_proof`'s premise `hinj` is false as `Kit.lean` stands: a get's not-found and a put's
-success are the same Go value `Out{}` (`ovK`). -/
-theorem kvR_encOut_not_inj (γ : CraqNames) :
-    ¬ ∀ o o' : KOut,
-      (kvR (Gg := hG.goose_globalGS) γ).encOut ((kvR (Gg := hG.goose_globalGS) γ).ov o) =
-        (kvR (Gg := hG.goose_globalGS) γ).encOut ((kvR (Gg := hG.goose_globalGS) γ).ov o') →
-      o = o' := by
-  intro h
-  have := h (.got none) .done rfl
-  cases this
-
-/-- **Orch**, from `remote.Check`'s spec. `hdec`, `hinj` are `Check.spec`'s premises on the
-store `kvR γ` and its model `kvS`: AS `Kit.lean` STANDS THEY ARE FALSE (a put's `.done` and a
-get's `.got none` are both `Out{}`, `ovK`), see the report; they stay arguments until the store
-merges the two outputs. -/
+/-- **Orch**, from `remote.Check`'s spec, with its premises on the store `kvR γ` and its model
+`kvS` (`ModelDefs.lean`'s `kvS_pendDec`, `kvR_encOut_inj`). -/
 theorem Orch.wp_proof
     (wp_configure : configure.spec (GF := GF) (hG := hG))
     (wp_Model : Model.spec (GF := GF) (hG := hG))
     (wp_Codec : Codec.spec (GF := GF) (hG := hG))
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_Check : github_com.mit_pdos.etcd_grove.examples.lib.remote.Check.spec (GF := GF) (hG := hG)
-      (St := St) (I := KIn) (O := KOut))
-    (hdec : ∀ γ : CraqNames, PendDec (kvR (Gg := hG.goose_globalGS) γ) (kvS (GF := GF)))
-    (hinj : ∀ (γ : CraqNames) (o o' : KOut),
-      (kvR (Gg := hG.goose_globalGS) γ).encOut ((kvR (Gg := hG.goose_globalGS) γ).ov o) =
-        (kvR (Gg := hG.goose_globalGS) γ).encOut ((kvR (Gg := hG.goose_globalGS) γ).ov o') →
-      o = o') :
+      (St := St) (I := KIn) (O := KOut)) :
     Orch.spec (GF := GF) (hG := hG) := by
   intro γ γp hrb
   rw [pendCtx_kvS, pendLib_kvS]
@@ -780,7 +765,7 @@ theorem Orch.wp_proof
   have hlen' : sint.Z addrs.len = 5 := by
     have := Hal.1; simp only [clientAddrs, List.length_cons, List.length_nil] at this; word
   wp_apply wp_Check (kvR γ) kvS γp m addrs clientAddrs cd _ _ d pendN_craq lintestN_craq
-    (hdec γ) (hinj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide) (by decide)
+    (kvS_pendDec γ) (kvR_encOut_inj γ) (fun st => kvR_timeless γ st) hrb (by rw [hlen']; decide) (by decide)
     (by rw [hlen']; decide) $$ [Hlib]
   · iframe #
     iframe Hlib

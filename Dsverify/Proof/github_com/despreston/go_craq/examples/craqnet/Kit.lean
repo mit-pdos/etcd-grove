@@ -40,19 +40,24 @@ open EtcdGrove github_com.mit_pdos.etcd_grove.examples.lib.remote github_com.des
 /-- The store's state as the protocol's abstract map. -/
 def lift (a : St) : KvM.State := fun k => (a k).map Subtype.val
 
-/-- An output as the protocol's. -/
-def liftOut : KOut → KvM.Output
-  | .got v => .got (v.map Subtype.val)
-  | .done => .done
+/-- An output to input `i` as the protocol's: a put's `got none` is its success (`.done`); any
+other output is a get's answer; `bad`, which the store never outputs, an output of the other
+kind (so that no answer of `i`'s lifts from it). (The store has one output, `got none`, for a
+put's success and a get's not found, because kit.go answers both with `Out{}`: this keeps `ovK`
+injective, which remote's `Check` needs; finding F4.) -/
+def liftOut (i : KIn) : KOut → KvM.Output
+  | .got v => if isPut i && v.isNone then .done else .got (v.map Subtype.val)
+  | .bad => if isPut i then .got none else .done
 
 theorem lift_init : lift kvB.init = KvM.init := rfl
 
 /-- The protocol's step on the lifted state is the store's, lifted. -/
 theorem lift_step (i : KIn) (a : St) :
-    KvM.stepF i.1 (lift a) = (lift (kvB.step i a).1, liftOut (kvB.step i a).2) := by
+    KvM.stepF i.1 (lift a) = (lift (kvB.step i a).1, liftOut i (kvB.step i a).2) := by
   obtain ⟨k | ⟨k, x⟩, h⟩ := i
   · rfl
-  · simp only [KvM.stepF, step_put, liftOut, Prod.mk.injEq, and_true]
+  · simp only [KvM.stepF, step_put, liftOut, isPut, Option.isNone_none, Bool.and_self,
+      ↓reduceIte, Prod.mk.injEq, and_true]
     funext k'
     simp only [lift, upd]
     by_cases hk : k' = k <;> simp [hk]
@@ -73,12 +78,13 @@ def ivK : KIn → GoInterface
   | ⟨.get k, _⟩ => inV false k []
   | ⟨.put k x, _⟩ => inV true k x
 
-/-- The store's output `o` as kit.go's `Out` (a get's not found and a put's success are both
-`Out{}`). -/
+/-- The store's output `o` as kit.go's `Out`: `got none` (a get's not found, a put's success)
+is `Out{}`; `bad` (never output) an `Out` no operation answers, `Out{V: "\x00"}`. Injective, and
+so is its encoding (`ovK_enc_inj`, in `ModelProof.lean`). -/
 def ovK : KOut → GoInterface
   | .got none => outV false false []
   | .got (some x) => outV false true x.1
-  | .done => outV false false []
+  | .bad => outV false false [W8 0]
 
 /-- `encStr`'s bytes: the length (one byte), then the string. -/
 def encS (s : GoString) : List w8 := W8 s.length :: s
@@ -152,7 +158,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 postcondition read on the store's output). -/
 theorem lin_opAU [NetProtoGS] [RemoteGS] (γ : CraqNames) (i : KIn) (Φ : KOut → IProp GF) :
     lin (Gg := Gg) (kvR γ) i Φ ⊢
-      opAU γ i.1 (fun o => iprop(∃ o' : KOut, ⌜o = liftOut o'⌝ ∗ Φ o')) := by
+      opAU γ i.1 (fun o => iprop(∃ o' : KOut, ⌜o = liftOut i o'⌝ ∗ Φ o')) := by
   unfold lin opAU clientMask
   simp only [kvR]
   iintro Hl
@@ -176,14 +182,13 @@ end base
 section model
 variable [GooseExts] [GoGlobalContext]
 
-/-- An answer `Out{u, f, w}` to input `i`, decoded: unknown is an error; for a get, found is
-`w`'s value, not found (with an empty `w`) is none, and anything else an answer no get gives
-(`done`); for a put, `Out{}` is its success, anything else an answer no put gives. -/
-def decAns (i : KIn) (u f : Bool) (w : Str8) : linkv.Ans KOut :=
+/-- An answer `Out{u, f, w}` to input `i`, decoded: unknown is an error; found is `w`'s value
+(a get's; no put answers it); `Out{}` is `got none` (a get's not found, a put's success); anything
+else (not found with a nonempty `w`) is `bad`, an answer no operation gives. The same for every
+input (`ovK`'s inverse on its image). -/
+def decAns (_i : KIn) (u f : Bool) (w : Str8) : linkv.Ans KOut :=
   if u then .err else
-  match i.1 with
-  | .get _ => if f then .ok (.got (some w)) else if w.1 = [] then .ok (.got none) else .ok .done
-  | .put _ _ => if !f && w.1 = [] then .ok .done else .ok (.got none)
+  if f then .ok (.got (some w)) else if w.1 = [] then .ok (.got none) else .ok .bad
 
 open Classical in
 /-- porcupine's operations as the store's: a boxed input and a boxed bounded `Out`; anything else

@@ -30,7 +30,7 @@ with the premise asked only of the reads the loop makes (Perennial branch `reada
 -/
 module
 
-public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitProof
+public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitDefs
 public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.Conf
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.LogHyp
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Pkg

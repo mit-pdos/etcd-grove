@@ -11,7 +11,7 @@ net/rpc's server variables (`srvEnv`).
 -/
 module
 
-public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitProof
+public import Dsverify.Proof.github_com.despreston.go_craq.examples.craqnet.KitDefs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Specs
 public import Dsverify.Proof.github_com.despreston.go_craq.Craq.Netrpc.BindingsProof
 public import Net.Spec.net.rpc.SetCodec
