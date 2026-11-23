@@ -178,11 +178,10 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
     simp [fmt.decimal, fmt.decimalNat_of_ge, fmt.decimalNat_of_lt, fmt.digitByte]
   rw [h7501] at haddr
   subst haddr
-  ihave ⟨%P, %Q, #HlisP⟩ := RpcHttpAddr.rpcLisP_lis W go!":7501" _ _ $$ Hlis
   wp_apply (hListen go!"tcp" net.tcpNet_tcp go!":7501") $$ [] as %li %err Hres
   · isplitr
     · ipureintro; decide
-    iapply listen_lis_au; iexact HlisP
+    iapply RpcHttpAddr.rpcLisP_lis; iexact Hlis
   icases Hres with (⟨%He, %l, #Hli, Hnl, #Hlon⟩ | ⟨%xa, -, #HE⟩)
   rotate_left
   · icases net.resErr_netErr _ _ _ _ _ _ _ $$ HE with %Hne

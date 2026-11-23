@@ -148,12 +148,11 @@ theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     simp only [replicaNodes, List.mem_cons, List.mem_nil_iff, _root_.or_false] at hk
     rcases hk with rfl | rfl | rfl | rfl | rfl <;> rfl
   rw [hn, listenAddr_eq k]
-  ihave ⟨%P, %Q, #Hlp⟩ := RpcHttpAddr.rpcLisP_lis $$ Hlis
   wp_apply (wp_Listen go!"tcp" net.tcpNet_tcp (rpcAddrOf k)) as %lv %err Hl
   · isplitr
     · ipureintro; exact rpcAddrOf_listenOk k hk
-    iapply listen_lis_au
-    iexact Hlp
+    iapply RpcHttpAddr.rpcLisP_lis
+    iexact Hlis
   icases Hl with (⟨%He, %l, Hli, Hnl, #Hon⟩ | ⟨%x, -, #Hre⟩)
   rotate_left
   · ihave %Hne := net.resErr_netErr $$ Hre

@@ -93,10 +93,19 @@ class RpcHttpAddr (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [N
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
   rpcLisP_addr : ∀ W la hs hsAns a, addrOk a = true → lisAccepts la a →
     rpcLisP W la hs hsAns ⊢ rpcAddrP W a hs hsAns
-  /-- They include the right to listen at `la` with some protocols (`Listen.spec`'s). -/
+  /-- The right to listen at `la` (`net.Listen.spec`'s update; models-rpc-http's
+  `rpcLisP_lis`). -/
   rpcLisP_lis : ∀ W la hs hsAns,
-    rpcLisP W la hs hsAns ⊢ ∃ P Q, lisProto (Gg := Gg) la P Q
-  /-- The boot sets them once, from the addresses `la` takes, unset. -/
+    rpcLisP W la hs hsAns ⊢
+      |={⊤,∅}=> lisToks (extGlobalGS netExt (G := Gg)) la ∗
+        (lisToks (extGlobalGS netExt (G := Gg)) la ={∅,⊤}=∗ True)
+  /-- Its listener address is one `Listen` takes (models-rpc-http's `rpcLisP_ok`). -/
+  rpcLisP_ok : ∀ W la hs hsAns, rpcLisP W la hs hsAns ⊢ ⌜listenOk la = true⌝
+  /-- The boot sets them once, from the addresses `la` takes, unset. (models-rpc-http
+  e6b232b2f6's `rpcLisP_set` also asks that the world give every address `la` takes the
+  handshake `hs`/`hsAns` (`RpcWorld.hs`, `.hsAns`, fields lean's `RpcWorld` does not have yet);
+  on that merge the start builds its world with `hs := fun _ => connectReq defaultRPCPath`,
+  `hsAns := fun _ => connectAns`, which meets it at every `la`.) -/
   rpcLisP_set : ∀ (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8),
     listenOk la = true →
     regCtx (Gg := Gg) -∗ inv regN' (regInv (Gg := Gg) W) -∗
