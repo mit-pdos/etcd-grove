@@ -288,6 +288,336 @@ theorem newArg_Update (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLe
     iapply HΦ
     ipureintro; exact Hmsg
 
+theorem newArg_Write (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.NodeBinding.ty b)
+      (nodeSpec cfg.γ cfg.chain a go!"Write")
+      (mOf examples.craqnet.rpcNewArg_r0_Write examples.craqnet.rpcNewReply_r0_Write
+        examples.craqnet.rpcCall_r0_Write) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold nodeB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface transport.netrpc.WriteArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface transport.netrpc.WriteArgs.ty p)
+      (p ↦ transport.netrpc.WriteArgs.mk go!"" slice.nil (W64 0))
+      (nodeSpec cfg.γ cfg.chain a go!"Write")
+      (fun args ok => iprop(⌜args.length < 2 ^ 63⌝ ∗ if ok then ∃ (k x : GoString) (v : w64)
+        (sl : GoSlice), ⌜args = encWriteArgs k x v⌝ ∗ p ↦ transport.netrpc.WriteArgs.mk k sl v ∗
+        sl ↦* x else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    rw [nodeSpec_Write]
+    icases HS with ⟨%k, %x, %v, %Hargs, HS⟩
+    isplitl [HS]
+    · iexists k, x, v
+      isplitr
+      · ipureintro; exact Hargs
+      iexact HS
+    iapply Hlen
+    iintro %_
+    iapply L.decA_WriteArgs _ _ k x v
+    iframe
+    isplitr
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      icases Hp with ⟨%sl, Hp, Hsl⟩
+      iexists k, x, v, sl
+      iframe
+      ipureintro; exact Hargs
+  ihave Hp : p ↦ transport.netrpc.WriteArgs.mk go!"" slice.nil (W64 0) $$ [Hp]
+  · rw [show transport.netrpc.WriteArgs.mk go!"" slice.nil (W64 0) = zero_val transport.netrpc.WriteArgs from rfl]; iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS ⟨%Hl, Hp⟩
+  simp only [ite_true]
+  icases Hp with ⟨%k, %x, %v, %sl, %Hm, Hp, Hsl⟩
+  rw [nodeSpec_Write]
+  icases HS with ⟨%k', %x', %v', %Hargs, Hve, HS⟩
+  obtain ⟨rfl, rfl, rfl⟩ := I.encWriteArgs_inj k k' x x' v v' (Hm ▸ Hl) (Hm ▸ Hargs)
+  unfold net.rpc.callObl
+  imod ownSlice_persist $$ Hsl with #Hsl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_method_call
+  wp_call
+  iStructNamed Hbs
+  wp_auto
+  unfold isNodeSvc
+  icases Hsvc with ⟨%e, %He, #Hm⟩
+  subst He
+  icases Hm with ⟨-, -, #HW, -⟩
+  iStructNamed Hp
+  (try wp_auto)
+  wp_apply HW $$ %k %sl %x %v %_ Hsl Hve as %err Herr
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  unfold errNE
+  icases Herr with (⟨%Herr, Hpost⟩ | ⟨%msg, %Hmsg, #Hem⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact Herr
+    icases HS with ⟨HΦ, -⟩
+    iapply L.enc_EmptyReply
+    isplitr [HΦ Hpost]
+    · iexact «$r0»
+    iintro _
+    iapply HΦ $$ Hpost
+  · iright
+    iexists msg
+    iframe Hem
+    rw [if_neg Hmsg]
+    icases HS with ⟨-, HΦ⟩
+    unfold errOk
+    iapply HΦ
+    ipureintro; exact Hmsg
+
+theorem newArg_Commit (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.NodeBinding.ty b)
+      (nodeSpec cfg.γ cfg.chain a go!"Commit")
+      (mOf examples.craqnet.rpcNewArg_r0_Commit examples.craqnet.rpcNewReply_r0_Commit
+        examples.craqnet.rpcCall_r0_Commit) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold nodeB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface transport.netrpc.CommitArgs.ty p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface transport.netrpc.CommitArgs.ty p)
+      (p ↦ transport.netrpc.CommitArgs.mk go!"" (W64 0))
+      (nodeSpec cfg.γ cfg.chain a go!"Commit")
+      (fun args ok => iprop(⌜args.length < 2 ^ 63⌝ ∗ if ok then ∃ (k : GoString) (v : w64),
+        ⌜args = encCommitArgs k v⌝ ∗ p ↦ transport.netrpc.CommitArgs.mk k v else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    rw [nodeSpec_Commit]
+    icases HS with ⟨%k, %v, %Hargs, HS⟩
+    isplitl [HS]
+    · iexists k, v
+      isplitr
+      · ipureintro; exact Hargs
+      iexact HS
+    iapply Hlen
+    iintro %_
+    iapply L.decA_CommitArgs _ _ k v
+    iframe
+    isplitr
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      iexists k, v
+      iframe
+      ipureintro; exact Hargs
+  ihave Hp : p ↦ transport.netrpc.CommitArgs.mk go!"" (W64 0) $$ [Hp]
+  · rw [show transport.netrpc.CommitArgs.mk go!"" (W64 0) = zero_val transport.netrpc.CommitArgs from rfl]; iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS ⟨%Hl, Hp⟩
+  simp only [ite_true]
+  icases Hp with ⟨%k, %v, %Hm, Hp⟩
+  rw [nodeSpec_Commit]
+  icases HS with ⟨%k', %v', %Hargs, Hcv, HS⟩
+  obtain ⟨rfl, rfl⟩ := I.encCommitArgs_inj k k' v v' (Hm ▸ Hl) (Hm ▸ Hargs)
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_method_call
+  wp_call
+  iStructNamed Hbs
+  wp_auto
+  unfold isNodeSvc
+  icases Hsvc with ⟨%e, %He, #Hm⟩
+  subst He
+  icases Hm with ⟨-, -, -, #HC, -⟩
+  iStructNamed Hp
+  (try wp_auto)
+  wp_apply HC $$ %k %v %_ Hcv as %err Herr
+  (try wp_auto)
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  unfold net.rpc.callRet
+  unfold errNE
+  icases Herr with (%Herr | ⟨%msg, %Hmsg, #Hem⟩)
+  · ileft
+    isplitr
+    · ipureintro; exact Herr
+    icases HS with ⟨HΦ, -⟩
+    iapply L.enc_EmptyReply
+    isplitr [HΦ]
+    · iexact «$r0»
+    iintro _
+    iexact HΦ
+  · iright
+    iexists msg
+    iframe Hem
+    rw [if_neg Hmsg]
+    icases HS with ⟨-, HΦ⟩
+    unfold errOk
+    iapply HΦ
+    ipureintro; exact Hmsg
+
+theorem newArg_LatestVersion (L : SrvCodecLaws (GF := GF)) (I : ArgFacts) (Hlen : decLen.spec (GF := GF))
+    (cfg : Cfg GF) (b : Loc) (svc : GoInterface) (a : GoString) :
+    nodeB cfg b svc a ⊢
+    newArgOk craqCodec (ptrIface transport.netrpc.NodeBinding.ty b)
+      (nodeSpec cfg.γ cfg.chain a go!"LatestVersion")
+      (mOf examples.craqnet.rpcNewArg_r0_LatestVersion examples.craqnet.rpcNewReply_r0_LatestVersion
+        examples.craqnet.rpcCall_r0_LatestVersion) := by
+  iintro #Hb
+  unfold newArgOk
+  imodintro
+  iintro %Ψ HΨ
+  simp only [mOf]
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_alloc p as Hp
+  wp_auto
+  unfold nodeB
+  icases Hb with ⟨#Hpn, #Hpk, #Hcs, #Hbs, #Hsvc⟩
+  have hne : ptrIface go.string p ≠ interface.nil := by
+    simp [ptrIface, interface.mkOk]
+  ihave #Hdec : net.rpc.argDec craqCodec (ptrIface go.string p) (p ↦ (go!"" : GoString))
+      (nodeSpec cfg.γ cfg.chain a go!"LatestVersion")
+      (fun args ok => iprop(if ok then ∃ k : GoString, ⌜args = encString k⌝ ∗ p ↦ k else True)) $$ []
+  · unfold net.rpc.argDec
+    iframe Hcs
+    imodintro
+    iintro Hp %args %Φ HS
+    rw [nodeSpec_LatestVersion]
+    icases HS with ⟨%k, %Q, %Hargs, HS⟩
+    isplitl [HS]
+    · iexists k, Q
+      isplitr
+      · ipureintro; exact Hargs
+      iexact HS
+    iapply L.decA_string _ _ k
+    iframe
+    isplitr
+    · ipureintro; exact Hargs
+    iintro %ok Hp
+    cases ok
+    · simp only [Bool.false_eq_true, ite_false]; itrivial
+    · simp only [ite_true]
+      iexists k
+      iframe
+      ipureintro; exact Hargs
+  ihave Hp : p ↦ (go!"" : GoString) $$ [Hp]
+  · rw [show (go!"" : GoString) = zero_val GoString from rfl]; iexact Hp
+  iapply HΨ $$ %_ %_ %_ %hne Hdec Hp
+  iintro %args %Φ HS Hp
+  simp only [ite_true]
+  icases Hp with ⟨%k, %Hm, Hp⟩
+  rw [nodeSpec_LatestVersion]
+  icases HS with ⟨%k', %Q, %Hargs, HAU, HS⟩
+  have hk : k = k' := I.encString_inj k k' (Hm ▸ Hargs)
+  subst hk
+  unfold net.rpc.callObl
+  wp_func_call
+  wp_call
+  wp_auto
+  iexists _
+  isplitr
+  · ipureintro; rfl
+  wp_func_call
+  wp_call
+  wp_auto
+  wp_method_call
+  wp_call
+  iStructNamed Hbs
+  wp_auto
+  unfold isNodeSvc
+  icases Hsvc with ⟨%e, %He, #Hm⟩
+  subst He
+  icases Hm with ⟨-, -, -, -, #HL, -⟩
+  wp_apply HL $$ %k %Q %_ HAU as %k' %v %err Herr
+  (try wp_auto)
+  unfold errNE
+  icases Herr with (⟨⟨%Herr, %Hk⟩, %σ, HQ, Hrf⟩ | ⟨%msg, %Hmsg, #Hem⟩)
+  · subst Herr Hk
+    wp_auto
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    unfold net.rpc.callRet
+    ileft
+    isplitr
+    · ipureintro; rfl
+    icases HS with ⟨HΦ, -⟩
+    iapply L.enc_VersionResponse _ _ k' v
+    isplitr [HΦ HQ Hrf]
+    · iexact «$r0»
+    iintro _
+    iapply HΦ $$ HQ Hrf
+  · unfold net.rpc.errMsg
+    icases Hem with ⟨%ee, %Hee, %Hty, #HE⟩
+    subst Hee
+    wp_auto
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    unfold net.rpc.callRet
+    iright
+    iexists msg
+    isplitr [HS]
+    · unfold net.rpc.errMsg
+      iexists ee
+      isplitr
+      · ipureintro; rfl
+      isplitr
+      · ipureintro; exact Hty
+      iexact HE
+    rw [if_neg Hmsg]
+    icases HS with ⟨-, HΦ⟩
+    unfold errOk
+    iapply HΦ
+    ipureintro; exact Hmsg
+
 end proofs
 
 end netrpcP
