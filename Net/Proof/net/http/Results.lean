@@ -11,7 +11,8 @@ the model's head parser (`modelReadLine`, `modelReadMIMEHeader`), `modelCutByte`
 The server's hijack (2026-11-23): `response.Hijack` (`hijackOk` from `hjPre`, what `conn.serve` has
 when it calls the handler) over `conn.hijackLocked`, `connReader.abortPendingRead`, the net
 extension's `Conn.SetDeadline`/`SetReadDeadline` and bufio's `Writer.Reset`; and the background
-read, `connReader.backgroundRead`, over `Conn.Read` and `OpError.Timeout`.
+read, `connReader.backgroundRead`, over `Conn.Read` and `OpError.Timeout`, and its start,
+`connReader.startBackgroundRead` (over `Conn.SetReadDeadline`); `connReader.releaseConn`.
 -/
 module
 
@@ -41,6 +42,8 @@ public import Net.Proof.net.http.response__Hijack
 public import Net.Proof.net.http.conn__hijackLocked
 public import Net.Proof.net.http.connReader__abortPendingRead
 public import Net.Proof.net.http.connReader__backgroundRead
+public import Net.Proof.net.http.connReader__startBackgroundRead
+public import Net.Proof.net.http.connReader__releaseConn
 public import Net.Proof.net.Conn__Read
 public import Net.Proof.net.Conn__SetDeadline
 public import Net.Proof.net.Conn__SetReadDeadline
@@ -102,6 +105,13 @@ theorem connReader.backgroundRead.wp :
     connReader.backgroundRead.spec (GF := GF) (hG := hG) :=
   connReader.backgroundRead.wp_proof net.Conn.Read.wp_proof net.OpError.Timeout.wp_proof
 
+theorem connReader.startBackgroundRead.wp :
+    connReader.startBackgroundRead.spec (GF := GF) (hG := hG) :=
+  connReader.startBackgroundRead.wp_proof net.Conn.SetReadDeadline.wp_proof connReader.backgroundRead.wp
+
+theorem connReader.releaseConn.wp : connReader.releaseConn.spec (GF := GF) (hG := hG) :=
+  connReader.releaseConn.wp_proof
+
 theorem connReader.abortPendingRead.wp :
     connReader.abortPendingRead.spec (GF := GF) (hG := hG) :=
   connReader.abortPendingRead.wp_proof net.Conn.SetReadDeadline.wp_proof
@@ -121,3 +131,5 @@ end Perennial
 #print axioms Perennial.net.http.ReadResponse.wp
 #print axioms Perennial.net.http.connReader.backgroundRead.wp
 #print axioms Perennial.net.http.response.Hijack.wp
+#print axioms Perennial.net.http.connReader.startBackgroundRead.wp
+#print axioms Perennial.net.http.connReader.releaseConn.wp
