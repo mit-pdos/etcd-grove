@@ -392,6 +392,65 @@ fork still carries the ghost code):
 Until then gen-init's configuration for the `gryff` package (its `init()` and `traceProph`) waits
 on this choice; `dlog.DLOG`, `gryff.stack` and the kit's `var _ = fmt.Sprint` are ordinary.
 
+## Session 5 (2026-11-23, fifth agent): state and decisions
+
+**Tiers: 0 new violations** (`etc/tier-check.py --check` ok at `f3ce081156`). The wire layer sees
+dsv-bufio only through its specs: `wire.BufioSpecs GF` (`Wire/Proof/Lemmas.lean`, a `Prop` class:
+`Writer.Write.spec`, `Writer.Flush.spec`, `Writer.WriteByte.spec`, `NewWriter.spec`,
+`NewReader.specOk`, `Reader.Read.specOk`, `Reader.ReadByte.spec`), a section variable wherever
+`[bufio.Assumptions]` or `[gA : examples.gryffnet.Assumptions]` is; discharged at linking by
+`⟨Writer.Write.wp_proof Writer.Flush.wp_proof, Writer.Flush.wp_proof, Writer.WriteByte.wp_proof
+Writer.Flush.wp_proof, NewWriter.wp_proof NewWriterSize.wp_proof, NewReader.wp_proofOk
+(NewReader.wp_proofE NewReaderSize.wp_proofE), Reader.Read.wp_proofOk, Reader.ReadByte.wp_proof⟩`
+(no instance anywhere). Lab-style modules naming theorems `wp_<f>` are defs tier, so ported files
+importing each other are fine; only `*.wp_proof` modules must not be imported.
+
+**Ported this session** (all `etc/lean-check.py -a` clean): `Proto2/Replica` (`req_mint` over
+`protoInvs` and the new `placersInv`), `Replica/ExecDefs`, `Replica2/State`, `N/{NetDefs, Stats,
+SpecsDefs, StateLaws, ConnDefs, Handshake, PeerMark, Build, Register, SendMsg, Recv, Reply}`,
+`Server/LogErr`, `N/Listener` (in progress, see below).
+
+**New hypothesis:** `LogHyps GF` (`Server/LogErr.lean`): `log.Printf`/`log.Println` with
+`logArg` arguments (an error argument: `models_lab.errAny`). Perennial `7b2259a12` models both as
+trusted no-ops and specifies only `Printf` with `fmt.ArgsWf` (no method-carrying argument);
+`Println` has no spec. A premise of the statement, like `BinaryVarintHyps`.
+
+**Rewrite rules added** (scratch `port/nport.py`, `port/nextok.py`, reproducible from this list):
+- section variables: `[GoGlobalContext] [hG : HeapGS .hasLC netDistGF] [sem]` -> `[GooseExts]
+  [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext] {GF} [hG : HeapGS .hasLC GF]
+  [π : NetProtoGS] [sem]` (use `hG`, not `G : GooseGlobalGS`, where the heap is used);
+  `local notation "GF" => netDistGF` dropped;
+- instances/lemmas whose statement does not determine `GF` get `(GF := GF)` (e.g.
+  `Persistent (aliveAt (GF := GF) k gR)`, `replicaOwnX (GF := GF) ρ …`);
+- `[gA : examples.gryffnet.Assumptions]` stays (it is the kit package's class; import
+  `Dsverify.GeneratedProof.gryff.examples.gryffnet`), plus `[wire.BufioSpecs GF]`;
+  `strconv.ExtraAssumptions` -> `strconv.Assumptions` (Perennial's `strconv.wp_Itoa` takes
+  `isPkgInit strconv`, from `isPkgInit_unfold_deps` of the caller's package);
+- connection ids `w64` -> `Nat` (`∃ c : Nat, clientConnAt …`, `(c : Nat)` in `dialer_bridge`);
+- `sharedInvs γ` (hub, `Shares.lean`) -> `protoInvs γ` where only Gryff's and the placers'
+  invariants are used; `placersInv` destructs as `⟨%P, %D, >HPa, >HDa, >%hD, >HPm⟩`;
+- the reader peeks: the lab's `□ (∀ D, I (R ++ D) ={⊤}=∗ I (R ++ D) ∗ ⌜P D⌝)` -> `wire.readNext br
+  rd I R P` (statements), proof bullets -> `wire.readNext_true` / `wire.readNext_mono … $$ Hnx`;
+  `peerReaderB`'s peek is now stated of the reader (`wire.ownReader rd rdi I (hdr ++ Y) ={⊤}=∗
+  wire.ownReader … ∗ ∃ W, peerStreamOk … ∗ ⌜Y <+: W⌝`), so `ownReader_peer` is an update; where a
+  peer reader is made (N/Connect, N/WaitPeers) it is to be derived from `net.connReader_proto`
+  (`▷ protoPrefix`, pure/timeless facts stripped under the update);
+- `bufio.wp_ReadByte` -> `wire.wp_ReadByte` (new wrapper, error as `rdErr`); the error branch
+  `⟨%Herr, -, -, %v, %R', Hl, Hown⟩` -> `⟨%Herr, -, %v, %R', Hl, Hown⟩`.
+
+**Coordinator's messages this session (to apply at the Rpc layer):**
+- net/rpc over HTTP, client side, is on `origin/models-rpc-http` `1a4d9546c9` (stacked on
+  models-rpc-server, not landed): `rpcAddrP W a hs hsAns`, `rpcAddr W a := rpcAddrP W a [] []`, the
+  handshake per address in the world (`W.hs a`, `W.hsAns a`); `DialHTTPPath`/`DialHTTP` proved over
+  `http.ReadResponse.spec` (stated, proof in progress). Merge it at Rpc and use its DialHTTP(Path)
+  specs; keep the server side (`ServeHTTP`, `HandleHTTP`, `http.Serve`, mux) as hypotheses.
+- Upamanyu's five answers (scratchpad `five-answers-24.txt`): wildcard listeners get `rpcLisP W la
+  hs hsAns` (+ `rpcLisP_addr`/`_lis`/`_set`; shape: dsv-swiftpaxos `lib/RpcHttpHyps.lean`);
+  `errOk` will cover only the server's own errors (`srvErrMsg`); `Client.Call`'s other errors get
+  `∃ msg, errMsg err msg ∗ ⌜msg ≠ []⌝`; net/rpc's `codecFresh`/`srvEnv` will come from a per-machine
+  boot resource (never `|==> codecFresh`). Keep these open points (callRet errMsg, codecFresh,
+  errOk, wildcard listeners) as visible premises.
+
 ## Which lab run
 
 Ported: run **`gryff-bump-1`** (dsverify-lab `master` `915f964`, `examples/gryff/`; proof
