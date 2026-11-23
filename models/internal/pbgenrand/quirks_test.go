@@ -99,8 +99,8 @@ func TestProtobufQuirks(t *testing.T) {
 	}
 	for _, want := range []string{
 		"field q.M1.f1 (number 2): a oneof member (not the first of u)",
-		"message q.A: reaches required fields only through a cycle",
-		"message q.B: reaches required fields only through a cycle",
+		"message q.A: no required field of its own, reaches one, and lies on a cycle",
+		"message q.B: no required field of its own, reaches one, and lies on a cycle",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("pbgen's refusal does not say %q:\n%s", want, out)

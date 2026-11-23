@@ -68,6 +68,11 @@ type Message struct {
 	// LegacyOneofFuncs: the Go type has an XXX_OneofFuncs or XXX_OneofWrappers method (APIv1),
 	// whose wrappers protobuf-go takes instead of the registered ones (message.go, structInfo).
 	LegacyOneofFuncs bool `json:"legacy_oneof_funcs"`
+	// LegacyCodec: the registered Go type is not an APIv2 message (it does not implement
+	// protoreflect.ProtoMessage: protobuf-go wraps it through its legacy path), or has its own
+	// codec methods (Marshal, Unmarshal, XXX_Marshal, XXX_Unmarshal, XXX_Size: APIv1 and gogo
+	// types), which protobuf-go's legacy path calls instead of its coders.
+	LegacyCodec bool `json:"legacy_codec"`
 }
 
 // Oneof is a oneof's descriptor facts and its Go holder field.
@@ -212,6 +217,14 @@ func message(md protoreflect.MessageDescriptor) Message {
 				if _, ok := t.MethodByName(name); ok {
 					m.LegacyOneofFuncs = true
 				}
+			}
+			for _, name := range []string{"Marshal", "Unmarshal", "XXX_Marshal", "XXX_Unmarshal", "XXX_Size"} {
+				if _, ok := t.MethodByName(name); ok {
+					m.LegacyCodec = true
+				}
+			}
+			if !t.Implements(reflect.TypeOf((*protoreflect.ProtoMessage)(nil)).Elem()) {
+				m.LegacyCodec = true
 			}
 		}
 		if mi, ok := mt.(*protoimpl.MessageInfo); ok {

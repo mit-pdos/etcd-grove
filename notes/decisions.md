@@ -41960,7 +41960,8 @@ maps, groups, float/double, extensions, MessageSet, weak and lazy fields.
 
 **Two new refusals where protobuf-go is not what its descriptors say** (both found while testing,
 shown on protobuf-go by `models/internal/pbgenrand`'s `TestProtobufQuirks`): a message type that
-reaches required fields only through a cycle of two or more message types (`needsInitCheck`'s cache
+has no required field of its own, reaches one and lies on a cycle of two or more message types
+(conservatively also when it reaches one outside the cycle; `needsInitCheck`'s cache
 keeps a false for it, depending on which type the program uses first, so its checks are skipped
 nondeterministically); a oneof member other than the oneof's first declared one, of a type with
 required fields (Unmarshal's fast path never consults it: a missing required field there passes
@@ -41969,7 +41970,9 @@ depends on the program's history); refusing both keeps the core's required-field
 Neither arises in etcd (no etcd message has a required field).
 
 **Evidence.** `pbgenrand`'s random schemas now mix proto2 and proto3 files with all of the above
-(their constructs counted in the test's log), `TestRefusals` has one schema per remaining refusal
+(their constructs counted in the test's log), `TestOrders` runs a hand-built schema of required fields in and near cycles, a oneof whose first
+member needs the check and a message of 70 required fields against protobuf-go in 13 orders of its
+lazy type setup (each in a fresh process), `TestRefusals` has one schema per remaining refusal
 and checks the newly accepted constructs are not refused, `examples/models/pbetcd` covers raftpb,
 walpb and the oneof requests (its generated regression test), and the new section of
 `notes/axiom-review/pbgen.md` is the review.

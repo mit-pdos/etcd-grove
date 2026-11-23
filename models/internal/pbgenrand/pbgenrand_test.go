@@ -397,8 +397,8 @@ func (g schemaGen) file(name, pkg, goPath, goPkg, syntax string, deps []*descrip
 // protobuf-go's own required-field checks differ from what the descriptors say (pbgen_core.py,
 // the refusals for required fields): a message field to an int32 field, until no message type
 // that needs required checks is a oneof member other than the oneof's first declared one, and
-// none needs them only through a cycle of two or more message types. (TestRefusals has one of
-// each.)
+// none has no required field of its own, reaches one, and lies on a cycle of two or more
+// message types. (TestProtobufQuirks has one of each.)
 func avoidQuirks(files []*descriptorpb.FileDescriptorProto) {
 	msgs := map[string]*descriptorpb.DescriptorProto{}
 	var walk func(prefix string, ms []*descriptorpb.DescriptorProto)
@@ -810,17 +810,22 @@ func TestRefusals(t *testing.T) {
 		&descriptorpb.DescriptorProto{Name: proto.String("Unp"), Field: []*descriptorpb.FieldDescriptorProto{unp}},
 		&descriptorpb.DescriptorProto{Name: proto.String("Lz"), Field: []*descriptorpb.FieldDescriptorProto{lazy}},
 		&descriptorpb.DescriptorProto{Name: proto.String("Ok"), Field: []*descriptorpb.FieldDescriptorProto{fld("x", 1, i32, opt)}},
+		&descriptorpb.DescriptorProto{Name: proto.String("Leg"), Field: []*descriptorpb.FieldDescriptorProto{fld("x", 1, i32, opt)}},
 		&descriptorpb.DescriptorProto{Name: proto.String("Ind"), Field: []*descriptorpb.FieldDescriptorProto{
 			withType(fld("p", 1, descriptorpb.FieldDescriptorProto_TYPE_MESSAGE, opt), ".p2.P2")}})
 	p3.Dependency = []string{p2.GetName()}
 	s.protocGenGo(t, dir, []*descriptorpb.FileDescriptorProto{p2, ed, p3}, "")
+	// Leg: a generated message given its own codec methods (as APIv1 and gogo types have)
+	must(t, os.WriteFile(filepath.Join(dir, "p3", "leg.go"), []byte("package p3\n\n"+
+		"func (x *Leg) Marshal() ([]byte, error) { return nil, nil }\n\n"+
+		"func (x *Leg) Unmarshal(b []byte) error { return nil }\n"), 0o644))
 	opq := refusedFile("opq", "proto3", &descriptorpb.DescriptorProto{Name: proto.String("Opq"),
 		Field: []*descriptorpb.FieldDescriptorProto{fld("x", 1, i32, opt)}})
 	s.protocGenGo(t, dir, []*descriptorpb.FileDescriptorProto{opq}, ",default_api_level=API_OPAQUE")
 
 	toml := `[protobuf]
 imports = { p2 = "pbgenrand.tmp/p2", ed = "pbgenrand.tmp/ed", p3 = "pbgenrand.tmp/p3", opq = "pbgenrand.tmp/opq" }
-roots = ["p2.P2", "p2.G2", "p2.Ext", "ed.Ed", "p3.Opt", "p3.One", "p3.Mp", "p3.Fl", "p3.Unp", "p3.Lz", "p3.Ind", "opq.Opq"]
+roots = ["p2.P2", "p2.G2", "p2.Ext", "ed.Ed", "p3.Opt", "p3.One", "p3.Mp", "p3.Fl", "p3.Unp", "p3.Lz", "p3.Ind", "p3.Leg", "opq.Opq"]
 `
 	tomlPath := filepath.Join(dir, "protobuf.toml")
 	must(t, os.WriteFile(tomlPath, []byte(toml), 0o644))
@@ -842,6 +847,7 @@ roots = ["p2.P2", "p2.G2", "p2.Ext", "ed.Ed", "p3.Opt", "p3.One", "p3.Mp", "p3.F
 		"field p3.Fl.d (number 2): double",
 		"field p3.Lz.s (number 1): weak or lazy",
 		"field opq.Opq.x (number 1): no exported Go struct field",
+		"message p3.Leg (p3/p3.proto): not an APIv2 message, or with its own Marshal/Unmarshal methods",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("pbgen's refusal does not say %q:\n%s", want, out)

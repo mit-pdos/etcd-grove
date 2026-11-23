@@ -44,12 +44,17 @@ registered Go type; a field with no exported Go struct field (for a oneof member
 wrapper type implementing its holder), or a Go type other than protoc-gen-go's open-struct one
 (e.g. the opaque API's hidden fields, or the hybrid API's `XXX_presence`); exported Go struct
 fields that are no descriptor field's nor a oneof's holder; APIv1 oneofs (an `XXX_OneofFuncs` or
-`XXX_OneofWrappers` method); Go package aliases or generated function names that collide. And
+`XXX_OneofWrappers` method); a Go type that is not an APIv2 message or has its own codec methods
+(`Marshal`, `Unmarshal`, `XXX_Marshal`, `XXX_Unmarshal`, `XXX_Size`: APIv1 and gogo types, which
+protobuf-go runs through its legacy path); Go package aliases or generated function names that collide. And
 two schemas where protobuf-go's own required-field checks are not what the descriptors say
 (`models/internal/pbgenrand`'s TestProtobufQuirks shows both on protobuf-go; the review
-`notes/axiom-review/pbgen.md`, "The proto2 and oneof extension"): a message type that reaches required
-fields only through a cycle of two or more message types (protobuf-go's needsInitCheck caches a
-false for it, depending on which type the program uses first: internal/impl/checkinit.go:137-170);
+`notes/axiom-review/pbgen.md`, "The proto2 and oneof extension"): a message type with no required field of
+its own that reaches one and lies on a cycle of two or more message types, whether or not it also
+reaches required fields outside the cycle (protobuf-go's needsInitCheck can cache a false for
+such a type, depending on which type the program uses first: internal/impl/checkinit.go:137-170;
+refusing every such type, not only those that reach required fields through the cycle alone, is
+conservative);
 a oneof member other than the oneof's first declared one, of a message type that reaches required
 fields (Unmarshal's fast path consults the isInit of the field's own coder, decode.go:189, which
 only the first member's coder has, codec_field.go:83-118: a missing required field in it passes
@@ -388,6 +393,9 @@ class Schema:
                 why.append(f"{where}: Go field {x} is no descriptor field's nor a oneof's holder")
             for x in d["go_hidden"]:
                 why.append(f"{where}: Go field {x} (presence or lazy state: not the open struct API)")
+            if d["legacy_codec"]:
+                why.append(f"{where}: not an APIv2 message, or with its own Marshal/Unmarshal methods "
+                           "(APIv1 or gogo: protobuf-go's legacy path)")
             if d["legacy_oneof_funcs"]:
                 why.append(f"{where}: an XXX_OneofFuncs or XXX_OneofWrappers method (APIv1 oneofs)")
             decls = [o for o in d["oneof_decls"] if not o["synthetic"]]
@@ -430,8 +438,9 @@ class Schema:
                     self.needs_init.add(n)
                     changed = True
         # where protobuf-go's own required-field checks are not what the emitted code checks:
-        # (a) a type that needs them only through a cycle of two or more message types: the
-        # cache of needsInitCheck (internal/impl/checkinit.go:137-170) keeps a wrong false for it,
+        # (a) a type with no required field of its own that reaches one and lies on a cycle of
+        # two or more message types (conservatively, also when it reaches one outside the
+        # cycle): the cache of needsInitCheck (internal/impl/checkinit.go:137-170) keeps a wrong false for it,
         # depending on which type the program uses first; (b) a oneof member other than the
         # oneof's first declared one, of a type that needs them: Unmarshal's fast path consults
         # the isInit of the field's own coder (internal/impl/decode.go:189), which only the first
@@ -449,9 +458,9 @@ class Schema:
             reach[n] = seen
         for n in sorted(self.needs_init - self.direct_req):
             if any(t != n and n in reach.get(t, ()) for t in reach[n]):
-                why.append(f"message {self.full[n]}: reaches required fields only through a cycle of "
-                           "message types (protobuf-go's needsInitCheck may cache false for it; outside "
-                           "the subset)")
+                why.append(f"message {self.full[n]}: no required field of its own, reaches one, and lies "
+                           "on a cycle of two or more message types (protobuf-go's needsInitCheck may "
+                           "cache false for it; outside the subset)")
         for n in self.names:
             for _, on, mem in self.oneofs[n]:
                 for f in mem:

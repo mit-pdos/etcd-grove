@@ -130,3 +130,32 @@ scalars, 57 closed enums), its refusals (`TestRefusals`, `TestProtobufQuirks`), 
 tests beside `examples/models/pbetcd` (now raftpb, walpb, `TxnRequest`/`Compare`/`RequestOp`/
 `ResponseOp`/`InternalRaftRequest`/`WatchRequest`: 66 message types, 232 fields, 13 enums) and
 `models/internal/pbdifftest`, and this review.
+
+## Pre-review of the extension (2026-11-23, upamanyus session, #24, at `884fa47be4`)
+
+Verdict "sound as claimed": no accepted schema on which the emitted code and protobuf-go differ
+beyond the documented deviations (now including that a known oneof member with another wire type is
+an unknown field, dropped). Its reruns: `TestRandomSchemas` at seeds 1, 7 (96 schemas) and 1234 (96
+schemas), `TestRefusals`, `TestProtobufQuirks`. Findings, none unsound, and what was done:
+
+1. The cycle refusal refuses a type with no required field of its own that reaches one and lies on
+   a cycle of two or more message types, also when it reaches one outside the cycle (`A{B b; C c}`,
+   `B{A a}`, `C{required x}`: `A` is refused); the doc and the message said "only through a cycle".
+   Conservative, so not unsound. **Fixed**: the wording (core doc, refusal message, `decisions.md`);
+   the behavior kept.
+2. Every test ran one order of protobuf-go's lazy type setup per process (its `needsInitCheck` is
+   cached per type at first use). **Added** `models/internal/pbgenrand`'s `TestOrders`: a proto2
+   and proto3 schema (a self-loop and a two-type cycle whose types have required fields of their
+   own, a self-loop reaching required fields only outside it, a cycle with no required field, a type
+   outside a cycle reaching one, a oneof whose first member needs the check, unchecked proto2 and
+   checked proto3 strings), the generated tests run in 13 orders, each in a fresh process (an empty
+   message of every type marshaled first, in that order). All agree.
+3. The random schemas never have more than about 10 required fields in a message, and
+   `avoidQuirks` strips the cycles it targets. **Added** to `TestOrders`'s schema a message of 70
+   required fields and the near-miss cycles above, and `TestFullRequired` (each type with every
+   required scalar set, then each missing in turn: Marshal, and Unmarshal of the partial encoding),
+   which reaches the full check past protobuf-go's 64-bit mask.
+4. Defense in depth: `pbdesc` now records a Go type that is not an APIv2 message or has its own
+   codec methods (`Marshal`, `Unmarshal`, `XXX_Marshal`, `XXX_Unmarshal`, `XXX_Size`: APIv1 and
+   gogo), and the core refuses it (protobuf-go's legacy path); `TestRefusals` has one (`p3.Leg`, a
+   generated message given its own `Marshal`/`Unmarshal`).
