@@ -553,6 +553,126 @@ theorem Codec.wp_proof : Codec.spec (GF := GF) (hG := hG) := by
     iapply HΦ'
     itrivial
 
+/-! ## The generator -/
+
+theorem wp_mix (c r : w64) :
+    {{ isPkgInit (PROP := IProp GF) kpkg }}
+      (App (App (Val (@! rabia.examples.rabianet.mix)) (Val #c)) (Val #r))
+    {{ (x : w64), RET #x; True }} := by
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
+
+theorem wp_digit (n : w64) :
+    {{ isPkgInit (PROP := IProp GF) kpkg }}
+      (App (Val (@! rabia.examples.rabianet.digit)) (Val #n))
+    {{ (s : GoString), RET #s; ⌜s.length = 1⌝ }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_slice_literal (V := w8) (t := go.byte) _
+  isplitr
+  · ipureintro; rfl
+  iintro %sl ⟨Hsl, _⟩
+  wp_apply wp_bytes_to_string $$ Hsl as Hsl
+  iapply HΦ
+  ipureintro; rfl
+
+theorem wp_Gen (c j : w64) :
+    {{ isPkgInit (PROP := IProp GF) kpkg }}
+      (App (App (Val (@! rabia.examples.rabianet.Gen)) (Val #c)) (Val #j))
+    {{ (x : In), RET #x; ⌜∃ i : KIn, x = inVal i.1⌝ }} := by
+  wp_start
+  wp_auto
+  wp_apply wp_mix as %m -
+  wp_apply wp_digit as %d %hd
+  have hk : ([107#8, 101#8, 121#8, 48#8, 48#8, 48#8, 48#8] ++ d : GoString).length = 8 := by
+    simp [hd]
+  wp_if_destruct
+  · wp_apply wp_digit as %d1 %hd1
+    wp_apply wp_digit as %d2 %hd2
+    iapply HΦ
+    ipureintro
+    refine ⟨⟨.put _ _, ⟨⟨hk, by simp⟩, by simp [valLen, hd1, hd2]⟩⟩, rfl⟩
+  · iapply HΦ
+    ipureintro
+    exact ⟨⟨.get _, ⟨hk, by simp [valLen]⟩⟩, rfl⟩
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+/-- The namespace of `gens()`'s counters' invariant. -/
+def gensN : Namespace := nroot.@"rabianet_gens"
+
+theorem gens.wp_proof : gens.spec (GF := GF) (hG := hG) := by
+  wp_start
+  simp only [NC]
+  wp_auto
+  wp_apply +noauto wp_slice_make2 (V := w64) (W64 6) $$ [] as %sl ⟨Hsl, -⟩
+  · ipureintro; decide
+  ihave %Hsll := ownSlice_len _ _ _ $$ Hsl
+  have hsl6 : sint.Z sl.len = 6 := by
+    have := Hsll.1; simp only [List.length_replicate] at this; word
+  iapply fupd_wp
+  imod (inv_alloc gensN ⊤ (iprop(∃ vs : List w64, sl ↦* vs ∗ ⌜vs.length = 6⌝) : IProp GF))
+    $$ [Hsl] with #Hinv
+  · inext; iexists _; iframe Hsl; ipureintro; simp
+  imodintro
+  iapply wp_fupd
+  wp_auto
+  ipersist next
+  imodintro
+  iapply HΦ
+  unfold lintest.genSpec
+  iintro %id
+  iintro !> %Φ' %Hid HΦ'
+  have : sync.atomic.Assumptions := Assumptions.import_atomic_Assumption
+  ihave #Hap : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
+  · iPkgInit
+  wp_auto
+  rw [decide_eq_false (show ¬ sint.Z id < sint.Z (W64 0) by
+    rw [show sint.Z (W64 0) = 0 from rfl]; omega)]
+  wp_auto
+  wp_if_destruct
+  · wp_apply wp_Gen as %x %hx
+    iapply HΦ'
+    imodintro
+    ipureintro
+    obtain ⟨i, rfl⟩ := hx
+    exact ⟨i, rfl⟩
+  · have hb : 0 ≤ sint.Z id ∧ sint.Z id < sint.Z sl.len := by
+      refine ⟨Hid, ?_⟩; rw [hsl6]; word
+    rw [ite_eq_left hb]
+    wp_auto
+    wp_apply_core (sync.atomic.wp_AddUint64 (sliceIndexRef w64 (sint.Z id) sl) (W64 1))
+      $$ [] [-Hap]
+    · iexact Hap
+    iinv Hinv with Hi Hclose
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    inext
+    icases Hi with ⟨%vs, Hvs, %Hvl⟩
+    obtain ⟨w, hw⟩ : ∃ w, vs[(sint.Z id).toNat]? = some w :=
+      ⟨_, List.getElem?_eq_getElem (by rw [Hvl]; word)⟩
+    icases (ownSlice_elem_acc (sint.Z id) w sl _ vs Hid hw) $$ Hvs with ⟨Hw, Hback⟩
+    iexists w
+    iframe Hw
+    iintro Hw
+    imod Hmask with -
+    imod Hclose $$ [Hw Hback] with -
+    · inext
+      iexists vs.set (sint.Z id).toNat (w + W64 1)
+      isplitl [Hw Hback]
+      · iapply Hback $$ Hw
+      · ipureintro; simp [Hvl]
+    imodintro
+    wp_auto
+    wp_apply wp_Gen as %x %hx
+    iapply HΦ'
+    imodintro
+    ipureintro
+    obtain ⟨i, rfl⟩ := hx
+    exact ⟨i, rfl⟩
+
 end proof
 
 end rabia.examples.rabianet
