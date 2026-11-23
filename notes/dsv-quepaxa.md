@@ -306,6 +306,13 @@ named after the lab's specs, until each comes as one shared change. **All are in
 
 - Environment: `lake` is `~/.elan/bin/lake` (put `~/.elan/bin` on `PATH` for `etc/lean-check.py`).
 
+- **Linking check (the coordinator's VR finding 7, 2026-11-23)**: the only package fact under
+  `Dsverify/` that is not `True` is `raxos/replica/src`'s `srcState`, established by that package's
+  own variable initializer (`Consensus_ServiceDesc`), not by a hook another package's `init` sets;
+  `raxos/replica/src` is in every node's `PkgTable` and `go list -deps` links it into every command
+  (orch, client0..5, server1..5). No fact relies on a package the program does not link. (The lab's
+  `registerProto` codec hook is gone: protobuf is the hypothesis `PbHyp`, not a package fact.)
+
 ## Which lab run
 
 `quepaxa-bump-1` (dsverify-lab `master` `915f964`, `examples/quepaxa/SOURCE.md`): proof `4ae902e`
