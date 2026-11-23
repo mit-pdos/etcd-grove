@@ -232,6 +232,18 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.google_golang_
 
 end google_golang_org.grpc.stats
 
+-- (phase 7 S2, 2026-11-22) `grpc/internal/grpcsync` (types only: `Event`, the type of `Server`'s
+-- `quit`/`done`), before grpc's, which imports it
+namespace google_golang_org.grpc.internal.grpcsync
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcsync :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.internal.grpcsync :=
+  build_get_is_pkg_init_wf
+
+end google_golang_org.grpc.internal.grpcsync
+
 -- `grpc` (names only; `etcdserverpb`'s streams are its generic interfaces, 2026-10-12: the
 -- request path's `RaftKV` names `KV_RangeStreamServer`), before `etcdserverpb`, which imports it
 /-- grpc's package fact (k8s 7e-1, 2026-11-10): `EnableTracing` (`var EnableTracing bool`, `trace.go:33`

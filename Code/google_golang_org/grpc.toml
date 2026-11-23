@@ -28,7 +28,10 @@ imports = ["!*", "context", "google.golang.org/grpc/metadata", "google.golang.or
   # (phase 7 S1) the types of `serverOptions`' and `dialOptions`' fields, so that the structs are
   # translated
   "time", "io", "net", "google.golang.org/grpc/credentials", "google.golang.org/grpc/keepalive",
-  "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver"]
+  "google.golang.org/grpc/stats", "google.golang.org/grpc/resolver",
+  # (phase 7 S2, 2026-11-22) the types of `Server`'s fields (`cv`, `serveWG`, `quit`), so that it
+  # is a translated struct
+  "sync", "google.golang.org/grpc/internal/grpcsync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
