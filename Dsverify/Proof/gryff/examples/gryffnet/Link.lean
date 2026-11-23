@@ -49,6 +49,7 @@ public import Proof.bufio.Writer__Write
 public import Proof.bufio.Writer__WriteByte
 public import Proof.bufio.Writer__Flush
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
+public import Proof.bufio.NewWriterSizeRep
 
 @[expose] public section
 
@@ -73,7 +74,8 @@ theorem bufioSpecs [bufio.Assumptions] : wire.BufioSpecs GF :=
   ⟨EtcdGrove.bufio.Writer.Write.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof,
     EtcdGrove.bufio.Writer.Flush.wp_proof,
     EtcdGrove.bufio.Writer.WriteByte.wp_proof EtcdGrove.bufio.Writer.Flush.wp_proof,
-    EtcdGrove.bufio.NewWriter.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proof,
+    EtcdGrove.bufio.NewWriter.wp_proof
+      (EtcdGrove.bufio.NewWriterSize.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep),
     EtcdGrove.bufio.NewReader.wp_proofOk
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE),
     EtcdGrove.bufio.Reader.Read.wp_proofOk, EtcdGrove.bufio.Reader.ReadByte.wp_proof⟩
