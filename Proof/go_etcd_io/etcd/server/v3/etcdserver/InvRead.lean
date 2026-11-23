@@ -390,7 +390,11 @@ theorem applyErrIs_of_isCtxErr :
     icombine Hcv HeD gives %Hce
     subst Hce
     obtain ⟨hl, hIs, hty, hkey, hG, hF⟩ := HDl
-    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF $$ HDm
+    -- (errors-is-deadline) `DeadlineExceeded`'s value is `deadlineExceededError{}`
+    ihave #PctxD : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+    · iPkgInit
+    ihave %HdeD := deadlineExceeded_deTypedErr _ $$ PctxD HeD
+    iapply applyErrIs_valLeaf _ hl hIs hty hkey hG hF HdeD $$ HDm
 
 /-- **`rangeKeys`' context error (and its `%w` wrappings) is one the gRPC layer can take**
 (`applyErrIs`; errorf-wrap, 2026-11-06, in place of `applyErrIs_errorf`, which learnt from
