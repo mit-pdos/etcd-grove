@@ -8,6 +8,11 @@ module
 
 public import Net.Proof.net.Base
 public import Dsverify.GeneratedProof.log.slog
+public import Perennial.Proof.context.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.fmt.Base
+public import Perennial.Proof.strconv.Base
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 
