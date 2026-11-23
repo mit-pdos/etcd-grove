@@ -698,10 +698,26 @@ theorem State.InMemory.wp_proof
   ihave #Hroln := strsRO_at g.Role' s.role n hnr $$ HRole
   icases confsRO_at g.Config' s.config n ⟨Hn, by rw [HWf.len_config]; exact Hlt⟩ $$ HConfig with ⟨%gcn, #Hgcn, #Hcn⟩
   wp_join iprop(∃ (gv : GoSlice) (v : SSet),
-      viol_ptr ↦ gv ∗ strsRO gv v ∗ ⌜v.length ≤ s.viol.length + 3 ∧ jpF () v = .ok r⌝)
-    at next with [viol] as ⟨%gv3, %v3, viol, #Hv3, %HjpF⟩
+      s_ptr ↦ p ∗ n_ptr ↦ n ∗ viol_ptr ↦ gv ∗ strsRO gv v ∗ ⌜v.length ≤ s.viol.length + 3 ∧ jpF () v = .ok r⌝)
+    at next with [s n viol] as ⟨%gv3, %v3, s, n, viol, #Hv3, %HjpF⟩
   · wp_apply wp_role e ev rl $$ [He]
     · iframe He; ipureintro; exact hrl
+    by_cases h1 : rl = candidate
+    case neg =>
+      rw [decide_eq_false (show ¬ rl = [99#8, 97#8, 110#8, 100#8, 105#8, 100#8, 97#8, 116#8, 101#8] from h1)]
+      rw [beq_of_ne' h1] at HjpU
+      simp only [Bool.false_and, Bool.false_eq_true, ite_false] at HjpU
+      wp_auto
+      wp_join_done
+      iexists gv2, v2
+      iframe
+      isplitr; · iexact Hv2
+      ipureintro; exact ⟨by omega, HjpU⟩
+    rw [decide_eq_true (show rl = [99#8, 97#8, 110#8, 100#8, 105#8, 100#8, 97#8, 116#8, 101#8] from h1)]
+    rw [beq_of_eq' h1] at HjpU
+    wp_auto
+    wp_apply wp_load_at _ _ _ Hn $$ [Hroln] as -
+    · iexact Hroln
     trace_state
     sorry
   clear HjpU
