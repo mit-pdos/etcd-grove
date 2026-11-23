@@ -105,7 +105,30 @@ proof→linking, 15 proof→proof: package proofs importing callees' `Results`, 
 importing proofs); the new files (statement, `TopLevelDefs`, `JsonHyps`, `LibHyps`, `Link`) add
 none. Restructure before landing.
 
-BUILD/AXIOMS: see "Checks (round 4)" below (filled in after fk-lean1's build).
+**Checks (round 4, head `22684c5047`):**
+- fk-lean1: `lake build` of vr's `TopLevelRobustness` and the five landed ones (swiftnet, epaxosnet,
+  paxosnet, rabianet, quepaxanet): green (4990 jobs). `#print axioms` (`lake env lean` of a scratch
+  file there) of `vr_remote_robust` and the five landed theorems: `propext`, `Classical.choice`,
+  `Quot.sound` only. (The `sorry` warnings in the log are goose's generated-proof stubs, e.g.
+  `GeneratedProof/log/slog.lean`, not in any closure.)
+- Here: `gen-init.py --check` clean (271 files); `goose.py --check --project dsv-vr` clean;
+  `proof_roots.namespace()` = `Perennial.EtcdGrove.` (= lean's); `tier-check`: 144 new violations
+  (above); `dups.py`: no real duplicate. `errorf-wrap-check.py` needs `.lake/tcb.json` of a full
+  build (`tcb-report.py` refused: 409 modules out of date on fk-lean1's worktree), so not run; vr's
+  Go calls no `fmt.Errorf` (its inits use `errors.New`).
+- Fixed on the way: `Proof/network/Ghost.lean` (lean's `OpError.Error` model maps an empty
+  `AnyString` to `"error"`).
+- No landed statement changed (Upamanyu's rule): the `bufio.errOrNil` move only relocates two
+  identical definitions; swiftpaxos's and epaxos's statements are untouched and rebuild green.
+
+**Not done, not JSON:** `log/slog` (7 specs in `LibHyps`, plus `log.slog.InitHyp`): the landed
+`models/log/slog` translates with bodies (tried: `std_models += ["log/slog"]`, `slog.toml`
+translate-all; patch in the coordinator's scratchpad `vr-slog-translate.patch`), so the specs could be
+proved from the model (DiscardHandler's `Enabled` is false) and the InitHyp generated; needs a
+gen-init entry with the package fact (the two globals) and the proofs. Note `New.spec` as stated
+(any handler) is **false of Go** (`New(nil)` panics): narrow it to `DiscardHandler`'s value when
+proving it. `connReaderOk` (finding 5) needs Perennial's `ReadAtLeast` premise narrowed to
+`ys.length < min` (perennial-readatleast-prefix) or an exact count in Net's `Conn.Read` spec.
 
 **After J1 and jsongen land:** (1) regenerate the kit's codec with jsongen (`json.toml` as is; the
 real `RegisterJSON` replaces `register*.go`); (2) prove `RegisterJSON.codecSet_spec` from J2's
