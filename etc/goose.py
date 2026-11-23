@@ -934,8 +934,9 @@ PROJECTS = [
         lean_roots=["models.lab=Net", "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=",
                     "internal/syscall=", "bufio=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
                     "golang.org/x/net/http/httpguts=Net", "go/token=Net", "mime/multipart=Net"],
+        # (`net/http/internal/ascii`: names only, what `readTransfer`'s `parseTransferEncoding` names)
         packages=["net/rpc", "net/http", "net/textproto", "vendor/golang.org/x/net/http/httpguts",
-                  "go/token", "mime/multipart"],
+                  "go/token", "mime/multipart", "net/http/internal/ascii"],
         owned=[os.path.join("net", "rpc"), os.path.join("net", "http"),
                os.path.join("net", "textproto"), os.path.join("mime", "multipart"),
                os.path.join("vendor", "golang_org", "x", "net", "http", "httpguts"),

@@ -80,6 +80,48 @@ noncomputable def isASCII [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def PunycodeHostPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"vendor/golang.org/x/net/http/httpguts.PunycodeHostPort"
 
+/-- HeaderValuesContainsToken reports whether any string in values
+    contains the provided token, ASCII case-insensitively.
+
+    go: httplex.go:101:6 -/
+noncomputable def HeaderValuesContainsToken.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "values"
+  (Lam "token"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "token" (App (Val (GoInstruction (GoAlloc go.string))) (Var "token"))
+  (Let "values" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "values"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "values"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (App (App (App (Val (GoInstruction (FuncResolve headerValueContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.vendor.golang_org.x.net.http.httpguts where
   pkgImportedPkgs := []
 
@@ -98,7 +140,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val badTrailer.init) (Val #()))))))))
 
-class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  HeaderValuesContainsToken_unfold : FuncUnfold HeaderValuesContainsToken [] HeaderValuesContainsToken.impl
+
+attribute [instance] Assumptions.HeaderValuesContainsToken_unfold
 
 end vendor.golang_org.x.net.http.httpguts
 

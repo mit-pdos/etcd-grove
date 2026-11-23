@@ -1,6 +1,8 @@
 # Project models-net (etc/goose.py): `net/textproto`, names and types only (the net/http model's
 # server and `ReadResponse` call `CanonicalMIMEHeaderKey` and name `MIMEHeader`, `ProtocolError`;
 # the model's head parser, `models/net/http/textproto_model.go`, replaces what they would read).
-translate = ["!*"]
+# With their bodies (2026-11-23): `CanonicalMIMEHeaderKey`'s quick check and `MIMEHeader.Del`, which
+# net/http's `Header.Del` runs (readTransfer's `fixLength` deletes "Content-Length").
+translate = ["!*", "CanonicalMIMEHeaderKey", "validHeaderFieldByte", "MIMEHeader.Del"]
 imports = ["!*"]
 translate_types = true

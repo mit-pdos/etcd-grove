@@ -1,6 +1,7 @@
 # Project models-net (etc/goose.py): Go 1.27.3's vendored `golang.org/x/net/http/httpguts`, names
 # only (the net/http model's server calls `ValidHeaderFieldName`, `ValidHeaderFieldValue`,
 # `ValidHostHeader`).
-translate = ["!*"]
+# With its body (2026-11-23): `HeaderValuesContainsToken`, which net/http's `shouldClose` runs.
+translate = ["!*", "HeaderValuesContainsToken"]
 imports = ["!*"]
 translate_types = true

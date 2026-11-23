@@ -7,6 +7,7 @@ public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.io
 public import Perennial.Code.log
+public import Net.Code.net.http.internal.ascii
 public import Code.net.url
 public import Perennial.Code.strings
 public import Perennial.Code.sync
@@ -2269,6 +2270,12 @@ noncomputable def trimLine [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def modelReadMIMEHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.modelReadMIMEHeader"
 
+noncomputable def modelCutByte [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelCutByte"
+
+noncomputable def modelTrimLeftByte [GooseExts] [GoGlobalContext] : GoString :=
+  go!"net/http.modelTrimLeftByte"
+
 noncomputable def modelChunked [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.modelChunked"
 
@@ -2380,6 +2387,233 @@ noncomputable def cloneTLSConfig [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultTransportDialContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.defaultTransportDialContext"
 
+/-- Del deletes the values associated with key.
+    The key is case insensitive; it is canonicalized by
+    [CanonicalHeaderKey].
+
+    go: header.go:80:17 -/
+noncomputable def Header.Del.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "key"
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc Header.ty))) (Var "h"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.textproto.MIMEHeader.ty go!"Del"))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "h"))) (Var "$a0")))))))
+  (Val #()))))
+
+/-- go: request.go:97:6 -/
+noncomputable def badStringError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "what"
+  (Lam "val"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "val" (App (Val (GoInstruction (GoAlloc go.string))) (Var "val"))
+  (Let "what" (App (Val (GoInstruction (GoAlloc go.string))) (Var "what"))
+  (Let "$r0" (Let "$a0" (Val #(go!"%s %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "what")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "val")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- ParseHTTPVersion parses an HTTP version string according to RFC 7230, section 2.6.
+    "HTTP/1.0" returns (1, 0, true). Note that strings without
+    a minor version, such as "HTTP/2", are not valid.
+
+    go: request.go:827:6 -/
+noncomputable def ParseHTTPVersion.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "vers"
+  (Let "major" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res0" (Var "major")
+  (Let "minor" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "$res1" (Var "minor")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res2" (Var "ok")
+  (Seq (App (Val exceptionDo)
+  (Let "vers" (App (Val (GoInstruction (GoAlloc go.string))) (Var "vers"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "vers"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 5))) (Val #(W64 6)))))
+  (Let "$a1" (Val #(W64 10))
+  (Let "$a2" (Val #(W64 0))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.ParseUint []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "maj" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "vers"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 7))) (Val #(W64 8)))))
+  (Let "$a1" (Val #(W64 10))
+  (Let "$a2" (Val #(W64 0))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.ParseUint []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "min" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "maj")))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.uint64 go.int))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "min")))
+  (Let "$r2" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #(W64 0))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "min") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #(W64 0))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "maj") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "vers")) (Val #(W64 6)))) (Val #(W8 46))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #(W64 0))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "vers"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 8))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #(W64 0))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "vers"))
+  (Let "$a1" (Val #(go!"HTTP/"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.HasPrefix []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Val #(W64 0))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (Var "vers"))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"HTTP/1.1"))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "$r1" (Val #(W64 1))
+  (Let "$r2" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"HTTP/1.0"))))
+  (Let "$r0" (Val #(W64 1))
+  (Let "$r1" (Val #(W64 0))
+  (Let "$r2" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.int))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2")))))))))))
+
 /-- ReadResponse reads and returns an HTTP response from r.
     The req parameter optionally specifies the [Request] that corresponds
     to this [Response]. If nil, a GET request is assumed.
@@ -2415,8 +2649,8 @@ noncomputable def ReadResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "line"))
-  (Let "$a1" (Val #(go!" "))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Cut []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$a1" (Val #(W8 32))
+  (App (App (App (Val (GoInstruction (FuncResolve modelCutByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
@@ -2433,12 +2667,12 @@ noncomputable def ReadResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "proto"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "status"))
-  (Let "$a1" (Val #(go!" "))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.TrimLeft []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$a1" (Val #(W8 32))
+  (App (App (App (Val (GoInstruction (FuncResolve modelTrimLeftByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Response.ty go!"Status"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "resp"))))
-  (Let "$a1" (Val #(go!" "))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Cut []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$a1" (Val #(W8 32))
+  (App (App (App (Val (GoInstruction (FuncResolve modelCutByte []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Fst (Var "__p")))
   (Let "$ret1" (Snd (Fst (Var "__p")))
   (Let "$ret2" (Snd (Var "__p"))
@@ -2662,6 +2896,57 @@ noncomputable def ReadResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Response.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- RFC 7234, section 5.4: Should treat
+
+    	Pragma: no-cache
+
+    like
+
+    	Cache-Control: no-cache
+
+    go: response.go:221:6 -/
+noncomputable def fixPragmaCacheControl.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "header"
+  (Seq (App (Val exceptionDo)
+  (Let "header" (App (Val (GoInstruction (GoAlloc Header.ty))) (Var "header"))
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "header"))) (Val #(go!"Pragma")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "hp" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "hp"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "hp")) (Val #(W64 0))))) (Val #(go!"no-cache")))) (Val #false))
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "header"))) (Val #(go!"Cache-Control")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "presentcc" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "presentcc")))
+  (Let "$r0" (Let "$v0" (Val #(go!"no-cache"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "header"))) (Val #(go!"Cache-Control"))) (Var "$r0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "presentcc") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "hp") (Var "$r0"))))))))))))))
+  (Val #())))
 
 /-- go: server.go:311:16 -/
 noncomputable def conn.hijacked.impl [GooseExts] [GoGlobalContext] : val :=
@@ -5897,9 +6182,105 @@ noncomputable def modelReadMIMEHeader.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.textproto.MIMEHeader.ty))) (Pair (Var "m") (Var "$r0"))))))))))
   (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.net.textproto.MIMEHeader.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
+/-- modelCutByte is strings.Cut(s, string(sep)) for a byte sep (the model's ReadResponse and
+    parseRequestLine call it in place of strings.Cut, which Perennial translates as a name only:
+    notes/perennial-changes.md): the text before and after the first sep, and true; or s, "" and
+    false when s holds none. strings.Cut finds the first instance with strings.Index, which for a
+    one-byte separator is the first index of that byte.
+
+    go: textproto_model.go:164:6 -/
+noncomputable def modelCutByte.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "sep"
+  (Let "before" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res0" (Var "before")
+  (Let "after" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (Var "after")
+  (Let "found" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res2" (Var "found")
+  (Seq (App (Val exceptionDo)
+  (Let "sep" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "sep"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$r1" (Val #(go!""))
+  (Let "$r2" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "sep")))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (Let "$r1" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (Let "$r2" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res2"))))))))))))
+
+/-- modelTrimLeftByte is strings.TrimLeft(s, string(c)) for an ASCII byte c (the model's ReadResponse
+    calls it in place of strings.TrimLeft, a name only in Perennial's translation): Go's TrimLeft of a
+    one-byte ASCII cutset is strings' trimLeftByte, this loop.
+
+    go: textproto_model.go:176:6 -/
+noncomputable def modelTrimLeftByte.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "c"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 0)))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
+  (Lam BAnon
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- modelChunked stands for a chunked body's reader: not modelled.
 
-    go: textproto_model.go:160:6 -/
+    go: textproto_model.go:184:6 -/
 noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
@@ -5910,8 +6291,965 @@ noncomputable def modelChunked.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res0")))))
 
+/-- go: transfer.go:257:6 -/
+noncomputable def noResponseBodyExpected.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "requestMethod"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "requestMethod" (App (Val (GoInstruction (GoAlloc go.string))) (Var "requestMethod"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "requestMethod")) (Val #(go!"HEAD"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- go: transfer.go:462:26 -/
+noncomputable def transferReader.protoAtLeast.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "m"
+  (Lam "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType transferReader.ty)))) (Var "t"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (Var "n"))
+  (Let "m" (App (Val (GoInstruction (GoAlloc go.int))) (Var "m"))
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "m")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "m")))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "n")))) (Val #false)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
+
+/-- bodyAllowedForStatus reports whether a given response status code
+    permits a body. See RFC 7230, section 3.3.
+
+    go: transfer.go:468:6 -/
+noncomputable def bodyAllowedForStatus.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "status"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "status" (App (Val (GoInstruction (GoAlloc go.int))) (Var "status"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (If (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "status")) (Val #(W64 100)))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "status")) (Val #(W64 199)))) (Val #false))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "status")) (Val #(W64 204))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "status")) (Val #(W64 304))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- msg is *Request or *Response.
+
+    go: transfer.go:498:6 -/
+noncomputable def readTransfer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "msg"
+  (Lam "r"
+  (Lam "maxTrailerHeaders"
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res0" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "maxTrailerHeaders" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "maxTrailerHeaders"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "r"))
+  (Let "msg" (App (Val (GoInstruction (GoAlloc go.any))) (Var "msg"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc transferReader.ty))) (Let "$v0" (Val #(go!"GET"))
+  (App (Val (GoInstruction (CompositeLiteral transferReader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RequestMethod")) (ElementExpression go.string (Var "$v0")))]))))
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType transferReader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType transferReader.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (Let "isResponse" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "isResponse"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"StatusCode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"RequestMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a3" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a4" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Chunked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (App (App (App (App (Val (GoInstruction (FuncResolve fixLength []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "realLength" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Trailer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Chunked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad go.int64))) (Var "maxTrailerHeaders"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve fixTrailer []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "msg"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Request.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "rr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Request.ty)))) (Var "$x"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ContentLength"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Trailer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Request.ty go!"Trailer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Request.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Chunked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$r0" (Let "$v0" (Val #(go!"chunked"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef Request.ty go!"TransferEncoding"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Request.ty go!"ContentLength"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Request.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))) (Var "$r0")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Response.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "rr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Response.ty)))) (Var "$x"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ContentLength"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Trailer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Response.ty go!"Trailer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef Response.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Chunked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$r0" (Let "$v0" (Val #(go!"chunked"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef Response.ty go!"TransferEncoding"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef Response.ty go!"ContentLength"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Response.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))))))))))
+  (Let "$sw" (Val #true)
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Chunked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isResponse")) (If (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"RequestMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve noResponseBodyExpected []))) (Val #())) (Var "$a0"))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"StatusCode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve bodyAllowedForStatus []))) (Val #())) (Var "$a0"))))) (Val #false))
+  (Let "$r0" (App (Val (GoInstruction (Convert noBody.ty _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (GoLoad noBody.ty))) (App (Val (GoInstruction (GlobalVarAddr NoBody))) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType body.ty) _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (GoAlloc body.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "r")))
+  (App (App (Val (GoInstruction (FuncResolve modelChunked []))) (Val #())) (Var "$a0")))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.any))) (Var "msg"))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "r"))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad go.int64))) (Var "maxTrailerHeaders"))
+  (App (Val (GoInstruction (CompositeLiteral body.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"src")) (ElementExpression _root_.Perennial.io.Reader.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"hdr")) (ElementExpression go.any (Var "$v1"))), (KeyedElement (some (KeyField go!"r")) (ElementExpression (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) (Var "$v2"))), (KeyedElement (some (KeyField go!"closing")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"maxTrailerHeaders")) (ElementExpression go.int64 (Var "$v4")))])))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "realLength")) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert noBody.ty _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (GoLoad noBody.ty))) (App (Val (GoInstruction (GlobalVarAddr NoBody))) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoGt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "realLength")) (Val #(W64 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType body.ty) _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (GoAlloc body.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "r")))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "realLength"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.io.LimitReader []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (Val (GoInstruction (CompositeLiteral body.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"src")) (ElementExpression _root_.Perennial.io.Reader.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"closing")) (ElementExpression go.bool (Var "$v1")))]))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType body.ty) _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (GoAlloc body.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "r"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (Val (GoInstruction (CompositeLiteral body.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"src")) (ElementExpression (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"closing")) (ElementExpression go.bool (Var "$v1")))]))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert noBody.ty _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (GoLoad noBody.ty))) (App (Val (GoInstruction (GlobalVarAddr NoBody))) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.ReadCloser.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Body"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))))))))))
+  (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "msg"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Response.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "realLength")) (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Chunked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"StatusCode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (App (App (Val (GoInstruction (FuncResolve bodyAllowedForStatus []))) (Val #())) (Var "$a0"))) (Val #false))
+  (Let "$r0" (Val #true)
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))
+  (App (Val doExecute)
+  (Val #()))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isResponse")) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"RequestMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))) (Val #(go!"HEAD")))) (Val #false))
+  (Let "__p" (Let "$a0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))) (Val #(go!"Content-Length")))
+  (App (App (Val (GoInstruction (FuncResolve parseContentLength []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "n"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ContentLength"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (Var "$r0"))))))))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "realLength"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ContentLength"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "realLength") (Var "$r0")))))))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType transferReader.ty) go!"parseTransferEncoding"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Val #()))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))) (Val #(W64 0)))) (Val #false)))
+  (Let "$l0" (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))
+  (Let "$l1" (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t")))
+  (Let "$r0" (Val #(W64 1))
+  (Let "$r1" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$l1") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$l0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "msg"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Response.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "rr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Response.ty)))) (Var "$x"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef Response.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Response.ty go!"StatusCode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Response.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Response.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a3" (Val #true)
+  (App (App (App (App (App (Val (GoInstruction (FuncResolve shouldClose []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Request.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (App (Val (GoInstruction (StructFieldRef Response.ty go!"Request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr")))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Request.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"Method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (App (Val (GoInstruction (StructFieldRef Response.ty go!"Request"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Response.ty)))) (Var "rr"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"RequestMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isResponse") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"StatusCode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType Request.ty)))) (Var "$y"))
+  (Let "$x" (Fst (Var "__p"))
+  (Let "$ok" (Snd (Var "__p"))
+  (If (Var "$ok")
+  (Let "rr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Request.ty)))) (Var "$x"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"Method"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 200))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef Request.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Request.ty)))) (Var "rr"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"StatusCode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMinor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"ProtoMajor"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"RequestMethod"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected type")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isResponse") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType transferReader.ty)))) (Pair (Var "t") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))))
+
+/-- parseTransferEncoding sets t.Chunked based on the Transfer-Encoding header.
+
+    go: transfer.go:639:26 -/
+noncomputable def transferReader.parseTransferEncoding.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType transferReader.ty)))) (Var "t"))
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))) (Val #(go!"Transfer-Encoding")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "present" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "raw" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Chunked"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "raw")) (Val #(W64 0)))))
+  (Let "$a1" (Val #(go!"chunked"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.http.internal.ascii.EqualFold []))) (Val #())) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType unsupportedTEError.ty) go.error))) (App (Val (GoInstruction (GoAlloc unsupportedTEError.ty))) (Let "$v0" (Let "$a0" (Val #(go!"unsupported transfer encoding: %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "raw")) (Val #(W64 0))))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral unsupportedTEError.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "raw"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType unsupportedTEError.ty) go.error))) (App (Val (GoInstruction (GoAlloc unsupportedTEError.ty))) (Let "$v0" (Let "$a0" (Val #(go!"too many transfer encodings: %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.string) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "raw")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral unsupportedTEError.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (Val #(W64 1))
+  (Let "$a1" (Val #(W64 1))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType transferReader.ty) go!"protoAtLeast"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))) (Var "$a0")) (Var "$a1")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad Header.ty))) (App (Val (GoInstruction (StructFieldRef transferReader.ty go!"Header"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType transferReader.ty)))) (Var "t"))))
+  (Let "$a1" (Val #(go!"Transfer-Encoding"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [Header.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "present")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "present") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "raw") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- Determine the expected body length, using RFC 7230 Section 3.3. This
+    function is not a method, because ultimately it should be shared by
+    ReadResponse and ReadRequest.
+
+    go: transfer.go:669:6 -/
+noncomputable def fixLength.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "isResponse"
+  (Lam "status"
+  (Lam "requestMethod"
+  (Lam "header"
+  (Lam "chunked"
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res0" (Var "n")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res1" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "chunked" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "chunked"))
+  (Let "header" (App (Val (GoInstruction (GoAlloc Header.ty))) (Var "header"))
+  (Let "requestMethod" (App (Val (GoInstruction (GoAlloc go.string))) (Var "requestMethod"))
+  (Let "status" (App (Val (GoInstruction (GoAlloc go.int))) (Var "status"))
+  (Let "isResponse" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "isResponse"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "isResponse")))
+  (Let "isRequest" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "header"))) (Val #(go!"Content-Length")))
+  (Let "contentLens" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isRequest"))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Content-Length"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Header.ty) go!"Del"))) (Var "header")) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "contentLens"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "n"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "chunked"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Content-Length"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Header.ty) go!"Del"))) (Var "header")) (Var "$a0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.int))) (Var "status"))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 304)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 204)))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoOp GoDiv go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "status")) (Val #(W64 100)))) (Val #(W64 1)))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isResponse")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "requestMethod"))
+  (App (App (Val (GoInstruction (FuncResolve noResponseBodyExpected []))) (Val #())) (Var "$a0"))) (Val #false))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "contentLens"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "contentLens"))
+  (App (App (Val (GoInstruction (FuncResolve parseContentLength []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int64))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "contentLens"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "contentLens")) (Val #(W64 0)))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.textproto.TrimString []))) (Val #())) (Var "$a0")))
+  (Let "first" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "header"))) (Val #(go!"Content-Length")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "contentLens") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Content-Length"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "first"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Header.ty) go!"Add"))) (Var "header")) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Content-Length"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Header.ty) go!"Del"))) (Var "header")) (Var "$a0")))))))
+  (Let "$range" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "contentLens"))
+  (App (Val (GoInstruction (Slice (go.GoType.SliceType go.string)))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$s")))))
+  (Let "ct" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "first")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "ct"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.net.textproto.TrimString []))) (Val #())) (Var "$a0")))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (Let "$a0" (Val #(go!"http: message cannot contain multiple Content-Length headers; got %q"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.string) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "contentLens")))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "ct") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "first") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "contentLens") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isRequest") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))))))
+
+/-- Determine whether to hang up after sending a request and body, or
+    receiving a response and body
+    'header' is the request headers.
+
+    go: transfer.go:756:6 -/
+noncomputable def shouldClose.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "major"
+  (Lam "minor"
+  (Lam "header"
+  (Lam "removeCloseHeader"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "removeCloseHeader" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "removeCloseHeader"))
+  (Let "header" (App (Val (GoInstruction (GoAlloc Header.ty))) (Var "header"))
+  (Let "minor" (App (Val (GoInstruction (GoAlloc go.int))) (Var "minor"))
+  (Let "major" (App (Val (GoInstruction (GoAlloc go.int))) (Var "major"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (map.lookup1 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "header"))) (Val #(go!"Connection")))
+  (Let "conv" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "conv"))
+  (Let "$a1" (Val #(go!"close"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.vendor.golang_org.x.net.http.httpguts.HeaderValuesContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "hasClose" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasClose"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasClose")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "removeCloseHeader")) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Connection"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Header.ty) go!"Del"))) (Var "header")) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "major")) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "minor")) (Val #(W64 0)))) (Val #false)))
+  (Let "$r0" (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasClose")) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "conv"))
+  (Let "$a1" (Val #(go!"keep-alive"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.vendor.golang_org.x.net.http.httpguts.HeaderValuesContainsToken []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "hasClose") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "conv") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "major")) (Val #(W64 1)))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))))
+
+/-- Parse the trailer header.
+
+    go: transfer.go:775:6 -/
+noncomputable def fixTrailer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "header"
+  (Lam "chunked"
+  (Lam "maxHeaders"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Header.ty))) (App (Val (GoInstruction (GoZeroVal Header.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "maxHeaders" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "maxHeaders"))
+  (Let "chunked" (App (Val (GoInstruction (GoAlloc go.bool))) (Var "chunked"))
+  (Let "header" (App (Val (GoInstruction (GoAlloc Header.ty))) (Var "header"))
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.SliceType go.string))) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "header"))) (Val #(go!"Trailer")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "vv" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [Header.ty]))) (Val #())) (Val #()))
+  (Let "trailer" (App (Val (GoInstruction (GoAlloc Header.ty))) (App (Val (GoInstruction (GoZeroVal Header.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Header.ty))) (Var "trailer"))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Header.ty))) (Var "trailer"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Header.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Header.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Header.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vv"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (Let "$a1" (Lam "key"
+  (Seq (App (Val exceptionDo)
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (FuncResolve CanonicalHeaderKey []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad Header.ty))) (Var "trailer"))) (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))) (Var "$r0"))))))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"Content-Length")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"Trailer")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"Transfer-Encoding"))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$r0" (Let "$a0" (Val #(go!"bad trailer key"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (App (Val (GoInstruction (FuncResolve badStringError []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "key") (Var "$r0"))))))))
+  (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve foreachHeaderElement []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "trailer") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "vv"))
+  (Let "v" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (slice.forRange go.string)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "maxHeaders")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Header.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errTooLarge))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "maxHeaders") (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "maxHeaders")) (App (Val (GoInstruction (Convert go.int go.int64))) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "v"))
+  (Let "$a1" (Val #(go!","))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Count []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 1)))))))))))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "v") (Var "$value")))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"Trailer"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Header.ty) go!"Del"))) (Var "header")) (Var "$a0")))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "chunked")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Header.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil Header.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Header.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "vv") (Var "$r0"))))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad Header.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.net.http where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.crypto.tls, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.net.url, pkg_id.strings, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.vendor.golang_org.x.net.http.httpguts, pkg_id.net, pkg_id.mime.multipart, pkg_id.net.textproto, pkg_id.strconv, pkg_id.path, pkg_id.bufio, pkg_id.runtime]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.crypto.tls, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.log, pkg_id.net.http.internal.ascii, pkg_id.net.url, pkg_id.strings, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.vendor.golang_org.x.net.http.httpguts, pkg_id.net, pkg_id.mime.multipart, pkg_id.net.textproto, pkg_id.strconv, pkg_id.path, pkg_id.bufio, pkg_id.runtime]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -5919,6 +7257,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.net.http)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -6312,6 +7651,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.log.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.net.http.internal.ascii.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))
   (App (Val doExecute)

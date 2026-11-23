@@ -175,6 +175,149 @@ noncomputable def isASCIILetter [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewWriter [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/textproto.NewWriter"
 
+/-- Del deletes the values associated with key.
+
+    go: header.go:54:21 -/
+noncomputable def MIMEHeader.Del.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "h"
+  (Lam "key"
+  (Seq (App (Val exceptionDo)
+  (Let "h" (App (Val (GoInstruction (GoAlloc MIMEHeader.ty))) (Var "h"))
+  (Let "key" (App (Val (GoInstruction (GoAlloc go.string))) (Var "key"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "h"))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
+  (App (App (Val (GoInstruction (FuncResolve CanonicalMIMEHeaderKey []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [MIMEHeader.ty]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Val #()))))
+
+/-- CanonicalMIMEHeaderKey returns the canonical format of the
+    MIME header key s. The canonicalization converts the first
+    letter and any letter following a hyphen to upper case;
+    the rest are converted to lowercase. For example, the
+    canonical key for "accept-encoding" is "Accept-Encoding".
+    MIME header keys are assumed to be ASCII only.
+    If s contains a space or invalid header field bytes as
+    defined by RFC 9112, it is returned without modifications.
+
+    go: reader.go:662:6 -/
+noncomputable def CanonicalMIMEHeaderKey.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (Let "$r0" (Val #true)
+  (Let "upper" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 45))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "upper") (Var "$r0")))))))
+  (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "upper"))) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 65)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 90)))) (Val #false))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
+  (App (App (Val (GoInstruction (FuncResolve canonicalMIMEHeaderKey []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "upper")) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (Val #(W8 97)) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 122)))) (Val #false))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoLoad go.string))) (Var "s")))
+  (App (App (Val (GoInstruction (FuncResolve canonicalMIMEHeaderKey []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Var "$r1")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "c"))
+  (App (App (Val (GoInstruction (FuncResolve validHeaderFieldByte []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "c") (Var "$r0")))))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "upper") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
+
+/-- validHeaderFieldByte reports whether c is a valid byte in a header
+    field name. RFC 7230 says:
+
+    	header-field   = field-name ":" OWS field-value OWS
+    	field-name     = token
+    	tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
+    	        "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
+    	token = 1*tchar
+
+    go: reader.go:693:6 -/
+noncomputable def validHeaderFieldByte.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "c"))
+  (let mask := #(116972063611741436228934278030836105216 : Int);
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "c"))))) (Val #(W64 288068722172624896)))) (App (Val (GoInstruction (GoOp GoAnd go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (Val #(W64 1)) (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (GoOp GoSub go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "c")) (Val #(W8 64))))))) (Val #(W64 6341068274398134270)))))) (Val #(W64 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
 noncomputable instance info' : PkgInfo pkg_id.net.textproto where
   pkgImportedPkgs := []
 
@@ -208,10 +351,15 @@ class MIMEHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq MIMEHeader.ty MIMEHeader.underlying
   method_set : go.MethodSetIs MIMEHeader.ty [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType MIMEHeader.ty) [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Values", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)])))]
+  Del_unfold : MethodUnfold MIMEHeader.ty go!"Del" MIMEHeader.Del.impl
+  ptr_Del_unfold : MethodUnfold (go.GoType.PointerType MIMEHeader.ty) go!"Del" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve MIMEHeader.ty go!"Del"))) (App (Val (GoInstruction (GoLoad MIMEHeader.ty))) (Var "$r"))))
 
 attribute [instance] MIMEHeader.TypeAssumptions.underlying
   MIMEHeader.TypeAssumptions.method_set
   MIMEHeader.TypeAssumptions.ptr_method_set
+  MIMEHeader.TypeAssumptions.Del_unfold
+  MIMEHeader.TypeAssumptions.ptr_Del_unfold
 
 opaque Pipeline.nonempty_type : NonemptyType.{0}
 def Pipeline : Type := Pipeline.nonempty_type.type
@@ -456,6 +604,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Conn_instance : Conn.TypeAssumptions
   Writer_instance : Writer.TypeAssumptions
   dotWriter_instance : dotWriter.TypeAssumptions
+  CanonicalMIMEHeaderKey_unfold : FuncUnfold CanonicalMIMEHeaderKey [] CanonicalMIMEHeaderKey.impl
+  validHeaderFieldByte_unfold : FuncUnfold validHeaderFieldByte [] validHeaderFieldByte.impl
 
 attribute [instance] Assumptions.MIMEHeader_instance
   Assumptions.Pipeline_instance
@@ -467,6 +617,8 @@ attribute [instance] Assumptions.MIMEHeader_instance
   Assumptions.Conn_instance
   Assumptions.Writer_instance
   Assumptions.dotWriter_instance
+  Assumptions.CanonicalMIMEHeaderKey_unfold
+  Assumptions.validHeaderFieldByte_unfold
 
 end net.textproto
 

@@ -12,6 +12,7 @@ public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Net.GeneratedProof.mime.multipart
 public import Net.GeneratedProof.net
+public import Net.GeneratedProof.net.http.internal.ascii
 public import Net.GeneratedProof.net.textproto
 public import GeneratedProof.net.url
 public import GeneratedProof.path

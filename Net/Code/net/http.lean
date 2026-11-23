@@ -162,20 +162,32 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   tlsHandshakeTimeoutError_instance : tlsHandshakeTimeoutError.TypeAssumptions
   fakeLocker_instance : fakeLocker.TypeAssumptions
   connLRU_instance : connLRU.TypeAssumptions
+  badStringError_unfold : FuncUnfold badStringError [] badStringError.impl
+  ParseHTTPVersion_unfold : FuncUnfold ParseHTTPVersion [] ParseHTTPVersion.impl
   ReadResponse_unfold : FuncUnfold ReadResponse [] ReadResponse.impl
+  fixPragmaCacheControl_unfold : FuncUnfold fixPragmaCacheControl [] fixPragmaCacheControl.impl
   Handle_unfold : FuncUnfold Handle [] Handle.impl
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   ListenAndServe_unfold : FuncUnfold ListenAndServe [] ListenAndServe.impl
   modelReadLine_unfold : FuncUnfold modelReadLine [] modelReadLine.impl
   trimLine_unfold : FuncUnfold trimLine [] trimLine.impl
   modelReadMIMEHeader_unfold : FuncUnfold modelReadMIMEHeader [] modelReadMIMEHeader.impl
+  modelCutByte_unfold : FuncUnfold modelCutByte [] modelCutByte.impl
+  modelTrimLeftByte_unfold : FuncUnfold modelTrimLeftByte [] modelTrimLeftByte.impl
   modelChunked_unfold : FuncUnfold modelChunked [] modelChunked.impl
+  noResponseBodyExpected_unfold : FuncUnfold noResponseBodyExpected [] noResponseBodyExpected.impl
+  bodyAllowedForStatus_unfold : FuncUnfold bodyAllowedForStatus [] bodyAllowedForStatus.impl
+  readTransfer_unfold : FuncUnfold readTransfer [] readTransfer.impl
+  fixLength_unfold : FuncUnfold fixLength [] fixLength.impl
+  shouldClose_unfold : FuncUnfold shouldClose [] shouldClose.impl
+  fixTrailer_unfold : FuncUnfold fixTrailer [] fixTrailer.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_tls_Assumption : _root_.Perennial.crypto.tls.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_log_Assumption : _root_.Perennial.log.Assumptions
+  import_ascii_Assumption : _root_.Perennial.net.http.internal.ascii.Assumptions
   import_url_Assumption : _root_.Perennial.net.url.Assumptions
   import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -332,20 +344,32 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.tlsHandshakeTimeoutError_instance
   Assumptions.fakeLocker_instance
   Assumptions.connLRU_instance
+  Assumptions.badStringError_unfold
+  Assumptions.ParseHTTPVersion_unfold
   Assumptions.ReadResponse_unfold
+  Assumptions.fixPragmaCacheControl_unfold
   Assumptions.Handle_unfold
   Assumptions.Serve_unfold
   Assumptions.ListenAndServe_unfold
   Assumptions.modelReadLine_unfold
   Assumptions.trimLine_unfold
   Assumptions.modelReadMIMEHeader_unfold
+  Assumptions.modelCutByte_unfold
+  Assumptions.modelTrimLeftByte_unfold
   Assumptions.modelChunked_unfold
+  Assumptions.noResponseBodyExpected_unfold
+  Assumptions.bodyAllowedForStatus_unfold
+  Assumptions.readTransfer_unfold
+  Assumptions.fixLength_unfold
+  Assumptions.shouldClose_unfold
+  Assumptions.fixTrailer_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_tls_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_fmt_Assumption
   Assumptions.import_io_Assumption
   Assumptions.import_log_Assumption
+  Assumptions.import_ascii_Assumption
   Assumptions.import_url_Assumption
   Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption

@@ -123,6 +123,8 @@ class transferReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_Trailer : ∀ (x : transferReader) (y : Header), go.IsGoStepPureDetTagged under (StructFieldSet transferReader.underlying go!"Trailer") (PairV #x #y) (Val #(({ x with Trailer' := y } : transferReader)))
   method_set : go.MethodSetIs transferReader.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType transferReader.ty) [(go!"net/http.parseTransferEncoding", (some (go.signature.Signature [] false [go.error]))), (go!"net/http.protoAtLeast", (some (go.signature.Signature [go.int, go.int] false [go.bool])))]
+  ptr_parseTransferEncoding_unfold : MethodUnfold (go.GoType.PointerType transferReader.ty) go!"parseTransferEncoding" transferReader.parseTransferEncoding.impl
+  ptr_protoAtLeast_unfold : MethodUnfold (go.GoType.PointerType transferReader.ty) go!"protoAtLeast" transferReader.protoAtLeast.impl
 
 attribute [instance] transferReader.TypeAssumptions.type_repr
   transferReader.TypeAssumptions.underlying
@@ -148,6 +150,8 @@ attribute [instance] transferReader.TypeAssumptions.type_repr
   transferReader.TypeAssumptions.set_Trailer
   transferReader.TypeAssumptions.method_set
   transferReader.TypeAssumptions.ptr_method_set
+  transferReader.TypeAssumptions.ptr_parseTransferEncoding_unfold
+  transferReader.TypeAssumptions.ptr_protoAtLeast_unfold
 
 class unsupportedTEError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unsupportedTEError.underlying unsupportedTEError

@@ -3,9 +3,10 @@
 # (`fileutil.NewFileBufReader`'s `NewReader`, and `Read`, through `io.ReadFull`/`binary.Read`):
 # `NewReader`, `NewReaderSize`, `(*Reader).reset`, `Read`, `readErr`, `Buffered`, the constants
 # they use, and the package's error variables (`errors.New` calls), proved in
-# `Proof/bufio/`.
+# `Proof/bufio/`; and (net/http's `ReadResponse`, 2026-11-23) `ReadByte`, `Peek` and `fill`.
 translate = ["!*", "Reader", "NewReader", "NewReaderSize", "Reader.reset", "Reader.Read",
-  "Reader.readErr", "Reader.Buffered", "defaultBufSize", "minReadBufferSize",
+  "Reader.readErr", "Reader.Buffered", "Reader.ReadByte", "Reader.Peek", "Reader.fill",
+  "maxConsecutiveEmptyReads", "defaultBufSize", "minReadBufferSize",
   "errNegativeRead", "ErrInvalidUnreadByte", "ErrInvalidUnreadRune", "ErrBufferFull",
   "ErrNegativeCount", "errNegativeWrite", "ErrTooLong", "ErrNegativeAdvance", "ErrAdvanceTooFar",
   "ErrBadReadCount", "ErrFinalToken"]
