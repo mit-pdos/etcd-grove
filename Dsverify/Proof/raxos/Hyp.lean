@@ -179,6 +179,41 @@ class AtoiHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
     (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   Atoi : strconv.Atoi.spec (GF := GF) (hG := hG)
 
+/-! ## sort.Ints -/
+
+namespace sort
+
+section ints
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **Hypothesis** `sort.Ints(x)`: the slice's elements permuted into ascending signed order (the
+lab's `wp_Ints`, proved there over its own translation of `sort.Ints`, `func Ints(x []int) {
+slices.Sort(x) }`, from Perennial's `slices.wp_Sort`; Perennial leaves `sort.Ints` untranslated).
+Discharge: Perennial translates `sort.Ints`; the lab's proof (`Harness/Proof/sort/Ints.lean`) then
+applies. -/
+abbrev Ints.spec : Prop :=
+  ∀ (data : GoSlice) (xs : List w64),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.slices ∗
+        "Hxs" ∷ data ↦* xs ∗
+        "%Hlength_bound" ∷ ⌜xs.length ≤ 2 ^ 62⌝ }}
+      (App (Val (@! Perennial.sort.Ints)) (Val #data))
+    {{ (xs' : List w64), RET #();
+        "Hxs" ∷ data ↦* xs' ∗
+        "%Hperm" ∷ ⌜xs ≡ₚ xs'⌝ ∗
+        "%Hsorted" ∷ ⌜∀ (i j : Nat) (xi xj : w64), xs'[i]? = some xi → xs'[j]? = some xj →
+          i < j → sint.Z xi ≤ sint.Z xj⌝ }}
+
+end ints
+
+end sort
+
+/-- The `sort.Ints` hypothesis. -/
+class SortHyp [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
+  Ints : sort.Ints.spec (GF := GF) (hG := hG)
+
 /-! ## gRPC, unary -/
 
 namespace grpc
