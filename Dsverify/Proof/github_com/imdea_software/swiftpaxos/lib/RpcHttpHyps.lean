@@ -75,6 +75,9 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
   rpcLisP_addr : ∀ W la hs hsAns a, addrOk a = true → lisAccepts la a →
     rpcLisP W la hs hsAns ⊢ rpcAddrP W a hs hsAns
+  /-- They include the right to listen at `la` with some protocols (`Listen.spec`'s). -/
+  rpcLisP_lis : ∀ W la hs hsAns,
+    rpcLisP W la hs hsAns ⊢ ∃ P Q, lisProto (Gg := hG.goose_globalGS) la P Q
   /-- The boot sets them once, from the addresses `la` takes, unset. -/
   rpcLisP_set : ∀ (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8),
     listenOk la = true →
@@ -148,7 +151,7 @@ class RpcHttpHyp [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapG
   Serve_spec : ∀ (W : RpcWorld GF) (la path : GoString) (lis : GoInterface) (l : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
         rpcLisP W la (connectReq path) connectAns ∗ muxHas W (lisAccepts la) path ∗
-        net.isListener (GF := GF) lis l ∗ netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
+        net.isListener (GF := GF) lis l ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
         lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la }}
       (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #interface.nil))
     {{ (err : GoInterface), RET #err; True }}
@@ -184,6 +187,19 @@ theorem DialHTTP_tcp (W : RpcWorld GF) (a : GoString) :
   iintro %Φ Hp HΦ
   unfold rpcHttp
   iapply H.DialHTTP_spec go!"tcp" net.tcpNet_tcp W a $$ Hp HΦ
+
+/-- A method spec that also accepts error answers: `Net/`'s server answers a request whose
+arguments do not decode with an error (`srvServes` asks `errOk` of each service). A caller's `Φ`
+of the form `⌜msg ≠ []⌝ ∨ …` meets the second half. -/
+def withErr (S : MethodSpec GF) : MethodSpec GF := fun m args Φ =>
+  iprop(S m args Φ ∧ ∀ msg : GoString, ⌜msg ≠ []⌝ -∗ Φ [] msg)
+
+theorem withErr_errOk (S : MethodSpec GF) : ⊢ errOk (withErr S) := by
+  unfold errOk withErr
+  iintro !> %m %args %Φ %msg %Hmsg HS
+  icases HS with ⟨-, Herr⟩
+  imodintro
+  iapply Herr $$ %msg %Hmsg
 
 end use
 

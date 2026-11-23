@@ -2,8 +2,11 @@
 Ported from dsverify-lab examples/swiftpaxos/proof/Proof/master/Run.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
-`m.Run()` (the frozen spec `Spec/master/Master__Run.lean`), proved from the master's full
-creation (`master.createdFull`) and the specs of `run` and of the receiver (`rcvrOk`).
+`m.Run()` (the spec `Spec/master/Master__Run.lean`), proved from the master's full creation
+(`master.createdFull`), the specs of `run` and of the receiver (`master.rcvr.spec`: what
+`rpc.Register` asks of the codec's `Receiver` for `*Master`), over net/rpc's HTTP path
+(`RpcHttpHyp`: `Register_spec`, `HandleHTTP_spec`, `Serve_spec`) and `Net/`'s wildcard `Listen`
+(`net.Listen.labProof` over the `lisProto` that `rpcLisP` gives).
 -/
 module
 
@@ -11,9 +14,9 @@ public import Perennial.Proof.fmt
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Defs
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.master.Addr
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.NetLab
+public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.master.Master__Run
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.NameOkFor
-public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.examples.swiftnet.KitLike
 
 @[expose] public section
 
@@ -31,38 +34,32 @@ section spec
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [H : RpcHttpHyp netDistGF]
 
-/-- The receiver `m` meets the master's service spec through the kit's dispatch, once the
-master's persistent facts hold (`Proof/master/Rcvr.lean`). -/
+/-- `rpc.Register`'s obligation on the codec's `Receiver` for the master `m`, once the master's
+persistent facts hold: it returns a `*Receiver` serving `withErr masterSpec` under the name
+`"Master"` (`Net/`'s `rcvrIs`). To be proved of the kit's rpcgen codec (`master/Rcvr.lean`). -/
 abbrev master.rcvr.spec : Prop :=
   ∀ (m : Loc) (γc γm : GName) (N : Nat),
   master.isMaster m γc γm N ⊢
-    net.rpc.rcvrOk (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
-      (sp.masterSpec γc γm)
+    net.rpc.RpcCodec.spec.rcv (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
+      (net.rpc.rcvrIs net.rpc.RpcCodec.spec
+        (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
+        (withErr (sp.masterSpec γc γm)) go!"Master" false)
 
-end spec
-
-/-! The specs below are over a codec `C` (decision D6, Proof/swiftnet/KitLike.lean): at
-`kitCodec` for the frozen statement, at `kitCodecC` for the link. -/
-
-section specC
-variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
-variable [master.Assumptions] [examples.swiftnet.Assumptions]
-variable [C : net.rpc.RpcCodec netDistGF]
-
-/-- `m.run()` (the goroutine): waits for the replicas, dials them, makes the first leader, pings
-them forever. It owns `nodes`' contents and `nextLeader`. -/
+/-- `m.run()` (the goroutine): waits for the replicas, dials them (over HTTP), makes the first
+leader, pings them forever. It owns `nodes`' contents and `nextLeader`. -/
 abbrev master.Master.run.spec : Prop :=
   ∀ (m : Loc) (γc γm : GName) (N : Nat) (W : net.rpc.RpcWorld netDistGF) (nodesS : GoSlice)
     (nl : w64),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.master ∗
       master.isMaster m γc γm N ∗ master.fld m go!"nodes" ↦□ nodesS ∗
       nodesS ↦* List.replicate N null ∗ master.fld m go!"nextLeader" ↦ nl ∗
-      ([∗list] a ∈ replicaRpcAddrs, net.rpc.rpcAddr W a) ∗
+      ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗
       ⌜(∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)) ∧
         nl = W64 (-1)⌝ ∗
-      net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk }}
+      net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"run")) (Val #()))
   {{ RET #(); False }}
 
@@ -70,40 +67,25 @@ abbrev master.Master.run.spec : Prop :=
 abbrev master.Master.Run.specFull : Prop :=
   ∀ (m : Loc) (γc γm : GName) (N : Nat) (W : net.rpc.RpcWorld netDistGF),
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.master ∗
-      master.createdFull m γc γm N (W64 7001) ∗ addrTok masterAddr ∗ nodeIp go!"10.77.0.17" ∗
-      net.http.muxOwner [] ∗
-      ([∗list] a ∈ rpcAddrs, net.rpc.rpcAddr W a) ∗
-      ⌜(∀ svc, W.SS masterAddr svc =
-          if svc = go!"Master" then some (sp.masterSpec γc γm) else none) ∧
-        ∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)⌝ ∗
-      net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk }}
+      master.createdFull m γc γm N (W64 7001) ∗
+      isPkgInit (PROP := IProp netDistGF) pkg_id.net.rpc ∗
+      isPkgInit (PROP := IProp netDistGF) pkg_id.net.http ∗
+      ⌜threadBound netDistGF ≤ 2 ^ 31⌝ ∗ net.rpc.srvEnv ∗
+      H.rpcLisP W go!":7001" (connectReq defaultRPCPath) connectAns ∗
+      ([∗list] a ∈ replicaRpcAddrs, rpcHttp W a) ∗ ⌜master.worldOk γc γm W⌝ ∗
+      net.rpc.codecSet net.rpc.RpcCodec.spec }}
     (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
-  {{ RET #(); False }}
+  {{ RET #(); True }}
 
-/-- The frozen `Run.spec` without `kitNameOk` (false for the kit's `rpcName` on an unlisted
-receiver, the codec group's HUB-REQUEST 1): the registration uses `nameOkFor` at the master
-(`kitNameOkFor_master`). The link uses this one. -/
-abbrev master.Master.Run.spec' : Prop :=
-  ∀ (m : Loc) (γc γm : GName) (N : Nat) (W : net.rpc.RpcWorld netDistGF),
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.master ∗
-      master.created m γc γm N (W64 7001) ∗ addrTok masterAddr ∗ nodeIp go!"10.77.0.17" ∗
-      net.http.muxOwner [] ∗
-      ([∗list] a ∈ rpcAddrs, net.rpc.rpcAddr W a) ∗
-      ⌜(∀ svc, W.SS masterAddr svc =
-          if svc = go!"Master" then some (sp.masterSpec γc γm) else none) ∧
-        ∀ a ∈ replicaRpcAddrs, W.SS a go!"Replica" = some (sp.replicaRpcSpec γc γm)⌝ ∗
-      net.rpc.codecSet net.rpc.RpcCodec.spec ∗ net.rpc.kitCodecOk }}
-    (App (Val (m @!! go.GoType.PointerType master.Master.ty @!! go!"Run")) (Val #()))
-  {{ RET #(); False }}
-
-end specC
+end spec
 
 section proof
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.FieldAssumptions]
-variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.Assumptions]
+variable [H : RpcHttpHyp netDistGF]
 
 set_option maxHeartbeats 4000000 in
 theorem master.Master.Run.wp_proof_full
@@ -111,7 +93,7 @@ theorem master.Master.Run.wp_proof_full
     (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
     (wp_run : master.Master.run.spec) (rcvr_ok : master.rcvr.spec) :
     master.Master.Run.specFull := fun m γc γm N W => by
-  wp_start as ⟨Hcr, Htok, %Hip, Hmux, Haddrs, %HSS, #Hcs, #Hko⟩
+  wp_start as ⟨Hcr, #Hrpc, #Hhttp, %Hthr, #Henv, #Hlp, Haddrs, %HSS, #Hcs⟩
   unfold master.createdFull master.createdBody
   icases Hcr with ⟨%v, %c, %fr, Hm, #Hq, #Hc, Hauth, Hnl, Hal, Hpl, Hcnl, Hcal, Hcpl, Hnodes,
     Hleaders, Halives, Hlats, #Hplain, Hlk, #Hcd, %Hp⟩
@@ -171,18 +153,17 @@ theorem master.Master.Run.wp_proof_full
   wp_auto
   wp_apply master.wp_Printf wp_Printf $$ [$Logger $Hq]
   ipersist master
-  ihave #Hkn : net.rpc.nameOkFor (GF := netDistGF) (net.rpc.kitFn go!"rpcName")
-      (interface.mkOk (go.GoType.PointerType master.Master.ty) #m) $$ []
-  · iapply kitNameOkFor_master
-  wp_apply net.rpc.Register.wp_proof' (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
-    $$ [$Hcs $Hko $Hkn] as %rerr Hreg
-  · iapply methods_of C
-    unfold net.rpc.RpcCodec.methods kitCodec
-    ipureintro; exact ⟨m, Or.inl rfl⟩
+  -- rpc.Register(master), on DefaultServer
+  ihave #Hds0 := H.defaultServer_init $$ Hrpc
+  icases Hds0 with ⟨%γs, #Hds⟩
+  ihave Hrc := rcvr_ok m γc γm N $$ HisM
+  wp_apply H.Register_spec γs net.rpc.RpcCodec.spec
+    (interface.mkOk (go.GoType.PointerType master.Master.ty) #m) (withErr (sp.masterSpec γc γm))
+    go!"Master" (W8 77) go!"aster" rfl ⟨by decide, by decide⟩ $$ [$Hrpc $Hds $Hcs $Hrc]
+    as %rerr Hreg
   icases Hreg with (⟨%Hrerr, #Hreg⟩ | %Hrerr)
   rotate_left
-  · -- the registration failed (unreachable in Go; the harness's model allows it): the
-    -- fork's workaround blocks
+  · -- the registration failed (not in Go; the spec allows it): the fork's workaround blocks
     rcases rerr with ei | _
     · try wp_auto
       wp_apply wp_slice_literal (V := GoInterface)
@@ -197,20 +178,31 @@ theorem master.Master.Run.wp_proof_full
       wp_for_post
       iframe
     · exact absurd rfl Hrerr
-  have hname : net.rpc.RpcNames.name (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
-      = go!"Master" := by
-    simp only [net.rpc.RpcNames.name]
-    rw [if_pos ⟨m, rfl⟩]
-  rw [hname]
   subst Hrerr
   try wp_auto
-  wp_apply net.rpc.HandleHTTP.wp_proof [] $$ [Hmux] as ⟨-, %srv, #Hsrv, #Hroute⟩
-  · iframe; ipureintro; simp
+  -- rpc.HandleHTTP(): every address the wildcard takes serves the master's service
+  ihave #Hsrv : □ ∀ a, ⌜lisAccepts go!":7001" a⌝ →
+      net.rpc.srvServes γs net.rpc.RpcCodec.spec W a $$ []
+  · iintro !> %a %Ha
+    unfold net.rpc.srvServes
+    iintro !> %svc %S %HS
+    rw [HSS.1 a svc Ha] at HS
+    by_cases hsvc : svc = go!"Master"
+    · subst hsvc
+      rw [if_pos rfl] at HS
+      cases HS
+      iframe Hreg
+      iapply withErr_errOk
+    · rw [if_neg hsvc] at HS
+      cases HS
+  wp_apply H.HandleHTTP_spec γs net.rpc.RpcCodec.spec W (lisAccepts go!":7001")
+    $$ [$Hrpc $Hds $Hsrv $Henv $Hcs] as #Hmux
+  · ipureintro; exact Hthr
   have hdec : decimal 7001 = go!"7001" := by simp [decimal, decimalNat_eq, digitByte]
-  have hport : go!":" ++ decimal (sint.Z (W64 7001)) = ([] : GoString) ++ go!":" ++ go!"7001" := by
+  have hport : go!":" ++ decimal (sint.Z (W64 7001)) = go!":7001" := by
     rw [show sint.Z (W64 7001) = (7001 : Int) from rfl, hdec]; rfl
-  have hmaddr : masterAddr = go!"10.77.0.17" ++ go!":" ++ go!"7001" := rfl
-  have hwild : ([] : GoString) ∈ wildcardHosts := by simp [wildcardHosts]
+  ihave #Hlis := H.rpcLisP_lis W go!":7001" _ _ $$ Hlp
+  icases Hlis with ⟨%P, %Q, #Hlis⟩
   wp_apply wp_slice_literal (V := GoInterface) [interface.mkOk go.int #(W64 7001)]
   isplitr
   · ipureintro; rfl
@@ -219,23 +211,19 @@ theorem master.Master.Run.wp_proof_full
   wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001)) ArgsWf.nil)
     $$ [$Hs3] as %str ⟨-, %Hstr⟩
   rw [master.sprintf_colon_d _ _ Hstr, hport]
-  rw [hmaddr]
-  wp_apply net.ListenWild.wp_proof go!"10.77.0.17" [] go!"7001" hwild $$ [Htok] as %lv %lerr ⟨Htok, Hl⟩
-  · iframe; ipureintro; exact Hip
+  wp_apply net.Listen.labProof go!":7001" P Q $$ Hlis as %lv %lerr Hl
   -- the retry loop: listen until it succeeds
   ihave HI : (∃ (lv lerr : GoInterface), l_ptr ↦ lv ∗ err_ptr ↦ lerr ∗
-      addrTok (go!"10.77.0.17" ++ go!":" ++ go!"7001") ∗
       ((∃ (l : Loc) (lid : w64),
           ⌜lv = interface.mkOk (go.GoType.PointerType net.TCPListener.ty) #l ∧
-            lerr = interface.nil⌝ ∗ net.ownListener l lid (go!"10.77.0.17" ++ go!":" ++ go!"7001")) ∨
-       (∃ i, ⌜lv = interface.nil ∧ lerr = interface.ok i⌝ ∗
-          ∃ code : w64, ⌜code ≠ errNone⌝ ∗ net.opErr go!"listen" code lerr)) : IProp netDistGF)
-    $$ [l err Htok Hl]
+            lerr = interface.nil⌝ ∗ net.ownListener l lid go!":7001") ∨
+       (∃ i, ⌜lerr = interface.ok i⌝)) : IProp netDistGF)
+    $$ [l err Hl]
   · iexists lv, lerr
     iframe
   wp_for
-  icases HI with ⟨%lv', %lerr', l, err, Htok, Hl⟩
-  icases Hl with (⟨%l0, %lid, %Hlv, Hl⟩ | ⟨%i, %Hlv, Herr⟩)
+  icases HI with ⟨%lv', %lerr', l, err, Hl⟩
+  icases Hl with (⟨%l0, %lid, %Hlv, #Hl⟩ | ⟨%i, %Hlv⟩)
   · obtain ⟨rfl, rfl⟩ := Hlv
     wp_auto
     wp_if_destruct
@@ -243,40 +231,25 @@ theorem master.Master.Run.wp_proof_full
     · -- listening: the run goroutine, then serve
       try simp only [_root_.decide_true, ↓reduceIte]
       try wp_auto
-      rw [show rpcAddrs = masterAddr :: replicaRpcAddrs from rfl]
-      icases BigSepL.bigSepL_cons.1 $$ Haddrs with ⟨Hma, Hra⟩
-      wp_apply wp_fork $$ [Hnodes nextLeader Hra]
-      · wp_apply wp_run m γc γm N W v.nodes' v.nextLeader' $$ [$HisM $nodes $Hnodes $nextLeader $Hra
-          $Hcs $Hko]
+      wp_apply wp_fork $$ [Hnodes nextLeader Haddrs]
+      · wp_apply wp_run m γc γm N W v.nodes' v.nextLeader' $$ [$HisM $nodes $Hnodes $nextLeader
+          $Haddrs $Hcs]
         · ipureintro; exact ⟨HSS.2, Hp.2.2.2.2.1⟩
         iintro %Hf; exact Hf.elim
-      -- the master's service, registered
-      ihave #Hok := rcvr_ok m γc γm N $$ HisM
-      ihave #Hok := rcvrOk_of C _ _ $$ Hok
-      ihave #Hds := net.rpc.defaultServes_intro W masterAddr $$ []
+      iunfold net.ownListener at Hl
+      icases Hl with ⟨%x, #Hat, #Hon, #Hinv⟩
+      wp_apply H.Serve_spec W go!":7001" defaultRPCPath _ lid $$ [$Hhttp $Hlp $Hmux $Hon $Hinv]
       · isplitr
-        · iPkgInit
-        imodintro
-        iintro %svc %S %HS
-        by_cases hsvc : svc = go!"Master"
-        · subst hsvc
-          rw [HSS.1, if_pos rfl] at HS
-          cases HS
-          iexists (interface.mkOk (go.GoType.PointerType master.Master.ty) #m)
-          iframe Hreg Hok
-        · -- no other service at the master's address (change log C7)
-          rw [HSS.1, if_neg hsvc] at HS
-          cases HS
-      rw [← hmaddr]
-      icases net.rpc.rpc_Serve_pre W masterAddr srv l0 lid $$ [Hl Hma] with
-        ⟨#Hhttp, Hl, #Hpr, #Hr, #Hh, %Hwfp⟩
-      · iframe Hl Hma Hds Hcs Hko Hsrv Hroute
-        iPkgInit
-      wp_apply net.http.Serve.wp_proof l0 lid masterAddr _ _ _ _ $$ [$Hhttp $Hl $Hpr $Hr $Hh]
-      · ipureintro; exact Hwfp
-      iintro %err %Hf
-      exact Hf.elim
-  · obtain ⟨rfl, rfl⟩ := Hlv
+        · ipureintro; exact Hthr
+        unfold net.isListener
+        iexists l0, x
+        iframe Hat
+        ipureintro; rfl
+      iintro %err -
+      wp_auto
+      iapply HΦ
+      itrivial
+  · obtain rfl := Hlv
     wp_auto
     wp_if_destruct
     · try simp only [_root_.decide_true, ↓reduceIte]
@@ -297,26 +270,12 @@ theorem master.Master.Run.wp_proof_full
       wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (ArgsWf.cons_int _ _ _ (IntArgValue.int (W64 7001))
         ArgsWf.nil) $$ [$Hs5] as %str' ⟨-, %Hstr'⟩
       rw [master.sprintf_colon_d _ _ Hstr', hport]
-      wp_apply net.ListenWild.wp_proof go!"10.77.0.17" [] go!"7001" hwild $$ [Htok]
-        as %lv2 %lerr2 ⟨Htok, Hl⟩
-      · iframe; ipureintro; exact Hip
+      wp_apply net.Listen.labProof go!":7001" P Q $$ Hlis as %lv2 %lerr2 Hl
       wp_for_post
       iframe
       iexists lv2, lerr2
       iframe
     · exact absurd rfl Hif
-
-/-- `Run.spec'` (no `kitNameOk`), through `master.created_full` (HUB-REQUEST 1). -/
-theorem master.Master.Run.wp_proof'
-    (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
-    (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
-    (wp_run : master.Master.run.spec) (rcvr_ok : master.rcvr.spec) :
-    master.Master.Run.spec' := fun m γc γm N W => by
-  iintro %Φ ⟨#Hpkg, Hcr, Hrest⟩ HΦ
-  iapply master.Master.Run.wp_proof_full wp_Printf wp_Fatal wp_run rcvr_ok m γc γm N W $$
-    [Hcr Hrest] HΦ
-  iframe Hpkg Hrest
-  iapply master.created_full $$ Hcr
 
 end proof
 
@@ -324,19 +283,21 @@ section frozen
 variable [go_gctx : GoGlobalContext]
 variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgState netDistGF] [SwiftHyps netDistGF]
 variable [master.Assumptions] [examples.swiftnet.Assumptions] [dlog.Assumptions]
-variable [net.FieldAssumptions]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [log.Assumptions] [net.http.Assumptions]
+variable [net.Assumptions]
+variable [H : RpcHttpHyp netDistGF]
 
-/-- The frozen spec (`Spec/master/Master__Run.lean`): `Run.spec'`, `kitNameOk` unused. -/
+/-- The spec (`Spec/master/Master__Run.lean`), through `master.created_full`. -/
 theorem master.Master.Run.wp_proof
     (wp_Printf : dlog.Logger.Printf.spec (GF := netDistGF) (hG := hG))
     (wp_Fatal : dlog.Logger.Fatal.spec (GF := netDistGF) (hG := hG))
     (wp_run : master.Master.run.spec) (rcvr_ok : master.rcvr.spec) :
     master.Master.Run.spec := fun m γc γm N W => by
-  iintro %Φ ⟨#Hpkg, Hcr, Htok, Hip, Hmux, Haddrs, HSS, #Hcs, #Hko, -⟩ HΦ
-  iapply master.Master.Run.wp_proof' wp_Printf wp_Fatal wp_run rcvr_ok m γc γm N W $$
-    [Hcr Htok Hip Hmux Haddrs HSS] HΦ
-  iframe
-  iframe Hpkg Hcs Hko
+  iintro %Φ ⟨#Hpkg, Hcr, Hrest⟩ HΦ
+  iapply master.Master.Run.wp_proof_full wp_Printf wp_Fatal wp_run rcvr_ok m γc γm N W $$
+    [Hcr Hrest] HΦ
+  iframe Hpkg Hrest
+  iapply master.created_full $$ Hcr
 
 end frozen
 
