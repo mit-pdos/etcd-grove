@@ -19,7 +19,6 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.dlog.In
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.replica.defs.Init
 public import Net.Proof.net.Init
 public import Dsverify.Proof.runtime.PkgInitDsv
-public import Dsverify.Proof.encoding.json.Init
 
 @[expose] public section
 
@@ -44,7 +43,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [_root_.Perennial.net.http.InitHyp GF]
 variable [_root_.Perennial.net.rpc.InitHyp GF]
-variable [_root_.Perennial.encoding.json.InitHyp GF]
 variable [package_sem : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.master.Assumptions]
 
 namespace github_com.imdea_software.swiftpaxos_epaxos.master

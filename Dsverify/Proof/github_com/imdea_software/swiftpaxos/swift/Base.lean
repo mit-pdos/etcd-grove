@@ -34,7 +34,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.replica.defs.I
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.rpc.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.state.Init
 public import Dsverify.Proof.github_com.orcaman.concurrent_map.Base
-public import Dsverify.Proof.encoding.json.Init
+public import Proof.encoding.json.Base
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.os.signal.Init
 public import Dsverify.Proof.math.rand.Init

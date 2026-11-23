@@ -253,7 +253,8 @@ Read with the twelfth session's state below (accurate where this does not say ot
 - **The statement** `Dsverify/Spec/.../examples/swiftnet/TopLevelRobustness.lean`
   (`swiftpaxos_remote_robust.spec`, checked): premises `l : SwiftNetPkgState netDistGF` (incl.
   `GobFmt`), the seven `InitHyp`s (math/rand, net/rpc, net/http, encoding/json, encoding/gob,
-  os/signal, uuid) per heap, `SwiftHyps`, `SwiftNoSignals`, `SwiftOsRandom` (per heap at
+  os/signal, uuid) per heap (encoding/json's gone since 2026-11-23, `dsv-json-main`: the main
+  tree's proved `wp_initialize'`, notes/dsv-json-main.md), `SwiftHyps`, `SwiftNoSignals`, `SwiftOsRandom` (per heap at
   `libsAt l π`), `ra : RpcHttpAddr`, `rh : RpcHttpHyp`, `RpcFirstInit`; conclusion
   `DistDeploy swAddrs (system σ) g → Robust [] (system σ) g threads (2 ^ 31 - 1)`.
 

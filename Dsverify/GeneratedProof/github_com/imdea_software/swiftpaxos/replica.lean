@@ -4,7 +4,7 @@ module
 public import Perennial.Proof.ProofPrelude
 public import GeneratedProof.bufio
 public import Perennial.GeneratedProof.encoding.binary
-public import Dsverify.GeneratedProof.encoding.json
+public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.errors
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.config
 public import Dsverify.GeneratedProof.github_com.imdea_software.swiftpaxos.dlog
