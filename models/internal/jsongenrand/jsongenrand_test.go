@@ -124,7 +124,7 @@ func (g *gen) name() string {
 func (g *gen) basic() string { return basics[g.r.Intn(len(basics))] }
 
 func noBytes(e, ek string, g *gen) string {
-	if ek == "int" && (e == "uint8" || strings.HasSuffix(g.under(e), "uint8")) {
+	if (ek == "int" || ek == "method") && (e == "uint8" || strings.HasSuffix(g.under(e), "uint8")) {
 		return "uint16"
 	}
 	return e
@@ -187,11 +187,15 @@ func (g *gen) typ(depth int) (string, string) {
 	}
 }
 
-// under: the declared underlying type of a named basic type (else "").
+// under: the declared underlying type of a named basic type, through named types (else "").
 func (g *gen) under(n string) string {
 	for _, d := range g.decls {
 		if strings.HasPrefix(d, "type "+n+" ") {
-			return strings.TrimPrefix(d, "type "+n+" ")
+			u := strings.TrimPrefix(d, "type "+n+" ")
+			if v := g.under(u); v != "" {
+				return v
+			}
+			return u
 		}
 	}
 	return ""
