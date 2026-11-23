@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.encoding.json
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.sync.Base
+public import Perennial.Proof.io.Base
 
 @[expose] public section
 noncomputable section
