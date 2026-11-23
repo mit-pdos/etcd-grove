@@ -107,9 +107,11 @@ theorem gryffN_sub_top_deployN : (↑gryffN : CoPset) ⊆ ⊤ \ ↑deployN := by
 def regCarry (γp : ProtoNames) (k : Nat) : IProp GF := iprop(∃ ws, predIs γp k ws)
 
 /-- The rpc world's services are the deployment's (the start allocates the world with
-`rpcServices`, `net.rpc.rpcWorld_alloc`). -/
+`rpcServices`), and its rpc addresses serve net/rpc over HTTP (`DialHTTP`'s handshake). -/
 def worldOk (γ : GryffNames GF) : Prop :=
-  ∀ a svc, γ.rpc.SS a svc = rpcServicesDef γ.deploy (regCarry γ.proto) a svc
+  (∀ a svc, γ.rpc.SS a svc = rpcServicesDef γ.deploy (regCarry γ.proto) a svc) ∧
+  (∀ a, (lisAccepts masterRpcLis a ∨ ∃ k, k < 3 ∧ lisAccepts (replicaRpcLis k) a) →
+    γ.rpc.hs a = net.rpc.connectReq net.rpc.defaultRPCPath ∧ γ.rpc.hsAns a = net.rpc.connectAns)
 
 /-- Replica id `i`'s prediction is registered node `k`'s (persistent). -/
 def regPred (γp : ProtoNames) (i k : Nat) : IProp GF :=
