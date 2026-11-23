@@ -72,22 +72,25 @@ const (
 
 // Addrs is every node's first address, by node id: node 0 is the orchestrator, nodes 1..NC the
 // client nodes (client c on node 1+c), then the server nodes (server node id on node NC+id).
-// All on loopback, so each node has its own ports (the lab gave each node its own host).
+// All on loopback, so each node has its own ports (the lab gave each node its own host); the
+// server nodes keep the lab's ports (the master's 7001, replica id's 7000+id, its net/rpc port
+// RPCOff above, its configuration port ConfOff above), the client nodes 6101.., their request
+// ports RPCOff above (ClientAddrs) and their configuration ports ConfOff above.
 func Addrs() []string {
 	return []string{
-		"127.0.0.1:7600",
-		"127.0.0.1:7601",
-		"127.0.0.1:7602",
-		"127.0.0.1:7603",
-		"127.0.0.1:7604",
-		"127.0.0.1:7605",
-		"127.0.0.1:7606",
-		"127.0.0.1:7607",
-		"127.0.0.1:7608",
-		"127.0.0.1:7609",
-		"127.0.0.1:7610",
-		"127.0.0.1:7611",
-		"127.0.0.1:7612",
+		"127.0.0.1:6100",
+		"127.0.0.1:6101",
+		"127.0.0.1:6102",
+		"127.0.0.1:6103",
+		"127.0.0.1:6104",
+		"127.0.0.1:6105",
+		"127.0.0.1:6106",
+		"127.0.0.1:7001",
+		"127.0.0.1:7002",
+		"127.0.0.1:7003",
+		"127.0.0.1:7004",
+		"127.0.0.1:7005",
+		"127.0.0.1:7006",
 	}
 }
 
@@ -95,12 +98,12 @@ func Addrs() []string {
 // RPCOff above its first), for the orchestrator's calls (remote.Serve).
 func ClientAddrs() []string {
 	return []string{
-		"127.0.0.1:8601",
-		"127.0.0.1:8602",
-		"127.0.0.1:8603",
-		"127.0.0.1:8604",
-		"127.0.0.1:8605",
-		"127.0.0.1:8606",
+		"127.0.0.1:7101",
+		"127.0.0.1:7102",
+		"127.0.0.1:7103",
+		"127.0.0.1:7104",
+		"127.0.0.1:7105",
+		"127.0.0.1:7106",
 	}
 }
 

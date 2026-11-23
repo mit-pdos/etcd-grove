@@ -4,7 +4,7 @@ Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swiftnet/ClientConnect.
 /-
 `s.connect(c)` (`kit.go`): client node `c`'s SwiftPaxos client (id `c + 1`), as main.go's
 `runSingleClient` makes one: `client.NewClientLog` for the master at `addrs[NC+1]`
-(`10.77.0.17:7001`), the id set, `NewBufferClient`, `Connect`, and on success
+(`127.0.0.1:7001`), the id set, `NewBufferClient`, `Connect`, and on success
 `swift.NewClient(b, N)` with the configuration's `N` (the connected membership's size:
 `sp.cfg_conf`), the node's claimed ghost and the registrations (stage 2); on failure
 `Disconnect`. Every callee is used through its frozen spec (hypotheses), `host`/`port` of the
@@ -68,13 +68,13 @@ local notation "swiftnetPkg" => pkg_id.github_com.imdea_software.swiftpaxos.exam
 /-- `host(addrs[NC+1])`: the master's host (an instance of the adapter's `host` spec). -/
 abbrev hostMaster.spec : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
-    (App (Val (@! examples.swiftnet.host)) (Val #(go!"10.77.0.17:7001")))
-  {{ RET #(go!"10.77.0.17"); True }}
+    (App (Val (@! examples.swiftnet.host)) (Val #(go!"127.0.0.1:7001")))
+  {{ RET #(go!"127.0.0.1"); True }}
 
 /-- `port(addrs[NC+1])`: the master's port (an instance of the adapter's `port` spec). -/
 abbrev portMaster.spec : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF) swiftnetPkg }}
-    (App (Val (@! examples.swiftnet.port)) (Val #(go!"10.77.0.17:7001")))
+    (App (Val (@! examples.swiftnet.port)) (Val #(go!"127.0.0.1:7001")))
   {{ RET #(W64 7001); True }}
 
 end specs
@@ -101,7 +101,7 @@ theorem digitChar_toNat (n : Nat) (h : n < 10) : (Nat.digitChar n).toNat = 48 + 
   | 8, _ => rw [Nat.digitChar_eq_eight.2 rfl]; rfl
   | 9, _ => rw [Nat.digitChar_eq_nine.2 rfl]; rfl
 
-theorem masterAddrPort : sp.addrPort go!"10.77.0.17" (W64 7001) = masterAddr := by
+theorem masterAddrPort : sp.addrPort go!"127.0.0.1" (W64 7001) = masterAddr := by
   simp [sp.addrPort, masterAddr, Nat.toDigits_of_base_le, Nat.toDigits_of_lt_base,
     digitChar_toNat]
 
@@ -121,7 +121,7 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     obtain ⟨h1, h2⟩ := Hasl_len
     have : addrs.length = 13 := rfl
     constructor <;> word
-  have ha1 : addrs[(sint.Z (W64 6 + W64 1)).toNat]? = some go!"10.77.0.17:7001" := rfl
+  have ha1 : addrs[(sint.Z (W64 6 + W64 1)).toNat]? = some go!"127.0.0.1:7001" := rfl
   wp_auto
   simp only [hb1, and_self, ↓reduceIte]
   wp_apply wp_load_slice_index asl (sint.Z (W64 6 + W64 1)) addrs _ _ hb1.1 $$ [] as -
@@ -130,7 +130,7 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
   wp_apply wp_port
   ihave %Hlgnn := typedPointsto_not_null $$ «$a6»
   imod (typedPointsto_dfractional _ _).dfractional_persist $$ «$a6» with #Hlg
-  wp_apply wp_NewClientLog [] go!"10.77.0.17" (W64 7001) false «$a6_ptr» $$ [] as %cl ⟨%cid0, Hfresh⟩
+  wp_apply wp_NewClientLog [] go!"127.0.0.1" (W64 7001) false «$a6_ptr» $$ [] as %cl ⟨%cid0, Hfresh⟩
   · iunfold dlog.quiet
     iframe Hlg
     ipureintro; exact Hlgnn
@@ -145,7 +145,7 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
     ipureintro; constructor <;> decide
   iunfold nodeEnv at Henv
   icases Henv with ⟨#Hmaster, #Hrpcs, %HSS, #HcodecSet, #HcodecOk, #Hprotos, #Hinv⟩
-  wp_apply wp_Connect b (cidOf c) go!"10.77.0.17" (W64 7001) γ.W γ.sp γ.conf γ.mem γ.lin $$ [Hbuf]
+  wp_apply wp_Connect b (cidOf c) go!"127.0.0.1" (W64 7001) γ.W γ.sp γ.conf γ.mem γ.lin $$ [Hbuf]
     as %err Herr
   · iframe Hbuf Hmaster HcodecSet HcodecOk Hprotos Hinv
     ipureintro

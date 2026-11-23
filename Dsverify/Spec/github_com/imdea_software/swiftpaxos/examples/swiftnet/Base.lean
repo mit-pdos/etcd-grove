@@ -87,37 +87,38 @@ def confAck : w8 := W8 0x6b
 /-! ## The addresses
 
 Node 0 is the orchestrator, nodes 1..6 the client nodes (client `c` on node `1 + c`), node 7 the
-master (server node 1), nodes 8..12 the replicas (server node `k + 2` on node `8 + k`). -/
+master (server node 1), nodes 8..12 the replicas (server node `k + 2` on node `8 + k`). All on
+loopback (`127.0.0.1`), told apart by port (kit.go's `Addrs()`; the server nodes keep the lab's ports). -/
 
 /-- The orchestrator's address (`Addrs()[0]`): nobody listens on it or dials it. -/
-def orchAddr : GoString := go!"10.77.0.10:7000"
-/-- The client nodes' first addresses (`Addrs()[1 + c]`, port 7000): their clients only dial. -/
+def orchAddr : GoString := go!"127.0.0.1:6100"
+/-- The client nodes' first addresses (`Addrs()[1 + c]`, ports 6101..6106): their clients only dial. -/
 def clientNodeAddrs : List GoString :=
-  [go!"10.77.0.11:7000", go!"10.77.0.12:7000", go!"10.77.0.13:7000", go!"10.77.0.14:7000",
-   go!"10.77.0.15:7000", go!"10.77.0.16:7000"]
-/-- The client nodes' configuration ports (port 9000 of node `1 + c`). -/
+  [go!"127.0.0.1:6101", go!"127.0.0.1:6102", go!"127.0.0.1:6103", go!"127.0.0.1:6104",
+   go!"127.0.0.1:6105", go!"127.0.0.1:6106"]
+/-- The client nodes' configuration ports (`ConfOff` above node `1 + c`'s first: 8101..8106). -/
 def clientConfAddrs : List GoString :=
-  [go!"10.77.0.11:9000", go!"10.77.0.12:9000", go!"10.77.0.13:9000", go!"10.77.0.14:9000",
-   go!"10.77.0.15:9000", go!"10.77.0.16:9000"]
+  [go!"127.0.0.1:8101", go!"127.0.0.1:8102", go!"127.0.0.1:8103", go!"127.0.0.1:8104",
+   go!"127.0.0.1:8105", go!"127.0.0.1:8106"]
 /-- The master's rpc address (`Addrs()[7]`). -/
-def masterAddr : GoString := go!"10.77.0.17:7001"
+def masterAddr : GoString := go!"127.0.0.1:7001"
 /-- The server nodes' configuration ports (`9000 + i`, server node i = 1..6). -/
 def confAddrs : List GoString :=
-  [go!"10.77.0.17:9001", go!"10.77.0.18:9002", go!"10.77.0.19:9003", go!"10.77.0.20:9004",
-   go!"10.77.0.21:9005", go!"10.77.0.22:9006"]
+  [go!"127.0.0.1:9001", go!"127.0.0.1:9002", go!"127.0.0.1:9003", go!"127.0.0.1:9004",
+   go!"127.0.0.1:9005", go!"127.0.0.1:9006"]
 /-- The replicas' rpc ports (`8000 + i`, server node i = 2..6). -/
 def replicaRpcAddrs : List GoString :=
-  [go!"10.77.0.18:8002", go!"10.77.0.19:8003", go!"10.77.0.20:8004", go!"10.77.0.21:8005",
-   go!"10.77.0.22:8006"]
+  [go!"127.0.0.1:8002", go!"127.0.0.1:8003", go!"127.0.0.1:8004", go!"127.0.0.1:8005",
+   go!"127.0.0.1:8006"]
 /-- The replicas' peer and client ports (`7000 + i`, server node i = 2..6): SwiftPaxos's wire
 format. Server node `k + 2` is "node `k`" of the SwiftPaxos slot (`k < 5`). -/
 def replicaAddrs : List GoString :=
-  [go!"10.77.0.18:7002", go!"10.77.0.19:7003", go!"10.77.0.20:7004", go!"10.77.0.21:7005",
-   go!"10.77.0.22:7006"]
+  [go!"127.0.0.1:7002", go!"127.0.0.1:7003", go!"127.0.0.1:7004", go!"127.0.0.1:7005",
+   go!"127.0.0.1:7006"]
 /-- The rpc addresses (the rpc world's: `rpcAddr_set`). -/
 def rpcAddrs : List GoString := masterAddr :: replicaRpcAddrs
 /-- The other addresses the run sets (`addrs_set_proto`): all but the rpc addresses and the
-client nodes' request addresses (port 8000, the harness's). -/
+client nodes' request addresses (`ClientAddrs()`, 7101..7106, remote's). -/
 def plainAddrs : List GoString :=
   orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ confAddrs ++ replicaAddrs
 

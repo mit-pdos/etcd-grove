@@ -22,7 +22,7 @@ namespace master
 
 /-- The replicas' IPs (`replicaAddrs[k]` is `replicaIps[k]:(7002 + k)`). -/
 def replicaIps : List GoString :=
-  [go!"10.77.0.18", go!"10.77.0.19", go!"10.77.0.20", go!"10.77.0.21", go!"10.77.0.22"]
+  [go!"127.0.0.1", go!"127.0.0.1", go!"127.0.0.1", go!"127.0.0.1", go!"127.0.0.1"]
 
 theorem w8_toNat_of_lt (n : Nat) (h : n < 256) : (W8 n).toNat = n := by
   simp only [W8, BitVec.toNat_ofInt]

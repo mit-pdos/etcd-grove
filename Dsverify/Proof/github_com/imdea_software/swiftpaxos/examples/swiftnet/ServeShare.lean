@@ -120,12 +120,12 @@ theorem common_confProto_master (γ : SwiftNames netDistGF) :
   have hc := atStr_conf 0 (by omega)
   simp only [confAddrs, List.getElem?_cons_zero, Option.some.injEq] at hc
   rw [← hc]
-  have h1 : protoP γ go!"10.77.0.17:9001" = conf.dialP γ := by
+  have h1 : protoP γ go!"127.0.0.1:9001" = conf.dialP γ := by
     unfold protoP; rw [if_pos (by decide)]
-  have h2 : protoQ γ go!"10.77.0.17:9001" = conf.ackQ := by
+  have h2 : protoQ γ go!"127.0.0.1:9001" = conf.ackQ := by
     unfold protoQ
-    rw [show clientConfAddrs.idxOf? go!"10.77.0.17:9001" = none by decide,
-      show confAddrs.idxOf? go!"10.77.0.17:9001" = some 0 by decide]
+    rw [show clientConfAddrs.idxOf? go!"127.0.0.1:9001" = none by decide,
+      show confAddrs.idxOf? go!"127.0.0.1:9001" = some 0 by decide]
   exact common_proto γ _ _ _ (by decide) h1 h2
 
 /-- Replica node `k`'s configuration port's protocols (server node `k + 2`, node `8 + k`): its

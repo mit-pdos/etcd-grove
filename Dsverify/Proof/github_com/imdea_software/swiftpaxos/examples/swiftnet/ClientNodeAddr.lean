@@ -55,13 +55,13 @@ theorem atRpc_proof : atRpc.spec := by
   exact h
 
 theorem hostMaster_proof : hostMaster.spec := by
-  have h := wp_host (GF := netDistGF) 7 go!"10.77.0.17:7001" rfl
-  have e : nodeHost 7 = go!"10.77.0.17" := by decide
+  have h := wp_host (GF := netDistGF) 7 go!"127.0.0.1:7001" rfl
+  have e : nodeHost 7 = go!"127.0.0.1" := by decide
   rw [e] at h
   exact h
 
 theorem portMaster_proof : portMaster.spec := by
-  have h := wp_port (GF := netDistGF) 7 go!"10.77.0.17:7001" rfl
+  have h := wp_port (GF := netDistGF) 7 go!"127.0.0.1:7001" rfl
   have e : nodePort 7 = 7001 := rfl
   rw [e] at h
   exact h

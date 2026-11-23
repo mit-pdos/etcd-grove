@@ -14,8 +14,11 @@ the kit with each client on a node of its own (a `RemoteDistSpec`).
   (`Spec/swift/Slot.lean`, the definitions in `Spec/swift/Inv.lean`);
 * the address protocols (`protoP`, `protoQ`) and the rpc services (`services`);
 * the node shares (`orchShare`, `clientNodeShare`, `serverShare`);
-* the parts of `goal_spec` as named statements (`StartOk`, `OrchOk`, `ClientNodeOk`,
-  `ServersOk`) and `goal_spec_of`, which assembles them (proved here, no sorry: only plumbing).
+* the abstract state the clients' updates own (`ownState`).
+
+(dsv-swiftpaxos: the lab's assembly of its `RemoteDistSpec` goal (`StartOk`, `OrchOk`,
+`ClientNodeOk`, `ServersOk`, `goal_spec_of`) is gone: the kit is remote's here, its statement
+`swiftpaxos_remote_robust`.)
 
 Everything here is over the global ghost state (`[G : GooseGlobalGS .hasLC netDistGF]`), as
 `Harness/Remote.lean`'s header asks. The proofs of the parts are the Prove phase's (`Proof/`).
@@ -146,6 +149,7 @@ end slots
 
 section protos
 variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [SwiftNetPkgState netDistGF]
 
 /-- The protocol of what a dialer of `a` writes (for the plain addresses). -/
 def protoP (γ : SwiftNames netDistGF) (a : GoString) : Proto netDistGF :=
@@ -173,6 +177,7 @@ end protos
 
 section services
 variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [SwiftNetPkgState netDistGF]
 
 /-- The services of each rpc address: the master's (`"Master"` at `masterAddr`) and each
 replica node's (`"Replica"` at its rpc port). The method specs are the SwiftPaxos slot's
@@ -189,6 +194,7 @@ end services
 
 section shares
 variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
+variable [SwiftNetPkgState netDistGF]
 
 /-- What every node gets: every address's protocols (persistent) and the shared invariants. -/
 def common (γ : SwiftNames netDistGF) : IProp netDistGF :=
@@ -211,11 +217,17 @@ def clientNodeShare (γ : SwiftNames netDistGF) (c : Nat) : IProp netDistGF :=
     addrTok (clientConfAddrs.getD c go!"") ∗ sp.clientStart γ.sp c ∗
     sp.predTok γ.sp (sp.PNode.cl c) ∗ common γ)
 
+/-- Server node `i + 1`'s addresses (node `7 + i`): the master's rpc address and configuration
+port; replica `k + 2`'s peer and client port, rpc port and configuration port. -/
+def serverAddrs (i : Nat) : List GoString :=
+  if i = 0 then [masterAddr, confAddrs.getD 0 go!""]
+  else [replicaAddrs.getD (i - 1) go!"", replicaRpcAddrs.getD (i - 1) go!"", confAddrs.getD i go!""]
+
 /-- Server node `i + 1`'s share (node `7 + i`): its addresses' tokens (`nodeAddrs[7 + i]`), and
 the master's (server node 1) the membership's writer token; a replica node's (server node
 `k + 2`) its protocol share. -/
 def serverShare (γ : SwiftNames netDistGF) (i : Nat) : IProp netDistGF :=
-  iprop(([∗list] a ∈ nodeAddrs.getD (7 + i) [], addrTok a) ∗
+  iprop(([∗list] a ∈ serverAddrs i, addrTok a) ∗
     (if i = 0 then mem.writer γ
      else sp.replicaStart γ.sp (i - 1) ∗ sp.predTok γ.sp (sp.PNode.rep (i - 1))) ∗
     common γ)
@@ -235,45 +247,6 @@ def ownState [G : GooseGlobalGS .hasLC netDistGF] (γ : SwiftNames netDistGF)
     (σ : (kv GoString GoString).State) : IProp netDistGF :=
   iprop(lin.own γ σ ∗ ⌜∀ k v, σ k = some v → v ≠ []⌝ ∗ sp.allPredsReg γ.sp γ.conf)
 
-/-- The start: from the network's start resources of every address but the client nodes'
-request addresses, the run's ghost names and the shares. -/
-def StartOk [G : GooseGlobalGS .hasLC netDistGF] : Prop :=
-  ⊢ ([∗list] a ∈ swiftNetCfg.addrs.filter (fun a => a ∉ kit.reqAddrs),
-        addrTok a ∗ addrUnset a) ={⊤}=∗
-    ∃ γ : SwiftNames netDistGF, orchShare γ ∗
-      ([∗list] c ↦ _nd ∈ clientNodes, clientNodeShare γ c) ∗
-      [∗list] i ↦ _nd ∈ serverNodes, serverShare γ i
-
-/-- The orchestrator's spec at node 0, from its share. -/
-def OrchOk (S : SwiftNetPkgStates) [G : GooseGlobalGS .hasLC netDistGF] : Prop :=
-  ∀ (γ : SwiftNames netDistGF) (hG : HeapGS .hasLC netDistGF) (s : go.Semantics),
-    hG.goose_globalGS = G →
-    @Node.Assumptions _ orchNode hG.goose_localGS.goose_go_local_context s.sem_fn →
-    ∀ (ip : IPv4), swiftNetCfg.ips[0]? = some ip →
-      netIp (L := hG.goose_localGS) (GF := netDistGF) = ip.spell →
-    Nonempty (@OrchSpec _ _ _ _ netDistGF hG s (kv GoString GoString) kit
-      (@kit_isPkgInit _ netDistGF hG s (@S netDistGF hG s))
-      (@kit_get_isPkgInit_wf _ netDistGF hG s (@S netDistGF hG s)) (ownState γ) (orchShare γ))
-
-/-- Client node `c`'s spec, from its share. -/
-def ClientNodeOk (S : SwiftNetPkgStates) [G : GooseGlobalGS .hasLC netDistGF] : Type 1 :=
-  ∀ (γ : SwiftNames netDistGF) (c : Nat) (nd : Node) (hG : HeapGS .hasLC netDistGF)
-    (s : go.Semantics), clientNodes[c]? = some nd →
-    hG.goose_globalGS = G →
-    @Node.Assumptions _ nd hG.goose_localGS.goose_go_local_context s.sem_fn →
-    ∀ (ip : IPv4), swiftNetCfg.ips[1 + c]? = some ip →
-      netIp (L := hG.goose_localGS) (GF := netDistGF) = ip.spell →
-    @ClientNodeSpec _ _ _ _ netDistGF hG s (kv GoString GoString) kit
-      (@kit_isPkgInit _ netDistGF hG s (@S netDistGF hG s))
-      (@kit_get_isPkgInit_wf _ netDistGF hG s (@S netDistGF hG s)) (ownState γ)
-      (W64 (c : Int)) (clientNodeShare γ c)
-
-/-- Each server node's boot program, from its share. -/
-def ServersOk [G : GooseGlobalGS .hasLC netDistGF] : Prop :=
-  ∀ (γ : SwiftNames netDistGF) (i : Nat) (nd : Node) (ip : IPv4), serverNodes[i]? = some nd →
-    swiftNetCfg.ips[1 + clientNodes.length + i]? = some ip →
-    NodeBootWpAt (G := G) nd ip (serverShare γ i)
-
 end parts
 
 end Perennial.github_com.imdea_software.swiftpaxos
@@ -288,22 +261,5 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 instance ownState_timeless [GoGlobalContext] [GooseGlobalGS .hasLC netDistGF]
     (γ : SwiftNames netDistGF) (σ : (kv GoString GoString).State) : Timeless (ownState γ σ) := by
   unfold ownState lin.own linOwn; infer_instance
-
-/-- `goal_spec` from its parts (plumbing only). -/
-theorem goal_spec_of [GoGlobalContext] (S : SwiftNetPkgStates)
-    (hstart : ∀ [GooseGlobalGS .hasLC netDistGF], StartOk)
-    (horch : ∀ [GooseGlobalGS .hasLC netDistGF], OrchOk S)
-    (hclient : ∀ [GooseGlobalGS .hasLC netDistGF], ClientNodeOk S)
-    (hservers : ∀ [GooseGlobalGS .hasLC netDistGF], ServersOk) : SwiftNetSpecHolds := by
-  refine ⟨S, ?_⟩
-  intro G
-  constructor
-  refine dsverify_lab.harness.RemoteDistSpec.mk (pkgInst := _) (pkgWf := _) (SwiftNames netDistGF)
-    ownState (fun γ σ => ownState_timeless γ σ) orchShare clientNodeShare serverShare ?_ ?_ ?_ ?_
-  · exact hstart
-  · intro γ hG s hG' hA ip hip hnet
-    exact Classical.choice (horch γ hG s hG' hA ip hip hnet)
-  · exact hclient
-  · exact hservers
 
 end Perennial.github_com.imdea_software.swiftpaxos

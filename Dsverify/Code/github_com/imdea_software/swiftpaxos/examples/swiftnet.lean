@@ -430,26 +430,29 @@ noncomputable def rpcCall_r1_Ping [GooseExts] [GoGlobalContext] : GoString :=
 
 /-- Addrs is every node's first address, by node id: node 0 is the orchestrator, nodes 1..NC the
     client nodes (client c on node 1+c), then the server nodes (server node id on node NC+id).
-    All on loopback, so each node has its own ports (the lab gave each node its own host).
+    All on loopback, so each node has its own ports (the lab gave each node its own host); the
+    server nodes keep the lab's ports (the master's 7001, replica id's 7000+id, its net/rpc port
+    RPCOff above, its configuration port ConfOff above), the client nodes 6101.., their request
+    ports RPCOff above (ClientAddrs) and their configuration ports ConfOff above.
 
-    go: kit.go:76:6 -/
+    go: kit.go:79:6 -/
 noncomputable def Addrs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (Let "$v0" (Val #(go!"127.0.0.1:7600"))
-  (Let "$v1" (Val #(go!"127.0.0.1:7601"))
-  (Let "$v2" (Val #(go!"127.0.0.1:7602"))
-  (Let "$v3" (Val #(go!"127.0.0.1:7603"))
-  (Let "$v4" (Val #(go!"127.0.0.1:7604"))
-  (Let "$v5" (Val #(go!"127.0.0.1:7605"))
-  (Let "$v6" (Val #(go!"127.0.0.1:7606"))
-  (Let "$v7" (Val #(go!"127.0.0.1:7607"))
-  (Let "$v8" (Val #(go!"127.0.0.1:7608"))
-  (Let "$v9" (Val #(go!"127.0.0.1:7609"))
-  (Let "$v10" (Val #(go!"127.0.0.1:7610"))
-  (Let "$v11" (Val #(go!"127.0.0.1:7611"))
-  (Let "$v12" (Val #(go!"127.0.0.1:7612"))
+  (Let "$r0" (Let "$v0" (Val #(go!"127.0.0.1:6100"))
+  (Let "$v1" (Val #(go!"127.0.0.1:6101"))
+  (Let "$v2" (Val #(go!"127.0.0.1:6102"))
+  (Let "$v3" (Val #(go!"127.0.0.1:6103"))
+  (Let "$v4" (Val #(go!"127.0.0.1:6104"))
+  (Let "$v5" (Val #(go!"127.0.0.1:6105"))
+  (Let "$v6" (Val #(go!"127.0.0.1:6106"))
+  (Let "$v7" (Val #(go!"127.0.0.1:7001"))
+  (Let "$v8" (Val #(go!"127.0.0.1:7002"))
+  (Let "$v9" (Val #(go!"127.0.0.1:7003"))
+  (Let "$v10" (Val #(go!"127.0.0.1:7004"))
+  (Let "$v11" (Val #(go!"127.0.0.1:7005"))
+  (Let "$v12" (Val #(go!"127.0.0.1:7006"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.string (Var "$v3"))), (KeyedElement none (ElementExpression go.string (Var "$v4"))), (KeyedElement none (ElementExpression go.string (Var "$v5"))), (KeyedElement none (ElementExpression go.string (Var "$v6"))), (KeyedElement none (ElementExpression go.string (Var "$v7"))), (KeyedElement none (ElementExpression go.string (Var "$v8"))), (KeyedElement none (ElementExpression go.string (Var "$v9"))), (KeyedElement none (ElementExpression go.string (Var "$v10"))), (KeyedElement none (ElementExpression go.string (Var "$v11"))), (KeyedElement none (ElementExpression go.string (Var "$v12")))])))))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -461,17 +464,17 @@ noncomputable def Addrs.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ClientAddrs is the client nodes' request addresses (client c's at index c: node 1+c's port
     RPCOff above its first), for the orchestrator's calls (remote.Serve).
 
-    go: kit.go:96:6 -/
+    go: kit.go:99:6 -/
 noncomputable def ClientAddrs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (Let "$v0" (Val #(go!"127.0.0.1:8601"))
-  (Let "$v1" (Val #(go!"127.0.0.1:8602"))
-  (Let "$v2" (Val #(go!"127.0.0.1:8603"))
-  (Let "$v3" (Val #(go!"127.0.0.1:8604"))
-  (Let "$v4" (Val #(go!"127.0.0.1:8605"))
-  (Let "$v5" (Val #(go!"127.0.0.1:8606"))
+  (Let "$r0" (Let "$v0" (Val #(go!"127.0.0.1:7101"))
+  (Let "$v1" (Val #(go!"127.0.0.1:7102"))
+  (Let "$v2" (Val #(go!"127.0.0.1:7103"))
+  (Let "$v3" (Val #(go!"127.0.0.1:7104"))
+  (Let "$v4" (Val #(go!"127.0.0.1:7105"))
+  (Let "$v5" (Val #(go!"127.0.0.1:7106"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.string (Var "$v1"))), (KeyedElement none (ElementExpression go.string (Var "$v2"))), (KeyedElement none (ElementExpression go.string (Var "$v3"))), (KeyedElement none (ElementExpression go.string (Var "$v4"))), (KeyedElement none (ElementExpression go.string (Var "$v5")))]))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -482,7 +485,7 @@ noncomputable def ClientAddrs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- choose picks a configuration at random (math/rand: in the theorem, any choice).
 
-    go: kit.go:136:6 -/
+    go: kit.go:139:6 -/
 noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Conf.ty))) (App (Val (GoInstruction (GoZeroVal Conf.ty))) (Val #())))
@@ -527,7 +530,7 @@ noncomputable def choose.impl [GooseExts] [GoGlobalContext] : val :=
     client node, at a random replica (server nodes 2..N+1), once 1 to K-1 of that client's
     operations have returned (so that, in a test, the client still has operations to make).
 
-    go: kit.go:149:6 -/
+    go: kit.go:152:6 -/
 noncomputable def plan.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "conf"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType change.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType change.ty)))) (Val #())))
@@ -573,7 +576,7 @@ noncomputable def plan.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- mine is the leader changes of cs that client c makes, in cs's order.
 
-    go: kit.go:160:6 -/
+    go: kit.go:163:6 -/
 noncomputable def mine.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cs"
   (Lam "c"
@@ -615,7 +618,7 @@ noncomputable def mine.impl [GooseExts] [GoGlobalContext] : val :=
     ConfLen bytes, N, FastRead, Pool, Desc, the number of changes, then each change's Node and
     After (zero bytes for the ones missing).
 
-    go: kit.go:173:15 -/
+    go: kit.go:176:15 -/
 noncomputable def Conf.encode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cs"
@@ -681,7 +684,7 @@ noncomputable def Conf.encode.impl [GooseExts] [GoGlobalContext] : val :=
     configure can send (the changes' Client, which is not on the wire, is 0: a client node's are
     its own).
 
-    go: kit.go:190:6 -/
+    go: kit.go:193:6 -/
 noncomputable def decode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Conf.ty))) (App (Val (GoInstruction (GoZeroVal Conf.ty))) (Val #())))
@@ -783,7 +786,7 @@ noncomputable def decode.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- String is c for the log.
 
-    go: kit.go:209:15 -/
+    go: kit.go:212:15 -/
 noncomputable def Conf.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -806,7 +809,7 @@ noncomputable def Conf.String.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- host is the host of the address addr ("host:port").
 
-    go: kit.go:215:6 -/
+    go: kit.go:218:6 -/
 noncomputable def host.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -824,7 +827,7 @@ noncomputable def host.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- port is the port of the address addr ("host:port"), its decimal digits read one by one.
 
-    go: kit.go:220:6 -/
+    go: kit.go:223:6 -/
 noncomputable def port.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -867,7 +870,7 @@ noncomputable def port.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- at is the address of node id's port off above its first (the deployment at addrs).
 
-    go: kit.go:230:6 -/
+    go: kit.go:233:6 -/
 noncomputable def «at».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "id"
@@ -895,7 +898,7 @@ noncomputable def «at».impl [GooseExts] [GoGlobalContext] : val :=
     1..NC the client nodes, nodes NC+1..NC+1+MaxReplicas the server nodes): it chooses the
     configuration and the leader changes at random and sends them to every node that needs them.
 
-    go: kit.go:237:6 -/
+    go: kit.go:240:6 -/
 noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Seq (App (Val exceptionDo)
@@ -918,7 +921,7 @@ noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
     node n at its configuration address (its port ConfOff above its first), each until it
     acknowledges it.
 
-    go: kit.go:246:6 -/
+    go: kit.go:249:6 -/
 noncomputable def configure.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "conf"
@@ -986,7 +989,7 @@ noncomputable def configure.impl [GooseExts] [GoGlobalContext] : val :=
 /-- sendConf sends the configuration message b to the node at addr and waits for its
     acknowledgment; true if acknowledged.
 
-    go: kit.go:262:6 -/
+    go: kit.go:265:6 -/
 noncomputable def sendConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "b"
@@ -1079,7 +1082,7 @@ noncomputable def sendConf.impl [GooseExts] [GoGlobalContext] : val :=
     connection that fails, or whose bytes are not a configuration message, is closed without an
     answer.
 
-    go: kit.go:288:6 -/
+    go: kit.go:291:6 -/
 noncomputable def awaitConf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "ch"
@@ -1221,7 +1224,7 @@ noncomputable def awaitConf.impl [GooseExts] [GoGlobalContext] : val :=
     leader changes this node makes; client c's SwiftPaxos client connects at its first operation
     (op).
 
-    go: kit.go:341:6 -/
+    go: kit.go:344:6 -/
 noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "c"
@@ -1275,7 +1278,7 @@ noncomputable def newClient.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- returned counts an operation of the client that returned.
 
-    go: kit.go:352:15 -/
+    go: kit.go:355:15 -/
 noncomputable def Sys.returned.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -1296,7 +1299,7 @@ noncomputable def Sys.returned.impl [GooseExts] [GoGlobalContext] : val :=
     suspects the leader (the replica's BeTheLeader, over net/rpc at its rpc port, server node
     Node's port RPCOff above its first); a failed call is not retried.
 
-    go: kit.go:362:15 -/
+    go: kit.go:365:15 -/
 noncomputable def Sys.changeLeaders.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "cs"
@@ -1383,7 +1386,7 @@ noncomputable def Sys.changeLeaders.impl [GooseExts] [GoGlobalContext] : val :=
     one (a uuid's ID: the protocol needs distinct ids, which a uuid gives only with high
     probability). true if connected.
 
-    go: kit.go:388:15 -/
+    go: kit.go:391:15 -/
 noncomputable def Sys.connect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -1470,7 +1473,7 @@ noncomputable def Sys.connect.impl [GooseExts] [GoGlobalContext] : val :=
     quorum, or an accept); a client that cannot connect gives an unknown outcome and tries again at
     its next operation.
 
-    go: kit.go:423:6 -/
+    go: kit.go:426:6 -/
 noncomputable def op.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -1504,7 +1507,7 @@ noncomputable def op.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- op1 is op's body, run with s.opMu held: past MaxOps operations, an unknown outcome.
 
-    go: kit.go:431:6 -/
+    go: kit.go:434:6 -/
 noncomputable def op1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
@@ -1578,7 +1581,7 @@ noncomputable def op1.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- digits is n in decimal.
 
-    go: kit.go:450:6 -/
+    go: kit.go:453:6 -/
 noncomputable def digits.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1608,7 +1611,7 @@ noncomputable def digits.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Gen is a client's input, at random: a put (one in two) or a get of one of the NKeys keys, a
     put's value one of "v0".."v999" (never empty).
 
-    go: kit.go:459:6 -/
+    go: kit.go:462:6 -/
 noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
@@ -1651,7 +1654,7 @@ noncomputable def Gen.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- has reports whether v is in p.
 
-    go: kit.go:478:6 -/
+    go: kit.go:481:6 -/
 noncomputable def has.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "v"
@@ -1690,7 +1693,7 @@ noncomputable def has.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- push is p with v added, in a new slice.
 
-    go: kit.go:488:6 -/
+    go: kit.go:491:6 -/
 noncomputable def push.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "v"
@@ -1724,7 +1727,7 @@ noncomputable def push.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- erase is p without its first v, in a new slice.
 
-    go: kit.go:496:6 -/
+    go: kit.go:499:6 -/
 noncomputable def erase.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "v"
@@ -1775,7 +1778,7 @@ noncomputable def erase.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- setCur is c with c[k] = v, in a new slice.
 
-    go: kit.go:510:6 -/
+    go: kit.go:513:6 -/
 noncomputable def setCur.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "k"
@@ -1810,7 +1813,7 @@ noncomputable def setCur.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- setPend is p with p[k] = q, in a new slice.
 
-    go: kit.go:518:6 -/
+    go: kit.go:521:6 -/
 noncomputable def setPend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "k"
@@ -1847,7 +1850,7 @@ noncomputable def setPend.impl [GooseExts] [GoGlobalContext] : val :=
     nothing; an answered put sets its key; an answered get of k that returned v is one at a
     configuration where k's value is v (Cur[k], or a pending put of v taking effect first).
 
-    go: kit.go:528:6 -/
+    go: kit.go:531:6 -/
 noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "in"
@@ -1966,7 +1969,7 @@ noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- initState is the map with no key set and nothing pending.
 
-    go: kit.go:549:6 -/
+    go: kit.go:552:6 -/
 noncomputable def initState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc State.ty))) (App (Val (GoInstruction (GoZeroVal State.ty))) (Val #())))
@@ -1984,7 +1987,7 @@ noncomputable def initState.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Model is the key-value map with pending puts (linkv's pending-writes store), as a porcupine
     model. Inputs are Ins, outputs Outs.
 
-    go: kit.go:555:6 -/
+    go: kit.go:558:6 -/
 noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (Val #())))
@@ -2059,7 +2062,7 @@ noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Codec is the map's codec: an input as a byte (1: a put), the key's byte and the value's bytes;
     an output as a byte (1: unknown) and the value's bytes. A get is a read.
 
-    go: kit.go:572:6 -/
+    go: kit.go:575:6 -/
 noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.Codec.ty))) (Val #())))
@@ -2243,7 +2246,7 @@ noncomputable def Codec.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- callTime is CallMs as a duration.
 
-    go: kit.go:610:6 -/
+    go: kit.go:613:6 -/
 noncomputable def callTime.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -2260,7 +2263,7 @@ noncomputable def callTime.impl [GooseExts] [GoGlobalContext] : val :=
     master, the replicas and the client nodes to start, then panics unless porcupine accepts the
     history of the clients' operations.
 
-    go: kit.go:617:6 -/
+    go: kit.go:620:6 -/
 noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -2272,7 +2275,7 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- orch is Orch in the deployment at addrs with client request addresses caddrs.
 
-    go: kit.go:622:6 -/
+    go: kit.go:625:6 -/
 noncomputable def orch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "caddrs"
@@ -2302,7 +2305,7 @@ noncomputable def orch.impl [GooseExts] [GoGlobalContext] : val :=
     as its contract says, and client c's node waits for the configuration and starts its leader
     changes once), served at its address in ClientAddrs. It never returns.
 
-    go: kit.go:632:6 -/
+    go: kit.go:635:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Seq (App (Val exceptionDo)
@@ -2316,7 +2319,7 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- clientNode is Client in the deployment at addrs, serving at caddr.
 
-    go: kit.go:637:6 -/
+    go: kit.go:640:6 -/
 noncomputable def clientNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addrs"
   (Lam "caddr"
@@ -2382,7 +2385,7 @@ noncomputable def clientNode.impl [GooseExts] [GoGlobalContext] : val :=
     built here instead of read from files), once the orchestrator has sent the configuration. It
     never returns.
 
-    go: kit.go:652:6 -/
+    go: kit.go:655:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Seq (App (Val exceptionDo)
@@ -2397,7 +2400,7 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
     file with no proxies and no leader, fast reads as conf says and the deployment's addresses being
     the kit's (no quorum, latency or log file: defs.LatencyConf stays "").
 
-    go: kit.go:659:6 -/
+    go: kit.go:662:6 -/
 noncomputable def nodeConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "port"
@@ -2430,7 +2433,7 @@ noncomputable def nodeConfig.impl [GooseExts] [GoGlobalContext] : val :=
     which fails forever once its connection broke) and waits RetryMs between calls (runReplica
     4 ns).
 
-    go: kit.go:677:6 -/
+    go: kit.go:680:6 -/
 noncomputable def register.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ip"
   (Lam "port"
@@ -2523,7 +2526,7 @@ noncomputable def register.impl [GooseExts] [GoGlobalContext] : val :=
     dlog.Logger (dlog.New(path, false) less the log file it never writes): no output, and its Fatal
     does not exit.
 
-    go: kit.go:704:6 -/
+    go: kit.go:707:6 -/
 noncomputable def serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "addrs"

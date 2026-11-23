@@ -50,7 +50,7 @@ namespace client.cn
 /-- The master's address names port 7001. -/
 theorem masterAddr_port {ip : GoString} {port : w64} (h : sp.addrPort ip port = masterAddr) :
     port = W64 7001 := by
-  have hm : masterAddr = go!"10.77.0.17" ++ W8 58 :: Perennial.fmt.decimalNat 7001 := by
+  have hm : masterAddr = go!"127.0.0.1" ++ W8 58 :: Perennial.fmt.decimalNat 7001 := by
     simp [Perennial.fmt.decimalNat_eq, Perennial.fmt.digitByte, masterAddr]
   rw [hm] at h
   unfold sp.addrPort at h

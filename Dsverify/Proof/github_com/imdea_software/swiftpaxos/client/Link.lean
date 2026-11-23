@@ -9,6 +9,7 @@ module
 
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.BufferClient__Write
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Hyps
+public import Net.Proof.net.rpc.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.BufferClient__Read
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Client__SendWrite
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.client.Client__SendRead
@@ -48,6 +49,7 @@ variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions]
 variable [bufio.Assumptions] [state.Assumptions] [encoding.binary.Assumptions]
 variable [replica.defs.Assumptions] [dlog.Assumptions]
 variable [net.rpc.Assumptions] [github_com.google.uuid.Assumptions] [math.rand.Assumptions] [time.Assumptions]
+variable [sync.Assumptions] [go.BasicIntoValInj]
 
 theorem client.Client.wp_SendProposal
     (wp_Println : dlog.Logger.Println.spec (GF := netDistGF) (hG := hG)) : client.Client.SendProposal.specI (hG := hG) :=
@@ -88,7 +90,7 @@ theorem client.wp_NewBufferClient : client.NewBufferClient.spec (hG := hG) :=
   client.NewBufferClient.wp_proof
 
 theorem client.BufferClient.wp_Disconnect : client.BufferClient.Disconnect.spec (hG := hG) :=
-  client.BufferClient.Disconnect.wp_proof net.rpc.Client.Close.wp_proof net.TCPConn.Close.wp_proof
+  client.BufferClient.Disconnect.wp_proof net.rpc.Client.Close.wp net.TCPConn.Close.labProof
 
 end link
 
@@ -169,7 +171,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]
-variable [strings.Assumptions]
+variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
 
 theorem client.Client.wp_call : client.Client.call.specI (hG := hG) :=
   client.Client.call.wp_proof dlog.Logger.wp_Println
@@ -196,7 +198,7 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [client.Assumptions] [net.Assumptions] [net.FieldAssumptions] [net.rpc.Assumptions]
 variable [examples.swiftnet.Assumptions] [bufio.Assumptions] [replica.defs.Assumptions]
 variable [dlog.Assumptions] [errors.Assumptions] [time.Assumptions] [fmt.Assumptions]
-variable [strings.Assumptions]
+variable [strings.Assumptions] [log.Assumptions] [net.http.Assumptions] [RpcHttpHyp netDistGF]
 variable [C : net.rpc.RpcCodec netDistGF] [KitLike C]
 
 theorem client.Client.wp_callG : client.Client.call.specI (hG := hG) :=
