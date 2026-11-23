@@ -55,7 +55,7 @@ theorem serveMaster.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (wp_Run : ∀ γ W, Master.Run.specM (GF := GF) γ W) :
     serveMaster.spec (GF := GF) (hG := hG) := by
   intro γ W sl
-  wp_start as ⟨Hcf, Hmux, #Hsrv, #Hde, %Hb, %HSS, Hmr⟩
+  wp_start as ⟨Hcf, Hmux, #Hds, #Hsrv, #Hde, %Hb, %HSS, Hmr⟩
   wp_auto
   wp_apply (wp_Register wp_SetCodec) $$ [$Hcf] as #Hcs
   wp_apply wp_nodeConfig as %cfg ⟨%c, Hcfg, -, %Hc⟩
@@ -75,7 +75,7 @@ theorem serveMaster.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
   · iPkgInit
   unfold masterRes masterLis hsReq hsAns
   icases Hmr with ⟨HlU, #Hml, #Hrr, -⟩
-  wp_apply wp_Run γ W m cfg «$a3_ptr» $$ [$Hmpkg $Hhttp $Hm $HlU $Hmux $Hsrv $Hde]
+  wp_apply wp_Run γ W m cfg «$a3_ptr» $$ [$Hmpkg $Hhttp $Hm $HlU $Hmux $Hds $Hsrv $Hde]
   · isplitr
     · ipureintro; exact HSS
     isplitr
@@ -96,7 +96,7 @@ theorem Server.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (wp_serveReplica : serveReplica.spec (GF := GF) (hG := hG)) :
     Server.spec (GF := GF) (hG := hG) := by
   intro γ W id h1 h6
-  wp_start as ⟨Hcf, Hmux, #Hsrv, #Hde, %Hb, Hres⟩
+  wp_start as ⟨Hcf, Hmux, #Hds, #Hsrv, #Hde, %Hb, Hres⟩
   wp_auto
   wp_apply ServerAddrs.wp_proof as %sl #Hsl
   unfold Port0 serverRes
@@ -106,7 +106,7 @@ theorem Server.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     subst hid'
     simp only [hid, ↓reduceIte]
     wp_apply serveMaster.wp_proof wp_SetCodec wp_nodeConfig wp_New wp_Run γ W sl
-      $$ [$Hpkg $Hcf $Hmux $Hsrv $Hde $Hres]
+      $$ [$Hpkg $Hcf $Hmux $Hds $Hsrv $Hde $Hres]
     · iframe; ipureintro; exact ⟨Hb, HSS⟩
     iapply HΦ; itrivial
   · simp only [hid, ↓reduceIte]
@@ -117,7 +117,7 @@ theorem Server.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     rw [hidw] at hS
     unfold replicaRes hsReq hsAns
     icases Hres with ⟨Hnt, #Hrx, #Hci, #Hma, #Hlis, -⟩
-    wp_apply hS $$ [$Hpkg $Hcf $Hmux $Hsrv $Hde $Hsl $Hma $Hlis $Hnt $Hrx $Hci]
+    wp_apply hS $$ [$Hpkg $Hcf $Hmux $Hds $Hsrv $Hde $Hsl $Hma $Hlis $Hnt $Hrx $Hci]
     · ipureintro; exact ⟨Hb, HSS⟩
     iapply HΦ; itrivial
 

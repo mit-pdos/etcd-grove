@@ -96,11 +96,14 @@ server and clients read them (`srvEnv`: `io`'s and `sync`'s facts, `io.EOF`, `Er
 `ErrDeadlineExceeded`, net/rpc's `errFrame`, `ErrShutdown`, `debugLog`, `invalidRequest`; this
 part's net/rpc package fact is `True` (`Dsverify/Proof/net/rpc/Init.lean`), so they come with the
 boot, where craq's came with the fact), `DefaultServeMux` with nothing registered
-(`muxOwner []`, net/http's; `RpcHttpHyp`) and what `DialHTTP` reads (`dialEnv`: models-rpc-http's
-`httpEnv`, `bufio`'s, `io`'s, `fmt`'s and `strconv`'s initialization and net/http's `NoBody`, and
-net/rpc's `connected`, `"200 Connected to Go RPC"`; net/http's package fact is `True` here too). -/
+(`muxOwner []`, net/http's; `RpcHttpHyp`), net/rpc's `DefaultServer` (`∃ γs, defaultServer γs`:
+what the initializer's `DefaultServer = NewServer()` makes) and what `DialHTTP` reads (`dialEnv`:
+models-rpc-http's `httpEnv`, `bufio`'s, `io`'s, `fmt`'s and `strconv`'s initialization and
+net/http's `NoBody`, and net/rpc's `connected`, `"200 Connected to Go RPC"`; net/http's package
+fact is `True` here too). -/
 def rpcBootRes [RpcHttpAddr GF] [RpcHttpHyp GF] : IProp GF :=
-  iprop(codecFresh ∗ net.rpc.srvEnv ∗ RpcHttpHyp.muxOwner [] ∗ dialEnv)
+  iprop(codecFresh ∗ net.rpc.srvEnv ∗ RpcHttpHyp.muxOwner [] ∗
+    (∃ γs, RpcHttpHyp.defaultServer γs) ∗ dialEnv)
 
 /-- **A server machine's boot premise** (dsv-craq's `RpcBoot`): command `pkg`'s initializer `init`,
 run once from the machine's empty package state (only the deployment's boot holds `ownGoState ∅`,

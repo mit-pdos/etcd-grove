@@ -14,7 +14,7 @@ The names (relative to this kit's namespace, so that sibling kits' copies do not
 * `rpcAddrP W a hs hsAns`: address `a` serves net/rpc in world `W` behind a handshake: on each
   connection the client-to-server bytes are `hs ++ reqsWire _` and the server-to-client bytes
   `hsAns ++ ansWire _`. (Raw net/rpc is `rpcAddrP W a [] []` in models-rpc-http; not stated
-  here: every world of this stand-in is HTTP's, `worldHs_http`.)
+  here: the kit's world is HTTP's, `httpW`.)
   Over HTTP `hs = connectReq path` (`CONNECT <path> HTTP/1.0\n\n`, what the model's
   `DialHTTPPath` writes before its frames) and `hsAns = connectAns`
   (`HTTP/1.0 200 Connected to Go RPC\n\n`, what `Server.ServeHTTP` writes after the hijack).
@@ -27,14 +27,17 @@ The names (relative to this kit's namespace, so that sibling kits' copies do not
   for a wildcard such as the master's `":7501"`) serves `W` behind the handshake
   (`rpcLisP_addr`), with the right to listen at `la` (`rpcLisP_lis`); set once at the boot from
   `lisUnset la` (`rpcLisP_set`) in a world whose handshake at every address `la` takes is
-  `hs`/`hsAns` (`worldHs`, `worldHsAns`: stand-ins for models-rpc-http's `RpcWorld.hs`, `.hsAns`).
+  `hs`/`hsAns` (`worldHs`, `worldHsAns`: stand-ins for models-rpc-http's `RpcWorld.hs`, `.hsAns`);
+  the kit's world is `httpW W₀` (`W₀` with HTTP's handshake at every address: models-rpc-http's
+  `{ W₀ with hs := …, hsAns := … }`), whose laws (`httpW_hs`, `httpW_hsAns`) discharge it.
 * `muxOwner R` (exclusive): the right to register paths at `DefaultServeMux`, `R` those
   registered (`http.Handle` panics on a path registered twice); a machine's `muxOwner []` is a
   boot resource of net/http's initialization (`rpcBootRes`, as dsv-craq's `RpcBoot`).
 * `muxHas W A path` (persistent): `DefaultServeMux` routes `path` to a handler serving `W` at
   every address of the set `A`.
 * `defaultServer γ`: `rpc.DefaultServer` is a server with names `γ` (the package-level
-  `Register`/`HandleHTTP` act on it).
+  `Register`/`HandleHTTP` act on it); a machine's `∃ γ, defaultServer γ` is a boot resource of
+  net/rpc's initialization (`DefaultServer = NewServer()`, `rpcBootRes`), beside `muxOwner []`.
 * Specs: `rpc.DialHTTPPath.spec`, `rpc.DialHTTP.spec` (at `DefaultRPCPath`, `/_goRPC_`; the
   client fields, kept until models-rpc-http is on lean), `rpc.HandleHTTP.spec` (with
   `muxOwner`; the debug path is never requested), `rpc.Register.spec` (the package-level one,
@@ -121,10 +124,17 @@ class RpcHttpAddr (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [N
   yet; dsv-swiftpaxos's `worldHs`/`worldHsAns`). -/
   worldHs : RpcWorld GF → GoString → List w8
   worldHsAns : RpcWorld GF → GoString → List w8
-  /-- Every world of the stand-in is net/rpc over HTTP at `DefaultRPCPath` at every address: the
-  stand-in for the world models-rpc-http's start builds, `{ W with hs := fun _ => connectReq
-  defaultRPCPath, hsAns := fun _ => connectAns }` (the kit serves and dials only that). -/
-  worldHs_http : ∀ W a, worldHs W a = connectReq defaultRPCPath ∧ worldHsAns W a = connectAns
+  /-- The world `W` served over HTTP at `DefaultRPCPath` at every address: the world
+  models-rpc-http's start builds, `{ W with hs := fun _ => connectReq defaultRPCPath, hsAns :=
+  fun _ => connectAns }` (the kit serves and dials only that). Its laws: the handshake at every
+  address is HTTP's (`httpW_hs`, `httpW_hsAns`), and the services and the connection registry are
+  `W`'s (`httpW_SS`, `httpW_reg`); a raw world (`hs = []`, models-rpc-http's default) keeps its
+  own `worldHs`, so `rpcLisP_set`'s premise holds only of the worlds `httpW` builds. -/
+  httpW : RpcWorld GF → RpcWorld GF
+  httpW_hs : ∀ W a, worldHs (httpW W) a = connectReq defaultRPCPath
+  httpW_hsAns : ∀ W a, worldHsAns (httpW W) a = connectAns
+  httpW_SS : ∀ W, (httpW W).SS = W.SS
+  httpW_reg : ∀ W, (httpW W).reg = W.reg
   /-- A listener address's rpc protocols (the file header). -/
   rpcLisP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
@@ -161,11 +171,10 @@ class RpcHttpHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semant
   /-- `DefaultServeMux` routes `path` to a handler serving `W` at every address of `A`. -/
   muxHas : RpcWorld GF → (GoString → Prop) → GoString → IProp GF
   muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
+  /-- `rpc.DefaultServer` is a server with names `γ`; a machine's comes from net/rpc's
+  initialization, `DefaultServer = NewServer()` (a boot resource, `rpcBootRes`). -/
   defaultServer : GName → IProp GF
   defaultServer_persistent : ∀ γ, Persistent (defaultServer γ)
-  /-- `net/rpc`'s initialized package has its `DefaultServer`. -/
-  defaultServer_init :
-    isPkgInit (PROP := IProp GF) pkg_id.net.rpc ⊢ ∃ γ, defaultServer γ
   /-- `rpc.DialHTTPPath(nw, a, path)`: writes `connectReq path`, reads the answer through
   `http.ReadResponse` (status `200 Connected to Go RPC`, else an error), then `NewClient`. -/
   DialHTTPPath_spec : ∀ (nw : GoString), net.tcpNet nw → ∀ (W : RpcWorld GF) (a path : GoString),

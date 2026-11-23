@@ -17,6 +17,19 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
+
+- **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
+  `threadBound` is what its steps could have forked. Net's net/rpc server (`ServeCodec`,
+  `ServeConn`, `Accept`; hence `HandleHTTP`/`Serve`) needs `threadBound GF ≤ 2^31`, so a kit using
+  it is covered only for executions of fewer than `2^31 - 1` steps, not `2^63`.
+- **Who needs it.** dsv-epaxos (`notes/dsv-epaxos.md`, "Findings / open points" 1:
+  `epaxos_remote_robust`'s step bound `2^31 - 1`); any kit serving net/rpc.
+- **Workaround.** The statement's step bound is `2^31 - 1` (stated, honest; review of #24).
+- **Proposed change.** A dist adequacy that bounds live threads (`threads ≤ 2^31`, a premise on the
+  run) while allowing `2^63` steps would restore the `2^63` bound.
+- **Status.** Not proposed yet.
+
 ### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
 
 - **Limitation.** `glang/lean.go`'s `leanComment` keeps a Go doc comment's tabs; a doc comment

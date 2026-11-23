@@ -7,7 +7,8 @@ addresses `127.0.0.1:8502..8506`) and the master's wildcard listener unset (`lis
 abstract key-value state's ghost variable, both halves; the fired outputs' map; the role registry
 `roleInv` with the escrows' names; the registry of the registration exchange; the peer streams'
 and the replicas' framework state; the protocol invariant `epInv`), the net/rpc world `W`
-(`W.SS = rpcSS γ`, its connection registry `regInv W`), set the replica addresses' protocols
+(`RpcHttpAddr.httpW ⟨rpcSS γ, γw⟩`: served over HTTP at every address, `W.SS = rpcSS γ`, its
+connection registry `regInv W`), set the replica addresses' protocols
 (`repDialP`/`repAccP`, `addrs_set_proto`) and the rpc listeners' (`RpcHttpAddr.rpcLisP_set` at
 `":7501"` and at each `rpcAddrOf k`, an exact listener: `addrUnset_lisUnset`), and hand out each
 machine's resources (`masterRes`, `replicaRes`, the client machines' `clientInvs`, the store's
@@ -222,15 +223,16 @@ def repProtos (γ : EpNames) : IProp GF :=
   [∗list] a ∈ replicaAddrs, addrProto a (repDialP γ a) (repAccP γ a)
 
 /-- **The ghost start** (over the global ghost state only): from the registry and the replicas'
-peer addresses unset, the names `γ`, the rpc world `W` with its services (`rpcSS γ`) and its
-connection registry, the master's right to fix the node list, every replica node's token, the
+peer addresses unset, the names `γ`, the raw rpc world `W₀ = ⟨rpcSS γ, γw⟩` with its services
+(`rpcSS γ`) and the connection registry of the kit's world `RA.httpW W₀` (`W₀` served over HTTP
+at every address; its registry is `W₀`'s, `httpW_reg`), the master's right to fix the node list, every replica node's token, the
 registration exchange's invariant (each replica id with its start resources), `clientInvs γ`
 (the replica addresses' protocols and the role registry), and the store's half of the initial
 abstract state. -/
-theorem ep_ghost_start :
+theorem ep_ghost_start [RA : RpcHttpAddr GF] :
     ⊢ regCtx (Gg := G) -∗ ([∗list] a ∈ replicaAddrs, addrUnset a) ={⊤}=∗
-      ∃ (γ : EpNames) (W : net.rpc.RpcWorld GF), ⌜W.SS = rpcSS γ⌝ ∗
-        inv net.rpc.regN' (net.rpc.regInv W) ∗ listUnset γ ∗
+      ∃ (γ : EpNames) (W₀ : net.rpc.RpcWorld GF), ⌜W₀.SS = rpcSS γ⌝ ∗
+        inv net.rpc.regN' (net.rpc.regInv (RA.httpW W₀)) ∗ listUnset γ ∗
         ([∗list] k ∈ replicaNodes, nodeTok γ k) ∗ inv regXN (regXInv γ (repStart γ)) ∗
         clientInvs γ ∗ own_state γ (kvScan w8).init := by
   iintro #Hreg Hs
@@ -246,7 +248,8 @@ theorem ep_ghost_start :
   imod registry_alloc (GF := GF) with ⟨%mn, %ids, Hrg⟩
   imod sys_alloc (GF := GF) with ⟨%pn, Hsys⟩
   let γ : EpNames := ⟨γkv, γf, γr, γe, mn, ⟨ids, sent, deliv, dials, cw, rp⟩, pn⟩
-  let W : net.rpc.RpcWorld GF := ⟨rpcSS γ, γw⟩
+  let W₀ : net.rpc.RpcWorld GF := ⟨rpcSS γ, γw⟩
+  let W : net.rpc.RpcWorld GF := RA.httpW W₀
   ihave Hnet := Hnet $$ %γ
     %(⟨rfl, rfl, rfl⟩ : γ.rep.sent = sent ∧ γ.rep.deliv = deliv ∧ γ.rep.dials = dials)
   ihave Hfwm := Hfwm $$ %γ %(⟨rfl, rfl⟩ : γ.rep.cwriters = cw ∧ γ.rep.replies = rp)
@@ -286,6 +289,7 @@ theorem ep_ghost_start :
   imod inv_alloc net.rpc.regN' ⊤ (net.rpc.regInv W) $$ [Hw] with #HregW
   · inext
     unfold net.rpc.regInv
+    rw [show W.reg = γw from RA.httpW_reg W₀]
     iexists ∅
     iframe Hw
     iapply BigSepM.bigSepM_empty.2; iempintro
@@ -298,7 +302,7 @@ theorem ep_ghost_start :
   -- the replica addresses' protocols
   imod addrs_set_proto ⊤ (repDialP γ) (repAccP γ) replicaAddrs $$ Hreg Hs with #Hps
   imodintro
-  iexists γ, W
+  iexists γ, W₀
   iframe HregW HlU HnT Hrx Hkvc
   isplitr
   · ipureintro; rfl
@@ -350,26 +354,31 @@ theorem ep_start :
   iintro #Hreg Hs Hml
   unfold epStartAddrs
   icases BigSepL.bigSepL_append.1 $$ Hs with ⟨Hp, Hr⟩
-  imod ep_ghost_start $$ Hreg Hp with ⟨%γ, %W, %HW, #HregW, HlU, HnT, #Hrx, #Hci, Hown⟩
+  imod ep_ghost_start $$ Hreg Hp with ⟨%γ, %W₀, %HW₀, #HregW, HlU, HnT, #Hrx, #Hci, Hown⟩
+  -- the kit's world: `W₀` served over HTTP at `DefaultRPCPath` at every address
+  have HW : (RA.httpW W₀).SS = rpcSS γ := (RA.httpW_SS W₀).trans HW₀
+  have hhs : ∀ a, RA.worldHs (RA.httpW W₀) a = hsReq ∧ RA.worldHsAns (RA.httpW W₀) a = hsAns :=
+    fun a => ⟨RA.httpW_hs W₀ a, RA.httpW_hsAns W₀ a⟩
   -- the master's wildcard listener
-  imod RA.rpcLisP_set ⊤ W masterLis hsReq hsAns masterLis_ok (fun a _ => RA.worldHs_http W a)
+  imod RA.rpcLisP_set ⊤ (RA.httpW W₀) masterLis hsReq hsAns masterLis_ok (fun a _ => hhs a)
     $$ Hreg HregW Hml with #Hml
-  ihave #Hma := RA.rpcLisP_addr W masterLis hsReq hsAns masterAddr masterAddr_ok
+  ihave #Hma := RA.rpcLisP_addr (RA.httpW W₀) masterLis hsReq hsAns masterAddr masterAddr_ok
     masterLis_master $$ Hml
   -- each replica's rpc listener (an exact one)
   unfold replicaRpcAddrs
   rw [BigSepL.bigSepL_map]
-  ihave Hr : [∗list] k ∈ replicaNodes, |={⊤}=> RA.rpcLisP W (rpcAddrOf k) hsReq hsAns $$ [Hr]
+  ihave Hr : [∗list] k ∈ replicaNodes,
+      |={⊤}=> RA.rpcLisP (RA.httpW W₀) (rpcAddrOf k) hsReq hsAns $$ [Hr]
   · iapply BigSepL.bigSepL_impl $$ Hr
     iintro !> %j %k %hk Hu
     have hok : addrOk (rpcAddrOf k) = true :=
       replicaRpcAddrs_ok _ (rpcAddrOf_mem' k (List.mem_of_getElem? hk))
     ihave Hu := addrUnset_lisUnset (rpcAddrOf k) hok $$ Hu
-    iapply RA.rpcLisP_set ⊤ W (rpcAddrOf k) hsReq hsAns (by simp [listenOk, hok])
-      (fun a _ => RA.worldHs_http W a) $$ Hreg HregW Hu
+    iapply RA.rpcLisP_set ⊤ (RA.httpW W₀) (rpcAddrOf k) hsReq hsAns (by simp [listenOk, hok])
+      (fun a _ => hhs a) $$ Hreg HregW Hu
   imod BigSepL2.bigSepL_fupd ⊤ _ _ $$ Hr with #Hrl
   imodintro
-  iexists γ, W
+  iexists γ, RA.httpW W₀
   isplitr
   · ipureintro; exact HW
   iframe Hown
@@ -380,7 +389,7 @@ theorem ep_start :
     iintro !> %j %k %hk #H
     have hok : addrOk (rpcAddrOf k) = true :=
       replicaRpcAddrs_ok _ (rpcAddrOf_mem' k (List.mem_of_getElem? hk))
-    iapply RA.rpcLisP_addr W (rpcAddrOf k) hsReq hsAns (rpcAddrOf k) hok (Or.inl rfl) $$ H
+    iapply RA.rpcLisP_addr (RA.httpW W₀) (rpcAddrOf k) hsReq hsAns (rpcAddrOf k) hok (Or.inl rfl) $$ H
   isplitl [HnT]
   · ihave Hall := BigSepL.bigSepL_sep_eqv.2 $$ [HnT Hrl]
     · iframe HnT Hrl

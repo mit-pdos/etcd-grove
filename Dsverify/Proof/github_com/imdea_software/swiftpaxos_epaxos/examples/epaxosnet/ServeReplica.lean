@@ -50,7 +50,7 @@ theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG)) :
     serveReplica.spec (GF := GF) (hG := hG) := by
   intro γ W k sl hk
-  wp_start as ⟨Hcf, Hmux, #Hsrv, #Hde, %Hb, #Hsl, %HSS, #Hma, #Hlis, Hnt, #Hrx, #Hci⟩
+  wp_start as ⟨Hcf, Hmux, #Hds0, #Hsrv, #Hde, %Hb, #Hsl, %HSS, #Hma, #Hlis, Hnt, #Hrx, #Hci⟩
   wp_auto
   wp_apply (wp_Register wp_SetCodec) $$ [$Hcf] as #Hcs
   wp_apply wp_nodeConfig as %cfg ⟨%c, Hcfg, Hprx, %Hc⟩
@@ -114,7 +114,7 @@ theorem serveReplica.wp_proof [RpcHttpAddr GF] [RpcHttpHyp GF]
     rw [Hc.2.2.1, hport]; rfl
   ihave Hrc := rcv γ (uint.nat rid) r $$ [$Hr]
   · iframe #; ipureintro; exact Hnn
-  ihave ⟨%γs, #Hds⟩ := RpcHttpHyp.defaultServer_init $$ Hrpc
+  icases Hds0 with ⟨%γs, #Hds⟩
   wp_apply (RpcHttpHyp.Register_spec γs epCodec (ptrIface epaxos.Replica.ty r) replicaSvc
       go!"Replica" (W8 82) _ rfl ⟨by decide, by decide⟩) $$ [$Hrpc $Hds $Hcs $Hrc] as %e Hreg
   icases Hreg with (⟨%He, #Hsr⟩ | %He)

@@ -73,7 +73,7 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
     (hRun : Master.run.specM (GF := GF) γ W) :
     Master.Run.specM (GF := GF) γ W := by
   intro m cfg logger
-  wp_start as ⟨Hfresh, Hunset, %HW, #Hlis, #Hrpcs, Hmux, #Hready, #Hsrv, #Hde, %Hbnd⟩
+  wp_start as ⟨Hfresh, Hunset, %HW, #Hlis, #Hrpcs, Hmux, #Hds0, #Hready, #Hsrv, #Hde, %Hbnd⟩
   unfold masterFresh
   icases Hfresh with ⟨%x, %c, Hm, %Hx, Hnl, Hnlc, Hal, Halc, Hpl, Hplc, Hnds, Hld, Halv, Hlat, Hmu,
     #Hcond, #Hlog, #Hcfg, %Hleader⟩
@@ -132,7 +132,7 @@ theorem Master.Run.wp_proof (hP : dlog.Logger.Printf.spec (GF := GF))
   iintro %sl2 ⟨-, -⟩
   wp_auto
   wp_apply (wp_Master_Printf hP) $$ [$Logger $Hlog]
-  ihave ⟨%γs, #Hds⟩ := RpcHttpHyp.defaultServer_init $$ Hrpcpkg
+  icases Hds0 with ⟨%γs, #Hds⟩
   ihave Hrcvm := hRcv m $$ []
   · iframe HisM Hcodec; ipureintro; exact Hmnn
   wp_apply (RpcHttpHyp.Register_spec γs epCodec (ptrIface master.Master.ty m) (masterSvc γ)

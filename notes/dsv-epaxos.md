@@ -53,6 +53,14 @@ The translation builds (2026-11-23, `lake build` of `Dsverify.GeneratedProof...e
   archive's exclusion meant for Rabia's prebuilt `epaxos/` dropped it: SOURCE.md, "Left out"). The
   port takes the fork from the lab's perf cache, `cache/perf-epaxos/e1nogs.bundle`, commit
   `71d99d4` (the run's; identical to `examples/epaxos/fork/swiftpaxos` but for `epaxos/`).
+  **Provenance, checkable:** the bundle is `/shared/dsverify-lab/cache/perf-epaxos/e1nogs.bundle`
+  (not in the lab's GitHub tree), sha256
+  `2ac453b7c232d835aa8f5d20b397ecd121c488298c7118ea13434fa4db8880ef`; its commit `71d99d4`'s tree
+  of `epaxos/` is `6c46b5814b4cd958f5f1a94887ebfa2eb00380cb`. Every file of
+  `examples/dsverify/epaxos/epaxos` is byte-identical to that tree's after rewriting
+  `github.com/imdea-software/swiftpaxos` → `github.com/imdea-software/swiftpaxos-epaxos` (checked
+  2026-11-23 by the coordinator; the other packages were checked against the lab's fork in the #24
+  review).
 - **The module path** is `github.com/imdea-software/swiftpaxos-epaxos` (Lean
   `github_com.imdea_software.swiftpaxos_epaxos`), not the fork's: the swiftpaxos kit
   (`examples/dsverify/swiftpaxos`, branch `dsv-swiftpaxos`) translates another fork of the same
@@ -370,9 +378,20 @@ that needs it):
   models-rpc-http's handshake premise (e6b232b2f6 `Net/Proof/net/rpc/Proto.lean`; without it the
   field is false there: the world fixes each address's handshake, so two listeners set with
   different handshakes give `False`). Now stated as there, with dsv-swiftpaxos's stand-ins
-  `worldHs`/`worldHsAns` for `RpcWorld.hs`/`.hsAns`, plus `worldHs_http` (every stand-in world is
-  HTTP at `DefaultRPCPath`: what models-rpc-http's start would build), discharged in `ep_start`.
-  `rpcAddrP_raw` dropped (unused; with `worldHs_http` no stand-in world is raw). `DialHTTP(Path)_spec`
+  `worldHs`/`worldHsAns` for `RpcWorld.hs`/`.hsAns`. (`75c9efff2f` also had `worldHs_http`, every
+  world HTTP's: no true instance, since models-rpc-http's raw worlds have `hs = []`; review of #24.
+  Replaced the same day by `httpW : RpcWorld GF → RpcWorld GF` with laws `httpW_hs`, `httpW_hsAns`
+  (HTTP's handshake at every address), `httpW_SS`, `httpW_reg` (services and registry kept):
+  models-rpc-http's `{W with hs := fun _ => connectReq defaultRPCPath, hsAns := fun _ =>
+  connectAns}`, every law `rfl`. `ep_ghost_start` builds the kit's world as
+  `httpW ⟨rpcSS γ, γw⟩` with its `regInv`; `ep_start` discharges `rpcLisP_set`'s premise at
+  `":7501"` and each `rpcAddrOf k` from `httpW_hs`/`httpW_hsAns`.) `rpcAddrP_raw` dropped (unused).
+  **`RpcHttpHyp.defaultServer_init`** (`isPkgInit net.rpc ⊢ ∃ γ, defaultServer γ`, with net/rpc's
+  package fact `True`: a server out of nothing, review of #24) removed: `∃ γs, defaultServer γs`
+  is now a boot resource (`rpcBootRes`, so `RpcBoot` says the initializer's
+  `DefaultServer = NewServer()` makes it, as models-rpc-http's `NewServer.spec` does), threaded
+  through `Server`/`serveMaster`/`serveReplica`/`Master.Run` and opened where `Register` is called
+  (`master/Run.lean`, `ServeReplica.lean`). `DialHTTP(Path)_spec`
   were stronger than models-rpc-http's (they took `isPkgInit net.rpc`, `True` here, for its
   `net.http.httpEnv ∗ connected ↦□ connectedStatus`): now its premises verbatim (`httpEnv`,
   `connectedStatus` copied), given by the boot (`rpcBootRes`'s `dialEnv`) and threaded through
@@ -506,12 +525,14 @@ empty baseline (`tcb-report --check` not run: it needs a full build).
 1. **Step bound `2^31 - 1`, not `2^63`**: Net's net/rpc server (`ServeCodec`/`ServeConn`/`Accept`,
    hence `HandleHTTP_spec`/`Serve_spec`) needs `threadBound GF ≤ 2^31`, and the bridge's thread
    bound is the step count + 2 (`Bridge.lean`'s `robust_of_distProtoLisRBT` keeps that fact).
-   Getting `2^63` back needs a dist adequacy whose thread bound is the run's `threads`.
+   Getting `2^63` back needs a dist adequacy whose thread bound is the run's `threads`: one that
+   bounds live threads (`threads ≤ 2^31`) while allowing `2^63` steps (`notes/perennial-changes.md`,
+   "Dist adequacy bounds threads by steps").
 2. **Wildcard listener at the top** (Net/remote): `robust_of_distProtoLisRB(T)` is a local copy of
    Net's bridge over `addrs_lis_start`; Net could offer it.
 3. **models-rpc-http** (e6b232b2f6, not landed): when it lands, merge it and discharge
-   `RpcHttpAddr` (its `rpcLisP` etc.; `rpcLisP_set` then needs the world's handshake: build `W`
-   with `hs := fun _ => connectReq defaultRPCPath`, `hsAns := fun _ => connectAns`) and the client
+   `RpcHttpAddr` (its `rpcLisP` etc.; `worldHs := RpcWorld.hs`, `worldHsAns := RpcWorld.hsAns`,
+   `httpW W := {W with hs := fun _ => connectReq defaultRPCPath, hsAns := fun _ => connectAns}`) and the client
    fields of `RpcHttpHyp`; the net/http server part (`HandleHTTP`, `Serve`, `muxOwner`) stays a
    hypothesis until Net has it.
 4. Kit Go changed against the lab (tests pass): `model.go`'s `Equal` always false; `kit.go`'s
