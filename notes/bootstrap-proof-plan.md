@@ -356,3 +356,17 @@ found two missing backend pieces, both untrusted but large, so it is a separate 
    `fkOpen`, `fkRd` in `rtCore`), or the rbr/rbRd pattern applies, with the readers' hook share in
    `consInv`.
 The disjunct in `batchLockInv` is cheap, but it helps only once 2 exists, so it waits too.
+
+### 7.7 Owner decisions, 2026-11-23 (via the coordinator)
+- **SHA-1: option (a).** `crypto/sha1` is translated in Perennial with `-tags purego`, over three trusted
+  leaf models (`boring/sig.StandardCrypto`, `fips140.isBypassed`, and the `godebug` read under
+  `fips140.enabled`) and the environment premise "GODEBUG lacks `fips140=only`", visible in the
+  top-level statements like the existing environment premises. Then `sha1.Sum = bootGo.sha1` and
+  `memberID`/`id` are proved.
+- **`MarshalMember` is not strengthened (S1).** The contexts' bytes will come from the JSON plan's J2
+  (#24: a model-based `encoding/json` with per-type dispatch). Until then, the `ctxs` facts
+  (`bootstrapRaft`'s `Hctx`, `bootstrap.spec`'s `memBoot` premise) stay hypotheses.
+- **Open-errno clause approved** (`PathErrno`'s `"Open"` case, its own stage). **M1:** `snapDirOwn` becomes
+  the exclusive fs claim on the snapshot directory's names except `snapNames`, held in `snapDirInv`;
+  `snapshotterRO` is defined (the `fsyncDir` field). **`onFs`:** perennial#692 (`TrustedAssumptions`);
+  no FieldAssumptions binders. **J8a-4:** set aside (§7.6).
