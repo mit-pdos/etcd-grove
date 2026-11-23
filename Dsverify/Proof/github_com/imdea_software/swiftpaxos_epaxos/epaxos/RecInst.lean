@@ -24,7 +24,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : StateTreemap GF]
 
 /-- The proposals `startRecoveryForInstance` carries over (`inst.lb.clientProposals`). -/
 def recCp (γ : EpNames) (i : Nat) (σ : RState) (x : InstId) (pv : GoSlice) : IProp GF :=

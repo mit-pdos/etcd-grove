@@ -55,7 +55,7 @@ lease `0` or at the revocable lease mode (`etcdPutSpecOn`'s filter), the floor `
 update told the put's grant (`clientOpAuOn`), persistent or on a client that sends a write at most
 once; `nil` and the reply with `putReplied` and the put's grant at the token of some attempt's
 metadata, or an error. -/
-theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem client_put_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (Q : KVState → IProp GF)
     (F : mvcc.Log)
@@ -65,39 +65,39 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
     (hl : (putWireOf (opPutModel key val gs)).leaseID = W64 0 ∨ ρ.kv.lm = .revocable) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn T E ρ cid mid) ∗
         srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
-        (□ clientOpAuOn s E ρ conn om (.put (putWireOf (opPutModel key val gs))) Q ∨
+        (□ clientOpAuOn T E ρ conn om (.put (putWireOf (opPutModel key val gs))) Q ∨
           (writeOnce api [addr] ∗
-            clientOpAuOn s E ρ conn om (.put (putWireOf (opPutModel key val gs))) Q)) }}
+            clientOpAuOn T E ρ conn om (.put (putWireOf (opPutModel key val gs))) Q)) }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))) ∨
+              v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hreg, #HF, #Hom, #Hctx', #Hce, #Hopts, Hau⟩ HΦ
   have Hpm : ¬ (opPutModel key val gs).putPanics ∧ (opPutModel key val gs).t = W64 2 := ⟨hpn, ht⟩
-  iapply (v3.kv.wp_PutG api conn [addr] ci om cd key val sl gs (etcdPutSpecOn s E ρ cid mid)
+  iapply (v3.kv.wp_PutG api conn [addr] ci om cd key val sl gs (etcdPutSpecOn T E ρ cid mid)
     (fun m => iprop(putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
       ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-        v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))))) $$ [Hau]
+        v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs)))))) $$ [Hau]
   · iframe #
     isplitl []
     · ipureintro; exact Hpm
     have h : (srvApi.kvLogLb E.γs F ∗
-          clientOpAuOn s E ρ conn om (.put (putWireOf (opPutModel key val gs))) Q : IProp GF) ⊢
-        attemptPre conn om (etcdPutSpecOn s E ρ cid mid)
+          clientOpAuOn T E ρ conn om (.put (putWireOf (opPutModel key val gs))) Q : IProp GF) ⊢
+        attemptPre conn om (etcdPutSpecOn T E ρ cid mid)
           (putWireOf (opPutModel key val gs))
           (fun (m : PutRespM) => iprop(putReplied E ρ.rd F (putWireOf (opPutModel key val gs)) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs))))) := by
+              v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putWireOf (opPutModel key val gs))))) := by
       iintro ⟨#HF, Hau⟩
       unfold attemptPre
       iintro %md %Hmd
-      unfold etcdPutSpecOn
+      unfold etcdPutSpecOn etcdPutSpecOnW
       isplitr
       · imodintro; iintro %_; itrivial
       iexists F
@@ -106,7 +106,7 @@ theorem client_put_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AE
       isplitr
       · ipureintro; exact hl
       isplitl [Hau]
-      · iapply clientOpAuOn_attempt s E ρ conn om md _ Q Hmd $$ Hau
+      · iapply clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
       iintro %m Hm Hg
       simp only []
       iframe Hm
@@ -154,28 +154,28 @@ theorem opPutModel_nil_ok (key val : GoString) :
   simp
 
 /-- **`client_put_on` with no option** (`gs := []`, lease `0`). -/
-theorem client_put_on_nil (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem client_put_on_nil (api conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hsz : opSizeOk (opPutModel key val [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn s E ρ cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Put" (etcdPutSpecOn T E ρ cid mid) ∗
         srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        (□ clientOpAuOn s E ρ conn om (.put (putKeyOp key val)) Q ∨
+        (□ clientOpAuOn T E ρ conn om (.put (putKeyOp key val)) Q ∨
           (writeOnce api [addr] ∗
-            clientOpAuOn s E ρ conn om (.put (putKeyOp key val)) Q)) }}
+            clientOpAuOn T E ρ conn om (.put (putKeyOp key val)) Q)) }}
       (App (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗
             putReplied E ρ.rd F (putKeyOp key val) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
+              v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md) (irrPut (putKeyOp key val))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   obtain ⟨hpn, ht, hw⟩ := opPutModel_nil_ok key val
   rw [← hw]
-  exact client_put_on api conn addr s E ρ cid mid ci om cd key val sl [] Q F hsz hpn ht
+  exact client_put_on api conn addr T E ρ cid mid ci om cd key val sl [] Q F hsz hpn ht
     (Or.inl (by rw [hw]; rfl))
 
 /-- **`kv.Get(ctx, key, opts...)` through a `*kv` over `conn` to a member with auth on** (as
@@ -183,14 +183,14 @@ theorem client_put_on_nil (api conn : Loc) (addr : GoString) (s : Loc) (E : appl
 committed index at least `c`, the floor `F`, a lower bound `n` of the published auth index and the
 caller's read update, persistent; `R` back, and `nil` with the reply's `rangeReplyOk` and the
 read's check at the token of some attempt's metadata, or an error. -/
-theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem client_range_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
     (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
     (gs : List (OpFull → OpFull)) (R : IProp GF) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hsz : opSizeOk (opGetModel key gs)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn s E γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecOn T E γr cid mid) ∗
         committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
         metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAtRes sl gs R ∗ R ∗
         sortNamesIf (opGetModel key gs).base.sortSet ∗
@@ -203,14 +203,14 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
         ((⌜err = GoInterface.nil⌝ ∗ ∃ m : RangeRespM, rangeRespMsg resp m ∗
             rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
             ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-              v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
+              v3rpc.rangeAuthed T E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err)) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hreg, #Hc, #HF, #Hn, #Hom, #Hctx', #Hce, Hopts, HR, Hsn, %Hg, #Hdq⟩ HΦ
   iapply wp_fupd
-  iapply (v3.kv.wp_GetG api conn [addr] ci om cd key sl gs R (etcdRangeSpecOn s E γr cid mid)
+  iapply (v3.kv.wp_GetG api conn [addr] ci om cd key sl gs R (etcdRangeSpecOn T E γr cid mid)
     (fun m => iprop(rangeReplyOk E γr c F (rangeWireOf (opGetModel key gs)) cid mid Q m ∗
       ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-        v3rpc.rangeAuthed s E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))))
+        v3rpc.rangeAuthed T E γr c n (auth.mdTokenOf md) (rangeWireOf (opGetModel key gs))))
     (fun _ => iprop(True)))
     $$ [Hopts HR Hsn]
   · iframe #
@@ -223,7 +223,7 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
     inext
     unfold attemptPre
     iintro %md %Hmd
-    unfold etcdRangeSpecOn
+    unfold etcdRangeSpecOn etcdRangeSpecOnW
     isplitr
     · imodintro; iintro %_; itrivial
     iexists c, F, Q, n
@@ -256,17 +256,17 @@ theorem client_range_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.
 `client_put_on`; `client_delete_any` at one member): a non-empty key (the shape the permission
 cache decides, `auth.reqShape`); the reply with `deleteReplied` and the delete's grant at the
 token of some attempt's metadata. -/
-theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem client_delete_on (api conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
     (ρ : ReqNames) (cid mid : w64) (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (Q : KVState → IProp GF) (F : mvcc.Log) (hk : key ≠ [])
     (hsz : opSizeOk (opDeleteModel key [])) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         kvObjAtC api conn [addr] ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn s E ρ cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpecOn T E ρ cid mid) ∗
         srvApi.kvLogLb E.γs F ∗ metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
-        (□ clientOpAuOn s E ρ conn om (.deleteRange (txn.deleteOpOf key [] false)) Q ∨
+        (□ clientOpAuOn T E ρ conn om (.deleteRange (txn.deleteOpOf key [] false)) Q ∨
           (writeOnce api [addr] ∗
-            clientOpAuOn s E ρ conn om
+            clientOpAuOn T E ρ conn om
               (.deleteRange (txn.deleteOpOf key [] false)) Q)) }}
       (App (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!!
           go!"Delete")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
@@ -274,16 +274,16 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : DelRespM, delRespMsg resp m ∗
             deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md)
+              v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md)
                 (irrDeleteRange (txn.deleteOpOf key [] false))) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, #Hkv, #Hreg, #HF, #Hom, #Hctx', #Hce, #Hopts, Hau⟩ HΦ
   have hw : deleteWireOf (opDeleteModel key []) = txn.deleteOpOf key [] false := by
     simp [op_simps, deleteWireOf, txn.deleteOpOf]
-  iapply (v3.kv.wp_DeleteG api conn [addr] ci om cd key sl [] (etcdDeleteSpecOn s E ρ cid mid)
+  iapply (v3.kv.wp_DeleteG api conn [addr] ci om cd key sl [] (etcdDeleteSpecOn T E ρ cid mid)
     (fun m => iprop(deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
       ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-        v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md)
+        v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md)
           (irrDeleteRange (txn.deleteOpOf key [] false))))) $$ [Hau]
   · iframe #
     isplitl []
@@ -292,19 +292,19 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       simp [op_simps, opDeletePanics, opGetPanics, OpFull.deletePanics]
     rw [hw]
     have h : (srvApi.kvLogLb E.γs F ∗
-          clientOpAuOn s E ρ conn om (.deleteRange (txn.deleteOpOf key [] false)) Q :
+          clientOpAuOn T E ρ conn om (.deleteRange (txn.deleteOpOf key [] false)) Q :
           IProp GF) ⊢
-        attemptPre conn om (etcdDeleteSpecOn s E ρ cid mid)
+        attemptPre conn om (etcdDeleteSpecOn T E ρ cid mid)
           (txn.deleteOpOf key [] false)
           (fun (m : DelRespM) =>
             iprop(deleteReplied E ρ.rd F (txn.deleteOpOf key [] false) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-              v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md)
+              v3rpc.writeGrantOn T E ρ (auth.mdTokenOf md)
                 (irrDeleteRange (txn.deleteOpOf key [] false)))) := by
       iintro ⟨#HF, Hau⟩
       unfold attemptPre
       iintro %md %Hmd
-      unfold etcdDeleteSpecOn
+      unfold etcdDeleteSpecOn etcdDeleteSpecOnW
       isplitr
       · imodintro; iintro %_; itrivial
       isplitl []
@@ -315,7 +315,7 @@ theorem client_delete_on (api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       isplitr
       · ipureintro; simp [txn.deleteOpOf]
       isplitl [Hau]
-      · iapply clientOpAuOn_attempt s E ρ conn om md _ Q Hmd $$ Hau
+      · iapply clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
       iintro %m Hm Hg
       simp only []
       iframe Hm
@@ -362,7 +362,7 @@ floor `F`, a lower bound `n` of the published auth index and the caller's update
 (`txnUpdAtOn`: a writing one's told its grant), persistent or on a builder that sends a write at
 most once; `nil` with the reply's `txnReplied` and the transaction's auth facts at the token of
 some attempt's metadata (`txnAuthOn`), or an error. -/
-theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
+theorem client_txn_on (tp api conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (cid mid c : w64) (n : Nat) (ci : GoInterfaceOk) (om : GrpcMd)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (Q : KVState → IProp GF) (F : mvcc.Log)
     (hin : txn.txnReadonly (txnWireOf b.model) = true → txnModelIn (txnWireOf b.model))
@@ -371,29 +371,29 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf b.model → kvShapeAll (irrTxn tw)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         txnObjAt tp [addr] ci cd b ∗ metadata.outMD ci om ∗ txnKvIs tp api ∗ kvObjAtC api conn [addr] ∗
-        isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn s E ρ γr cid mid) ∗
+        isGrpcRpcMd addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpecOn T E ρ γr cid mid) ∗
         committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n ∗
-        (□ txnUpdAtOn s E ρ conn om γr (txnWireOf b.model) Q ∨
-          (txnWriteOnce tp [addr] ∗ txnUpdAtOn s E ρ conn om γr (txnWireOf b.model) Q)) }}
+        (□ txnUpdAtOn T E ρ conn om γr (txnWireOf b.model) Q ∨
+          (txnWriteOnce tp [addr] ∗ txnUpdAtOn T E ρ conn om γr (txnWireOf b.model) Q)) }}
       (App (Val (tp @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.txn.ty @!! go!"Commit"))
         (Val #()))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (⌜err = GoInterface.nil⌝ ∗ ∃ m : TxnRespM, txnRespMsg resp m ∗
             txnReplied E ρ.rd γr c F (txnWireOf b.model) Q cid mid m ∗
             ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-              txnAuthOn s E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)) ∨
+              txnAuthOn T E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)) ∨
           (⌜err ≠ GoInterface.nil ∧ resp = null⌝ ∗ kvErr err) }} := by
   iintro %Φ ⟨#Pc, Hobj, #Hom, #Htk, #Hkv, #Hreg, #Hc, #HF, #Hn, Hnp⟩ HΦ
   have h : (iprop(committedAtLeast γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode n) ∗
-        txnUpdAtOn s E ρ conn om γr (txnWireOf b.model) Q : IProp GF) ⊢
-      attemptPre conn om (etcdTxnSpecOn s E ρ γr cid mid) (txnWireOf b.model)
+        txnUpdAtOn T E ρ conn om γr (txnWireOf b.model) Q : IProp GF) ⊢
+      attemptPre conn om (etcdTxnSpecOn T E ρ γr cid mid) (txnWireOf b.model)
         (fun (m : TxnRespM) => iprop(txnReplied E ρ.rd γr c F (txnWireOf b.model) Q cid mid m ∗
           ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-            txnAuthOn s E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model))) := by
+            txnAuthOn T E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model))) := by
     iintro ⟨⟨#Hc, #HF, #Hn⟩, Hu⟩
     unfold attemptPre
     iintro %md %Hmd
-    unfold etcdTxnSpecOn
+    unfold etcdTxnSpecOn etcdTxnSpecOnW
     isplitr
     · imodintro; iintro %_; itrivial
     isplitl []
@@ -407,7 +407,7 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
       · iright; iright
         isplitr
         · ipureintro; exact Hw
-        iapply clientOpAuOn_attempt s E ρ conn om md _ Q Hmd $$ Hau
+        iapply clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
     iexists c, F, n
     iframe Hc HF Hn
     iintro %m Hm Ha
@@ -416,10 +416,10 @@ theorem client_txn_on (tp api conn : Loc) (addr : GoString) (s : Loc) (E : apply
     iexists md
     iframe Ha
     ipureintro; exact Hmd
-  iapply (v3.txn.wp_CommitG tp api conn [addr] ci om cd b (etcdTxnSpecOn s E ρ γr cid mid)
+  iapply (v3.txn.wp_CommitG tp api conn [addr] ci om cd b (etcdTxnSpecOn T E ρ γr cid mid)
     (fun m => iprop(txnReplied E ρ.rd γr c F (txnWireOf b.model) Q cid mid m ∗
       ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-        txnAuthOn s E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)))) $$ [Hobj Hnp]
+        txnAuthOn T E ρ γr c n (auth.mdTokenOf md) (txnWireOf b.model)))) $$ [Hobj Hnp]
   · iframe Hobj
     iframe #
     isplitl [Hnp]; rotate_left
@@ -473,13 +473,13 @@ update told the grant (`clientOpAuOn`, persistent: the call may be retried); `ni
 fields, its lease id not `NoLease`, its revision reached, the lease live in the lessor's history with the
 request's TTL, and at the token of some attempt's metadata the caller's result (`leaseGrantResT`) and
 `requireAuthInfo`'s check relative to `n` (`leaseCheckFrom`); or an error. -/
-theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName)
+theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName)
     (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (n : Nat) (ttl : w64)
     (Q : w64 → KVState → IProp GF) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn [addr] ∗ auth.authPubLbM E.authMode n ∗
-      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn s E ρ γl) ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseGrant" (etcdLeaseGrantSpecOn T E ρ γl) ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      □ (∀ id : w64, clientOpAuOn s E ρ conn om (.leaseGrant id ttl) (Q id)) }}
+      □ (∀ id : w64, clientOpAuOn T E ρ conn om (.leaseGrant id ttl) (Q id)) }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Grant"))
       (Val #(GoInterface.ok ci))) (Val #ttl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -492,25 +492,25 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : ap
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
         ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-          v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) ttl m.id Q ∗
-          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+          v3rpc.leaseGrantResT E.authOn T E ρ (auth.mdTokenOf md) ttl m.id Q ∗
+          leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
         go_etcd_io.etcd.cache.v3.statusErrOk err) }} := by
   iintro %Φ ⟨#Pc, #Hrem, #Hn, #Hreg, #Hom, #Hctx, #Hce, #Hau⟩ HΦ
-  iapply (v3.lessor.wp_Grant l conn [addr] (etcdLeaseGrantSpecOn s E ρ γl)
+  iapply (v3.lessor.wp_Grant l conn [addr] (etcdLeaseGrantSpecOn T E ρ γl)
     (fun m => iprop(⌜m.id ≠ W64 0⌝ ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
         ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-          v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) ttl m.id Q ∗
-          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
+          v3rpc.leaseGrantResT E.authOn T E ρ (auth.mdTokenOf md) ttl m.id Q ∗
+          leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))))
     ci om cd ttl) $$ [] HΦ
   iframe Pc Hrem Hreg Hom Hctx Hce
   iintro !>
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseGrantSpecOn
+  unfold etcdLeaseGrantSpecOn etcdLeaseGrantSpecOnW
   isplitr
   · iintro !> %_; itrivial
   isplitr
@@ -524,7 +524,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : ap
     · simp only [leaseGrantPermitM]
       iintro %id
       ihave Hau1 := Hau $$ %id
-      ihave H := clientOpAuOn_attempt s E ρ conn om md _ (Q id) Hmd $$ Hau1
+      ihave H := clientOpAuOn_attempt T E ρ conn om md _ (Q id) Hmd $$ Hau1
       iapply kvOpAuOn_leaseGrant $$ H
   iintro %m %Hid #Hre Hlive Hres #Hck
   isplitr
@@ -538,36 +538,36 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : ap
 
 /-- **`l.Revoke(ctx, id)` on the client's `*lessor` over `conn` to a member with auth on** (auth-lease
 S4, Freeze §3.2; as `client_lease_grant_on`). -/
-theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (T : IProp GF) [Persistent T] (E : apply.AEnv GF) (ρ : ReqNames)
     (ci : GoInterfaceOk) (om : GrpcMd) (cd : context.ContextDesc (IProp GF)) (n : Nat) (id : w64)
     (Q : KVState → IProp GF) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ lessorRemoteAtC l conn [addr] ∗ auth.authPubLbM E.authMode n ∗
-      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn s E ρ) ∗
+      isGrpcRpcMd addr go!"/etcdserverpb.Lease/LeaseRevoke" (etcdLeaseRevokeSpecOn T E ρ) ∗
       metadata.outMD ci om ∗ ctxOk ci cd ∗ ctxErrClient ci cd ∗
-      □ clientOpAuOn s E ρ conn om (.leaseRevoke id) Q }}
+      □ clientOpAuOn T E ρ conn om (.leaseRevoke id) Q }}
     (App (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty @!! go!"Revoke"))
       (Val #(GoInterface.ok ci))) (Val #id))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err = GoInterface.nil⌝ ∗ ∃ m : LeaseRevokeRespM, leaseRevokeRespMsg resp m ∗
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-          v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q ∗
-          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+          v3rpc.leaseRevokeResT E.authOn T E ρ (auth.mdTokenOf md) id Q ∗
+          leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
         go_etcd_io.etcd.cache.v3.statusErrOk err) }} := by
   iintro %Φ ⟨#Pc, #Hrem, #Hn, #Hreg, #Hom, #Hctx, #Hce, #Hau⟩ HΦ
-  iapply (v3.lessor.wp_Revoke l conn [addr] (etcdLeaseRevokeSpecOn s E ρ)
+  iapply (v3.lessor.wp_Revoke l conn [addr] (etcdLeaseRevokeSpecOn T E ρ)
     (fun m => iprop(etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         ∃ md, ⌜clientAttemptMd conn om md⌝ ∗
-          v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q ∗
-          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
+          v3rpc.leaseRevokeResT E.authOn T E ρ (auth.mdTokenOf md) id Q ∗
+          leaseCheckFrom T E (auth.mdTokenOf md) n (fun _ => iprop(True))))
     ci om cd id) $$ [] HΦ
   iframe Pc Hrem Hreg Hom Hctx Hce
   iintro !>
   inext
   unfold attemptPre
   iintro %md %Hmd
-  unfold etcdLeaseRevokeSpecOn
+  unfold etcdLeaseRevokeSpecOn etcdLeaseRevokeSpecOnW
   isplitr
   · iintro !> %_; itrivial
   iexists n
@@ -577,7 +577,7 @@ theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (s : Loc) (E : a
   · cases hon : E.authOn
     · iapply leaseRevokePermitM_false
     · simp only [leaseRevokePermitM]
-      ihave H := clientOpAuOn_attempt s E ρ conn om md _ Q Hmd $$ Hau
+      ihave H := clientOpAuOn_attempt T E ρ conn om md _ Q Hmd $$ Hau
       iapply kvOpAuOn_leaseRevoke $$ H
   iintro %m #Hre Hres #Hck
   isplitr

@@ -32,7 +32,6 @@ axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom addFeatureGateMetrics.wp_proof
-axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
@@ -93,7 +92,6 @@ axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
@@ -132,7 +130,6 @@ axiom proto.UnmarshalUser.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rate.Limiter.Wait.wp_proof
-axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof

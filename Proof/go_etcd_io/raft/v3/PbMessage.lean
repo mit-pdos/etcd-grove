@@ -20,7 +20,8 @@ Read it against `raftpb/raft.proto` (raft v3.7, `syntax = "proto2"`):
 - a decoded or cloned copy (`eqv`) has the original's wire content, and no responses if the
   original had none (2026-10-23, rafthttp stage 4: an encoding of a message without responses
   carries none, and `proto.Clone` of one makes none), what the receiver's `netRecv` needs;
-- decoding (`msgDecode`, opaque) is a function of the bytes: two messages of which the same bytes
+- decoding (`msgDecode`; opaque until protobuf stage S2, 2026-11-23, now `PbWireRaft.lean`'s
+  `msgDecodeRaw`) is a function of the bytes: two messages of which the same bytes
   are an encoding agree on the wire (`pbMessage_wire_eq`, `wireEq`). The unknown fields of the
   message, its entries and snapshot are not in the model: an encoding carries them, and decoding
   puts them back in the copy's unknown fields, which the predicates leave existential (`pbMsg`).
@@ -66,9 +67,25 @@ instance : Inhabited MsgWire := ⟨⟨zero_val _, [], none, []⟩⟩
 /-- The wire content of a message. -/
 def wireOf (st : MsgSt) : MsgWire := ⟨st.msg, st.ents, st.snap, st.ctx⟩
 
-/-- **Decoding a `raftpb.Message`'s bytes** (opaque): the wire content, or `none` if they do not
-decode. -/
-opaque msgDecode (bs : List w8) : Option MsgWire
+/-- A decoded conf state's model. -/
+def CSDec.model (c : CSDec) : ConfStateM :=
+  ⟨c.voters, c.learners, c.votersOutgoing, c.learnersNext, c.autoLeave⟩
+
+/-- A decoded snapshot metadata's model. -/
+def MetaDec.model (m : MetaDec) : SnapshotMetadataM := ⟨m.cs.model, m.index, m.term⟩
+
+/-- A decoded snapshot's model. -/
+def SnapDec.model (s : SnapDec) : SnapshotM := ⟨s.data, s.md.model⟩
+
+/-- A decoded message's wire content (its getters; the responses are not in it). -/
+def MsgDec.wire (m : MsgDec) : MsgWire :=
+  ⟨⟨m.type, m.to, m.frm, m.term, m.logTerm, m.index, m.commit, m.vote, m.reject, m.rejectHint⟩,
+    m.ents.map (fun x => ⟨x.1, x.2.1, x.2.2.1, x.2.2.2⟩), m.snap.map SnapDec.model, m.ctx⟩
+
+/-- **Decoding a `raftpb.Message`'s bytes**: the wire content, or `none` if they do not decode
+(`proto.Unmarshal`'s error). `msgDecodeRaw` (`PbWireRaft.lean`, protobuf stage S2: until 2026-11-23
+opaque), checked against protobuf-go by `MessageWireVectors.lean`. -/
+def msgDecode (bs : List w8) : Option MsgWire := (msgDecodeRaw bs).map MsgDec.wire
 
 /-- **The messages that marshal** (see the file header): no `responses`. -/
 def MsgMarshals (st : MsgSt) : Prop :=

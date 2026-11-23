@@ -26,7 +26,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : StateTreemap GF]
 
 omit [GoGlobalContext] [hG : HeapGS .hasLC GF] [go.Semantics] [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS] in
 /-- (stage 2, S3) A client SCAN's value is its count's 8 bytes (`Execute`'s premise). -/

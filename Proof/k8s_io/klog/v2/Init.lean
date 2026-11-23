@@ -2,13 +2,23 @@
 Package initialization of `k8s_io.klog.v2`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports (it has no initialized
-variable).
+Its fact (`klogInit`, `storage/etcd3/Base.lean`): of the global `logging`, `verbosity` holds
+some level, `filterLength` is 0 and `logger` is `nil`, read-only for good. Its initializer
+initializes its imports, allocates `logging` (zero: it has no initializer; the allocation gives its
+fields' points-tos) and runs its `init` functions (trusted no-ops, `TrustedCode/k8s_io/klog/v2.lean`:
+`init.1` writes 0 to `verbosity` and `filterLength`, as the zero value has them; klog-leaves,
+2026-11-23).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.io.Link
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.sync.atomic.Link
+public import Perennial.Proof.time.Link
 public import Proof.github_com.go_logr.logr.Init
+public import Proof.k8s_io.klog.v2.internal.severity.Init
+public import Proof.runtime.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -47,6 +57,18 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := k8s_io.klog.v2.loggingT) logging _ as Hlogging
+  wp_apply (_root_.Perennial.k8s_io.klog.v2.internal.severity.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (_root_.Perennial.runtime.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
+      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.github_com.go_logr.logr.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- the translated init.«0»
   wp_func_call
@@ -56,8 +78,28 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_func_call
   wp_call
   try wp_auto
+  iStructNamed Hlogging
+  iStructNamed settings
+  ipersist verbosity
+  ipersist filterLength
+  ipersist logger
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold k8s_io.apiserver.pkg.storage.etcd3.klogInit
+  isplitl []
+  · iexists _; iexact verbosity
+  isplitl []
+  · have hz : (zero_val k8s_io.klog.v2.loggingT).settings'.filterLength' = W32 0 := rfl
+    rw [← hz]
+    iexact filterLength
+  · have hz : (zero_val k8s_io.klog.v2.loggingT).settings'.logger' = null := rfl
+    rw [← hz]
+    iexact logger
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

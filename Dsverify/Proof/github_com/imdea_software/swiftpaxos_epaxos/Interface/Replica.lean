@@ -400,7 +400,7 @@ theorem fwStart_unseal : fwStart (GF := GF) = fwStartDef := by funext; with_unfo
 /-- What `replica.New` returns (exclusive): the read-only part, the fields and table `epaxos.New`
 then sets up (`Beacon`, `Durable`, the table with next code 9 and no entry), the `Stats` map
 (epaxos initializes its counters), an empty store, and `fwStart`. -/
-def fwFresh [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TreemapHyp GF] (γ : EpNames) (r : Loc) (id : Nat) (L : List GoString) (p : FwPtrs) :
+def fwFresh [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [StateTreemap GF] (γ : EpNames) (r : Loc) (id : Nat) (L : List GoString) (p : FwPtrs) :
     IProp GF :=
   iprop(fwRO γ r id L p ∗ fld r go!"Beacon" ↦ false ∗ fld r go!"Durable" ↦ false ∗
     ownTable p.tbl (W8 9) ∅ ∗ isState p.st ∅ ∗ fwStart γ r id L p)

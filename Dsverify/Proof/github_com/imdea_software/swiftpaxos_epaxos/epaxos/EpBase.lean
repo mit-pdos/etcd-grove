@@ -79,7 +79,7 @@ section heap
 variable [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions] [HasExt netExt] [π : NetProtoGS]
-variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : TreemapHyp GF]
+variable [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumptions] [TH : StateTreemap GF]
 
 /-- `(*state.Command).String()` (needed by `handleCommit`'s re-proposal log line): the interface's
 `state.Command.String.spec` (HUB-REQUEST epaxos-3; stage 2: a SCAN with at least 8 bytes of

@@ -54,6 +54,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_call  -- File_proto_client_client_proto: its trusted initializer does nothing
+  wp_call  -- file_proto_client_client_proto_rawDescOnce: its trusted initializer does nothing
   wp_apply (_root_.Perennial.raxos.proto.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
       EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩

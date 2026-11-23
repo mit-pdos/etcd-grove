@@ -221,7 +221,7 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
   · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
-  wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci (akOut who) cd b
+  wp_apply (client_txn_on tp api conn _ (srvTLSId s) E ρ ρ.rd cid mid (W64 0) n ci (akOut who) cd b
       (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf b.model))⌝)) [] (fun _ => hin) hsz
       (fun _ => hsh)) $$ [Hobj] as %resp %err Hout
   · iframe #
@@ -323,7 +323,7 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
   · unfold committedAtLeast; ileft
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
-  wp_apply (client_txn_on tp api conn _ s E ρ ρ.rd cid mid (W64 0) n ci (akOut who) cd
+  wp_apply (client_txn_on tp api conn _ (srvTLSId s) E ρ ρ.rd cid mid (W64 0) n ci (akOut who) cd
       ⟨t4M (keyOfK go!"c" who go!"t3") go!"vt", false, true, false⟩
       (fun _ => iprop(⌜akOpGranted who (.txn (txnWireOf (t4M (keyOfK go!"c" who go!"t3") go!"vt")))⌝))
       [] (fun h => absurd h (by rw [hro]; decide)) hsz
