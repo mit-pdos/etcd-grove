@@ -84,7 +84,7 @@ noncomputable instance ConsistencyError_access_load_GroupResource (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsistencyError_access_store_GroupResource (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (GroupResource' : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance ConsistencyError_access_store_GroupResource (l : Loc) (v : k8s_io.client_go.util.consistency.ConsistencyError) (GroupResource' : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"GroupResource" l) v.GroupResource' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ConsistencyError go!"GroupResource" l) GroupResource' (DFrac.own 1))
@@ -126,7 +126,7 @@ noncomputable instance consistencyStore_access_load_writesLock (l : Loc) (v : k8
  by
   solve_pointsto_access_struct
 
-noncomputable instance consistencyStore_access_store_writesLock (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (writesLock' : sync.RWMutex) :
+noncomputable instance consistencyStore_access_store_writesLock (l : Loc) (v : k8s_io.client_go.util.consistency.consistencyStore) (writesLock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writesLock" l) v.writesLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.consistencyStore go!"writesLock" l) writesLock' (DFrac.own 1))
@@ -200,7 +200,7 @@ noncomputable instance ownerRecord_access_load_ownerUID (l : Loc) (v : k8s_io.cl
  by
   solve_pointsto_access_struct
 
-noncomputable instance ownerRecord_access_store_ownerUID (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (ownerUID' : k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance ownerRecord_access_store_ownerUID (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (ownerUID' : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"ownerUID" l) v.ownerUID' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"ownerUID" l) ownerUID' (DFrac.own 1))
@@ -216,7 +216,7 @@ noncomputable instance ownerRecord_access_load_versionsLock (l : Loc) (v : k8s_i
  by
   solve_pointsto_access_struct
 
-noncomputable instance ownerRecord_access_store_versionsLock (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (versionsLock' : sync.Mutex) :
+noncomputable instance ownerRecord_access_store_versionsLock (l : Loc) (v : k8s_io.client_go.util.consistency.ownerRecord) (versionsLock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versionsLock" l) v.versionsLock' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.client_go.util.consistency.ownerRecord go!"versionsLock" l) versionsLock' (DFrac.own 1))

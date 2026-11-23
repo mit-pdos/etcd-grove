@@ -325,7 +325,7 @@ noncomputable instance bank_access_load_failed (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance bank_access_store_failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (failed' : sync.atomic.Bool') :
+noncomputable instance bank_access_store_failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (failed' : _root_.Perennial.sync.atomic.Bool') :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) failed' (DFrac.own 1))
@@ -366,7 +366,7 @@ noncomputable instance witness_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance witness_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (mu' : sync.Mutex) :
+noncomputable instance witness_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) mu' (DFrac.own 1))

@@ -393,7 +393,7 @@ noncomputable instance Config_access_load_ProxyBatchTimeout (l : Loc) (v : rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProxyBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (ProxyBatchTimeout' : time.Duration) :
+noncomputable instance Config_access_store_ProxyBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (ProxyBatchTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchTimeout" l) v.ProxyBatchTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ProxyBatchTimeout" l) ProxyBatchTimeout' (DFrac.own 1))
@@ -425,7 +425,7 @@ noncomputable instance Config_access_load_NetworkBatchTimeout (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_NetworkBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (NetworkBatchTimeout' : time.Duration) :
+noncomputable instance Config_access_store_NetworkBatchTimeout (l : Loc) (v : rabia.internal.config.Config) (NetworkBatchTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchTimeout" l) v.NetworkBatchTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"NetworkBatchTimeout" l) NetworkBatchTimeout' (DFrac.own 1))
@@ -633,7 +633,7 @@ noncomputable instance Config_access_load_SvrLogInterval (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_SvrLogInterval (l : Loc) (v : rabia.internal.config.Config) (SvrLogInterval' : time.Duration) :
+noncomputable instance Config_access_store_SvrLogInterval (l : Loc) (v : rabia.internal.config.Config) (SvrLogInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrLogInterval" l) v.SvrLogInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"SvrLogInterval" l) SvrLogInterval' (DFrac.own 1))
@@ -649,7 +649,7 @@ noncomputable instance Config_access_load_ClientLogInterval (l : Loc) (v : rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ClientLogInterval (l : Loc) (v : rabia.internal.config.Config) (ClientLogInterval' : time.Duration) :
+noncomputable instance Config_access_store_ClientLogInterval (l : Loc) (v : rabia.internal.config.Config) (ClientLogInterval' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientLogInterval" l) v.ClientLogInterval' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientLogInterval" l) ClientLogInterval' (DFrac.own 1))
@@ -665,7 +665,7 @@ noncomputable instance Config_access_load_ClientTimeout (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ClientTimeout (l : Loc) (v : rabia.internal.config.Config) (ClientTimeout' : time.Duration) :
+noncomputable instance Config_access_store_ClientTimeout (l : Loc) (v : rabia.internal.config.Config) (ClientTimeout' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientTimeout" l) v.ClientTimeout' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ClientTimeout" l) ClientTimeout' (DFrac.own 1))
@@ -681,7 +681,7 @@ noncomputable instance Config_access_load_ConsensusStartAfter (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ConsensusStartAfter (l : Loc) (v : rabia.internal.config.Config) (ConsensusStartAfter' : time.Duration) :
+noncomputable instance Config_access_store_ConsensusStartAfter (l : Loc) (v : rabia.internal.config.Config) (ConsensusStartAfter' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ConsensusStartAfter" l) v.ConsensusStartAfter' (DFrac.own 1))
       (typedPointsto (structFieldRef rabia.internal.config.Config go!"ConsensusStartAfter" l) ConsensusStartAfter' (DFrac.own 1))

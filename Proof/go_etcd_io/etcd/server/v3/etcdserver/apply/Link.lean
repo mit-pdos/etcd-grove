@@ -100,6 +100,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.quotaApplierV3__T
 public import Proof.go_etcd_io.etcd.server.v3.storage.BackendQuota__Cost
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
 public import Proof.strconv.FormatUint
+public import Proof.strconv.Itoa
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
@@ -183,21 +184,57 @@ theorem types.ID.wp_String :
     EtcdGrove.types.ID.String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.types.ID.String.wp_proof strconv.wp_FormatUint
 
+theorem strconv.wp_Itoa :
+    EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strconv.Itoa.wp_proof
+
 theorem etcdserverpb.AlarmType.wp_String :
     EtcdGrove.etcdserverpb.AlarmType.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdserverpb.AlarmType.String.wp_proof
+  EtcdGrove.etcdserverpb.AlarmType.String.wp_proof strconv.wp_Itoa
 
 theorem prometheus.GaugeVec.wp_WithLabelValues :
     EtcdGrove.prometheus.GaugeVec.WithLabelValues.spec (GF := GF) (hG := hG) :=
   EtcdGrove.prometheus.GaugeVec.WithLabelValues.wp_proof
 
+theorem semver.Version.wp_Major :
+    EtcdGrove.semver.Version.Major.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Major.wp_proof
+
+theorem semver.Version.wp_Minor :
+    EtcdGrove.semver.Version.Minor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Minor.wp_proof
+
+theorem semver.Version.wp_Patch :
+    EtcdGrove.semver.Version.Patch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Patch.wp_proof
+
+theorem semver.Version.wp_Prerelease :
+    EtcdGrove.semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Prerelease.wp_proof
+
+theorem semver.wp_compareSegment :
+    EtcdGrove.semver.compareSegment.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.compareSegment.wp_proof
+
+theorem semver.wp_comparePrePart :
+    EtcdGrove.semver.comparePrePart.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
+
+theorem semver.wp_comparePrerelease :
+    EtcdGrove.semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
+
+theorem semver.Version.wp_Compare :
+    EtcdGrove.semver.Version.Compare.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
+
 theorem semver.Version.wp_LessThan :
     EtcdGrove.semver.Version.LessThan.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.LessThan.wp_proof
+  EtcdGrove.semver.Version.LessThan.wp_proof semver.Version.wp_Compare
 
 theorem semver.Version.wp_String :
     EtcdGrove.semver.Version.String.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.String.wp_proof
+  EtcdGrove.semver.Version.String.wp_proof _root_.Perennial.bytes.Buffer.wp_Write _root_.Perennial.bytes.Buffer.wp_String _root_.Perennial.fmt.wp_Fprintf
 
 theorem zap.wp_String :
     EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
@@ -234,38 +271,6 @@ theorem RequestOp.wp_GetRequestTxn :
 theorem storage.BackendQuota.wp_Cost :
     EtcdGrove.storage.BackendQuota.Cost.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.BackendQuota.Cost.wp_proof RequestOp.wp_GetRequestPut RequestOp.wp_GetRequestTxn
-
-theorem semver.Version.wp_Major :
-    EtcdGrove.semver.Version.Major.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.Major.wp_proof
-
-theorem semver.Version.wp_Minor :
-    EtcdGrove.semver.Version.Minor.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.Minor.wp_proof
-
-theorem semver.Version.wp_Patch :
-    EtcdGrove.semver.Version.Patch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.Patch.wp_proof
-
-theorem semver.Version.wp_Prerelease :
-    EtcdGrove.semver.Version.Prerelease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.Prerelease.wp_proof
-
-theorem semver.wp_compareSegment :
-    EtcdGrove.semver.compareSegment.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.compareSegment.wp_proof
-
-theorem semver.wp_comparePrePart :
-    EtcdGrove.semver.comparePrePart.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.comparePrePart.wp_proof _root_.Perennial.strconv.wp_ParseUint
-
-theorem semver.wp_comparePrerelease :
-    EtcdGrove.semver.comparePrerelease.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.comparePrerelease.wp_proof _root_.Perennial.strings.wp_Split semver.wp_comparePrePart
-
-theorem semver.Version.wp_Compare :
-    EtcdGrove.semver.Version.Compare.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.semver.Version.Compare.wp_proof semver.Version.wp_Major semver.Version.wp_Minor semver.Version.wp_Patch semver.Version.wp_Prerelease semver.wp_compareSegment semver.wp_comparePrerelease
 
 theorem errors.wp_Is :
     EtcdGrove.errors.Is.spec (GF := GF) (hG := hG) :=

@@ -192,7 +192,7 @@ noncomputable instance DB_access_load_rwlock (l : Loc) (v : github_com.mit_pdos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_rwlock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (rwlock' : sync.Mutex) :
+noncomputable instance DB_access_store_rwlock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (rwlock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"rwlock" l) v.rwlock' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"rwlock" l) rwlock' (DFrac.own 1))
@@ -208,7 +208,7 @@ noncomputable instance DB_access_load_metalock (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_metalock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (metalock' : sync.Mutex) :
+noncomputable instance DB_access_store_metalock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (metalock' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"metalock" l) v.metalock' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"metalock" l) metalock' (DFrac.own 1))
@@ -224,7 +224,7 @@ noncomputable instance DB_access_load_mmaplock (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance DB_access_store_mmaplock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (mmaplock' : sync.RWMutex) :
+noncomputable instance DB_access_store_mmaplock (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB) (mmaplock' : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"mmaplock" l) v.mmaplock' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB go!"mmaplock" l) mmaplock' (DFrac.own 1))

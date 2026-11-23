@@ -411,7 +411,7 @@ noncomputable instance Config_access_load_Voters (l : Loc) (v : go_etcd_io.raft.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Voters (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (Voters' : go_etcd_io.raft.v3.quorum.JointConfig) :
+noncomputable instance Config_access_store_Voters (l : Loc) (v : go_etcd_io.raft.v3.tracker.Config) (Voters' : _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Voters" l) v.Voters' (DFrac.own 1))
       (typedPointsto (structFieldRef go_etcd_io.raft.v3.tracker.Config go!"Voters" l) Voters' (DFrac.own 1))

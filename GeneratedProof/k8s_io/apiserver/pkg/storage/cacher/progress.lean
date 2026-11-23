@@ -93,7 +93,7 @@ noncomputable instance ConditionalProgressRequester_access_load_contextMetadata 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (contextMetadata' : google_golang_org.grpc.metadata.MD) :
+noncomputable instance ConditionalProgressRequester_access_store_contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (contextMetadata' : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) v.contextMetadata' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"contextMetadata" l) contextMetadata' (DFrac.own 1))
@@ -109,7 +109,7 @@ noncomputable instance ConditionalProgressRequester_access_load_mux (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConditionalProgressRequester_access_store_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (mux' : sync.Mutex) :
+noncomputable instance ConditionalProgressRequester_access_store_mux (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester) (mux' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) v.mux' (DFrac.own 1))
       (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester go!"mux" l) mux' (DFrac.own 1))

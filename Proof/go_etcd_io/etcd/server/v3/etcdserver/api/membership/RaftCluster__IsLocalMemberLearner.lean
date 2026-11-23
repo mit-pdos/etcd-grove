@@ -31,6 +31,7 @@ theorem membership.RaftCluster.IsLocalMemberLearner.wp_proof :
   intro c RM
   wp_start as #Hrc
   iunfold membership.isRaftClusterG at Hrc
+  icases Hrc with ⟨%γcv, #Hrc⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -48,7 +49,7 @@ theorem membership.RaftCluster.IsLocalMemberLearner.wp_proof :
   ihave Hclose : iprop(membership.rcMembersAddr c ↦{DFrac.own (1 : Qp).half} mp -∗
       mp ↦${DFrac.own (1 : Qp).half} mm -∗
       ([∗map] k ↦ m ∈ mm, membership.memberAt m (1 : Qp).half ((mem !! k).getD default)) -∗
-      membership.rcLockInvG c RM)
+      membership.rcLockInvG c RM γcv)
     $$ [Hmf Hrf Hrm HRM]
   · iintro Hfl Hmap Hmems
     iunfold membership.rcLockInvG

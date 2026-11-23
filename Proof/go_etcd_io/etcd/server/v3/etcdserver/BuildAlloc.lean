@@ -41,12 +41,32 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+end alloc
+
+section allocG4
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- A ghost variable's whole as its two halves. -/
 theorem buildGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
     ghostVar (GF := GF) γ 1 a ⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
   have h := ghostVar_split (GF := GF) γ a (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at h
   exact wand_entails h
+
+end allocG4
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
 
 /-- A mono nat's whole authority as its two halves. -/
 theorem buildMonoNatHalves (γ : GName) (n : Nat) :
@@ -55,6 +75,16 @@ theorem buildMonoNatHalves (γ : GName) (n : Nat) :
   have hf := (monoNatAuthOwn_fractional (GF := GF) γ n).fractional (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hf
   exact hf.1
+
+end alloc
+
+section allocG3
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- Conf-change entries claim nothing (D19c). -/
 theorem entryClaims_conf (γi : IdNames) :
@@ -69,6 +99,16 @@ theorem entryClaims_conf (γi : IdNames) :
     · iunfold entryClaim
       ileft; ipureintro; left; exact h m (by simp)
     · iapply entryClaims_conf γi l (fun m' hm => h m' (by simp [hm]))
+
+end allocG3
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
 
 /-- **The bootstrap log's entries, as the server's** (2026-10-27): consecutive from index `1`,
 conf changes. -/
@@ -97,6 +137,16 @@ theorem bootEntries_ok (ps : List w64) (bootLog : List EntryM) (hboot : srvBootL
     rw [hi]; word
   · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     exact (hent n m hn).2.1
+
+end alloc
+
+section allocG2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
 
 /-- **The KV invariant at the bootstrap log** (a new cluster: the server's start log empty, its
 start index `0`, the consistent index `0`, the base chain, a non-empty start log): from the
@@ -227,6 +277,16 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ps : List w64)
   iframe Hinv
   iexact Hv2
 
+end allocG2
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+
 /-- **The certificates' invariant**: from the store's certificate authority (empty), the
 certified length's half at the start log's length, and the empty log committed. -/
 theorem kvCertInv_alloc (γs : ServerRaftNames) (γk : KVNames) (E : CoPset)
@@ -324,6 +384,16 @@ theorem srvIndices_alloc (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : C
   iframe Hap2 Hp2 Hcm2
   iunfold appliedLogAt; iexact Hlog0
 
+end alloc
+
+section allocG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The proposals' mint, allocated** (`srvPropMint`; the cluster's since stage M4, 2026-10-19):
 from raft's fresh-data authority (empty; `allocClientBoot`'s continuation output). -/
 theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
@@ -337,6 +407,16 @@ theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
   iframe HF
   iapply (BigSepM.bigSepM_empty (PROP := IProp GF)).2
   itrivial
+
+end allocG1
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
 
 /-- **The mints** (`srvMintInv`): the cluster's proposals' mint and read contexts (stage M4,
 2026-10-19: allocated once for the cluster, `srvClusterBoot_alloc`). (2026-10-30, the repair: no

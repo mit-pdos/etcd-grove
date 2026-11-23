@@ -77,7 +77,7 @@ noncomputable instance Recorder_access_load_mu (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Recorder) (mu' : sync.Mutex) :
+noncomputable instance Recorder_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Recorder) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Recorder go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Recorder go!"mu" l) mu' (DFrac.own 1))
@@ -230,7 +230,7 @@ noncomputable instance Config_access_load_ProposeGap (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ProposeGap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (ProposeGap' : time.Duration) :
+noncomputable instance Config_access_store_ProposeGap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (ProposeGap' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"ProposeGap" l) v.ProposeGap' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"ProposeGap" l) ProposeGap' (DFrac.own 1))
@@ -246,7 +246,7 @@ noncomputable instance Config_access_load_Settle (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Settle (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (Settle' : time.Duration) :
+noncomputable instance Config_access_store_Settle (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (Settle' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Settle" l) v.Settle' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Settle" l) Settle' (DFrac.own 1))
@@ -262,7 +262,7 @@ noncomputable instance Config_access_load_Tick (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_Tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (Tick' : time.Duration) :
+noncomputable instance Config_access_store_Tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (Tick' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Tick" l) v.Tick' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"Tick" l) Tick' (DFrac.own 1))
@@ -278,7 +278,7 @@ noncomputable instance Config_access_load_MaxDelay (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_MaxDelay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (MaxDelay' : time.Duration) :
+noncomputable instance Config_access_store_MaxDelay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (MaxDelay' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"MaxDelay" l) v.MaxDelay' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"MaxDelay" l) MaxDelay' (DFrac.own 1))
@@ -326,7 +326,7 @@ noncomputable instance Config_access_load_IsolateFor (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_IsolateFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (IsolateFor' : time.Duration) :
+noncomputable instance Config_access_store_IsolateFor (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config) (IsolateFor' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"IsolateFor" l) v.IsolateFor' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Config go!"IsolateFor" l) IsolateFor' (DFrac.own 1))
@@ -721,7 +721,7 @@ noncomputable instance Cluster_access_load_isoMu (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_isoMu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (isoMu' : sync.Mutex) :
+noncomputable instance Cluster_access_store_isoMu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (isoMu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isoMu" l) v.isoMu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"isoMu" l) isoMu' (DFrac.own 1))
@@ -753,7 +753,7 @@ noncomputable instance Cluster_access_load_nodesWg (l : Loc) (v : github_com.mit
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_nodesWg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (nodesWg' : sync.WaitGroup) :
+noncomputable instance Cluster_access_store_nodesWg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (nodesWg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"nodesWg" l) v.nodesWg' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"nodesWg" l) nodesWg' (DFrac.own 1))
@@ -769,7 +769,7 @@ noncomputable instance Cluster_access_load_netWg (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_netWg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (netWg' : sync.WaitGroup) :
+noncomputable instance Cluster_access_store_netWg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster) (netWg' : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"netWg" l) v.netWg' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster go!"netWg" l) netWg' (DFrac.own 1))

@@ -31,6 +31,7 @@ theorem membership.RaftCluster.IsIDRemoved.wp_proof :
   intro c RM Pr id HPr
   wp_start as #Hrc
   iunfold membership.isRaftClusterG at Hrc
+  icases Hrc with ⟨%γcv, #Hrc⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -39,14 +40,14 @@ theorem membership.RaftCluster.IsIDRemoved.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
   iunfold membership.rcLockInvG at Hinv
-  icases Hinv with ⟨%ms, %mem, Hmem, %Hsz, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRM⟩
+  icases Hinv with ⟨%ms, %mem, Hmem, %Hsz, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRM, Hver⟩
   icases HPr lid ms rm $$ HRM with ⟨%Hp, HRM⟩
   (try wp_auto)
   wp_apply wp_map_lookup1 _ _ rp rm id (DFrac.own 1) $$ [$Hrm] as Hrm
   (try wp_auto)
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRM]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRM Hver]
   · inext
     iunfold membership.rcLockInvG
     iexists ms, mem

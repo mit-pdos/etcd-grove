@@ -77,7 +77,7 @@ theorem initialModel.wp_proof
     (wp_NewEmptyModel : k8s_correctness.NewEmptyModel.spec (GF := GF) (hG := hG))
     (wp_storeKey : storeKey.spec (GF := GF) (hG := hG)) :
     initialModel.spec (GF := GF) (hG := hG) := by
-  intro s0 st hnd
+  intro s0 st hnd hlen
   wp_start as #Hs
   iunfold storeOwn at Hs
   icases Hs with ⟨#Hits, %Hrv⟩
@@ -135,7 +135,16 @@ theorem initialModel.wp_proof
     wp_apply (wp_mapInsert go.string il M (storeKeyL it.key')
       (interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty.PointerType #o_ptr)) $$ Hil as Hil
     (try wp_auto)
-    ihave #HD' := itemsRO_insert M _ (storeKeyL it.key') o_ptr it.obj' $$ [HD o]
+    have hsz' : GMap.size (<[storeKeyL it.key' := it.obj']> (itemsOf (st.items.take (sint.nat j)))) ≤
+        2 ^ 62 := by
+      rw [← itemsOf_snoc _ it hfresh, ← htake]
+      have h1 := size_ofList_le ((st.items.take (sint.nat (j + W64 1))).map
+        fun it => (storeKeyL it.key', it.obj'))
+      have h2 : ((st.items.take (sint.nat (j + W64 1))).map
+          fun it => (storeKeyL it.key', it.obj')).length ≤ st.items.length := by
+        rw [List.length_map, List.length_take]; exact Nat.min_le_right _ _
+      unfold itemsOf; omega
+    ihave #HD' := itemsRO_insert M _ (storeKeyL it.key') o_ptr it.obj' hsz' $$ [HD o]
     · iframe #
     have hitems := itemsOf_snoc _ it hfresh
     have hrw := rewritesOf_snoc _ it hfresh

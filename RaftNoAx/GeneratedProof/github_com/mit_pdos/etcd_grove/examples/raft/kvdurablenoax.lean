@@ -364,7 +364,7 @@ noncomputable instance Config_access_load_ReconfPause (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_ReconfPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config) (ReconfPause' : time.Duration) :
+noncomputable instance Config_access_store_ReconfPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config) (ReconfPause' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config go!"ReconfPause" l) v.ReconfPause' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config go!"ReconfPause" l) ReconfPause' (DFrac.own 1))
@@ -380,7 +380,7 @@ noncomputable instance Config_access_load_DisruptPause (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_DisruptPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config) (DisruptPause' : time.Duration) :
+noncomputable instance Config_access_store_DisruptPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config) (DisruptPause' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config go!"DisruptPause" l) v.DisruptPause' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config go!"DisruptPause" l) DisruptPause' (DFrac.own 1))
@@ -396,7 +396,7 @@ noncomputable instance Config_access_load_CrashPause (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Config_access_store_CrashPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config) (CrashPause' : time.Duration) :
+noncomputable instance Config_access_store_CrashPause (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config) (CrashPause' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config go!"CrashPause" l) v.CrashPause' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Config go!"CrashPause" l) CrashPause' (DFrac.own 1))
@@ -481,7 +481,7 @@ noncomputable instance Stats_access_load_SnapshotsTaken (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsTaken (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsTaken' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsTaken (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsTaken' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsTaken" l) v.SnapshotsTaken' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsTaken" l) SnapshotsTaken' (DFrac.own 1))
@@ -497,7 +497,7 @@ noncomputable instance Stats_access_load_SnapshotsTakenJoint (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsTakenJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsTakenJoint' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsTakenJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsTakenJoint' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsTakenJoint" l) v.SnapshotsTakenJoint' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsTakenJoint" l) SnapshotsTakenJoint' (DFrac.own 1))
@@ -513,7 +513,7 @@ noncomputable instance Stats_access_load_SnapshotsSent (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsSent (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsSent' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsSent (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsSent' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsSent" l) v.SnapshotsSent' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsSent" l) SnapshotsSent' (DFrac.own 1))
@@ -529,7 +529,7 @@ noncomputable instance Stats_access_load_SnapshotsInstalled (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsInstalled (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsInstalled' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsInstalled (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsInstalled' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsInstalled" l) v.SnapshotsInstalled' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsInstalled" l) SnapshotsInstalled' (DFrac.own 1))
@@ -545,7 +545,7 @@ noncomputable instance Stats_access_load_SnapshotsInstalledJoint (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsInstalledJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsInstalledJoint' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsInstalledJoint (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsInstalledJoint' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsInstalledJoint" l) v.SnapshotsInstalledJoint' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsInstalledJoint" l) SnapshotsInstalledJoint' (DFrac.own 1))
@@ -561,7 +561,7 @@ noncomputable instance Stats_access_load_SnapshotsInstalledLearners (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_SnapshotsInstalledLearners (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsInstalledLearners' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_SnapshotsInstalledLearners (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (SnapshotsInstalledLearners' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsInstalledLearners" l) v.SnapshotsInstalledLearners' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"SnapshotsInstalledLearners" l) SnapshotsInstalledLearners' (DFrac.own 1))
@@ -577,7 +577,7 @@ noncomputable instance Stats_access_load_Compactions (l : Loc) (v : github_com.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Compactions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Compactions' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Compactions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Compactions' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Compactions" l) v.Compactions' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Compactions" l) Compactions' (DFrac.own 1))
@@ -593,7 +593,7 @@ noncomputable instance Stats_access_load_ConfChangesProposed (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ConfChangesProposed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ConfChangesProposed' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ConfChangesProposed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ConfChangesProposed' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ConfChangesProposed" l) v.ConfChangesProposed' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ConfChangesProposed" l) ConfChangesProposed' (DFrac.own 1))
@@ -609,7 +609,7 @@ noncomputable instance Stats_access_load_ConfChangesApplied (l : Loc) (v : githu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ConfChangesApplied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ConfChangesApplied' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ConfChangesApplied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ConfChangesApplied' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ConfChangesApplied" l) v.ConfChangesApplied' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ConfChangesApplied" l) ConfChangesApplied' (DFrac.own 1))
@@ -625,7 +625,7 @@ noncomputable instance Stats_access_load_ConfChangesRejected (l : Loc) (v : gith
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ConfChangesRejected (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ConfChangesRejected' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ConfChangesRejected (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ConfChangesRejected' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ConfChangesRejected" l) v.ConfChangesRejected' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ConfChangesRejected" l) ConfChangesRejected' (DFrac.own 1))
@@ -641,7 +641,7 @@ noncomputable instance Stats_access_load_JointEntered (l : Loc) (v : github_com.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_JointEntered (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (JointEntered' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_JointEntered (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (JointEntered' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"JointEntered" l) v.JointEntered' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"JointEntered" l) JointEntered' (DFrac.own 1))
@@ -657,7 +657,7 @@ noncomputable instance Stats_access_load_ReplicasStarted (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_ReplicasStarted (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ReplicasStarted' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_ReplicasStarted (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (ReplicasStarted' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ReplicasStarted" l) v.ReplicasStarted' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"ReplicasStarted" l) ReplicasStarted' (DFrac.own 1))
@@ -673,7 +673,7 @@ noncomputable instance Stats_access_load_Dropped (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Dropped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Dropped' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Dropped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Dropped' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Dropped" l) v.Dropped' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Dropped" l) Dropped' (DFrac.own 1))
@@ -689,7 +689,7 @@ noncomputable instance Stats_access_load_Duplicated (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Duplicated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Duplicated' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Duplicated (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Duplicated' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Duplicated" l) v.Duplicated' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Duplicated" l) Duplicated' (DFrac.own 1))
@@ -705,7 +705,7 @@ noncomputable instance Stats_access_load_Delayed (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Delayed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Delayed' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Delayed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Delayed' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Delayed" l) v.Delayed' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Delayed" l) Delayed' (DFrac.own 1))
@@ -721,7 +721,7 @@ noncomputable instance Stats_access_load_Retries (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Retries (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Retries' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Retries (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Retries' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Retries" l) v.Retries' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Retries" l) Retries' (DFrac.own 1))
@@ -737,7 +737,7 @@ noncomputable instance Stats_access_load_Crashes (l : Loc) (v : github_com.mit_p
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_Crashes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Crashes' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_Crashes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (Crashes' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Crashes" l) v.Crashes' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"Crashes" l) Crashes' (DFrac.own 1))
@@ -753,7 +753,7 @@ noncomputable instance Stats_access_load_RestartsFromSnapshot (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_RestartsFromSnapshot (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (RestartsFromSnapshot' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_RestartsFromSnapshot (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (RestartsFromSnapshot' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"RestartsFromSnapshot" l) v.RestartsFromSnapshot' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"RestartsFromSnapshot" l) RestartsFromSnapshot' (DFrac.own 1))
@@ -769,7 +769,7 @@ noncomputable instance Stats_access_load_RestartsAppliedBelow (l : Loc) (v : git
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_RestartsAppliedBelow (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (RestartsAppliedBelow' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_RestartsAppliedBelow (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (RestartsAppliedBelow' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"RestartsAppliedBelow" l) v.RestartsAppliedBelow' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"RestartsAppliedBelow" l) RestartsAppliedBelow' (DFrac.own 1))
@@ -785,7 +785,7 @@ noncomputable instance Stats_access_load_EntriesSkipped (l : Loc) (v : github_co
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_EntriesSkipped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (EntriesSkipped' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_EntriesSkipped (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (EntriesSkipped' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"EntriesSkipped" l) v.EntriesSkipped' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"EntriesSkipped" l) EntriesSkipped' (DFrac.own 1))
@@ -801,7 +801,7 @@ noncomputable instance Stats_access_load_FileWrites (l : Loc) (v : github_com.mi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_FileWrites (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (FileWrites' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_FileWrites (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (FileWrites' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"FileWrites" l) v.FileWrites' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"FileWrites" l) FileWrites' (DFrac.own 1))
@@ -817,7 +817,7 @@ noncomputable instance Stats_access_load_LeaderSentFirst (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_LeaderSentFirst (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (LeaderSentFirst' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_LeaderSentFirst (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (LeaderSentFirst' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"LeaderSentFirst" l) v.LeaderSentFirst' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"LeaderSentFirst" l) LeaderSentFirst' (DFrac.own 1))
@@ -833,7 +833,7 @@ noncomputable instance Stats_access_load_CommitUnwritten (l : Loc) (v : github_c
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stats_access_store_CommitUnwritten (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (CommitUnwritten' : sync.atomic.Uint64) :
+noncomputable instance Stats_access_store_CommitUnwritten (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats) (CommitUnwritten' : _root_.Perennial.sync.atomic.Uint64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"CommitUnwritten" l) v.CommitUnwritten' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats go!"CommitUnwritten" l) CommitUnwritten' (DFrac.own 1))
@@ -961,7 +961,7 @@ noncomputable instance Cluster_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Cluster_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Cluster) (mu' : sync.Mutex) :
+noncomputable instance Cluster_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Cluster) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Cluster go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Cluster go!"mu" l) mu' (DFrac.own 1))
@@ -1050,7 +1050,7 @@ noncomputable instance readSeqs_access_load_mu (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance readSeqs_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readSeqs) (mu' : sync.Mutex) :
+noncomputable instance readSeqs_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readSeqs) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readSeqs go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readSeqs go!"mu" l) mu' (DFrac.own 1))
@@ -1158,7 +1158,7 @@ noncomputable instance Replica_access_load_node (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (node' : go_etcd_io.raft.v3.Node) :
+noncomputable instance Replica_access_store_node (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (node' : _root_.Perennial.go_etcd_io.raft.v3.Node) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"node" l) v.node' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"node" l) node' (DFrac.own 1))
@@ -1206,7 +1206,7 @@ noncomputable instance Replica_access_load_tick (l : Loc) (v : github_com.mit_pd
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (tick' : time.Duration) :
+noncomputable instance Replica_access_store_tick (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (tick' : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"tick" l) v.tick' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"tick" l) tick' (DFrac.own 1))
@@ -1302,7 +1302,7 @@ noncomputable instance Replica_access_load_dmu (l : Loc) (v : github_com.mit_pdo
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_dmu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (dmu' : sync.Mutex) :
+noncomputable instance Replica_access_store_dmu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (dmu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"dmu" l) v.dmu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"dmu" l) dmu' (DFrac.own 1))
@@ -1334,7 +1334,7 @@ noncomputable instance Replica_access_load_mu (l : Loc) (v : github_com.mit_pdos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Replica_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (mu' : sync.Mutex) :
+noncomputable instance Replica_access_store_mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica go!"mu" l) mu' (DFrac.own 1))

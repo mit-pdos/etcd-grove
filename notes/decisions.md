@@ -42127,3 +42127,26 @@ refuses a snapshot at index `0` (`ApplySnapshot`, `CreateSnapshot`: `ErrSnapOutO
 `MemoryStorage` reports the voters with an empty log. The harness wraps it (as kvreconf's `Storage` does: its
 `InitialState` returns the bootstrap `ConfState`, proved in `kvreconf/KvrStorageApi.lean` as `restartStorage`
 under its own `StorageModel` instance).
+
+## Two protobuf enums' `String` trusted over their name tables; etcdserver's `expvar` inits trusted no-ops (2026-11-23 · claim #39 · branch `etcd-small-3`)
+
+**Decision.** `etcdserverpb.AlarmType.String` and `mvccpb.Event_EventType.String` follow raftpb's
+`MessageType.String` (Q9, 2026-11-09): trusted models (`TrustedCode/go_etcd_io/etcd/api/v3/{etcdserverpb,
+mvccpb}.lean`) that look the value up in the generated `_name` table, else `strconv.Itoa`, as protobuf-go's
+`EnumStringOf` does (neither enum declares `allow_alias`); the tables are translated (no longer `[[skip]]`) and
+held read-only by the packages' facts (`etcdserverpb.alarmTypeNames` in `etcdserverpbInit`, a new
+`mvccpbInit` with `mvccpb.eventTypeNames`, `cache/v3/Base.lean`). Their specs are unchanged and proved over
+the models (`AlarmType.String`'s ASCII post from the table's names and `fmtInt`'s digits); the pointer calls
+step through goose's `ptr_String_unfold`. Evidence: `examples/premisefix/enumstring` (the real methods
+against the model, by value and through a pointer, and the tables against the descriptors). So that the
+model's `strconv.Itoa` is initialized, protobuf's `internal/impl` (which imports `strconv` in Go, for
+`EnumStringOf`) now has `strconv` among its translated imports. Trust base: −2 axioms
+(`etcdserverpb.AlarmType.String.wp_proof`, `mvccpb.Event_EventType.StringPtr.wp_proof`), +2 trusted models.
+
+etcdserver's `init.1`/`init.2` (`expvar.Publish` of `"raft.status"`, `"file_descriptor_limit"`) are trusted
+no-op models (`TrustedCode/go_etcd_io/etcd/server/v3/etcdserver.lean`: `Publish` panics only on a reused
+name; the closures run only when `expvar`'s registry is served, which no translated code or example does).
+`init.0` (the metrics' registration) is not: it calls `runtime.Version`, which Perennial does not name
+(`notes/perennial-changes.md`, 2026-11-23), so `initFuncsOk` stays, narrowed to `init.«0»`. The plan for it
+(etcdserver into `PRE_RES`, its 19 names added to the closed theorems' `namesUnclaimed` lists) was approved
+by the coordinator under the user's delegation; review requested (#39).

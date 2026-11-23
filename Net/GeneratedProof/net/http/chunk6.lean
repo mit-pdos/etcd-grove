@@ -248,7 +248,7 @@ noncomputable instance persistConn_access_load_conn (l : Loc) (v : net.http.pers
  by
   solve_pointsto_access_struct
 
-noncomputable instance persistConn_access_store_conn (l : Loc) (v : net.http.persistConn) (conn' : net.Conn) :
+noncomputable instance persistConn_access_store_conn (l : Loc) (v : net.http.persistConn) (conn' : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.persistConn go!"conn" l) v.conn' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.persistConn go!"conn" l) conn' (DFrac.own 1))
@@ -488,7 +488,7 @@ noncomputable instance persistConn_access_load_idleAt (l : Loc) (v : net.http.pe
  by
   solve_pointsto_access_struct
 
-noncomputable instance persistConn_access_store_idleAt (l : Loc) (v : net.http.persistConn) (idleAt' : time.Time) :
+noncomputable instance persistConn_access_store_idleAt (l : Loc) (v : net.http.persistConn) (idleAt' : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.persistConn go!"idleAt" l) v.idleAt' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.persistConn go!"idleAt" l) idleAt' (DFrac.own 1))
@@ -520,7 +520,7 @@ noncomputable instance persistConn_access_load_mu (l : Loc) (v : net.http.persis
  by
   solve_pointsto_access_struct
 
-noncomputable instance persistConn_access_store_mu (l : Loc) (v : net.http.persistConn) (mu' : sync.Mutex) :
+noncomputable instance persistConn_access_store_mu (l : Loc) (v : net.http.persistConn) (mu' : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.persistConn go!"mu" l) v.mu' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.persistConn go!"mu" l) mu' (DFrac.own 1))
@@ -722,7 +722,7 @@ noncomputable instance readWriteCloserBody_access_load_ReadWriteCloser (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance readWriteCloserBody_access_store_ReadWriteCloser (l : Loc) (v : net.http.readWriteCloserBody) (ReadWriteCloser' : io.ReadWriteCloser) :
+noncomputable instance readWriteCloserBody_access_store_ReadWriteCloser (l : Loc) (v : net.http.readWriteCloserBody) (ReadWriteCloser' : _root_.Perennial.io.ReadWriteCloser) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef net.http.readWriteCloserBody go!"ReadWriteCloser" l) v.ReadWriteCloser' (DFrac.own 1))
       (typedPointsto (structFieldRef net.http.readWriteCloserBody go!"ReadWriteCloser" l) ReadWriteCloser' (DFrac.own 1))
