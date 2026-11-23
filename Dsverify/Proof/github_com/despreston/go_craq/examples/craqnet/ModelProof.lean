@@ -219,6 +219,89 @@ theorem wp_findPend (p : GoSlice) (P : List pend) (k v : GoString) :
     iapply HΦ
     ipureintro
     exact ⟨fun j hj => Hi.2.2 j (by simpa [hn] using hj), fun h => by cases h⟩
+theorem eraseIdx_take_succ {α : Type} (P : List α) (i j : Nat) (x : α) (hx : P[j]? = some x)
+    (hij : j ≠ i) : (P.take (j + 1)).eraseIdx i = (P.take j).eraseIdx i ++ [x] := by
+  rw [List.take_add_one, hx, Option.toList_some]
+  have hj : j < P.length := (List.getElem?_eq_some_iff.1 hx).1
+  have hl : (P.take j).length = j := by simp; omega
+  rcases Nat.lt_or_gt_of_ne hij with h | h
+  · rw [List.eraseIdx_of_length_le (by simp; omega), List.eraseIdx_of_length_le (by omega)]
+  · rw [List.eraseIdx_append_of_lt_length (by omega)]
+
+theorem eraseIdx_take_self {α : Type} (P : List α) (i : Nat) :
+    (P.take (i + 1)).eraseIdx i = (P.take i).eraseIdx i := by
+  rw [List.eraseIdx_of_length_le (l := P.take i) (by simp [Nat.min_le_left])]
+  rcases Nat.lt_or_ge i P.length with h | h
+  · rw [List.take_add_one, List.getElem?_eq_getElem h, Option.toList_some,
+      List.eraseIdx_append_of_length_le (by simp; omega)]
+    simp only [List.length_take, Nat.min_eq_left (Nat.le_of_lt h), Nat.sub_self,
+      List.eraseIdx_cons_zero, List.append_nil]
+  · rw [List.take_of_length_le (by omega), List.take_of_length_le (by omega),
+      List.eraseIdx_of_length_le (by omega)]
+
+/-- `erasePend(p, i)`: a fresh slice, `p` without its element `i`. -/
+theorem wp_erasePend (p : GoSlice) (P : List pend) (i : w64) (hi : 0 ≤ sint.Z i) :
+    {{ (p ↦*□ P : IProp GF) }}
+      (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.erasePend)) (Val #p))
+        (Val #i))
+    {{ (q : GoSlice), RET #q; q ↦* P.eraseIdx (sint.nat i) }} := by
+  wp_start as #Hp
+  ihave %Hl := ownSlice_len _ _ _ $$ Hp
+  wp_auto
+  wp_apply wp_slice_make3 (V := pend) (W64 0) p.len ⟨by decide, Hl.2⟩ as %q ⟨Hq, Hqc, -⟩
+  (try wp_auto)
+  ihave HI : (∃ (j : w64) (qq : GoSlice), "j" ∷ j_ptr ↦ j ∗ "q" ∷ q_ptr ↦ qq ∗
+      "Hq" ∷ qq ↦* (P.take (sint.nat j)).eraseIdx (sint.nat i) ∗
+      "Hqc" ∷ ownSliceCap pend qq (DFrac.own 1) ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z p.len⌝ : IProp GF) $$ [j q Hq Hqc]
+  · iexists W64 0, q
+    simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.eraseIdx_nil,
+      List.replicate_zero]
+    iframe
+    ipureintro; exact ⟨by decide, Hl.2⟩
+  wp_for HI
+  wp_if_destruct
+  · have hj : sint.Z j < sint.Z p.len := by
+      first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+    by_cases hji : j = i
+    · subst hji
+      simp only [decide_true, Bool.not_true]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists j + W64 1, qq
+      rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word, eraseIdx_take_self]
+      iframe
+      ipureintro; exact ⟨by word, by word⟩
+    · rw [decide_eq_false hji]
+      simp only [Bool.not_false]
+      wp_auto
+      list_elem P (sint.nat j) as e
+      rw [ite_eq_left ⟨Hj.1, hj⟩]
+      wp_apply wp_load_slice_index p (sint.Z j) P DFrac.discard e Hj.1 $$ [$Hp] with -
+      · ipureintro; exact He_lookup
+      (try wp_auto)
+      wp_apply wp_slice_literal (V := pend) [e]
+      isplitr
+      · ipureintro; rfl
+      iintro %sl1 ⟨Hsl1, -⟩
+      wp_apply wp_slice_append $$ [$Hq $Hqc $Hsl1] as %qq' ⟨Hq, Hqc, -⟩
+      wp_for_post
+      iframe
+      iexists j + W64 1, qq'
+      have hne : sint.nat j ≠ sint.nat i := fun h => hji (by word)
+      rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word,
+        eraseIdx_take_succ P _ _ e He_lookup hne]
+      iframe
+      ipureintro; exact ⟨by word, by word⟩
+  · have hn : sint.nat j = P.length := by
+      have : ¬ sint.Z j < sint.Z p.len := by
+        first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
+      rw [Hl.1]; word
+    (try wp_auto)
+    iapply HΦ
+    rw [hn, List.take_length]
+    iframe
 
 end proof
 
