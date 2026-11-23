@@ -4,9 +4,9 @@
 
 `walBootCrash`: the new generation's boot after a crash. From what `walInv_crash` gives the crash
 obligation (the new generation's `walStart` over the crashed tree, the crashed state's `WalsBounded`
-and `DirsRoots`, the area, the crash boot's files `bootFiles`, the tree well formed) and what the shared
-mode's switch gives the new generation's program (`wp_osShare`, with `V` the crashed history, nothing
-logged: `crashRest_treeS`), what a WAL client needs to call `Open`, `Create`, ...: the area's
+and `DirsRoots`, the area, the crash boot's files `bootFiles`, the tree well formed) and the new
+generation's shared view (`osShared`, with `V` the crashed history, nothing logged: `crashRest_treeS`),
+what a WAL client needs to call `Open`, `Create`, ...: the area's
 `walAreaOk` (the invariant, allocated by `walInv_alloc`) and the program's `walAreaRes`; back, the
 area's claim on the names that are no `AreaSlot` holding an entry (`bootOthers`) and every directory's
 whole claim but the area's, the WALs' and those under an `nm.<sfx>` (`bootRest`; another root's
