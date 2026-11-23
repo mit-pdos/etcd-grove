@@ -25,6 +25,57 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: grpc's `ctxErrsErr` (and the client's `ctxErrClient`) -- an error of type `deadlineExceededError` holds `deadlineExceededError{}` (errors-is-deadline, #31)
+
+- **Spec.** `ctxErrsErr` (`Proof/google_golang_org/grpc/InvGrpc.lean`, the trust boundary's contract
+  of a context's `Err()` outside Perennial's model), and `ctxErrClient`
+  (`Proof/go_etcd_io/etcd/client/v3/InvKVConn.lean`), which is `rfl`-equal to it
+  (`ctxErrClient_eq_errs`). No spec-plan counterpart.
+- **Defect.** Too weak for `errors.IsDeadlineExceeded`'s proof. The model does not type interface
+  values: an error whose dynamic type is `deadlineExceededError` may hold any value. Perennial's
+  `errors.Is` compares the target `context.DeadlineExceeded` with the tree's errors of its type, and
+  for that it needs them to hold a value of the type (`errors.ComparableErr`).
+- **Evidence.** `deadlineExceededError_comparable` (`Proof/errors/CtxErr.lean`) needs
+  `∀ ii ∈ S, ii.ty = deadlineExceededError.ty → ii.v = #(zero_val deadlineExceededError)`. The
+  client's `contextErrToGRPCErr` passes `errors.Is` the error `Err()` returned (`ctxErrLeaf`), and
+  nothing says what it holds.
+- **Proposed change.** The non-nil disjunct's pure conjunct gains, at its end, `e.ty =
+  deadlineExceededError.ty → e.v = #(zero_val deadlineExceededError)`. Go guarantees this by typing:
+  the field-less struct's only value. Producers: Perennial's contexts (`ctxErrClientAllW_of`:
+  `Canceled` is a pointer, `DeadlineExceeded` holds the zero value, by `context`'s `isInit`), k8s's
+  `channelContext` (`Canceled`), and the quiet contexts (no non-nil error). `ctxErrLeaf` carries the
+  fact (`ctxErrLeaf_of_isCtxErr`, `ctxErrLeaf_of_errs`).
+- **Decision.** Accepted by the user 2026-11-23 (a trust-boundary contract, relayed by the
+  coordinator; #24 notified).
+
+## 2026-11-23: `errors.IsDeadlineExceeded` takes `isPkgInit context` and the tree's typing (errors-is-deadline, #31)
+
+- **Spec.** `errors.IsDeadlineExceeded.spec` (`Spec/errors/IsDeadlineExceeded.lean`); no spec-plan
+  counterpart.
+- **Defect.** Unprovable once it is no longer an axiom, for two reasons.
+  - The precondition gives of `target` only the cell `context.DeadlineExceeded` it was read from.
+  - Go's `err == target` on the tree's errors of `target`'s type, a field-less struct, needs those
+    errors to hold `deadlineExceededError{}`. The model does not type interface values
+    (`errors.ComparableErr`, perennial#677).
+- **Evidence.** The proof over `errors.wp_Is` needs `ComparableTarget S target`. Its
+  `deadlineExceededError_comparable` (`Proof/errors/CtxErr.lean`) takes the typing of `S`.
+- **Proposed change.** The precondition gains `isPkgInit pkg_id.context`, which pins `target` to
+  `deadlineExceededError{}` (`isInit`'s `"#HDeadlineExceededTy"`). It also gains `⌜deTyped S⌝`
+  (`Proof/errors/CtxErr.lean`): every error of `S` whose type is `deadlineExceededError` holds
+  `deadlineExceededError{}`.
+  - Server's `togRPCError`: `applyErrIs`'s tree carries `deTyped` (`apply/Base.lean`).
+    `applyErrIs_valLeaf` takes it of its leaf. Its callers pass context errors, and `isCtxErr_deTypedErr`
+    gives it for them.
+  - Client's `contextErrToGRPCErr`: `ctxErrLeaf` carries it, from `ctxErrsErr`'s new conjunct
+    (entry above).
+  - The post is unchanged.
+- **Decision.** Pending. The spec change is internal: premises both callers meet, and the axiom
+  `errors.IsDeadlineExceeded.wp_proof` is retired. The server's side is blocked, though. `applyErrIs`
+  gaining `deTyped` strengthens what five trust-boundary axioms post (`leasehttp.RenewHTTP`,
+  `EtcdServer.leaseTimeToLive`, `EtcdServer.rangeStream`, `proto.MarshalIRR`, `auth.NewAuthStore`).
+  And `UserAdd` needs `bcrypt.GenerateFromPassword`'s post to type its non-pointer error. All six
+  are true of Go by typing, but they need the user's approval (#31, upamanyus-agent 2026-11-23).
+
 ## 2026-11-23: net/rpc model's server -- the server codec's frame read errors are sticky (`rerr`); its read specs, `newServerCodec.spec` and the loop's vocabulary follow
 
 - **Spec.** `models/net/rpc/codec.go` (the model, trusted): `serverCodec` gains `rerr`, the first frame read
