@@ -573,9 +573,9 @@ func Orch() {
 }
 
 // Client is client machine c's program (c < NC): it waits for the configuration, makes its go-vsr
-// client once, before serving (as paxos's kit: remote.ServeClient's newClient may be called any
-// number of times as far as its contract says, and a second go-vsr client of id c+1 would reuse
-// its request ids), and serves the orchestrator's calls at its address in ClientAddrs with Op.
+// client (a second go-vsr client of id c+1 would reuse its request ids), and serves the
+// orchestrator's calls at its address in ClientAddrs with Op; remote.ServeClient calls newClient
+// once, which hands it that client.
 func Client(c uint64) {
 	sys := mkClient(Addrs(), waitConf(CfgAddrs(), 1+c), c)
 	newClient := func(id int) any {

@@ -108,12 +108,12 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
   icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc2, Hcs⟩
   icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc3, Hcs⟩
   icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc4, Hcs⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc5, Hcs⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hcs with ⟨Hc5, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs1, Hss⟩
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs2, Hss⟩
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs3, Hss⟩
   icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs4, Hss⟩
-  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs5, Hss⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hss with ⟨Hs5, -⟩
   imodintro
   iexists fun i => if i = 0 then iprop(orchShare (G := G) (ρ := ρ) γ γp)
       else if i = 1 then iprop(clientShare (G := G) (ρ := ρ) γ 0)

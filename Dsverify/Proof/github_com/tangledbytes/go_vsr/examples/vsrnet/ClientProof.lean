@@ -157,9 +157,10 @@ theorem Client.wp_proof
   iapply HΦn
   unfold sysTok
   iexists 1, 0
-  iframe
   isplitr
   · ipureintro; omega
+  isplitl [Hres]
+  · iexact Hres
   iapply budUsed_zero
 
 end proof
