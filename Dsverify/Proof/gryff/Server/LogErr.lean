@@ -22,7 +22,7 @@ noncomputable section
 
 set_option linter.unusedSectionVars false
 
-namespace Perennial
+namespace Perennial.gryff
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
@@ -77,4 +77,4 @@ theorem logArg_err (v : GoInterface) : models_lab.errAny (GF := GF) v ⊢ logArg
 
 end logerr
 
-end Perennial
+end Perennial.gryff

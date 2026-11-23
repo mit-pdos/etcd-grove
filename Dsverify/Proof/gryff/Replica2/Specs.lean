@@ -287,11 +287,11 @@ participant's store (`HandleOverwrite`) and the obligations (the callbacks'). -/
 
 
 -- `GryffCoordinator.HandleWrite1Reply.wp`, `HandleWrite2Reply.wp`, `ShortCircuit.wp`: in
--- `Replica2/Link.lean` (C-H1; proved by unit H1's `*.wp_proof`).
+-- `Replica2/Results.lean` (C-H1; proved by unit H1's `*.wp_proof`).
 
 /-! ## `*gryff.Replica` implements the interfaces -/
 
--- `Replica_ipartiOk` (the participant's callbacks): in `Replica2/Link.lean` (H1b-R2: it takes
+-- `Replica_ipartiOk` (the participant's callbacks): in `Replica2/Results.lean` (H1b-R2: it takes
 -- `h1Fixed`, stated below).
 
 /-- What the coordinator's callbacks act on, in a handler of replica `k` at trace `t` (after the
@@ -303,7 +303,7 @@ def coordCtx (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r pa : Loc) (t 
     partiOwn pa (replicaIface r) k vt.t ong ∗ valOwn gR vt.v ∗ scratchOwn r ∗
     pendingOuts γ ρ k r t o)
 
--- `Replica_icoordOk` moved to `Replica2/Link.lean` (C-H1c; statement text unchanged).
+-- `Replica_icoordOk` moved to `Replica2/Results.lean` (C-H1c; statement text unchanged).
 
 /-! ## `genericsmr` (called by `gryff`)
 
@@ -627,7 +627,7 @@ theorem completeRMWWriter.wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) 
   exact completeRMWWriter_wp γ ρ k r gR h t cid rid w v outs
 
 -- `handleRead.wp`, `handleWrite.wp`, `handleForceWrite.wp` and the eight proxied/reply handlers'
--- `*.wp`: in `Replica2/Link.lean` (C-H1; proved by unit H1's `*.wp_proof`).
+-- `*.wp`: in `Replica2/Results.lean` (C-H1; proved by unit H1's `*.wp_proof`).
 
 /-- An EPaxos message handler `h.f(p)` (`h` the replica's handler). -/
 def epHandlerSpec (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc) (f : GoString)
@@ -635,7 +635,7 @@ def epHandlerSpec (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc)
   ∀ p : Loc, stepSpec γ ρ k r (App (epM h f) (Val #p)) iprop(handlerOf r h ∗ msgAt p m) (.msg m)
 
 -- `handlePreAcceptReply.wp`, `handlePreAcceptOK.wp`, `handleExecuted.wp`, `executeOverwrite.wp`:
--- in `Replica2/Link.lean` (unit H2c2's proofs; C-H2c2, C-H2c2b).
+-- in `Replica2/Results.lean` (unit H2c2's proofs; C-H2c2, C-H2c2b).
 
 /-! ## The trace prophecy's resolutions (`proph.go`, internal to `gryff`)
 
@@ -755,7 +755,7 @@ theorem SetForceWrite.wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r :
 
 /-! ## The executor
 
-`executeCommands.wp` and `strongconnect.wp` are in `Replica2/Link.lean` (statements unchanged but
+`executeCommands.wp` and `strongconnect.wp` are in `Replica2/Results.lean` (statements unchanged but
 H-X-2 (b)), proved by unit X (`GryffProof/X/Final.lean`). -/
 
 end specs

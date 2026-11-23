@@ -32,7 +32,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalCon
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions] [sA : gryff.src.serverlib.Assumptions]
 variable [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
 variable [nS : netN.NetSpecs GF]
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
@@ -62,20 +62,20 @@ theorem rpcAddrs_of_share (γ : GryffNames GF) :
   ihave ⟨#H1, #Hrs⟩ := BigSepL.bigSepL_cons.1 $$ Hrs
   ihave ⟨#H2, -⟩ := BigSepL.bigSepL_cons.1 $$ Hrs
   isplitr
-  · iapply H.rpcLisP_addr _ _ _ _ _ masterRpcAddr_lis.2 masterRpcAddr_lis.1 $$ Hm
+  · iapply RA.rpcLisP_addr _ _ _ _ _ masterRpcAddr_lis.2 masterRpcAddr_lis.1 $$ Hm
   iintro !>
   unfold replicaRpcOk
   iapply BigSepL.bigSepL_cons.2
   isplitr
-  · iapply H.rpcLisP_addr _ _ _ _ _ (replicaRpcAddr_ok 0 (by decide))
+  · iapply RA.rpcLisP_addr _ _ _ _ _ (replicaRpcAddr_ok 0 (by decide))
       (replicaRpcAddr_lis 0 (by decide)).1 $$ H0
   iapply BigSepL.bigSepL_cons.2
   isplitr
-  · iapply H.rpcLisP_addr _ _ _ _ _ (replicaRpcAddr_ok 1 (by decide))
+  · iapply RA.rpcLisP_addr _ _ _ _ _ (replicaRpcAddr_ok 1 (by decide))
       (replicaRpcAddr_lis 1 (by decide)).1 $$ H1
   iapply BigSepL.bigSepL_cons.2
   isplitr
-  · iapply H.rpcLisP_addr _ _ _ _ _ (replicaRpcAddr_ok 2 (by decide))
+  · iapply RA.rpcLisP_addr _ _ _ _ _ (replicaRpcAddr_ok 2 (by decide))
       (replicaRpcAddr_lis 2 (by decide)).1 $$ H2
   iapply BigSepL.bigSepL_nil.2
   iempintro
@@ -103,7 +103,7 @@ theorem NewMaster.wp_req (γ : GryffNames GF) :
   unfold netShare
   icases Hsh with ⟨-, #Hrl⟩
   ihave ⟨-, #Hras⟩ := rpcAddrs_of_share γ $$ Hrl
-  ihave #Hrlm : H.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
+  ihave #Hrlm : RA.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
       net.rpc.connectAns $$ [Hrl]
   · unfold rpcLises; iintro; icases Hrl with ⟨#Hm, -⟩; iexact Hm
   unfold sharedInvs protoInvs
@@ -160,7 +160,7 @@ theorem Serve.wp_req (γ : GryffNames GF) (k : Nat) (port : w64) (γs : GName) (
   icases Hrr with ⟨-, %Hw⟩
   unfold netShare
   icases Hsh with ⟨-, #Hrl⟩
-  ihave #Hrlk : H.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)
+  ihave #Hrlk : RA.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)
       net.rpc.connectAns $$ [Hrl]
   · unfold rpcLises
     icases Hrl with ⟨-, #Hrs⟩

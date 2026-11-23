@@ -99,7 +99,7 @@ instance masterReg_persistent (γ : GryffNames GF) (m : Loc) :
     Persistent (masterReg γ m) := by
   unfold masterReg; infer_instance
 
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
 
 /-- A master serving registrations on its listener (persistent): what `(*Master).Serve` needs
 (see the file header). -/
@@ -111,7 +111,7 @@ def masterOkDef (γ : GryffNames GF) (m : Loc) : IProp GF :=
     "#Hon" ∷ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l masterRpcLis ∗
     "#Hli" ∷ lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l
       masterRpcLis ∗
-    "#Hrl" ∷ H.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
+    "#Hrl" ∷ RA.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
       net.rpc.connectAns ∗
     "#Hmux" ∷ H.muxHas γ.rpc (lisAccepts masterRpcLis) net.rpc.defaultRPCPath ∗
     "#Hhttp" ∷ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗

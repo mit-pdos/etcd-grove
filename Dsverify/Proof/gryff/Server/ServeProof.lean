@@ -29,7 +29,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [sA : gryff.src.serverlib.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
 variable [nS : netN.NetSpecs GF]
 
 omit sA nS in
@@ -63,7 +63,7 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗
         net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
         H.defaultServer γs ∗ net.rpc.svcReg γs gryffCodec go!"Replica" replicaSvc ∗
-        H.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)
+        RA.rpcLisP γ.rpc (replicaRpcLis k) (net.rpc.connectReq net.rpc.defaultRPCPath)
           net.rpc.connectAns ∗
         ⌜worldOk γ ∧ threadBound GF ≤ 2 ^ 31⌝ }}
       (App (Val (@! gryff.src.serverlib.Serve)) (Val #port))
@@ -96,11 +96,11 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
   wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl] as %sp ⟨-, %Hsp⟩
   · iframe
   rw [sprintf_colon_port _ _ Hsp, colon_rpcPort k hk port hport]
-  ihave %hlok := H.rpcLisP_ok _ _ _ _ $$ Hrl
+  ihave %hlok := RA.rpcLisP_ok _ _ _ _ $$ Hrl
   wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp (replicaRpcLis k)) $$ [] as %lv %err Hl
   · isplitr
     · ipureintro; exact hlok
-    iapply H.rpcLisP_lis $$ Hrl
+    iapply RA.rpcLisP_lis $$ Hrl
   ihave IHL : iprop(∃ (lv' e' : GoInterface),
       "l" ∷ l_ptr ↦ lv' ∗ "err" ∷ err_ptr ↦ e' ∗
       "Hl" ∷ ((⌜e' = interface.nil⌝ ∗ ∃ l, Perennial.net.isListener lv' l ∗
@@ -148,7 +148,7 @@ theorem wp_Serve' (γ : GryffNames GF) (k : Nat) (hk : k < 3) (port : w64)
     wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp (replicaRpcLis k)) $$ [] as %lv2 %err2 Hl
     · isplitr
       · ipureintro; exact hlok
-      iapply H.rpcLisP_lis $$ Hrl
+      iapply RA.rpcLisP_lis $$ Hrl
     wp_for_post
     iframe
     iexists lv2, err2

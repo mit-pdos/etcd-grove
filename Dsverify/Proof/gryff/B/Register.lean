@@ -30,7 +30,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
 
 theorem wp_Register_replica (γ : GryffNames GF) (γs : GName) (rep : Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗ H.defaultServer γs ∗

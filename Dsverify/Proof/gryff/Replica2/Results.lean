@@ -1,5 +1,5 @@
 /-
-Ported from dsverify-lab examples/gryff/proof/GryffProof/Replica2/Link.lean (run gryff-bump-1, lab master 915f964; notes/dsv-gryff.md).
+Ported from dsverify-lab examples/gryff/proof/GryffProof/Replica2/Results.lean (run gryff-bump-1, lab master 915f964; notes/dsv-gryff.md).
 
 # Stage 2: the link module (C)
 
@@ -24,7 +24,7 @@ public import Dsverify.Proof.gryff.H1.CoordForce
 public import Dsverify.Proof.gryff.H1.Iparti
 public import Dsverify.Proof.gryff.H1.GParti
 public import Dsverify.Proof.gryff.H2.InstOpen
-public import Dsverify.Proof.gryff.H2a.Link
+public import Dsverify.Proof.gryff.H2a.Results
 public import Dsverify.Proof.gryff.H2b.Propose
 public import Dsverify.Proof.gryff.H2c.Accept
 public import Dsverify.Proof.gryff.H2c.Commit

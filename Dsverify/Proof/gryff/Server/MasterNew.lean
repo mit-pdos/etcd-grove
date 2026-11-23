@@ -84,7 +84,7 @@ section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
 variable [mA : gryff.src.masterlib.Assumptions] [kA : examples.gryffnet.Assumptions]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
 variable (L : CodecLaws (GF := GF)) (RL : RcvLaws (GF := GF))
 variable (wp_Call : net.rpc.Client.Call.spec (GF := GF) (hG := hG))
 variable (wp_DialHTTP : net.rpc.DialHTTP.spec (GF := GF) (hG := hG))
@@ -138,7 +138,7 @@ include L RL wp_Call wp_DialHTTP in
 theorem wp_NewMaster' (γ : GryffNames GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.gryff.src.masterlib ∗
         net.rpc.codecSet gryffCodec ∗ net.rpc.srvEnv ∗ H.muxFree net.rpc.defaultRPCPath ∗
-        H.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
+        RA.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
           net.rpc.connectAns ∗
         dialEnv (GF := GF) ∗ (□ [∗list] k ∈ [0, 1, 2], replicaRpcOk γ k) ∗
         regAuth γ.deploy (1 : Qp).half [] ∗ inv deployN (deployInv γ.deploy γ.proto) ∗
@@ -216,11 +216,11 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
   wp_apply fmt.wp_Sprintf_argsWf _ _ _ _ (.cons_int _ _ _ (.int _) .nil) $$ [Hssl] as %sp ⟨-, %Hsp⟩
   · iframe
   rw [sprintf_colon_port _ _ Hsp, colon_7501]
-  ihave %hlok := H.rpcLisP_ok _ _ _ _ $$ Hrl
+  ihave %hlok := RA.rpcLisP_ok _ _ _ _ $$ Hrl
   wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp masterRpcLis) $$ [] as %lv %err Hl
   · isplitr
     · ipureintro; exact hlok
-    iapply H.rpcLisP_lis $$ Hrl
+    iapply RA.rpcLisP_lis $$ Hrl
   ihave IHL : iprop(∃ (lv' e' : GoInterface),
       "Hlf" ∷ structFieldRef gryff.src.masterlib.Master go!"l" «$r0_ptr» ↦ lv' ∗
       "err" ∷ err_ptr ↦ e' ∗
@@ -269,7 +269,7 @@ theorem wp_NewMaster' (γ : GryffNames GF) :
     wp_apply (nS.listen go!"tcp" Perennial.net.tcpNet_tcp masterRpcLis) $$ [] as %lv2 %err2 Hl
     · isplitr
       · ipureintro; exact hlok
-      iapply H.rpcLisP_lis $$ Hrl
+      iapply RA.rpcLisP_lis $$ Hrl
     wp_for_post
     iframe
     iexists lv2, err2

@@ -12,7 +12,7 @@ module
 
 public import Dsverify.Proof.gryff.Replica2.Specs
 public import Dsverify.Proof.gryff.Replica.Base
-public import Dsverify.Proof.gryff.H1.Parti -- C: `GetStoreMetadata.wp` moved to Replica2/Link.lean
+public import Dsverify.Proof.gryff.H1.Parti -- C: `GetStoreMetadata.wp` moved to Replica2/Results.lean
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet
 
 @[expose] public section

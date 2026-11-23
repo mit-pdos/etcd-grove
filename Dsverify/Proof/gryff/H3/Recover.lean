@@ -9,7 +9,7 @@ In a section with one `HeapGS`; `startRecoveryForInstance_wp_frozen` is the froz
 module
 
 public import Dsverify.Proof.gryff.H3.Env
-public import Dsverify.Proof.gryff.H2.InstOpen -- C: `epaxosOwn_inst_open` moved to Replica2/Link.lean
+public import Dsverify.Proof.gryff.H2.InstOpen -- C: `epaxosOwn_inst_open` moved to Replica2/Results.lean
 public import Dsverify.Proof.gryff.H3.Bcast
 public import Dsverify.Proof.gryff.H3.Ballot
 public import Dsverify.GeneratedProof.gryff.examples.gryffnet

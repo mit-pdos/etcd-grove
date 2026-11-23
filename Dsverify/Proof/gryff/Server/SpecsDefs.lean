@@ -94,7 +94,7 @@ end preds
 section specdefs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [π : NetProtoGS] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [H : RpcHttpHyp GF]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF]
 
 @[irreducible] def masterOk (_γ : GryffNames GF) (_m : Loc) : IProp GF := masterOkDef _γ _m
 

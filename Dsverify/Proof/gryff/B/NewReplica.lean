@@ -6,7 +6,7 @@ requests named at their steps).
 -/
 module
 
-public import Dsverify.Proof.gryff.Replica2.Link
+public import Dsverify.Proof.gryff.Replica2.Results
 public import Dsverify.Proof.gryff.B.Handler
 public import Dsverify.Proof.gryff.B.Ctor
 public import Dsverify.Proof.gryff.Server.SpecsDefs
@@ -45,7 +45,7 @@ variable [binA : wire.BinaryVarintHyps GF]
 variable [sortA : SortSliceHyp GF] [strconvA : strconv.Assumptions]
 variable [io.Assumptions] [net.Assumptions] [net.FieldAssumptions] [netN.NetSpecs GF]
 variable [strA : netN.StringsIndexHyp GF] [mathA : lib.MathPowHyp GF]
-variable [net.rpc.Assumptions] [H : RpcHttpHyp GF] [randA : lib.RandSeedHyp GF]
+variable [net.rpc.Assumptions] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] [randA : lib.RandSeedHyp GF]
 
 
 /-- The registry's facts: three replicas, `nodes[id]` is node `k`'s address. -/

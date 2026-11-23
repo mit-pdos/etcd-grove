@@ -12,7 +12,7 @@ Port (`Net/` + remote):
   port `portAddr k`'s at `lisAddrOf (portAddr k)` (`":750(2+k)"`), Gryff's wire protocols
   (`replicaLis`, `lis_set_proto`); the master's and the replicas' net/rpc listeners
   (`masterRpcLis`, `replicaRpcLis k`) the rpc world's behind net/rpc's HTTP handshake
-  (`RpcHttpHyp.rpcLisP`, `rpcLisP_set`). Those facts are persistent: `netShare γ` holds them all,
+  (`RpcHttpAddr.rpcLisP`, `rpcLisP_set`). Those facts are persistent: `netShare γ` holds them all,
   for every node.
 * `sharedInvs γ`: Gryff's and the placers' invariants (`protoInvs`) and the rpc world's registry.
 * The lab's `orchNodeShare` (the client's half of the abstract register) is gone: under remote it
@@ -97,15 +97,14 @@ end ghost
 
 section net
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [H : RpcHttpHyp GF]
+variable {GF : BundledGFunctors} [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS] [RA : RpcHttpAddr GF]
 
 /-- The rpc listeners' protocols (persistent): the master's and each replica's net/rpc listener
 serve the rpc world behind net/rpc's HTTP handshake. -/
 def rpcLises (γ : GryffNames GF) : IProp GF :=
-  iprop(H.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
+  iprop(RA.rpcLisP γ.rpc masterRpcLis (net.rpc.connectReq net.rpc.defaultRPCPath)
       net.rpc.connectAns ∗
-    [∗list] k ∈ [0, 1, 2], H.rpcLisP γ.rpc (replicaRpcLis k)
+    [∗list] k ∈ [0, 1, 2], RA.rpcLisP γ.rpc (replicaRpcLis k)
       (net.rpc.connectReq net.rpc.defaultRPCPath) net.rpc.connectAns)
 
 instance rpcLises_persistent (γ : GryffNames GF) : Persistent (rpcLises γ) := by

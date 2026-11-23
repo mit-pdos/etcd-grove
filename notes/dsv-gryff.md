@@ -335,14 +335,16 @@ Proof-mode workarounds found (record for Perennial, `notes/perennial-changes.md`
   an earlier declaration's `_proof_N` (and, after a real error, cascades into unrelated branches):
   `--stop` and recheck, and confirm with `lake env lean`/`lake build` (both clean).
 
-## PENDING for the user: the prophecy ghost code is in the fork
+## DECIDED (user, 2026-11-23): the prophecy ghost code stays in the fork (option 3)
 
-Interim decision (coordinator, 2026-11-23; the user's final choice is pending): the fork's Go is kept
-exactly as the lab's, **ghost prophecy code included** (`src/gryff/proph.go`, the `Replica.proph`
-field, the 27 `resolve<Event>` calls), **against this repository's rule that prophecies are
-patches** (`etc/proph-patches/`, `notes/decisions.md` "Prophecies as patches of the Go code"). The
-translation options (1) (extend prophcheck, below) and (3) (a recorded deviation) produce is the
-same, so the proofs over it hold under either; option (2) (local prophecies) is not pursued.
+The fork's Go is kept exactly as the lab's, **ghost prophecy code included** (`src/gryff/proph.go`,
+the `Replica.proph` field, the `resolve<Event>` calls), a **recorded deviation** from this
+repository's rule that prophecies are patches (`etc/proph-patches/`, `notes/decisions.md`
+"Prophecies as patches of the Go code"). The user chose option (3) on 2026-11-23; nothing else
+changes. **The reason, for a reviewer:** the code is the lab's verified fork as is; prophcheck
+(added 2026-11-03, after the lab's Gryff proof was built) admits only a local `NewProph` resolved
+in one function, while Gryff's trace prophecy is package-wide (`traceProph`, created by the
+package's `init()`), resolved by 28 helpers through a struct field.
 
 ## The trace prophecy as a prophecy patch: blocked by prophcheck's grammar
 
@@ -592,6 +594,55 @@ Upamanyu's C2)).
 (`Lib/SortHyps.lean`, sort.Slice on `[]int32` with `<`: Go's result is the unique sorted
 permutation), `RpcHttpHyp`, `RpcBootHyp`, the `InitHyp`s (`net.rpc`, `net.http`, `math.rand`), and
 the Net/remote spec bundles discharged at linking (`netN.NetConnSpecs`, …).
+
+## Session 7 (2026-11-23, seventh agent): review lessons applied, boots, bridge
+
+**Review of dsv-epaxos (#24) applied here:**
+- `RpcHttpHyp.defaultServer_init` (`isPkgInit net.rpc ⊢ ∃ γ, defaultServer γ`, a server out of
+  `True`) is **gone**; and so is `RpcEnvHyp` (`Server/RpcEnv.lean`: `rpc_env`/`http_env` derived
+  net/rpc's and net/http's package variables from `isPkgInit`, also `True`: no true instance).
+  They are boot resources now: `RpcBootHyp` (`Rpc/RpcHttpHyps.lean`) has two fields,
+  `wp_init_own` (net/rpc's initializer from `ownInitializing (gNoPkg net/rpc g)` leaves
+  `rpcInitRes` = `rpcBootRes` ∗ `∃ γs, defaultServer γs` ∗ `cliEnv` ∗ `connected ↦□`) and
+  `wp_http_own` (net/http's leaves `httpInitRes` = `muxFree DefaultRPCPath` ∗ `httpEnv`);
+  `serverBoot := httpInitRes ∗ rpcInitRes`. (The old single field asked net/http not to be
+  initialized before net/rpc's initializer, which the programs violate: `serverlib` imports net/http
+  first.) `Server.spec` takes `serverBoot`.
+- `RpcHttpAddr GF` (global: `rpcLisP` + `_addr/_lis/_ok/_set`) is split out of `RpcHttpHyp`
+  (per heap, `[RA : RpcHttpAddr GF]`), as dsv-epaxos: the start sets the listeners before any
+  heap exists, and every machine must see the same `rpcLisP`. Shares' `netShare`/`clientNodeShare`/
+  `serverShare` are global-level. The statement's premises: `RA : ∀ G π, RpcHttpAddr`,
+  `H : ∀ G L π, RpcHttpHyp`, `∀ G L π, RpcBootHyp`.
+- httpW: not needed here: `RpcWorld` has `hs`/`hsAns` fields (models-rpc-http merged), the start
+  builds `{ SS, reg, hs := connectReq …, hsAns := connectAns }` and `rpcLisP_set`'s premise is
+  discharged from the world itself (`worldOk`).
+- DialHTTP(Path): Net's `DialHTTP.spec` (merged), used as is.
+
+**Duplicate declarations (coordinator's lesson, 2026-11-23):** checked. No gryff file declares a
+spec of a library function in a library namespace: every `.spec`/`.specLt` is in
+`Perennial.gryff.*` or `gryff.examples.gryffnet` (`lib.io.ReadFull.specLt` is
+`Perennial.gryff.lib.…`). One file declared in the shared `Perennial` namespace:
+`Server/LogErr.lean` (`Perennial.logArg`, `Perennial.log.wp_Printf_logArg`, …; craq has its own
+`logArg` in its namespace): moved to `Perennial.gryff`. `Lab/*.lean` declare in
+`Perennial.dsverify_lab.harness` (the lab's names: `Linearizable`, `RegInput`, `clientN`, …): no
+other branch uses that namespace today; rename before landing if a sibling adopts it.
+
+**Owned boots (item 3, done in the generator):** `etc/dsv/_gryff_boot.py` writes
+`cmd/server{1,2,3,4}/Boot.lean`: the program's initialization from `ownGoState ∅` keeping
+`gryffGlobals ∗ bootProph ∗ serverBoot`. Tables: `gEx S g` (`g`, `False` on `S`;
+`Boot/Defs.lean`), `noPkgs ⊂ noPkgsS2 (+serverlib) ⊂ noPkgsS1 (+net/rpc) ⊂ noPkgsS0
+(+net/http)`; the chain: command and gryffnet from `gEx noPkgsS0`, gryffnet's imports before
+serverlib at `S0`, `wp_serverlib_own` (net/http owned `S0→S1`, fmt/net/time/log at `S1`, net/rpc
+owned `S1→S2`, masterproto at `S2`, ends at `gNo`), then `gNo` until `wp_gryff_own`, then `g`.
+The generator asserts the import order it relies on. The master (server1) runs the same boot
+(it also initializes gryff; its `gryffGlobals ∗ bootProph` are dropped).
+
+**Link files (coordinator's lesson):** only the kit's top-level `Link.lean` (namespace
+`Perennial.EtcdGrove.dsvgryff`) may be named `Link.lean`: `Replica2/Link.lean` and `H2a/Link.lean`
+are now `Results.lean` (linking tier); `proof_roots.namespace()` prints `Perennial.EtcdGrove.`.
+
+**Bridge (item 2, done):** `examples/gryffnet/Bridge.lean` = dsv-epaxos's, verbatim
+(`robust_of_distProtoLisRB(T)`).
 
 ## Which lab run
 

@@ -15,6 +15,7 @@ public import Net.Spec.net.Conn__RemoteAddr
 public import Net.Spec.net.Listener__Accept
 public import Net.Spec.net.Listen
 public import Net.Spec.net.Dial
+public import Net.Spec.net.DialTimeout
 
 @[expose] public section
 
@@ -35,5 +36,6 @@ class NetSpecs [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlo
   accept : Perennial.net.Listener.Accept.spec (GF := GF) (hG := hG)
   listen : Perennial.net.Listen.spec (GF := GF) (hG := hG)
   dial : Perennial.net.Dial.spec (GF := GF) (hG := hG)
+  dialTimeout : Perennial.net.DialTimeout.spec (GF := GF) (hG := hG)
 
 end Perennial.gryff.netN

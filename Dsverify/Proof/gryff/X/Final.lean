@@ -6,7 +6,7 @@ Ported from dsverify-lab examples/gryff/proof/GryffProof/X/Final.lean (run gryff
 `execLaws` builds `ExecLaws` from `Replica2/*` and `Proto2/*` (the lock invariant
 `replicaLockInv`, `critical_step`, `resolveExec.wp`, `pendingOuts_self`, `step_ok_exec`,
 `traceHalf_lb`, `traceHalf_lb_prefix`); `strongconnect_wp` and `executeCommands_wp` are
-`Replica2/Link.lean`'s `strongconnect.wp` and `executeCommands.wp` (restated; the link module
+`Replica2/Results.lean`'s `strongconnect.wp` and `executeCommands.wp` (restated; the link module
 proves them by these) from the generic `wp_sc` and `wp_executeCommands`.
 -/
 module
@@ -346,7 +346,7 @@ theorem isExec_toG (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc
 
 /-! ## The interface's specs -/
 
-/-- **`Replica2/Link.lean`'s `strongconnect.wp`** (from `wp_sc`; `scFacts2` is `SCF` since
+/-- **`Replica2/Results.lean`'s `strongconnect.wp`** (from `wp_sc`; `scFacts2` is `SCF` since
 H-X-2 (a)). -/
 theorem strongconnect_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h ex mtx : Loc)
     (p : ProphId) (t : List Ev) (xs : XS) (S : List replica.Node) (idx : Nat)
@@ -404,7 +404,7 @@ theorem strongconnect_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h
   ipureintro
   exact ⟨Hpost.1, Hpost.2.1, Hpost.2.2⟩
 
-/-- **`Replica2/Link.lean`'s `executeCommands.wp`** (from `wp_executeCommands`; `r.Shutdown ↦□
+/-- **`Replica2/Results.lean`'s `executeCommands.wp`** (from `wp_executeCommands`; `r.Shutdown ↦□
 false` from `isExec` (H-X-4), the empty search state from the precondition (H-X-2 (b))). -/
 theorem executeCommands_wp (γ : GryffNames GF) (ρ : Repl2Names) (k : Fin 3) (r h : Loc)
     (xs : XS) :

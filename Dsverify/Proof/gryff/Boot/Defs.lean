@@ -20,6 +20,7 @@ module
 
 public import Dsverify.GeneratedProof.gryff.src.gryff
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Dsverify.Proof.gryff.Rpc.RpcHttpHyps
 
 @[expose] public section
 
@@ -41,24 +42,65 @@ def noPkgs : List GoString :=
     go!"client5", go!"server1", go!"server2", go!"server3", go!"server4"].map
     fun c => go!"gryff/examples/gryffnet/cmd/" ++ c)
 
+/-- `g`, but `False` at the packages `S` (not initialized yet). -/
+def gEx {PROP : Type _} [BI PROP] (S : List GoString) (g : GoString → PROP) : GoString → PROP :=
+  fun p => if p ∈ S then iprop(False) else g p
+
+theorem gEx_ne {PROP : Type _} [BI PROP] (S : List GoString) (g : GoString → PROP) (p : GoString)
+    (h : p ∉ S) : gEx S g p = g p := by
+  unfold gEx; rw [if_neg h]
+
+theorem gEx_no {PROP : Type _} [BI PROP] (S : List GoString) (g : GoString → PROP) (p : GoString)
+    (h : p ∈ S) : gEx S g p ⊢ False := by
+  unfold gEx; rw [if_pos h]
+
 /-- `g`, but `False` at `noPkgs`: before `gryff`'s initializer, none of them is initialized. -/
-def gNo {PROP : Type _} [BI PROP] (g : GoString → PROP) : GoString → PROP := fun p =>
-  if p ∈ noPkgs then iprop(False) else g p
+def gNo {PROP : Type _} [BI PROP] (g : GoString → PROP) : GoString → PROP := gEx noPkgs g
 
 theorem gNo_ne {PROP : Type _} [BI PROP] (g : GoString → PROP) (p : GoString)
-    (h : p ∉ noPkgs) : gNo g p = g p := by
-  unfold gNo; rw [if_neg h]
+    (h : p ∉ noPkgs) : gNo g p = g p := gEx_ne _ _ _ h
 
 theorem gNo_no {PROP : Type _} [BI PROP] (g : GoString → PROP) (p : GoString)
-    (h : p ∈ noPkgs) : gNo g p ⊢ False := by
-  unfold gNo; rw [if_pos h]
+    (h : p ∈ noPkgs) : gNo g p ⊢ False := gEx_no _ _ _ h
 
 theorem gNo_le {PROP : Type _} [BI PROP] (g : GoString → PROP) (p : GoString) :
     gNo g p ⊢ g p := by
-  unfold gNo
+  unfold gNo gEx
   split
   · exact false_elim
   · exact .rfl
+
+/-- The packages not yet initialized when `serverlib`'s initializer starts on a server machine
+(`noPkgsS0`), after net/http's (`noPkgsS1`), after net/rpc's (`noPkgsS2`): `serverlib` is the
+first package of the servers' programs to import net/http and net/rpc (`_gryff_boot.py` checks
+it), and imports net/http before net/rpc. -/
+def noPkgsS2 : List GoString := go!"gryff/src/serverlib" :: noPkgs
+def noPkgsS1 : List GoString := pkg_id.net.rpc :: noPkgsS2
+def noPkgsS0 : List GoString := pkg_id.net.http :: noPkgsS1
+
+/-- After `serverlib`'s imports, only `noPkgs` are left. -/
+theorem gEx_S2_le {PROP : Type _} [BI PROP] (g : GoString → PROP) (p : GoString) :
+    gEx noPkgsS2 g p ⊢ gNo g p := by
+  unfold gNo gEx noPkgsS2
+  by_cases h : p ∈ noPkgs
+  · rw [if_pos (List.mem_cons_of_mem _ h)]; exact false_elim
+  · rw [if_neg h]
+    split
+    · exact false_elim
+    · exact .rfl
+
+/-- One more package excluded, as `RpcBootHyp`'s `gNoPkg`. -/
+theorem gEx_cons_le {PROP : Type _} [BI PROP] (q : GoString) (S : List GoString)
+    (g : GoString → PROP) (p : GoString) :
+    gEx (q :: S) g p ⊢ gNoPkg q (gEx S g) p := by
+  unfold gEx gNoPkg
+  dsimp only
+  by_cases h1 : p = q
+  · subst h1; rw [if_pos List.mem_cons_self]; exact false_elim
+  · rw [if_neg h1]
+    by_cases h2 : p ∈ S
+    · rw [if_pos (List.mem_cons_of_mem _ h2)]; exact false_elim
+    · rw [if_neg (by simp [h1, h2]), if_neg h2]
 
 section gen
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -189,6 +231,42 @@ def bootProph : IProp GF :=
     globalAddr gryff.src.gryff.traceProph ↦ p ∗ proph p pvs)
 
 end defs
+
+section rpcboot
+open Net
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+variable [GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [RA : Perennial.gryff.RpcHttpAddr GF] [H : Perennial.gryff.RpcHttpHyp GF] [B : Perennial.gryff.RpcBootHyp GF]
+
+open Perennial.gryff in
+/-- net/http's owned initialization (`RpcBootHyp.wp_http_own`) in a table `gEx S0 g` with
+`S0 = net/http :: S`. -/
+theorem wp_http_own (S0 S : List GoString) (hS : S0 = pkg_id.net.http :: S) (g : GoString → IProp GF)
+    (hwf : GetIsPkgInitProp pkg_id.net.http (gEx S g)) :
+    {{ ownInitializing (gEx S0 g) }} (App (Val net.http.initialize') (Val #()))
+    {{ RET #(); ownInitializing (gEx S g) ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
+        httpInitRes (GF := GF) }} := by
+  subst hS
+  iintro %Φ Hown HΦ
+  ihave Hown := ownInitializing_weaken _ _ (gEx_cons_le pkg_id.net.http S g) $$ Hown
+  iapply B.wp_http_own (gEx S g) hwf $$ Hown HΦ
+
+open Perennial.gryff in
+/-- net/rpc's owned initialization (`RpcBootHyp.wp_init_own`) in a table `gEx S0 g` with
+`S0 = net/rpc :: S`. -/
+theorem wp_rpc_own (S0 S : List GoString) (hS : S0 = pkg_id.net.rpc :: S) (g : GoString → IProp GF)
+    (hwf : GetIsPkgInitProp pkg_id.net.rpc (gEx S g)) :
+    {{ ownInitializing (gEx S0 g) }} (App (Val net.rpc.initialize') (Val #()))
+    {{ RET #(); ownInitializing (gEx S g) ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗
+        rpcInitRes (GF := GF) }} := by
+  subst hS
+  iintro %Φ Hown HΦ
+  ihave Hown := ownInitializing_weaken _ _ (gEx_cons_le pkg_id.net.rpc S g) $$ Hown
+  iapply B.wp_init_own (gEx S g) hwf $$ Hown HΦ
+
+end rpcboot
 
 end gryff.boot
 

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""The gryff kit's replica boots (notes/dsv-gryff.md, "Package initializers"): for each replica
-command (`cmd/server{2,3,4}`), `Dsverify/Proof/gryff/examples/gryffnet/cmd/<cmd>/Boot.lean`, its
-initialization from a fresh process keeping `gryff`'s owned variables and trace prophecy
+"""The gryff kit's server boots (notes/dsv-gryff.md, "Package initializers"): for each server
+command (`cmd/server{1,2,3,4}`), `Dsverify/Proof/gryff/examples/gryffnet/cmd/<cmd>/Boot.lean`, its
+initialization from a fresh process keeping `gryff`'s owned variables and trace prophecy and what
+net/http's and net/rpc's initializers leave on the machine (`RpcBootHyp.wp_http_own`,
+`wp_rpc_own`: `serverBoot`), owned, through `serverlib`'s initialization, the first to import them
 (`Dsverify/Proof/gryff/Boot/Defs.lean`). Generated from etc/gen-init.py's output: the program's
 `PkgTable.lean` (its table and the package-by-package facts, here twice: for the table `g` and for
 `gNo g`) and the `wp_initialize'_lb` bodies of `gryff`, `gryffnet` and the command (their import
@@ -13,8 +15,19 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 P = 'Dsverify/Proof/gryff'
-REPLICAS = ['server2', 'server3', 'server4']
+REPLICAS = ['server1', 'server2', 'server3', 'server4']
 NO = {'gryff.src.gryff', 'gryff.examples.gryffnet'}
+# the excluded sets: `gNo` (NO and the commands), `gEx noPkgsS2` (+ serverlib), `S1` (+ net/rpc),
+# `S0` (+ net/http)
+SETS = {
+    'wfNo': ('gNo (getIsPkgInit (GF := GF))', '· rw [gNo_ne _ _ (by decide)]; rfl', set()),
+    'wfS2': ('gEx noPkgsS2 (getIsPkgInit (GF := GF))', '· rw [gEx_ne _ _ _ (by decide)]; rfl',
+             {'gryff.src.serverlib'}),
+    'wfS1': ('gEx noPkgsS1 (getIsPkgInit (GF := GF))', '· rw [gEx_ne _ _ _ (by decide)]; rfl',
+             {'gryff.src.serverlib', 'net.rpc'}),
+    'wfS0': ('gEx noPkgsS0 (getIsPkgInit (GF := GF))', '· rw [gEx_ne _ _ _ (by decide)]; rfl',
+             {'gryff.src.serverlib', 'net.rpc', 'net.http'}),
+}
 
 
 def wfname(pkg):
@@ -22,18 +35,25 @@ def wfname(pkg):
 
 
 def chains(table):
-    """The table's facts as top-level theorems, for `g` (`wf_`) and for `gNo g` (`wfNo_`)."""
+    """The table's facts as top-level theorems, for `g` (`wf_`) and for each excluded set's
+    table (`wfNo_`, `wfS2_`, `wfS1_`, `wfS0_`): a package is skipped if it is excluded or one of
+    its facts' imports is skipped."""
     blocks = re.findall(r'  have (h\d+) : GetIsPkgInitProp pkg_id\.(\S+) \(getIsPkgInit \(GF := GF\)\) := by\n'
                         r'    refine And\.intro \?_ \?_\n    · rfl\n    exact (.*)\n', table)
     names = {h: q for h, q, _ in blocks}
     out = []
-    for kind in ['wf', 'wfNo']:
+    kinds = [('wf', 'getIsPkgInit (GF := GF)', '· rfl', None)] + \
+        [(k, g, hd, ex) for k, (g, hd, ex) in SETS.items()]
+    for kind, g, head, extra in kinds:
+        skipped = set()
         for h, q, ex in blocks:
-            if kind == 'wfNo' and (q in NO or q.startswith('gryff.examples.gryffnet.cmd.')):
-                continue
-            g = 'getIsPkgInit (GF := GF)' if kind == 'wf' else 'gNo (getIsPkgInit (GF := GF))'
+            if extra is not None:
+                deps = set(re.findall(r'\bh\d+\b', ex))
+                if (q in NO or q in extra or q.startswith('gryff.examples.gryffnet.cmd.')
+                        or deps & skipped):
+                    skipped.add(h)
+                    continue
             ex = re.sub(r'\bh\d+\b', lambda m: f'{kind}_{wfname(names[m.group(0)])}', ex)
-            head = '· rfl' if kind == 'wf' else '· rw [gNo_ne _ _ (by decide)]; rfl'
             out.append(f'theorem {kind}_{wfname(q)} : GetIsPkgInitProp pkg_id.{q} ({g}) := by\n'
                        f'  refine And.intro ?_ ?_\n  {head}\n  exact {ex}\n')
     return '\n'.join(out)
@@ -107,28 +127,58 @@ def boot(cmd):
     tbl_path = f'{P}/examples/gryffnet/cmd/{cmd}/PkgTable.lean'
     table = open(os.path.join(ROOT, tbl_path)).read()
     gi = imports(open(os.path.join(ROOT, f'{P}/src/gryff/Init.lean')).read())
+    si = imports(open(os.path.join(ROOT, f'{P}/src/serverlib/Init.lean')).read())
     ni = imports(open(os.path.join(ROOT, f'{P}/examples/gryffnet/Init.lean')).read())
     ci = imports(open(os.path.join(ROOT, f'{P}/examples/gryffnet/cmd/{cmd}/Init.lean')).read())
     assert ci == [('gryff.examples.gryffnet', '1')], ci
-    assert any(q == 'gryff.src.gryff' for q, _ in ni), ni
+    order = [q for q, _ in ni]
+    assert 'gryff.src.serverlib' in order and 'gryff.src.gryff' in order, ni
+    assert order.index('gryff.src.serverlib') < order.index('gryff.src.gryff'), ni
+    # nothing before serverlib in gryffnet's chain initializes net/http or net/rpc
+    assert not {'net.http', 'net.rpc'} & set(order[:order.index('gryff.src.serverlib')]), ni
+    sq = [q for q, _ in si]
+    assert sq.index('net.http') < sq.index('net.rpc'), si
     ns = f'gryff.examples.gryffnet.cmd.{cmd}'
     gsteps = '\n'.join(step(q, n, 'wfNo') for q, n in gi)
-    nsteps, seen = [], False
-    for q, n in ni:
-        if q == 'gryff.src.gryff':
-            nsteps.append(f'  wp_apply wp_gryff_own $$ Hown as ⟨Hown, #Hd{n}, HR⟩')
-            seen = True
+    ssteps, kind = [], 'wfS0'
+    for q, n in si:
+        if q == 'net.http':
+            ssteps.append(f'  wp_apply (wp_http_own noPkgsS0 noPkgsS1 rfl _ wfS1_net_http) $$ Hown\n'
+                          f'    as ⟨Hown, #Hd{n}, HH⟩')
+            kind = 'wfS1'
+        elif q == 'net.rpc':
+            ssteps.append(f'  wp_apply (wp_rpc_own noPkgsS1 noPkgsS2 rfl _ wfS2_net_rpc) $$ Hown\n'
+                          f'    as ⟨Hown, #Hd{n}, HRp⟩')
+            kind = 'wfS2'
         else:
-            nsteps.append(step(q, n, 'wf' if seen else 'wfNo'))
+            ssteps.append(step(q, n, kind))
+    ssteps = '\n'.join(ssteps)
+    nsteps, kind = [], 'wfS0'
+    for q, n in ni:
+        if q == 'gryff.src.serverlib':
+            nsteps.append(f'  wp_apply wp_serverlib_own $$ Hown as ⟨Hown, #Hd{n}, HB⟩')
+            kind = 'wfNo'
+        elif q == 'gryff.src.gryff':
+            nsteps.append(f'  wp_apply wp_gryff_own $$ Hown as ⟨Hown, #Hd{n}, HG, HPr⟩')
+            kind = 'wf'
+        else:
+            nsteps.append(step(q, n, kind))
     nsteps = '\n'.join(nsteps)
     ind = lambda t: '\n'.join('  ' + l for l in t.splitlines())
-    gsteps, nsteps = ind(gsteps), ind(nsteps)
+    gsteps, nsteps, ssteps = ind(gsteps), ind(nsteps), ind(ssteps)
     hyps = '\n'.join(l for l in table.splitlines() if l.startswith('variable [_root_') or l.startswith('variable [package_sem'))
-    return f'''/-
-A replica node's boot (`cmd/{cmd}`): its program's initialization from a fresh process, keeping
-`gryff`'s owned variables and trace prophecy (`Dsverify/Proof/gryff/Boot/Defs.lean`;
-notes/dsv-gryff.md, "Package initializers"). Generated by `etc/dsv/_gryff_boot.py` from the program's
-`PkgTable.lean` and the generated initializers; do not edit.
+    return TEMPLATE.format(cmd=cmd, ns=ns, hyps=hyps, chains=chains(table),
+                           allocs=ind(GRYFF_ALLOCS), gsteps=gsteps, gend=ind(GRYFF_END),
+                           ssteps=ssteps, nsteps=nsteps)
+
+
+TEMPLATE = '''/-
+Server machine `{cmd}`'s boot (`cmd/{cmd}`): its program's initialization from a fresh process,
+keeping `gryff`'s owned variables and trace prophecy and what net/http's and net/rpc's
+initializers leave on the machine (`serverBoot`, `RpcBootHyp`), owned, through `serverlib`'s
+initialization (`Dsverify/Proof/gryff/Boot/Defs.lean`; notes/dsv-gryff.md, "Package
+initializers"). Generated by `etc/dsv/_gryff_boot.py` from the program's `PkgTable.lean` and the
+generated initializers; do not edit.
 -/
 module
 
@@ -145,18 +195,20 @@ noncomputable section
 namespace Perennial
 namespace {ns}
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode gryff.boot
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode Net gryff.boot Perennial.gryff
 
 section boot
-variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {hyps}
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] [B : RpcBootHyp GF]
 
-/-! The program table's facts, for `getIsPkgInit` and for `gNo getIsPkgInit`. -/
+/-! The program table's facts, for `getIsPkgInit` and for the excluded sets' tables. -/
 
-{chains(table)}
+{chains}
 /-- `gryff`'s initialization, not yet initialized (`ownInitializing (gNo g)`): its fact, its
 package variables (`gryffGlobals`) and the trace prophecy its `init()` creates. -/
 theorem wp_gryff_own :
@@ -171,45 +223,73 @@ theorem wp_gryff_own :
   · iframe Hown
     iintro Hown
     wp_auto
-{ind(GRYFF_ALLOCS)}
+{allocs}
 {gsteps}
-{ind(GRYFF_END)}
+{gend}
   · iintro ⟨Hown, Hpk, HR⟩
     iapply HΦ
     iframe
 
-/-- `gryffnet`'s initialization, not yet initialized, keeping `gryff`'s variables and prophecy. -/
-theorem wp_gryffnet_own :
-    {{{{ ownInitializing (gNo (getIsPkgInit (GF := GF))) }}}}
-      (App (Val _root_.Perennial.gryff.examples.gryffnet.initialize') (Val #()))
-    {{{{ RET #(); ownInitializing (getIsPkgInit (GF := GF)) ∗
-        isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗ gryffGlobals ∗ bootProph }}}} := by
+/-- `serverlib`'s initialization, with neither it nor net/http nor net/rpc initialized
+(`gEx noPkgsS0`): net/http's and net/rpc's initializations are the first (`RpcBootHyp`), and
+leave the machine's `serverBoot`. -/
+theorem wp_serverlib_own :
+    {{{{ ownInitializing (gEx noPkgsS0 (getIsPkgInit (GF := GF))) }}}}
+      (App (Val _root_.Perennial.gryff.src.serverlib.initialize') (Val #()))
+    {{{{ RET #(); ownInitializing (gNo (getIsPkgInit (GF := GF))) ∗
+        isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib ∗ serverBoot (GF := GF) }}}} := by
   wp_start as Hown
-  iapply wp_package_init_gen _ _ _ _ (gNo getIsPkgInit) getIsPkgInit
-    (isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet)
-    iprop(gryffGlobals ∗ bootProph) _ rfl (gNo_no _ _ (by decide)) $$ [Hown]
+  iapply wp_package_init_gen _ _ _ _ (gEx noPkgsS0 getIsPkgInit) (gNo getIsPkgInit)
+    (isPkgInit (PROP := IProp GF) pkg_id.gryff.src.serverlib)
+    (serverBoot (GF := GF)) _ (by rw [gNo_ne _ _ (by decide)]; rfl)
+    (gEx_no _ _ _ (by decide)) $$ [Hown]
   · iframe Hown
     iintro Hown
     wp_auto
-{nsteps}
-    iframe Hown HR
+{ssteps}
+    ihave Hown := ownInitializing_weaken _ _ (gEx_S2_le _) $$ Hown
+    unfold serverBoot
+    iframe Hown HH HRp
     is_pkg_init_finish
   · iintro ⟨Hown, Hpk, HR⟩
     iapply HΦ
     iframe
 
-/-- **The replica node's boot**: its program's initialization from a fresh process, keeping
-`gryff`'s variables and trace prophecy. -/
+/-- `gryffnet`'s initialization, not yet initialized, keeping `gryff`'s variables and prophecy
+and the machine's `serverBoot`. -/
+theorem wp_gryffnet_own :
+    {{{{ ownInitializing (gEx noPkgsS0 (getIsPkgInit (GF := GF))) }}}}
+      (App (Val _root_.Perennial.gryff.examples.gryffnet.initialize') (Val #()))
+    {{{{ RET #(); ownInitializing (getIsPkgInit (GF := GF)) ∗
+        isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet ∗ gryffGlobals ∗ bootProph ∗
+        serverBoot (GF := GF) }}}} := by
+  wp_start as Hown
+  iapply wp_package_init_gen _ _ _ _ (gEx noPkgsS0 getIsPkgInit) getIsPkgInit
+    (isPkgInit (PROP := IProp GF) pkg_id.gryff.examples.gryffnet)
+    iprop(gryffGlobals ∗ bootProph ∗ serverBoot (GF := GF)) _ rfl (gEx_no _ _ _ (by decide)) $$ [Hown]
+  · iframe Hown
+    iintro Hown
+    wp_auto
+{nsteps}
+    iframe Hown HG HPr HB
+    is_pkg_init_finish
+  · iintro ⟨Hown, Hpk, HR⟩
+    iapply HΦ
+    iframe
+
+/-- **The server machine's boot**: its program's initialization from a fresh process, keeping
+`gryff`'s variables and trace prophecy and the machine's `serverBoot`. -/
 theorem wp_initialize'_own :
     {{{{ ownGoState ∅ }}}}
       (App (Val initialize') (Val #()))
     {{{{ RET #(); ownInitializing (getIsPkgInit (GF := GF)) ∗
-        isPkgInit (PROP := IProp GF) pkg_id.{ns} ∗ gryffGlobals ∗ bootProph }}}} := by
+        isPkgInit (PROP := IProp GF) pkg_id.{ns} ∗ gryffGlobals ∗ bootProph ∗
+        serverBoot (GF := GF) }}}} := by
   wp_start as Hgs
-  ihave Hown := ownInitializing_empty (gNo (getIsPkgInit (GF := GF))) $$ Hgs
-  iapply wp_package_init_gen _ _ _ _ (gNo getIsPkgInit) getIsPkgInit
+  ihave Hown := ownInitializing_empty (gEx noPkgsS0 (getIsPkgInit (GF := GF))) $$ Hgs
+  iapply wp_package_init_gen _ _ _ _ (gEx noPkgsS0 getIsPkgInit) getIsPkgInit
     (isPkgInit (PROP := IProp GF) pkg_id.{ns})
-    iprop(gryffGlobals ∗ bootProph) _ rfl (gNo_no _ _ (by decide)) $$ [Hown]
+    iprop(gryffGlobals ∗ bootProph ∗ serverBoot (GF := GF)) _ rfl (gEx_no _ _ _ (by decide)) $$ [Hown]
   · iframe Hown
     iintro Hown
     wp_auto

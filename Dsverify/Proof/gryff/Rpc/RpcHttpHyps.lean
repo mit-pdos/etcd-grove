@@ -30,10 +30,13 @@ errors** (C1): today a non-`ServerError` error comes with `models_lab.errAny`; i
 `codecMu`'s mutex, and the server reads `invalidRequest`; they come from net/rpc's package
 initialization **once per machine**, as a resource the machine's boot hands to `main` (like the
 replicas' prophecy, `cmd/server*/Boot.lean`). `Net/` does not give it yet (its net/rpc
-initialization is names only), so the boot proofs take it from the class `RpcBootHyp` (net/rpc's initializer, run where
-neither net/http nor net/rpc is initialized, leaves `rpcBootRes` and `muxFree DefaultRPCPath`; a
-hypothesis of the deployment's boot, visible in the statement). It is not
-persistent and never made by an update (`|==> codecFresh` would be unsound).
+initialization is names only), so the boot proofs take it from the class `RpcBootHyp`: net/rpc's
+initializer, run where net/rpc is not initialized, leaves `rpcInitRes` (`rpcBootRes`,
+`DefaultServer`, the package variables its client and server read); net/http's, where net/http is
+not initialized, leaves `httpInitRes` (`muxFree DefaultRPCPath`, `httpEnv`). A hypothesis of the
+deployment's boot (`cmd/server*/Boot.lean`), visible in the statement. Not persistent and never
+made by an update (`|==> codecFresh` would be unsound), and never derived from `isPkgInit` (which
+is `True` for these names-only packages; Upamanyu's review of dsv-epaxos).
 -/
 module
 
@@ -61,41 +64,51 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 section hyp
 
-/-- **Hypothesis** (the file header): net/rpc's server over HTTP, as models-rpc-http will state
-it. -/
-class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-    [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
-    [go.Semantics] [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] where
+/-- **Hypothesis** (the file header), its listeners' part: the protocols of the rpc listener
+addresses, over the global state only (every machine's heap sees the same ones; the start sets
+them before any machine runs). As dsv-epaxos's `RpcHttpAddr`; models-rpc-http `e6b232b2f6` proves
+these (`Net/Proof/net/rpc/Proto.lean`). -/
+class RpcHttpAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+    (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS] where
   /-- A listener address's rpc protocols (the file header). -/
   rpcLisP : RpcWorld GF → GoString → List w8 → List w8 → IProp GF
   rpcLisP_persistent : ∀ W la hs hsAns, Persistent (rpcLisP W la hs hsAns)
   rpcLisP_addr : ∀ W la hs hsAns a, addrOk a = true → lisAccepts la a →
-    rpcLisP W la hs hsAns ⊢ rpcAddrP (Gg := hG.goose_globalGS) W a hs hsAns
+    rpcLisP W la hs hsAns ⊢ rpcAddrP (Gg := Gg) W a hs hsAns
   /-- The right to listen at `la` (`net.Listen.spec`'s update; models-rpc-http `e6b232b2f6`'s
   shape). -/
   rpcLisP_lis : ∀ W la hs hsAns,
     rpcLisP W la hs hsAns ⊢
-      |={⊤,∅}=> lisToks (extGlobalGS netExt (G := hG.goose_globalGS)) la ∗
-        (lisToks (extGlobalGS netExt (G := hG.goose_globalGS)) la ={∅,⊤}=∗ True)
+      |={⊤,∅}=> lisToks (extGlobalGS netExt (G := Gg)) la ∗
+        (lisToks (extGlobalGS netExt (G := Gg)) la ={∅,⊤}=∗ True)
   rpcLisP_ok : ∀ W la hs hsAns, rpcLisP W la hs hsAns ⊢ ⌜listenOk la = true⌝
-  /-- The start sets them once, from the addresses `la` takes, unset (`e6b232b2f6`'s premises). -/
+  /-- The start sets them once, from the addresses `la` takes, unset (`e6b232b2f6`'s premises;
+  `W.hs`/`W.hsAns` are `RpcWorld`'s fields, merged from models-rpc-http, so a world with HTTP's
+  handshake at every address `la` takes is built as `{ W with hs := …, hsAns := … }`). -/
   rpcLisP_set : ∀ (E : CoPset) (W : RpcWorld GF) (la : GoString) (hs hsAns : List w8),
     listenOk la = true →
     (∀ a, addrOk a = true ∧ lisAccepts la a → W.hs a = hs ∧ W.hsAns a = hsAns) →
-    regCtx (Gg := hG.goose_globalGS) -∗ inv regN' (regInv (Gg := hG.goose_globalGS) W) -∗
-      lisUnset (Gg := hG.goose_globalGS) la ={E}=∗ rpcLisP W la hs hsAns
+    regCtx (Gg := Gg) -∗ inv regN' (regInv (Gg := Gg) W) -∗
+      lisUnset (Gg := Gg) la ={E}=∗ rpcLisP W la hs hsAns
+
+attribute [instance] RpcHttpAddr.rpcLisP_persistent
+
+/-- **Hypothesis** (the file header): net/rpc's server over HTTP, as models-rpc-http will state
+it (per machine heap, over the listeners' part `RpcHttpAddr`). -/
+class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+    [go_gctx : GoGlobalContext] (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
+    [go.Semantics] [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+    [RA : RpcHttpAddr GF] where
   /-- `h` is a net/http handler of `path` serving `W` at the addresses `A`. -/
   handlerOk : RpcWorld GF → (GoString → Prop) → GoString → GoInterface → IProp GF
   handlerOk_persistent : ∀ W A path h, Persistent (handlerOk W A path h)
   /-- `DefaultServeMux` routes `path` to a handler serving `W` at the addresses `A`. -/
   muxHas : RpcWorld GF → (GoString → Prop) → GoString → IProp GF
   muxHas_persistent : ∀ W A path, Persistent (muxHas W A path)
-  /-- `rpc.DefaultServer` is a server with the registry `γ`. -/
+  /-- `rpc.DefaultServer` is a server with the registry `γ`; a machine's comes from net/rpc's
+  initialization, `DefaultServer = NewServer()` (a boot resource, `rpcInitRes`). -/
   defaultServer : GName → IProp GF
   defaultServer_persistent : ∀ γ, Persistent (defaultServer γ)
-  /-- net/rpc's initialized package has its `DefaultServer` (`NewServer()`). -/
-  defaultServer_init :
-    isPkgInit (PROP := IProp GF) pkg_id.net.rpc ⊢ ∃ γ, defaultServer γ
   /-- `(*Server).ServeHTTP` as a net/http handler: on `CONNECT` it hijacks, writes
   `connectAns` and runs `ServeConn` on the frames (otherwise it answers 405). -/
   Server_ServeHTTP_spec : ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF)
@@ -159,13 +172,13 @@ class RpcHttpHyp [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
   a client of `rpcAddrP` never sends). It returns only on a listener error. -/
   Serve_spec : ∀ (W : RpcWorld GF) (la path : GoString) (lis : GoInterface) (l : w64),
     {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-        rpcLisP W la (connectReq path) connectAns ∗ muxHas W (lisAccepts la) path ∗
+        RA.rpcLisP W la (connectReq path) connectAns ∗ muxHas W (lisAccepts la) path ∗
         net.isListener (GF := GF) lis l ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
         lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la }}
       (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #interface.nil))
     {{ (err : GoInterface), RET #err; True }}
 
-attribute [instance] RpcHttpHyp.rpcLisP_persistent RpcHttpHyp.handlerOk_persistent
+attribute [instance] RpcHttpHyp.handlerOk_persistent
   RpcHttpHyp.muxHas_persistent RpcHttpHyp.defaultServer_persistent
 
 end hyp
@@ -173,7 +186,7 @@ end hyp
 section boot
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
-variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS]
+variable [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [RA : RpcHttpAddr GF]
 
 /-- **The codec's per-machine boot resource** (C2, the file header): what net/rpc's package
 initialization leaves on a machine for `SetCodec` and the server: `codecMu`'s mutex, the
@@ -183,23 +196,46 @@ def rpcBootRes : IProp GF :=
     sync.isMutex (globalAddr net.rpc.codecMu) (codecInv (GF := GF)) ∗ codecUnset (GF := GF) ∗
     globalAddr net.rpc.invalidRequest ↦□ ())
 
-/-- `g`, but `False` at net/http and net/rpc (neither initialized yet). -/
-def gNoRpc {PROP : Type _} [BI PROP] (g : GoString → PROP) : GoString → PROP := fun p =>
-  if p = pkg_id.net.rpc ∨ p = pkg_id.net.http then iprop(False) else g p
+/-- `g`, but `False` at the package `q` (not initialized yet). -/
+def gNoPkg {PROP : Type _} [BI PROP] (q : GoString) (g : GoString → PROP) : GoString → PROP :=
+  fun p => if p = q then iprop(False) else g p
 
-/-- **Hypothesis** (C2): net/rpc's initializer, run on a machine where neither net/http nor
-net/rpc is initialized yet (`gNoRpc g`), leaves the machine's boot resource `rpcBootRes`, and
-`DefaultServeMux` without a handler at `DefaultRPCPath` (`muxFree`, which `HandleHTTP` consumes:
-Go panics on a second registration of a path). Owned, not persistent: a machine's boot proof gets
-it once, at its packages' initialization (as the replicas get their prophecy,
-`cmd/server*/Boot.lean`). Taken by the deployment's boot proofs and visible in the statement;
-never an instance. -/
+/-- What net/rpc's initializer leaves on a machine: the codec state (`rpcBootRes`), its
+`DefaultServer` (`DefaultServer = NewServer()`, a server with registry `γs`), and the package
+variables its client and server read (`cliEnv`: `io`'s and `sync`'s facts, `io.EOF`,
+`ErrUnexpectedEOF`, `ErrDeadlineExceeded`, `errFrame`, `ErrShutdown`, `debugLog = false`;
+`connected = "200 Connected to Go RPC"`). -/
+def rpcInitRes [H : RpcHttpHyp GF] : IProp GF :=
+  iprop(rpcBootRes (GF := GF) ∗ (∃ γs, H.defaultServer γs) ∗ net.rpc.cliEnv ∗
+    globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus)
+
+/-- What net/http's initializer leaves on a machine: `DefaultServeMux` with no handler at
+`DefaultRPCPath` (`muxFree`, which `HandleHTTP` consumes: Go panics on a second registration of a
+path) and its imports `bufio` and `io` initialized (`httpEnv`). -/
+def httpInitRes [H : RpcHttpHyp GF] : IProp GF :=
+  iprop(H.muxFree defaultRPCPath ∗ net.http.httpEnv)
+
+/-- A server machine's boot resources: what net/http's and net/rpc's initializers leave. -/
+def serverBoot [H : RpcHttpHyp GF] : IProp GF :=
+  iprop(httpInitRes (GF := GF) ∗ rpcInitRes (GF := GF))
+
+/-- **Hypothesis** (C2; Upamanyu's review of dsv-epaxos on #24: `DefaultServer` and net/rpc's and
+net/http's package variables come from a machine's boot, never from an `isPkgInit` fact, which is
+`True` for these names-only packages): net/rpc's initializer, run on a machine where net/rpc is
+not initialized yet (`gNoPkg net/rpc g`), leaves `rpcInitRes`; net/http's, where net/http is not
+initialized yet, leaves `httpInitRes`. Owned, not persistent: a machine's boot proof gets them
+once, at its packages' initialization (`cmd/server*/Boot.lean`, as the replicas' prophecy). Taken
+by the deployment's boot proofs and visible in the statement; never an instance. -/
 class RpcBootHyp (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics]
-    [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [H : RpcHttpHyp GF] : Prop where
+    [net.rpc.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [RA : RpcHttpAddr GF] [H : RpcHttpHyp GF] : Prop where
   wp_init_own : ∀ (g : GoString → IProp GF), GetIsPkgInitProp pkg_id.net.rpc g →
-    {{ ownInitializing (gNoRpc g) }} (App (Val net.rpc.initialize') (Val #()))
+    {{ ownInitializing (gNoPkg pkg_id.net.rpc g) }} (App (Val net.rpc.initialize') (Val #()))
     {{ RET #(); ownInitializing g ∗ isPkgInit (PROP := IProp GF) pkg_id.net.rpc ∗
-        rpcBootRes (GF := GF) ∗ H.muxFree defaultRPCPath }}
+        rpcInitRes (GF := GF) }}
+  wp_http_own : ∀ (g : GoString → IProp GF), GetIsPkgInitProp pkg_id.net.http g →
+    {{ ownInitializing (gNoPkg pkg_id.net.http g) }} (App (Val net.http.initialize') (Val #()))
+    {{ RET #(); ownInitializing g ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
+        httpInitRes (GF := GF) }}
 
 end boot
 
