@@ -408,12 +408,25 @@ importing each other are fine; only `*.wp_proof` modules must not be imported.
 **Ported this session** (all `etc/lean-check.py -a` clean): `Proto2/Replica` (`req_mint` over
 `protoInvs` and the new `placersInv`), `Replica/ExecDefs`, `Replica2/State`, `N/{NetDefs, Stats,
 SpecsDefs, StateLaws, ConnDefs, Handshake, PeerMark, Build, Register, SendMsg, Recv, Reply}`,
-`Server/LogErr`, `N/Listener` (in progress, see below).
+`Server/LogErr`, `N/Listener`, `Lib/{NetAddr,Proph}` (`(*TCPAddr).String` over the model;
+the lab's Proph helper, `go.NotInterface go.prophId`), `X/{Defs,Pure,Tag,Sort,Laws,Facts,Helpers,
+Access,InStack,Slot,SC,Cmds,ExecCmds}`, `B/{Ctor,LockBoot,Names,Step,Resolve,Loop,Run}`. Abbrevs of
+method values (`repMB`, `epMB`) go in a section with only `[GooseExts] [GoGlobalContext]
+[GoSemanticsFunctions]` (else `go.Semantics` is stuck on `GF`); `replicaProph (GF := GF) γ`.
 
-**New hypothesis:** `LogHyps GF` (`Server/LogErr.lean`): `log.Printf`/`log.Println` with
-`logArg` arguments (an error argument: `models_lab.errAny`). Perennial `7b2259a12` models both as
-trusted no-ops and specifies only `Printf` with `fmt.ArgsWf` (no method-carrying argument);
-`Println` has no spec. A premise of the statement, like `BinaryVarintHyps`.
+**log with error arguments: no hypothesis** (`Server/LogErr.lean`): Perennial `7b2259a12` models
+`log.Printf`/`log.Println` as trusted no-ops (and specifies `Printf` only with `fmt.ArgsWf`); the
+lab's `log.wp_Printf_logArg`/`wp_Println_logArg` (an error argument: `models_lab.errAny`, its
+`Error()` runs) are proved from those bodies (coordinator, rabia review point 5: don't assume
+functions Perennial gives bodies for).
+
+**Rabia review lessons (coordinator 2026-11-23, `rabia-review-24.txt`), checked here:** the
+`InitHyp`s (`net.rpc`, `net.http`, `math.rand`) assert only that the initializer runs (fact
+`True`); `BinaryVarintHyps` carries Go's preconditions (`PutUvarint`/`PutVarint`: the buffer
+holds the encoding, `PutVarint` only for `0 ≤ x`; the readers: an owned non-nil `*bufio.Reader`,
+errors as `rdErr`, `errOverflow` included). To check as they are written: `math/rand.Seed` (gryff's
+`NewReplica` calls it; a hypothesis must need what Go needs), any `sort`/`strings`/`time` extras
+(`strings.Index`: N/StrIndex), the HTTP server hypotheses.
 
 **Rewrite rules added** (scratch `port/nport.py`, `port/nextok.py`, reproducible from this list):
 - section variables: `[GoGlobalContext] [hG : HeapGS .hasLC netDistGF] [sem]` -> `[GooseExts]
