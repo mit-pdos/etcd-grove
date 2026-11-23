@@ -8,6 +8,7 @@ public import Net.Proof.net.http.ServerConn
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.time.Link
+public import Spec.bufio.Writer__Reset
 
 @[expose] public section
 
@@ -123,6 +124,72 @@ theorem wp_setState (c s : Loc) (nc : GoInterface) (st : w64)
     wp_auto
     iapply HΦ; iexists _; iexact Hst)
   all_goals sorry
+
+/-- `bw.Available()` of a writer holding nothing: its buffer's size. -/
+theorem wp_rawAvailable [bufio.Assumptions] (bw : Loc) (sz : Nat) :
+    {{ EtcdGrove.bufio.rawWriter (GF := GF) bw sz }}
+      (App (Val (bw @!! go.GoType.PointerType bufio.Writer.ty @!! go!"Available")) (Val #()))
+    {{ (n : w64), RET #n; ⌜sint.Z n = sz⌝ ∗ EtcdGrove.bufio.rawWriter bw sz }} := by
+  wp_start as Hraw
+  iunfold EtcdGrove.bufio.rawWriter at Hraw
+  icases Hraw with ⟨%v, %bs, Hb, Hbuf, %Hv⟩
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hbuf
+  wp_auto
+  iapply HΦ
+  isplitr
+  · ipureintro
+    obtain ⟨h1, h2, h3⟩ := Hv
+    rw [h3]
+    have : (sint.Z v.buf'.len : Int) = sz := by
+      rw [← h1, Hlen.1]; exact (Int.toNat_of_nonneg Hlen.2).symm
+    word
+  iunfold EtcdGrove.bufio.rawWriter
+  iexists v, bs
+  iframe Hb Hbuf
+  ipureintro; exact Hv
+
+/-- `bufioWriterPool(size)` of 2048 and 4096. -/
+theorem wp_bufioWriterPool (n : w64) :
+    {{ (True : IProp GF) }}
+      (App (Val (@! net.http.bufioWriterPool)) (Val #n))
+    {{ (p : Loc), RET #p; ⌜(n = W64 2048 → p = globalAddr net.http.bufioWriter2kPool) ∧
+        (n = W64 4096 → p = globalAddr net.http.bufioWriter4kPool)⌝ }} := by
+  wp_start
+  wp_auto
+  by_cases h2 : n = W64 2048 <;> by_cases h4 : n = W64 4096 <;>
+    simp only [h2, h4, decide_true, decide_false] <;> wp_auto
+  all_goals try (simp only [h2, h4, decide_true, decide_false]; wp_auto)
+  all_goals (iapply HΦ; ipureintro; constructor <;> intro h <;> simp_all)
+
+/-- `putBufioWriter(bw)` of a writer holding nothing with a buffer of 2048 or 4096 bytes: reset and
+put back in its pool. -/
+theorem wp_putBufioWriter [bufio.Assumptions]
+    (wp_Reset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG)) (bw : Loc) (sz : Nat)
+    (hsz : sz = 2048 ∨ sz = 4096) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ wPools ∗ EtcdGrove.bufio.rawWriter (GF := GF) bw sz }}
+      (App (Val (@! net.http.putBufioWriter)) (Val #bw))
+    {{ RET #(); True }} := by
+  wp_start as ⟨#Hpools, Hraw⟩
+  wp_auto
+  wp_apply wp_Reset bw sz _ $$ [$Hraw] as Hraw
+  · ipureintro; left; rfl
+  wp_apply wp_rawAvailable bw sz $$ [$Hraw] as %n ⟨%Hn, Hraw⟩
+  wp_apply wp_bufioWriterPool n as %p %Hp
+  iunfold wPools at Hpools
+  icases Hpools with ⟨#H2, #H4⟩
+  wp_if_destruct
+  · iapply HΦ; itrivial
+  · rcases hsz with rfl | rfl
+    · have : n = W64 2048 := by word
+      rw [Hp.1 this]
+      wp_apply sync.Pool.wp_Put $$ [$H2 Hraw]
+      · iunfold wPoolP; iexists bw; iframe Hraw; ipureintro; rfl
+      iapply HΦ; itrivial
+    · have : n = W64 4096 := by word
+      rw [Hp.2 this]
+      wp_apply sync.Pool.wp_Put $$ [$H4 Hraw]
+      · iunfold wPoolP; iexists bw; iframe Hraw; ipureintro; rfl
+      iapply HΦ; itrivial
 
 end lemmas
 
