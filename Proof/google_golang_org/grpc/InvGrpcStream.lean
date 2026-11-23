@@ -615,7 +615,8 @@ received, or when the replay buffer overflows), a failed operation is retried tr
 retry (`clientStream.withRetry`, `stream.go:930`; `SendMsg`, `RecvMsg` at `stream.go:1105,1136`,
 `CloseSend` at `1167`) makes a new attempt (`newAttemptLocked`, `csAttempt.newStream`), whose
 transport stream calls the credentials (`http2Client.createHeaderFields` → `getTrAuthData`),
-synchronously, on the goroutine of the operation's caller. `Context()` makes no attempt. -/
+synchronously, on the goroutine of the operation's caller (the transport model the network part
+runs: `models/grpc/model_transport.go:242,277-345`). `Context()` makes no attempt. -/
 def cliStreamIs (cs : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF)
     (cd : context.ContextDesc (IProp GF)) (Ok : IProp GF → Prop) : IProp GF :=

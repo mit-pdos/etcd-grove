@@ -633,7 +633,7 @@ abbrev methodHandlerCall (mh srv ctx : val) (dec ui : GoFunc) : Expr :=
 
 /-- **The server's interceptor chain `ics` over the final handler `h`, with the resource `R`**
 (grpc's `chainUnaryServerInterceptors`, `getChainUnaryHandler`; as `chainWP` on the client; the
-resource parameter since 2026-11-23, #24's S2 signatures, `R` as `rafthttp.isTransporter tr Rd`'s):
+resource parameter since 2026-11-23, #24's S2 signatures):
 each call is given `R` and gives it back with its result (`R -∗ WP … {{ v, R ∗ Ψ v }}`). With no
 interceptor, the call is `h`'s; otherwise the first interceptor is called with a handler `h'` of
 grpc's making, whose calls are the rest of the chain's (with the same `info` and `R`). `Ψ` is the
@@ -1890,7 +1890,8 @@ credentials are called only from there, by `http2Client.createHeaderFields` → 
 (`csAttempt.newStream`, `stream.go:495-508`), again for each transparent retry, which
 `clientStream.withRetry` (`stream.go:930`) makes synchronously inside the same call; the program's
 clients make no calls of their own on the connection (D7). So the credentials run only while the
-caller holds `R`, one call at a time. -/
+caller holds `R`, one call at a time. The model of this transport that the network part runs is
+`models/grpc/model_transport.go:242,277-345` (`createHeaderFields`'s credential calls). -/
 def grpcInvokerOk (conn : Loc) (addrs : List GoString) (Ok : IProp GF → Prop) (inv : GoFunc) :
     IProp GF :=
   iprop(□ ∀ (method : GoString) (Req Rep : ProtoMsgT GF)
@@ -1940,7 +1941,8 @@ need a secure transport on an insecure one; C1's review, F4). Since 2026-11-23 (
 signatures) `GetRequestMetadata` is called with a resource `R` of the family `Ok` fixed at the dial,
 which it gives back (a reader slot of the credentials' lock, for etcd's): grpc calls it only from a
 call on the connection, on that call's goroutine, while the call's caller holds such an `R`
-(`grpcInvokerOk`, `cliStreamIs`); `RequireTransportSecurity` is called at the dial, without one. -/
+(`grpcInvokerOk`, `cliStreamIs`); `RequireTransportSecurity` takes none (grpc-go v1.84 calls it at the
+dial and at every transport creation, `http2_client.go:300`; its triple is `{{ True }}`). -/
 def perRPCCredsOk (pc : GoInterface) (Ok : IProp GF → Prop) (Q : GrpcMd → IProp GF) : IProp GF :=
   iprop((□ ∀ (ctx : GoInterface) (sl : GoSlice) (R : IProp GF),
     {{ ⌜Ok R⌝ ∗ R }}
