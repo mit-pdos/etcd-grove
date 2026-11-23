@@ -909,6 +909,226 @@ theorem wp_set (sl : GoSlice) (evs : List Entry) (es : List EntV) (eve : Entry) 
       iframe Hq
       iexact Hset
 
+/-! ### `step` -/
+
+/-- The `Out` of an answer (`ansV`'s, unboxed). -/
+def ansOut : linkv.Ans KOut → Out
+  | .ok o => outVal o.1
+  | .err => Out.mk true false false []
+
+theorem ansV_ansOut (a : linkv.Ans KOut) : ansV a = interface.mkOk Out.ty #(ansOut a) := by
+  cases a <;> rfl
+
+theorem outVal_unknown (o : KOut) : (outVal o.1).Unknown' = false := by
+  rcases o with ⟨o, _⟩
+  cases o with
+  | done => rfl
+  | got w => cases w <;> rfl
+
+theorem outVal_put (o : KOut) : (outVal o.1).Put' = decide (o.1 = .done) := by
+  rcases o with ⟨o, _⟩
+  cases o with
+  | done => rfl
+  | got w => cases w <;> rfl
+
+theorem findE_k (es : List EntV) (k : GoString) : (findE es k).k = k := by
+  unfold findE
+  rcases h : es.find? (fun e => decide (e.k = k)) with _ | e
+  · rw [h]; rfl
+  · have := List.find?_some h
+    rw [h]; simpa using this
+
+theorem pSeq_ne {S T : linkv.PSet KSt KIn} {i : KIn} {a : linkv.Ans KOut}
+    (h : (linkv.pSeq kvB).step S (i, a) = some T) : ∃ c, T c := by
+  simp only [linkv.pSeq] at h
+  split at h
+  · rename_i hc; cases h; exact hc
+  · cases h
+
+theorem wp_step (sl : GoSlice) (evs : List Entry) (es : List EntV) (n : Nat) (hn : n < 2 ^ 60)
+    (hEB : EB n es) (i : KIn) (a : linkv.Ans KOut) :
+    {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ evs ∗ entsRep evs es }}
+      (App (App (App (Val (@! rabia.examples.rabianet.step)) (Val #(State.mk sl)))
+        (Val #(inVal i.1))) (Val #(ansOut a)))
+    {{ (ok : Bool) (s' : State), RET (PairV #ok #s'); ∃ (sl' : GoSlice) (evs' : List Entry),
+        ⌜ok = (stepG es i a).1 ∧ s' = State.mk sl'⌝ ∗ sl' ↦*□ evs' ∗
+        entsRep evs' (stepG es i a).2 }} := by
+  wp_start as ⟨#Hsl, #Hs⟩
+  ihave %Hel := ents_len $$ Hs
+  have hlen : evs.length < 2 ^ 60 := by have := hEB.1; omega
+  have hk := EB_findE hEB
+  rcases hi : i.1 with k | ⟨k, v⟩
+  · cases a with
+    | err =>
+      simp only [inVal, ansOut]
+      wp_auto
+      wp_apply wp_find sl evs es k $$ [$Hsl $Hs] as %ev #Hev
+      iapply HΦ
+      iexists sl, evs
+      simp only [stepG, hi]
+      iframe Hsl Hs
+      ipureintro; simp
+    | ok o =>
+      rcases o with ⟨o, ho⟩
+      cases o with
+      | done =>
+        simp only [inVal, ansOut, outVal]
+        wp_auto
+        wp_apply wp_find sl evs es k $$ [$Hsl $Hs] as %ev #Hev
+        iapply HΦ
+        iexists sl, evs
+        simp only [stepG, hi]
+        iframe Hsl Hs
+        ipureintro; simp
+      | got w =>
+        simp only [inVal, ansOut]
+        wp_auto
+        wp_apply wp_find sl evs es k $$ [$Hsl $Hs] as %ev #Hev
+        ihave #Hev' := Hev
+        iunfold entRep at Hev'
+        icases Hev' with ⟨%hev, #Hold, #Hpend⟩
+        cases w with
+        | none =>
+          simp only [outVal]
+          wp_auto
+          by_cases hc : ([] : GoString) = (findE es k).cur
+          · rw [hev.2, decide_eq_true hc]
+            wp_auto
+            iapply HΦ
+            iexists sl, evs
+            simp only [stepG, hi, Option.getD_none, hc, ↓reduceIte]
+            iframe Hsl Hs
+            ipureintro; simp
+          · rw [hev.2, decide_eq_false hc]
+            wp_auto
+            wp_apply +noauto wp_cat ev.Old' ev.Pend' (findE es k).old (findE es k).new
+              (by have := hk k; omega) $$ [$Hold $Hpend] as %q Hq
+            wp_auto
+            iapply HΦ
+            iexists sl, evs
+            simp only [stepG, hi, Option.getD_none, hc, ↓reduceIte, ne_eq, not_true_eq_false,
+              false_and]
+            iframe Hsl Hs
+            ipureintro; simp
+        | some x =>
+          simp only [outVal]
+          have hx : x ≠ [] := ho.1
+          wp_auto
+          by_cases hc : x = (findE es k).cur
+          · rw [hev.2, decide_eq_true hc]
+            wp_auto
+            iapply HΦ
+            iexists sl, evs
+            simp only [stepG, hi, Option.getD_some, hc, ↓reduceIte]
+            iframe Hsl Hs
+            ipureintro; simp
+          · rw [hev.2, decide_eq_false hc]
+            wp_auto
+            wp_apply +noauto wp_cat ev.Old' ev.Pend' (findE es k).old (findE es k).new
+              (by have := hk k; omega) $$ [$Hold $Hpend] as %q Hq
+            iapply fupd_wp
+            imod ownSlice_persist _ _ _ $$ Hq with #Hq
+            imodintro
+            wp_auto
+            rw [decide_eq_false hx]
+            wp_auto
+            wp_apply wp_has q ((findE es k).old ++ (findE es k).new) x $$ [$Hq]
+            by_cases hm : x ∈ (findE es k).old ++ (findE es k).new
+            · rw [decide_eq_true hm]
+              wp_auto
+              wp_apply +noauto wp_erase q ((findE es k).old ++ (findE es k).new) x $$ [$Hq]
+                as %q2 Hq2
+              iapply fupd_wp
+              imod ownSlice_persist _ _ _ $$ Hq2 with #Hq2
+              imodintro
+              wp_auto
+              wp_apply +noauto wp_set sl evs es (Entry.mk k x q2 slice.nil)
+                ⟨k, x, ((findE es k).old ++ (findE es k).new).erase x, []⟩ hlen $$ [$Hsl $Hs]
+                as %sl' ⟨Hsl', #Hs'⟩
+              · unfold entRep
+                iframe Hq2
+                isplitr
+                · ipureintro; exact ⟨rfl, rfl⟩
+                iapply ownSlice_nil
+              iapply fupd_wp
+              imod ownSlice_persist _ _ _ $$ Hsl' with #Hsl'
+              imodintro
+              wp_auto
+              iapply HΦ
+              iexists sl', _
+              simp only [stepG, hi, Option.getD_some, hc, ↓reduceIte, ne_eq, hx, not_false_eq_true,
+                hm, and_self]
+              iframe Hsl' Hs'
+            · rw [decide_eq_false hm]
+              wp_auto
+              iapply HΦ
+              iexists sl, evs
+              simp only [stepG, hi, Option.getD_some, hc, ↓reduceIte, ne_eq, hx, not_false_eq_true,
+                hm, _root_.and_false]
+              iframe Hsl Hs
+              ipureintro; simp
+  · cases a with
+    | err =>
+      simp only [inVal, ansOut]
+      wp_auto
+      wp_apply wp_find sl evs es k $$ [$Hsl $Hs] as %ev #Hev
+      ihave #Hev' := Hev
+      iunfold entRep at Hev'
+      icases Hev' with ⟨%hev, #Hold, #Hpend⟩
+      wp_apply +noauto wp_push ev.Pend' (findE es k).new v (by have := hk k; omega) $$ [$Hpend]
+        as %q Hq
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hq with #Hq
+      imodintro
+      wp_auto
+      wp_apply +noauto wp_set sl evs es (Entry.mk k ev.Cur' ev.Old' q)
+        ⟨k, (findE es k).cur, (findE es k).old, (findE es k).new ++ [v]⟩ hlen $$ [$Hsl $Hs]
+        as %sl' ⟨Hsl', #Hs'⟩
+      · unfold entRep
+        iframe Hold Hq
+        ipureintro; exact ⟨rfl, hev.2⟩
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hsl' with #Hsl'
+      imodintro
+      wp_auto
+      iapply HΦ
+      iexists sl', _
+      simp only [stepG, hi]
+      iframe Hsl' Hs'
+      ipureintro; simp
+    | ok o =>
+      simp only [inVal, ansOut]
+      wp_auto
+      wp_apply wp_find sl evs es k $$ [$Hsl $Hs] as %ev #Hev
+      ihave #Hev' := Hev
+      iunfold entRep at Hev'
+      icases Hev' with ⟨%hev, #Hold, #Hpend⟩
+      rw [outVal_unknown o]
+      wp_auto
+      wp_apply +noauto wp_cat ev.Old' ev.Pend' (findE es k).old (findE es k).new
+        (by have := hk k; omega) $$ [$Hold $Hpend] as %q Hq
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hq with #Hq
+      imodintro
+      wp_auto
+      wp_apply +noauto wp_set sl evs es (Entry.mk k v q slice.nil)
+        ⟨k, v, (findE es k).old ++ (findE es k).new, []⟩ hlen $$ [$Hsl $Hs]
+        as %sl' ⟨Hsl', #Hs'⟩
+      · unfold entRep
+        iframe Hq
+        isplitr
+        · ipureintro; exact ⟨rfl, rfl⟩
+        iapply ownSlice_nil
+      iapply fupd_wp
+      imod ownSlice_persist _ _ _ $$ Hsl' with #Hsl'
+      imodintro
+      wp_auto
+      iapply HΦ
+      iexists sl', _
+      simp only [stepG, hi, outVal_put o]
+      iframe Hsl' Hs'
+      ipureintro; simp
+
 end proof
 
 end rabia.examples.rabianet
