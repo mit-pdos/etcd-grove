@@ -115,44 +115,44 @@ abbrev Tree.replaceNode.spec : Prop :=
 /-- `tree.rotateLeft(n)` at the subtree `node n A (node r B E)` in the context `C`. -/
 abbrev Tree.rotateLeft.spec : Prop :=
   ∀ (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (C : Ctx GoInterface) (h : Loc → Node)
-    (D : List Loc) (n : Loc) (k : w64) (v : GoInterface) (c : Bool) (A : RB GoInterface)
+    (D : List Loc) (n : Loc) (k : w64) (v : GoInterface) (A : RB GoInterface)
     (r : Loc) (k' : w64) (v' : GoInterface) (c' : Bool) (B E : RB GoInterface),
-  {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v c A (.node r k' v' c' B E))) h D }}
+  {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v A (.node r k' v' B E))) h D }}
     (App (Val (tr @!! go.GoType.PointerType Tree.ty @!! go!"rotateLeft")) (Val #n))
-  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node r k' v' c' (.node n k v c A B) E)) h' D }}
+  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node r k' v' (.node n k v A B) E)) h' D }}
 
 /-- `tree.rotateRight(n)` at the subtree `node n (node l A B) E` in the context `C`. -/
 abbrev Tree.rotateRight.spec : Prop :=
   ∀ (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (C : Ctx GoInterface) (h : Loc → Node)
-    (D : List Loc) (n : Loc) (k : w64) (v : GoInterface) (c : Bool) (l : Loc) (k' : w64)
+    (D : List Loc) (n : Loc) (k : w64) (v : GoInterface) (l : Loc) (k' : w64)
     (v' : GoInterface) (c' : Bool) (A B E : RB GoInterface),
-  {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v c (.node l k' v' c' A B) E)) h D }}
+  {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v (.node l k' v' A B) E)) h D }}
     (App (Val (tr @!! go.GoType.PointerType Tree.ty @!! go!"rotateRight")) (Val #n))
-  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node l k' v' c' A (.node n k v c B E))) h' D }}
+  {{ RET #(); ∃ h', treeRaw tr enc cmp (Ctx.plug C (.node l k' v' A (.node n k v B E))) h' D }}
 
 /-- The fix-up's result: the same entries, the root black. -/
 def fixPost (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface)
     (D : List Loc) : IProp GF :=
   iprop(∃ (T' : RB GoInterface) (h' : Loc → Node), treeRaw tr enc cmp T' h' D ∗
-    ⌜T'.entries = T.entries ∧ T'.color = true⌝)
+    ⌜T'.entries = T.entries ∧ rootBlack h' T'⌝)
 
 /-- `tree.insertCase1(n)`, `n` a node of `T` (in the context `C`): the root is black unless it
 is `n`. -/
 abbrev Tree.insertCase1.spec : Prop :=
   ∀ (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (C : Ctx GoInterface)
-    (h : Loc → Node) (D : List Loc) (n : Loc) (k : w64) (v : GoInterface) (c : Bool)
+    (h : Loc → Node) (D : List Loc) (n : Loc) (k : w64) (v : GoInterface)
     (L R : RB GoInterface),
-  {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v c L R)) h D ∗
-      ⌜(Ctx.plug C (.node n k v c L R)).color = true ∨ C = []⌝ }}
+  {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug C (.node n k v L R)) h D ∗
+      ⌜rootBlack h (Ctx.plug C (.node n k v L R)) ∨ C = []⌝ }}
     (App (Val (tr @!! go.GoType.PointerType Tree.ty @!! go!"insertCase1")) (Val #n))
-  {{ RET #(); fixPost tr enc cmp (Ctx.plug C (.node n k v c L R)) D }}
+  {{ RET #(); fixPost tr enc cmp (Ctx.plug C (.node n k v L R)) D }}
 
 /-- `tree.insertCase4(n)`, `n` with a parent and a grandparent, the root black. -/
 abbrev Tree.insertCase4.spec : Prop :=
   ∀ (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (f1 f2 : Frame GoInterface)
     (C : Ctx GoInterface) (h : Loc → Node) (D : List Loc) (S : RB GoInterface),
   {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug (f1 :: f2 :: C) S) h D ∗
-      ⌜S ≠ .leaf ∧ (Ctx.plug (f1 :: f2 :: C) S).color = true⌝ }}
+      ⌜S ≠ .leaf ∧ rootBlack h (Ctx.plug (f1 :: f2 :: C) S)⌝ }}
     (App (Val (tr @!! go.GoType.PointerType Tree.ty @!! go!"insertCase4")) (Val #S.loc))
   {{ RET #(); fixPost tr enc cmp (Ctx.plug (f1 :: f2 :: C) S) D }}
 
@@ -167,7 +167,7 @@ abbrev Tree.insertCase5.spec : Prop :=
   ∀ (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (f1 f2 : Frame GoInterface)
     (C : Ctx GoInterface) (h : Loc → Node) (D : List Loc) (S : RB GoInterface),
   {{ treeRaw (GF := GF) tr enc cmp (Ctx.plug (f1 :: f2 :: C) S) h D ∗
-      ⌜S ≠ .leaf ∧ sameSide f1 f2 ∧ (Ctx.plug (f1 :: f2 :: C) S).color = true⌝ }}
+      ⌜S ≠ .leaf ∧ sameSide f1 f2 ∧ rootBlack h (Ctx.plug (f1 :: f2 :: C) S)⌝ }}
     (App (Val (tr @!! go.GoType.PointerType Tree.ty @!! go!"insertCase5")) (Val #S.loc))
   {{ RET #(); fixPost tr enc cmp (Ctx.plug (f1 :: f2 :: C) S) D }}
 

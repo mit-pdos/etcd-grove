@@ -47,17 +47,20 @@ theorem upd_ne (h : Loc → Node) (l l' : Loc) (x : Node) (hne : l' ≠ l) : upd
 abbrev nodeOf (enc : w64 → GoInterface) (k : w64) (v : GoInterface) (c : Bool) (l r p : Loc) : Node :=
   Node.mk (enc k) v c l r p
 
-/-- Every node of the tree is at its address, with its key, value, color, children and parent
-(`p` the root's). -/
+/-- The root is black (or there is none). -/
+def rootBlack (h : Loc → Node) (T : RB GoInterface) : Prop := T.loc = null ∨ (h T.loc).color' = true
+
+/-- Every node of the tree is at its address, with its key, value, children and parent (`p` the
+root's); its color is the heap's. -/
 def Rep (enc : w64 → GoInterface) (h : Loc → Node) : RB GoInterface → Loc → Prop
   | .leaf, _ => True
-  | .node n k v c l r, p =>
-    n ≠ null ∧ h n = nodeOf enc k v c l.loc r.loc p ∧ Rep enc h l n ∧ Rep enc h r n
+  | .node n k v l r, p =>
+    n ≠ null ∧ h n = nodeOf enc k v (h n).color' l.loc r.loc p ∧ Rep enc h l n ∧ Rep enc h r n
 
 /-- A frame's node, with `hole` the address in its hole and `p` its parent. -/
 def RepF (enc : w64 → GoInterface) (h : Loc → Node) : Frame GoInterface → Loc → Loc → Prop
-  | .L n k v c r, hole, p => n ≠ null ∧ h n = nodeOf enc k v c hole r.loc p ∧ Rep enc h r n
-  | .R n k v c l, hole, p => n ≠ null ∧ h n = nodeOf enc k v c l.loc hole p ∧ Rep enc h l n
+  | .L n k v r, hole, p => n ≠ null ∧ h n = nodeOf enc k v (h n).color' hole r.loc p ∧ Rep enc h r n
+  | .R n k v l, hole, p => n ≠ null ∧ h n = nodeOf enc k v (h n).color' l.loc hole p ∧ Rep enc h l n
 
 /-- A context's nodes, `hole` the address in its hole and `p` the root's parent. -/
 def RepC (enc : w64 → GoInterface) (h : Loc → Node) : Ctx GoInterface → Loc → Loc → Prop
@@ -68,19 +71,19 @@ variable {enc : w64 → GoInterface} {h : Loc → Node}
 
 @[simp] theorem Rep_leaf (p : Loc) : Rep enc h .leaf p := trivial
 
-theorem Rep_node (n k v c) (l r : RB GoInterface) (p : Loc) :
-    Rep enc h (.node n k v c l r) p ↔
-      n ≠ null ∧ h n = nodeOf enc k v c l.loc r.loc p ∧ Rep enc h l n ∧ Rep enc h r n := Iff.rfl
+theorem Rep_node (n k v) (l r : RB GoInterface) (p : Loc) :
+    Rep enc h (.node n k v l r) p ↔
+      n ≠ null ∧ h n = nodeOf enc k v (h n).color' l.loc r.loc p ∧ Rep enc h l n ∧ Rep enc h r n := Iff.rfl
 
 theorem Rep_fill (f : Frame GoInterface) (t : RB GoInterface) (p : Loc) :
     Rep enc h (f.fill t) p ↔ RepF enc h f t.loc p ∧ Rep enc h t f.loc := by
   cases f with
-  | L n k v c r =>
+  | L n k v r =>
     simp only [Frame.fill, Rep, RepF, Frame.loc]
     constructor
     · rintro ⟨h1, h2, h3, h4⟩; exact ⟨⟨h1, h2, h4⟩, h3⟩
     · rintro ⟨⟨h1, h2, h4⟩, h3⟩; exact ⟨h1, h2, h3, h4⟩
-  | R n k v c l =>
+  | R n k v l =>
     simp only [Frame.fill, Rep, RepF, Frame.loc]
     constructor
     · rintro ⟨h1, h2, h3, h4⟩; exact ⟨⟨h1, h2, h3⟩, h4⟩
@@ -102,7 +105,7 @@ theorem Rep_congr (h' : Loc → Node) (t : RB GoInterface) (p : Loc)
     (hag : ∀ l ∈ t.locs, h' l = h l) (hr : Rep enc h t p) : Rep enc h' t p := by
   induction t generalizing p with
   | leaf => trivial
-  | node n k v c l r ihl ihr =>
+  | node n k v l r ihl ihr =>
     obtain ⟨h1, h2, h3, h4⟩ := hr
     refine ⟨h1, ?_, ihl _ (fun x hx => hag x (by simp [hx])) h3,
       ihr _ (fun x hx => hag x (by simp [hx])) h4⟩
@@ -111,11 +114,11 @@ theorem Rep_congr (h' : Loc → Node) (t : RB GoInterface) (p : Loc)
 theorem RepF_congr (h' : Loc → Node) (f : Frame GoInterface) (hole p : Loc)
     (hag : ∀ l ∈ f.locs, h' l = h l) (hr : RepF enc h f hole p) : RepF enc h' f hole p := by
   cases f with
-  | L n k v c r =>
+  | L n k v r =>
     obtain ⟨h1, h2, h3⟩ := hr
     refine ⟨h1, ?_, Rep_congr h' r n (fun x hx => hag x (by simp [Frame.locs, hx])) h3⟩
     rw [hag n (by simp [Frame.locs])]; exact h2
-  | R n k v c l =>
+  | R n k v l =>
     obtain ⟨h1, h2, h3⟩ := hr
     refine ⟨h1, ?_, Rep_congr h' l n (fun x hx => hag x (by simp [Frame.locs, hx])) h3⟩
     rw [hag n (by simp [Frame.locs])]; exact h2
@@ -141,7 +144,7 @@ theorem Rep_locs_ne_null (t : RB GoInterface) (p : Loc) (hr : Rep enc h t p) :
     ∀ l ∈ t.locs, l ≠ null := by
   induction t generalizing p with
   | leaf => simp
-  | node n k v c l r ihl ihr =>
+  | node n k v l r ihl ihr =>
     obtain ⟨h1, -, h3, h4⟩ := hr
     intro x hx
     simp only [RB.locs_node, List.mem_cons, List.mem_append] at hx
@@ -168,18 +171,18 @@ def replaceRes (rt : Loc) (h : Loc → Node) (old new : Loc) : Loc × (Loc → N
 /-- The leftmost node of `T` (`tree.Left()`): `nil` for an empty tree. -/
 def leftmost (T : RB GoInterface) (m : Loc) : Prop :=
   (T = .leaf ∧ m = null) ∨
-  ∃ (C : Ctx GoInterface) (k : w64) (v : GoInterface) (c : Bool) (R : RB GoInterface),
-    T = Ctx.plug C (.node m k v c .leaf R) ∧ Ctx.pre C = []
+  ∃ (C : Ctx GoInterface) (k : w64) (v : GoInterface) (R : RB GoInterface),
+    T = Ctx.plug C (.node m k v .leaf R) ∧ Ctx.pre C = []
 
 /-- `tree.lookup(enc k)`'s result `n`: `k`'s node, or `nil` if `k` is not in `T`. -/
 def lookupRes (T : RB GoInterface) (k : w64) (n : Loc) : Prop :=
   (n = null ∧ lookupE T.entries k = none) ∨
-  ∃ (C : Ctx GoInterface) (v : GoInterface) (c : Bool) (L R : RB GoInterface),
-    T = Ctx.plug C (.node n k v c L R) ∧ lookupE T.entries k = some v
+  ∃ (C : Ctx GoInterface) (v : GoInterface) (L R : RB GoInterface),
+    T = Ctx.plug C (.node n k v L R) ∧ lookupE T.entries k = some v
 
-theorem Rep_plug_node {C : Ctx GoInterface} {n : Loc} {k : w64} {v : GoInterface} {c : Bool}
-    {L R : RB GoInterface} {p : Loc} (hr : Rep enc h (Ctx.plug C (.node n k v c L R)) p) :
-    h n = nodeOf enc k v c L.loc R.loc (Ctx.parent C p) ∧ n ≠ null ∧
+theorem Rep_plug_node {C : Ctx GoInterface} {n : Loc} {k : w64} {v : GoInterface}
+    {L R : RB GoInterface} {p : Loc} (hr : Rep enc h (Ctx.plug C (.node n k v L R)) p) :
+    h n = nodeOf enc k v (h n).color' L.loc R.loc (Ctx.parent C p) ∧ n ≠ null ∧
       Rep enc h L n ∧ Rep enc h R n ∧ RepC enc h C n p := by
   rw [Rep_plug] at hr
   obtain ⟨hc, h1, h2, h3, h4⟩ := hr
@@ -193,8 +196,8 @@ theorem mem_plug_ctx {C : Ctx GoInterface} {t : RB GoInterface} {x : Loc} (hx : 
     x ∈ (Ctx.plug C t).locs :=
   (Ctx.plug_locs_perm C t).symm.subset (List.mem_append_right _ hx)
 
-theorem mem_plug_node {C : Ctx GoInterface} {n : Loc} {k : w64} {v : GoInterface} {c : Bool}
-    {L R : RB GoInterface} : n ∈ (Ctx.plug C (.node n k v c L R)).locs :=
+theorem mem_plug_node {C : Ctx GoInterface} {n : Loc} {k : w64} {v : GoInterface}
+    {L R : RB GoInterface} : n ∈ (Ctx.plug C (.node n k v L R)).locs :=
   mem_plug (by simp)
 
 /-- The addresses of a plugged tree: the subtree's and the context's are disjoint. -/
@@ -209,7 +212,7 @@ theorem Rep_loc_eq_null {t : RB GoInterface} {p : Loc} (hr : Rep enc h t p) :
     t.loc = null ↔ t = .leaf := by
   cases t with
   | leaf => simp
-  | node n k v c l r => simp only [RB.loc_node, reduceCtorEq, iff_false]; exact hr.1
+  | node n k v l r => simp only [RB.loc_node, reduceCtorEq, iff_false]; exact hr.1
 
 theorem RepC_parent_ne_null {C : Ctx GoInterface} {hole p : Loc} (hr : RepC enc h C hole p)
     (hC : C ≠ []) : Ctx.parent C p ≠ null := by
@@ -223,11 +226,11 @@ theorem RepC_parent_ne_null {C : Ctx GoInterface} {hole p : Loc} (hr : RepC enc 
     | R => exact hf.1
 
 theorem Ctx.pre_cons_nil {f : Frame GoInterface} {C : Ctx GoInterface} (hp : Ctx.pre (f :: C) = []) :
-    (∃ n k v c r, f = .L n k v c r) ∧ Ctx.pre C = [] := by
+    (∃ n k v r, f = .L n k v r) ∧ Ctx.pre C = [] := by
   simp only [Ctx.pre, List.append_eq_nil_iff] at hp
   cases f with
-  | L n k v c r => exact ⟨⟨n, k, v, c, r, rfl⟩, hp.1⟩
-  | R n k v c l => simp [Frame.pre] at hp
+  | L n k v r => exact ⟨⟨n, k, v, r, rfl⟩, hp.1⟩
+  | R n k v l => simp [Frame.pre] at hp
 
 end heapfn
 
@@ -394,7 +397,7 @@ def treeRaw (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInte
 def isTree (tr : Loc) (enc : w64 → GoInterface) (es : Entries) : IProp GF :=
   iprop(∃ (cmp : GoFunc) (T : RB GoInterface) (h : Loc → Node) (D : List Loc),
     treeRaw tr enc cmp T h D ∗ cmpOk cmp enc ∗
-    ⌜sortedE T.entries ∧ T.entries = es ∧ T.color = true⌝)
+    ⌜sortedE T.entries ∧ T.entries = es ∧ rootBlack h T⌝)
 
 /-- An iterator's position over `T`, with `rest` still to visit and `cur` its current entry:
 before the first (`begin`), past the last (`end`), or at a node (`between`). -/
@@ -402,8 +405,8 @@ def iterAt (T : RB GoInterface) (nd : Loc) (pos : w8) (rest : Entries)
     (cur : Option (w64 × GoInterface)) : Prop :=
   (pos = W8 0 ∧ cur = none ∧ rest = T.entries) ∨
   (pos = W8 2 ∧ cur = none ∧ rest = []) ∨
-  (pos = W8 1 ∧ ∃ (C : Ctx GoInterface) (k : w64) (v : GoInterface) (c : Bool)
-      (L R : RB GoInterface), T = Ctx.plug C (.node nd k v c L R) ∧ cur = some (k, v) ∧
+  (pos = W8 1 ∧ ∃ (C : Ctx GoInterface) (k : w64) (v : GoInterface)
+      (L R : RB GoInterface), T = Ctx.plug C (.node nd k v L R) ∧ cur = some (k, v) ∧
       rest = R.entries ++ Ctx.post C)
 
 /-- The iterator at `q` over a tree it owns. -/
@@ -432,7 +435,7 @@ theorem treeRaw_of (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB
 
 theorem isTree_of (tr : Loc) (enc : w64 → GoInterface) (cmp : GoFunc) (T : RB GoInterface)
     (h : Loc → Node) (D : List Loc) (es : Entries)
-    (hq : sortedE T.entries ∧ T.entries = es ∧ T.color = true) :
+    (hq : sortedE T.entries ∧ T.entries = es ∧ rootBlack h T) :
     treeRaw (GF := GF) tr enc cmp T h D ∗ cmpOk cmp enc ⊢ isTree tr enc es := by
   unfold isTree
   iintro ⟨Hraw, #Hcmp⟩

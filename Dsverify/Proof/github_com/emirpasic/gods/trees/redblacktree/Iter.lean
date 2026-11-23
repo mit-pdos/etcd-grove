@@ -43,7 +43,7 @@ theorem Iterator.Value.wp_proof : Iterator.Value.spec (GF := GF) := by
   wp_start as Hown
   unfold ownIterR
   icases Hown with ⟨%tr, %cmp, %T, %h, %D, %nd, %pos, Hq, Htr, %Hat⟩
-  rcases Hat with ⟨-, hc, -⟩ | ⟨-, hc, -⟩ | ⟨hpos, C, k', v', c, L, R, hT, hc, hrest⟩
+  rcases Hat with ⟨-, hc, -⟩ | ⟨-, hc, -⟩ | ⟨hpos, C, k', v', L, R, hT, hc, hrest⟩
   · cases hc
   · cases hc
   simp only [Option.some.injEq, Prod.mk.injEq] at hc
@@ -64,14 +64,14 @@ theorem Iterator.Value.wp_proof : Iterator.Value.spec (GF := GF) := by
   isplitl [Htr Hns]
   · iexists sz; iframe; ipureintro; exact ⟨hrep, hperm, hnd⟩
   ipureintro
-  exact Or.inr (Or.inr ⟨hpos, C, k, v, c, L, R, hT, rfl, hrest⟩)
+  exact Or.inr (Or.inr ⟨hpos, C, k, v, L, R, hT, rfl, hrest⟩)
 
 theorem Iterator.Key.wp_proof : Iterator.Key.spec (GF := GF) := by
   intro q enc rest k v
   wp_start as Hown
   unfold ownIterR
   icases Hown with ⟨%tr, %cmp, %T, %h, %D, %nd, %pos, Hq, Htr, %Hat⟩
-  rcases Hat with ⟨-, hc, -⟩ | ⟨-, hc, -⟩ | ⟨hpos, C, k', v', c, L, R, hT, hc, hrest⟩
+  rcases Hat with ⟨-, hc, -⟩ | ⟨-, hc, -⟩ | ⟨hpos, C, k', v', L, R, hT, hc, hrest⟩
   · cases hc
   · cases hc
   simp only [Option.some.injEq, Prod.mk.injEq] at hc
@@ -92,7 +92,7 @@ theorem Iterator.Key.wp_proof : Iterator.Key.spec (GF := GF) := by
   isplitl [Htr Hns]
   · iexists sz; iframe; ipureintro; exact ⟨hrep, hperm, hnd⟩
   ipureintro
-  exact Or.inr (Or.inr ⟨hpos, C, k, v, c, L, R, hT, rfl, hrest⟩)
+  exact Or.inr (Or.inr ⟨hpos, C, k, v, L, R, hT, rfl, hrest⟩)
 
 theorem Tree.Left.wp_proof : Tree.Left.spec (GF := GF) := by
   intro tr enc cmp T h D
@@ -113,7 +113,7 @@ theorem Tree.Left.wp_proof : Tree.Left.spec (GF := GF) := by
   · have hS : S.loc ≠ null := not_of_not_decide_val Hif
     cases S with
     | leaf => exact absurd rfl hS
-    | node n k v c L R =>
+    | node n k v L R =>
     obtain ⟨-, hh, -, -⟩ := hrepS
     have hmem : n ∈ D := hperm.symm.subset (hTCS ▸ mem_plug (by simp))
     ihave ⟨Hn, Hback⟩ := ownNodes_read' h D n _ hmem hh $$ Hns
@@ -122,7 +122,7 @@ theorem Tree.Left.wp_proof : Tree.Left.spec (GF := GF) := by
     ihave Hns := Hback $$ Hn
     wp_for_post
     iframe
-    iexists (.L n k v c R :: C), L
+    iexists (.L n k v R :: C), L
     iframe
     ipureintro
     exact ⟨hTCS, by simp [Ctx.pre, Frame.pre, hpre]⟩
@@ -138,9 +138,9 @@ theorem Tree.Left.wp_proof : Tree.Left.spec (GF := GF) := by
     cases C with
     | nil => left; exact ⟨hTCS, rfl⟩
     | cons f C =>
-      obtain ⟨⟨n, k, v, c, r, rfl⟩, hpre'⟩ := Ctx.pre_cons_nil hpre
+      obtain ⟨⟨n, k, v, r, rfl⟩, hpre'⟩ := Ctx.pre_cons_nil hpre
       right
-      exact ⟨C, k, v, c, r, hTCS, hpre'⟩
+      exact ⟨C, k, v, r, hTCS, hpre'⟩
 
 theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
     Iterator.Next.spec (GF := GF) := by
@@ -177,7 +177,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
       by_cases hm : m = null
       · simp only [hm, _root_.decide_true, Bool.not_true]
         wp_auto
-        rcases Hm with ⟨hT0, -⟩ | ⟨C, k, v, c, R, hT, hpre⟩
+        rcases Hm with ⟨hT0, -⟩ | ⟨C, k, v, R, hT, hpre⟩
         · subst hT0
           dsimp only [«end»]
           wp_auto
@@ -191,7 +191,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           rw [hT] at hrep
           exact (Rep_plug_node hrep).2.1 hm
       · simp only [hm, _root_.decide_false, Bool.not_false]
-        rcases Hm with ⟨-, hm0⟩ | ⟨C, k, v, c, R, hT, hpre⟩
+        rcases Hm with ⟨-, hm0⟩ | ⟨C, k, v, R, hT, hpre⟩
         · exact absurd hm0 hm
         dsimp only [between]
         wp_auto
@@ -202,9 +202,9 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
         isplitr; · ipureintro; simp
         iexists tr, cmp, T, h, D, m, W8 1
         iframe
-        ipureintro; right; right; exact ⟨rfl, C, k, v, c, .leaf, R, hT, rfl, rfl⟩
+        ipureintro; right; right; exact ⟨rfl, C, k, v, .leaf, R, hT, rfl, rfl⟩
     · -- at a node
-      rcases Hat with ⟨h0, -⟩ | ⟨h2, -⟩ | ⟨hpos, C, k, v, c, L, R, hT, hc, hr⟩
+      rcases Hat with ⟨h0, -⟩ | ⟨h2, -⟩ | ⟨hpos, C, k, v, L, R, hT, hc, hr⟩
       · exact absurd h0 Hif
       · exact absurd h2 ‹¬pos = W8 2›
       subst hc hr hpos
@@ -224,16 +224,16 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
         ihave HI : (∃ (C' : Ctx GoInterface) (S : RB GoInterface),
             "Hq" ∷ q ↦ Iterator.mk tr S.loc (W8 1) ∗
             "%Hinv" ∷ ⌜T = Ctx.plug C' S ∧ S ≠ .leaf ∧ Ctx.post C' = Ctx.post C⌝ : IProp GF) $$ [Hq]
-        · iexists C, (RB.node nd k v c L .leaf)
+        · iexists C, (RB.node nd k v L .leaf)
           iframe
           ipureintro; exact ⟨hT, by simp, rfl⟩
         wp_for HI
         obtain ⟨hTS, hSn, hpost⟩ := Hinv
         cases S with
         | leaf => exact absurd rfl hSn
-        | node s ks vs cs SL SR =>
+        | node s ks vs SL SR =>
         simp only [RB.loc_node]
-        have hrepS : Rep enc h (Ctx.plug C' (.node s ks vs cs SL SR)) null := hTS ▸ hrep
+        have hrepS : Rep enc h (Ctx.plug C' (.node s ks vs SL SR)) null := hTS ▸ hrep
         obtain ⟨hhs, hsn, -, -, hrepC'⟩ := Rep_plug_node hrepS
         have hmems : s ∈ D := hperm.symm.subset (hTS ▸ mem_plug_node)
         ihave ⟨Hs, Hback⟩ := ownNodes_read' h D s _ hmems hhs $$ Hns
@@ -253,7 +253,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           have hmemf : f.loc ∈ D := hperm.symm.subset (hTS ▸ mem_plug_ctx (C := f :: C'')
             (by cases f <;> simp [Ctx.locs, Frame.locs, Frame.loc]))
           cases f with
-          | L fn fk fv fc fr =>
+          | L fn fk fv fr =>
             obtain ⟨-, hhf, -⟩ := hf
             simp only [Frame.loc] at hmemf ⊢
             ihave ⟨Hf, Hback⟩ := ownNodes_read' h D fn _ hmemf hhf $$ Hns
@@ -271,15 +271,15 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
             ipureintro
             refine ⟨⟨hrep, hperm, hnd⟩, ?_⟩
             right; right
-            exact ⟨rfl, C'', fk, fv, fc, .node s ks vs cs SL SR, fr, hTS, rfl, rfl⟩
-          | R fn fk fv fc fl =>
+            exact ⟨rfl, C'', fk, fv, .node s ks vs SL SR, fr, hTS, rfl, rfl⟩
+          | R fn fk fv fl =>
             obtain ⟨-, hhf, -⟩ := hf
             simp only [Frame.loc] at hmemf ⊢
             ihave ⟨Hf, Hback⟩ := ownNodes_read' h D fn _ hmemf hhf $$ Hns
             wp_auto
             ihave Hns := Hback $$ Hf
             have hne : s ≠ fl.loc := by
-              have hndT : (Ctx.plug (Frame.R fn fk fv fc fl :: C'') (.node s ks vs cs SL SR)).locs.Nodup :=
+              have hndT : (Ctx.plug (Frame.R fn fk fv fl :: C'') (.node s ks vs SL SR)).locs.Nodup :=
                 hperm.nodup_iff.mp hnd |> (hTS ▸ ·)
               obtain ⟨-, -, hdis⟩ := nodup_plug hndT
               have hsn' := hdis s (by simp)
@@ -291,7 +291,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
             wp_auto
             wp_for_post
             iframe
-            iexists C'', (RB.node fn fk fv fc fl (.node s ks vs cs SL SR))
+            iexists C'', (RB.node fn fk fv fl (.node s ks vs SL SR))
             iframe
             ipureintro
             exact ⟨hTS, by simp, by rw [← hpost]; simp [Ctx.post, Frame.post]⟩
@@ -317,13 +317,13 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
       · -- a right subtree: its leftmost node
         cases R with
         | leaf => exact absurd rfl Hif
-        | node r kr vr cr RL RR =>
+        | node r kr vr RL RR =>
         ihave Hns := Hback $$ Hn
         ihave HI : (∃ (C' : Ctx GoInterface) (S : RB GoInterface),
             "Hq" ∷ q ↦ Iterator.mk tr S.loc (W8 1) ∗
             "%Hinv" ∷ ⌜T = Ctx.plug C' S ∧ S ≠ .leaf ∧
-              S.entries ++ Ctx.post C' = (RB.node r kr vr cr RL RR).entries ++ Ctx.post C⌝ : IProp GF) $$ [Hq]
-        · iexists (.R nd k v c L :: C), (RB.node r kr vr cr RL RR)
+              S.entries ++ Ctx.post C' = (RB.node r kr vr RL RR).entries ++ Ctx.post C⌝ : IProp GF) $$ [Hq]
+        · iexists (.R nd k v L :: C), (RB.node r kr vr RL RR)
           simp only [RB.loc_node]
           iframe
           ipureintro; exact ⟨hT, by simp, by simp [Ctx.post, Frame.post]⟩
@@ -331,9 +331,9 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
         obtain ⟨hTS, hSn, hent⟩ := Hinv
         cases S with
         | leaf => exact absurd rfl hSn
-        | node s ks vs cs SL SR =>
+        | node s ks vs SL SR =>
         simp only [RB.loc_node]
-        have hrepS : Rep enc h (Ctx.plug C' (.node s ks vs cs SL SR)) null := hTS ▸ hrep
+        have hrepS : Rep enc h (Ctx.plug C' (.node s ks vs SL SR)) null := hTS ▸ hrep
         obtain ⟨hhs, hsn, hrepSL, -, -⟩ := Rep_plug_node hrepS
         have hmems : s ∈ D := hperm.symm.subset (hTS ▸ mem_plug_node)
         ihave ⟨Hs, Hback⟩ := ownNodes_read' h D s _ hmems hhs $$ Hns
@@ -344,7 +344,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           ihave Hns := Hback $$ Hs
           wp_for_post
           iframe
-          iexists (.L s ks vs cs SR :: C'), SL
+          iexists (.L s ks vs SR :: C'), SL
           iframe
           ipureintro
           refine ⟨hTS, ?_, ?_⟩
@@ -367,7 +367,7 @@ theorem Iterator.Next.wp_proof (wp_Left : Tree.Left.spec (GF := GF)) :
           ipureintro
           refine ⟨⟨hrep, hperm, hnd⟩, ?_⟩
           right; right
-          exact ⟨rfl, C', ks, vs, cs, .leaf, SR, hTS, rfl, rfl⟩
+          exact ⟨rfl, C', ks, vs, .leaf, SR, hTS, rfl, rfl⟩
 
 end proof
 

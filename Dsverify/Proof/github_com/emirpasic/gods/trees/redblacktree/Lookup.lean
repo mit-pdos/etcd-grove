@@ -42,7 +42,7 @@ theorem Tree.lookup.wp_proof : Tree.lookup.spec (GF := GF) := by
   · have hS : S.loc ≠ null := not_of_not_decide_val Hif
     cases S with
     | leaf => exact absurd rfl hS
-    | node n k' v' c L R =>
+    | node n k' v' L R =>
     simp only [RB.loc_node]
     obtain ⟨-, hh, -, -⟩ := hrepS
     have hmem : n ∈ D := hperm.symm.subset (hTCS ▸ mem_plug (by simp))
@@ -62,7 +62,7 @@ theorem Tree.lookup.wp_proof : Tree.lookup.spec (GF := GF) := by
       · iexists sz; iframe; ipureintro; exact ⟨hrep, hperm, hnd⟩
       ipureintro
       right
-      refine ⟨C, v', c, L, R, hTCS, ?_⟩
+      refine ⟨C, v', L, R, hTCS, ?_⟩
       rw [hTCS, lookupE_plug C _ k hb]
       exact lookupE_node_self hsN.1
     · have hne0 := Hif
@@ -73,7 +73,7 @@ theorem Tree.lookup.wp_proof : Tree.lookup.spec (GF := GF) := by
         ihave Hns := Hback $$ Hn
         wp_for_post
         iframe
-        iexists (.L n k' v' c R :: C), L
+        iexists (.L n k' v' R :: C), L
         iframe
         ipureintro
         exact ⟨hTCS, Bounds_left (hTCS ▸ Hs) hb hlt⟩
@@ -90,7 +90,7 @@ theorem Tree.lookup.wp_proof : Tree.lookup.spec (GF := GF) := by
           ihave Hns := Hback $$ Hn
           wp_for_post
           iframe
-          iexists (.R n k' v' c L :: C), R
+          iexists (.R n k' v' L :: C), R
           iframe
           ipureintro
           exact ⟨hTCS, Bounds_right (hTCS ▸ Hs) hb hgt⟩
@@ -139,7 +139,7 @@ theorem Tree.Get.wp_proof (wp_lookup : Tree.lookup.spec (GF := GF)) :
   by_cases hn : n = null
   · simp only [hn, _root_.decide_true, Bool.not_true]
     wp_auto
-    rcases Hn with ⟨-, hnone⟩ | ⟨C, v, c, L, R, hT, -⟩
+    rcases Hn with ⟨-, hnone⟩ | ⟨C, v, L, R, hT, -⟩
     · rw [hnone]
       simp only [Option.getD_none, Option.isSome_none]
       iapply HΦ
@@ -151,7 +151,7 @@ theorem Tree.Get.wp_proof (wp_lookup : Tree.lookup.spec (GF := GF)) :
       rw [hT] at hrep
       exact (Rep_plug_node hrep).2.1 hn
   · simp only [hn, _root_.decide_false, Bool.not_false]
-    rcases Hn with ⟨hn0, -⟩ | ⟨C, v, c, L, R, hT, hsome⟩
+    rcases Hn with ⟨hn0, -⟩ | ⟨C, v, L, R, hT, hsome⟩
     · exact absurd hn0 hn
     iunfold treeRaw at Hraw
     icases Hraw with ⟨%sz, Htrp, Hns, -⟩

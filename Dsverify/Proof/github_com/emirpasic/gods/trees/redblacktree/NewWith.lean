@@ -26,7 +26,7 @@ theorem NewWith.wp_proof : NewWith.spec (GF := GF) := by
   wp_start as #Hcmp
   wp_auto
   iapply HΦ
-  iapply (isTree_of _ enc cmp .leaf (fun _ => zero_val Node) [] [] ⟨List.Pairwise.nil, rfl, rfl⟩)
+  iapply (isTree_of _ enc cmp .leaf (fun _ => zero_val Node) [] [] ⟨List.Pairwise.nil, rfl, Or.inl rfl⟩)
   isplitl [«$r0»]
   · iapply (treeRaw_of _ enc cmp .leaf (fun _ => zero_val Node) [] (W64 0) ⟨trivial, .nil, .nil⟩)
     iframe

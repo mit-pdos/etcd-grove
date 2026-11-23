@@ -1,14 +1,14 @@
 /-
 The pure model of gods' red-black tree (`trees/redblacktree`, v1.18.1 through its model
 `models/gods`, notes/gods-verified.md): a binary tree whose nodes carry the node's address, its key
-(an `int64` the comparator compares, behind the encoding of the map's keys), its value and its
-color (Go's `color`: `true` black, `false` red), and contexts (the path from the root to a subtree,
+(an `int64` the comparator compares, behind the encoding of the map's keys) and its value, and
+contexts (the path from the root to a subtree,
 innermost frame first), in which the code's walks (down from the root, up through the parent
 pointers) and rotations are stated.
 
-Only what the treemap specs need is modelled: the entries in order and the shape. The red-black
-balance is not (no proof needs it); the one color fact the code's safety needs is that the root is
-black (`Defs.lean`).
+Only what the treemap specs need is modelled: the entries in order and the shape. The colors are
+not (they are the heap's, `Defs.lean`): no proof needs the red-black balance; the one color fact
+the code's safety needs is that the root is black (`rootBlack`).
 -/
 module
 
@@ -24,10 +24,10 @@ open github_com.emirpasic.gods.maps.treemap (sortedE lookupE putE idxOf)
 
 universe u
 
-/-- A tree: a leaf, or a node with its address, key, value, color and subtrees. -/
+/-- A tree: a leaf, or a node with its address, key, value and subtrees. -/
 inductive RB (α : Type u) where
   | leaf
-  | node (n : Loc) (k : w64) (v : α) (c : Bool) (l r : RB α)
+  | node (n : Loc) (k : w64) (v : α) (l r : RB α)
 
 namespace RB
 variable {α : Type u}
@@ -35,33 +35,26 @@ variable {α : Type u}
 /-- The address of the root (`nil` for a leaf). -/
 def loc : RB α → Loc
   | leaf => null
-  | node n _ _ _ _ _ => n
-
-/-- The root's color (a leaf is black, as gods' `nodeColor(nil)`). -/
-def color : RB α → Bool
-  | leaf => true
-  | node _ _ _ c _ _ => c
+  | node n _ _ _ _ => n
 
 /-- The entries in order. -/
 def entries : RB α → List (w64 × α)
   | leaf => []
-  | node _ k v _ l r => l.entries ++ (k, v) :: r.entries
+  | node _ k v l r => l.entries ++ (k, v) :: r.entries
 
 /-- The nodes' addresses. -/
 def locs : RB α → List Loc
   | leaf => []
-  | node n _ _ _ l r => n :: (l.locs ++ r.locs)
+  | node n _ _ l r => n :: (l.locs ++ r.locs)
 
 @[simp] theorem loc_leaf : (leaf : RB α).loc = null := rfl
-@[simp] theorem loc_node (n k v c) (l r : RB α) : (node n k v c l r).loc = n := rfl
-@[simp] theorem color_leaf : (leaf : RB α).color = true := rfl
-@[simp] theorem color_node (n k v c) (l r : RB α) : (node n k v c l r).color = c := rfl
+@[simp] theorem loc_node (n k v) (l r : RB α) : (node n k v l r).loc = n := rfl
 @[simp] theorem entries_leaf : (leaf : RB α).entries = [] := rfl
-@[simp] theorem entries_node (n k v c) (l r : RB α) :
-    (node n k v c l r).entries = l.entries ++ (k, v) :: r.entries := rfl
+@[simp] theorem entries_node (n k v) (l r : RB α) :
+    (node n k v l r).entries = l.entries ++ (k, v) :: r.entries := rfl
 @[simp] theorem locs_leaf : (leaf : RB α).locs = [] := rfl
-@[simp] theorem locs_node (n k v c) (l r : RB α) :
-    (node n k v c l r).locs = n :: (l.locs ++ r.locs) := rfl
+@[simp] theorem locs_node (n k v) (l r : RB α) :
+    (node n k v l r).locs = n :: (l.locs ++ r.locs) := rfl
 
 /-- The root's address is one of the nodes' (for a node). -/
 theorem loc_mem_locs (t : RB α) (h : t ≠ leaf) : t.loc ∈ t.locs := by
@@ -70,7 +63,7 @@ theorem loc_mem_locs (t : RB α) (h : t ≠ leaf) : t.loc ∈ t.locs := by
   | node => simp
 
 /-- The leftmost entry of a nonempty tree is its first. -/
-theorem entries_ne_nil (n k v c) (l r : RB α) : (node n k v c l r).entries ≠ [] := by simp
+theorem entries_ne_nil (n k v) (l r : RB α) : (node n k v l r).entries ≠ [] := by simp
 
 end RB
 
@@ -78,34 +71,34 @@ open RB
 
 /-- A frame of a context: the hole is the left (`L`) or right (`R`) child of the node. -/
 inductive Frame (α : Type u) where
-  | L (n : Loc) (k : w64) (v : α) (c : Bool) (r : RB α)
-  | R (n : Loc) (k : w64) (v : α) (c : Bool) (l : RB α)
+  | L (n : Loc) (k : w64) (v : α) (r : RB α)
+  | R (n : Loc) (k : w64) (v : α) (l : RB α)
 
 namespace Frame
 variable {α : Type u}
 
 def loc : Frame α → Loc
-  | L n _ _ _ _ => n
-  | R n _ _ _ _ => n
+  | L n _ _ _ => n
+  | R n _ _ _ => n
 
 /-- The frame with `t` in its hole. -/
 def fill : Frame α → RB α → RB α
-  | L n k v c r, t => .node n k v c t r
-  | R n k v c l, t => .node n k v c l t
+  | L n k v r, t => .node n k v t r
+  | R n k v l, t => .node n k v l t
 
 /-- The entries of the frame before (`pre`) and after (`post`) its hole. -/
 def pre : Frame α → List (w64 × α)
   | L .. => []
-  | R _ k v _ l => l.entries ++ [(k, v)]
+  | R _ k v l => l.entries ++ [(k, v)]
 
 def post : Frame α → List (w64 × α)
-  | L _ k v _ r => (k, v) :: r.entries
+  | L _ k v r => (k, v) :: r.entries
   | R .. => []
 
 /-- The frame's nodes' addresses. -/
 def locs : Frame α → List Loc
-  | L n _ _ _ r => n :: r.locs
-  | R n _ _ _ l => n :: l.locs
+  | L n _ _ r => n :: r.locs
+  | R n _ _ l => n :: l.locs
 
 @[simp] theorem fill_loc (f : Frame α) (t : RB α) : (f.fill t).loc = f.loc := by
   cases f <;> rfl
@@ -116,10 +109,10 @@ theorem fill_entries (f : Frame α) (t : RB α) :
 
 theorem fill_locs_perm (f : Frame α) (t : RB α) : (f.fill t).locs.Perm (t.locs ++ f.locs) := by
   cases f with
-  | L n k v c r =>
+  | L n k v r =>
     simp only [fill, locs, RB.locs_node]
     exact (List.perm_middle).symm
-  | R n k v c l =>
+  | R n k v l =>
     simp only [fill, locs, RB.locs_node]
     refine List.Perm.trans ?_ (List.perm_middle).symm
     exact List.Perm.cons _ List.perm_append_comm
@@ -240,8 +233,8 @@ theorem lookupE_plug (C : Ctx α) (t : RB α) (k : w64) (hb : Bounds k C) :
     (fun e he heq => by have := hb.2 e he; rw [heq] at this; omega)]
 
 /-- The keys of a node's subtrees, in a sorted tree. -/
-theorem sortedE_plug_node {C : Ctx α} {n : Loc} {k : w64} {v : α} {c : Bool} {L R : RB α}
-    (hs : sortedE (Ctx.plug C (.node n k v c L R)).entries) :
+theorem sortedE_plug_node {C : Ctx α} {n : Loc} {k : w64} {v : α} {L R : RB α}
+    (hs : sortedE (Ctx.plug C (.node n k v L R)).entries) :
     (∀ e ∈ L.entries, sint.Z e.1 < sint.Z k) ∧ (∀ e ∈ R.entries, sint.Z k < sint.Z e.1) ∧
     (∀ e ∈ Ctx.pre C, sint.Z e.1 < sint.Z k) ∧ (∀ e ∈ Ctx.post C, sint.Z k < sint.Z e.1) ∧
     (∀ e ∈ R.entries, ∀ e' ∈ Ctx.post C, sint.Z e.1 < sint.Z e'.1) ∧
@@ -261,9 +254,9 @@ theorem sortedE_plug_node {C : Ctx α} {n : Loc} {k : w64} {v : α} {c : Bool} {
     fun e he => h2 e he (k, v) (by simp), fun e he => h1 (k, v) (by simp) e he,
     fun e he e' he' => h1 e (by simp [he]) e' he', fun e he e' he' => h2 e he e' (by simp [he'])⟩
 
-theorem Bounds_left {C : Ctx α} {n : Loc} {k' : w64} {v : α} {c : Bool} {L R : RB α} {k : w64}
-    (hs : sortedE (Ctx.plug C (.node n k' v c L R)).entries) (hb : Bounds k C)
-    (hlt : sint.Z k < sint.Z k') : Bounds k (.L n k' v c R :: C) := by
+theorem Bounds_left {C : Ctx α} {n : Loc} {k' : w64} {v : α} {L R : RB α} {k : w64}
+    (hs : sortedE (Ctx.plug C (.node n k' v L R)).entries) (hb : Bounds k C)
+    (hlt : sint.Z k < sint.Z k') : Bounds k (.L n k' v R :: C) := by
   obtain ⟨-, hR, -, -, -, -⟩ := sortedE_plug_node hs
   refine ⟨by simpa [Ctx.pre, Frame.pre] using hb.1, ?_⟩
   simp only [Ctx.post, Frame.post, List.cons_append, List.mem_cons, List.mem_append]
@@ -272,9 +265,9 @@ theorem Bounds_left {C : Ctx α} {n : Loc} {k' : w64} {v : α} {c : Bool} {L R :
   · have := hR e he; omega
   · exact hb.2 e he
 
-theorem Bounds_right {C : Ctx α} {n : Loc} {k' : w64} {v : α} {c : Bool} {L R : RB α} {k : w64}
-    (hs : sortedE (Ctx.plug C (.node n k' v c L R)).entries) (hb : Bounds k C)
-    (hlt : sint.Z k' < sint.Z k) : Bounds k (.R n k' v c L :: C) := by
+theorem Bounds_right {C : Ctx α} {n : Loc} {k' : w64} {v : α} {L R : RB α} {k : w64}
+    (hs : sortedE (Ctx.plug C (.node n k' v L R)).entries) (hb : Bounds k C)
+    (hlt : sint.Z k' < sint.Z k) : Bounds k (.R n k' v L :: C) := by
   obtain ⟨hL, -, -, -, -, -⟩ := sortedE_plug_node hs
   refine ⟨?_, by simpa [Ctx.post, Frame.post] using hb.2⟩
   intro e he
@@ -285,9 +278,9 @@ theorem Bounds_right {C : Ctx α} {n : Loc} {k' : w64} {v : α} {c : Bool} {L R 
   · have := hL e he; omega
   · subst he; exact hlt
 
-theorem lookupE_node_self {n : Loc} {k : w64} {v : α} {c : Bool} {L R : RB α}
+theorem lookupE_node_self {n : Loc} {k : w64} {v : α} {L R : RB α}
     (hL : ∀ e ∈ L.entries, sint.Z e.1 < sint.Z k) :
-    lookupE (RB.node n k v c L R).entries k = some v := by
+    lookupE (RB.node n k v L R).entries k = some v := by
   rw [RB.entries_node, lookupE_append_left _ _ k
     (fun e he heq => by have := hL e he; rw [heq] at this; omega)]
   simp [lookupE]
