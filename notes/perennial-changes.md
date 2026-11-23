@@ -53,6 +53,39 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   printing a slice of basic-typed elements by reflection (`%v`/`%s`); `fmt.Fprint`'s spec;
   `strconv.AppendQuote`'s. With the first two, the three printf axioms become proofs over trusted
   models of klog's sink only (`loggingT.header`, `loggingT.output`, the `sync.Pool` buffer pool).
+### `net/url.ParseRequestURI` unreachable over bodies: `strings.Cut`/`ToLower`/`Index`/`Count` names only (2026-11-23, models-rpc-http)
+
+- **Limitation.** Go's `url.parse(rawURL, true)` calls `strings.ToLower` (always, on the scheme), `strings.Cut(rest,
+  "?")` (whenever the URI does not end in a lone `"?"`), and on other inputs `strings.Count`, `Index`, `Contains`;
+  Perennial translates them as names only (and `Cut`/`Index` reach `bytealg.IndexByteString`, untranslated, assembly).
+  Besides, `setPath`'s `escape` reads `net/url`'s `table` (a `[[skip]]` variable of the main tree's `Code/net/url.toml`),
+  and the main tree's `net/url` is names-only (project etcd), so translating it with bodies rebuilds every importer
+  (`zap`, `rafthttp`, `types`).
+- **Who needs it.** net/http's `readRequest` (the request URI of net/rpc's `CONNECT /_goRPC_`), `Net/Proof/net/http/`.
+- **Workaround.** In the model (`models/net/http/textproto_model.go`, MODEL, pending the user's review):
+  `modelParseRequestURI`, Go's result on a `/`-initial path of bytes `net/url` leaves alone (`modelPathByte`), Go's
+  function on every other URI; translated with its body and proved; evidence `internal/httpdifftest`'s
+  `TestReadRequestURI` (every byte after `/`, inside a path and after `//`, 2000 random paths; `URL`'s every field).
+- **Proposed change.** `strings.ToLower` (ASCII fast path), `Cut`, `Index`, `Count` translated in Perennial with
+  `bytealg.IndexByteString`/`CountString` as trusted models (as `LastIndexByteString` is translated), with specs; then
+  `net/url`'s `parse` with its bodies.
+- **Status.** Not proposed yet.
+
+### `sync.NewCond.spec` does not say its result is not `nil`; `context.WithValue` names-only (2026-11-23, models-rpc-http)
+
+- **Limitation.** (1) `NewCond.spec`'s post is `isCond c m`, without `⌜c ≠ null⌝` (the struct field
+  points-to it holds does not give it: no lemma relates `structFieldRef` and `null`). A lazily made
+  condition variable (`if cr.cond == nil { cr.cond = sync.NewCond(&cr.mu) }`, net/http's `connReader.lock`)
+  needs it: with `cv = nil` stored, the next `lock` would store again into a field already read-only.
+  (2) `context.WithValue` has no body in Perennial's translation (and `Background()` is not an `isContext`),
+  so net/http's `Serve` (`WithValue(baseCtx, ServerContextKey, s)`) and `conn.serve`
+  (`WithValue(ctx, LocalAddrContextKey, ...)`) are stuck at that call.
+- **Who needs it.** net/http's server (`Net/Proof/net/http/`, `notes/dsverify-net-port-plan.md`, phase 5.2).
+- **Workaround.** (1) `wp_NewCond_nn` (`Net/Proof/net/http/ConnReaderLemmas.lean`): Perennial's proof of
+  `NewCond` over the translated body, the allocation's non-null kept. (2) None yet (`conn.serve` not proved).
+- **Proposed change.** (1) `NewCond.spec`'s post with `⌜c ≠ null⌝` (the proof has it). (2) `WithValue`
+  translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
+  `isContext` of a value context over `isContext` or `Background()`.
 ### Dist adequacy bounds threads by steps (2026-11-23, dsv-epaxos)
 
 - **Limitation.** The distributed adequacy's thread bound is the step count (+ 2): a run's
@@ -4229,3 +4262,21 @@ contracts.
   Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
   (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
   beside `Printf`'s. Not filed yet.
+
+## 2026-11-23: `io.WriteString` is not translated (net/rpc model, HTTP path)
+
+Perennial's `io` translates `WriteString` as a name only, so a translated body that calls it is stuck. net/rpc's
+`DialHTTPPath` and `ServeHTTP` write their handshake with `io.WriteString(conn, s)`. Worked around in the model
+(`models/net/rpc/{client,server}.go`, MODEL): `conn.Write([]byte(s))`, what `io.WriteString` does for a writer without a
+`WriteString` method (net's `*TCPConn`). The general fix: translate `io.WriteString` (its body: a type assertion to
+`io.StringWriter`, else `Write` of the string's bytes) with a spec over the writer's `Write` and `WriteString`
+contracts.
+
+## 2026-11-23: `strings.Cut` and `strings.TrimLeft` are names only (net/http model, `ReadResponse`)
+
+Perennial's `strings` translates `Cut` and `TrimLeft` as names only (see "`strings.Cut` has no model", 2026-11-08), so
+net/http's `ReadResponse` and `parseRequestLine`, which call them with a one-byte separator, were stuck. Worked around in
+the model (`models/net/http/textproto_model.go`, MODEL): `modelCutByte(s, c)` and `modelTrimLeftByte(s, c)`, Go's `Cut`
+(through `Index` of a one-byte separator, its first index) and `trimLeftByte` (what `TrimLeft` runs for a one-byte ASCII
+cutset), translated with their bodies and proved (`Net/Proof/net/http/`). The general fix: `Cut` trusted (as
+`HasPrefix`: `Index` runs `bytealg`) and `TrimLeft` translated in Perennial, with specs. Not filed yet.

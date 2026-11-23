@@ -382,6 +382,18 @@ def lisProto (la : GoString) (P Q : Proto GF) : IProp GF :=
 instance lisProto_persistent la P Q : Persistent (lisProto (Gg := Gg) la P Q) := by
   unfold lisProto; infer_instance
 
+/-- D21. `lisProto` with protocols per address: `P a` for what dialers of `a` write, `Q a` for what
+its acceptors write, for every valid address `a` the listener at `la` takes, and the right to listen
+at `la` in an invariant (`lis_set_protoD`, `lisProtoD_addr`, `listen_lisD_au`). Persistent. A
+listener's acceptor then learns the protocols of the address a connection was dialed to (the
+connection's `Qok a cn` of `Listener.Accept.spec`), as from `addrProto a (P a) (Q a)`. -/
+def lisProtoD (la : GoString) (P Q : GoString → Proto GF) : IProp GF :=
+  iprop(□ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto a (P a) (Q a)) ∗
+    inv (lisToksN la) (lisToks NG la) ∗ ⌜listenOk la = true⌝)
+
+instance lisProtoD_persistent la P Q : Persistent (lisProtoD (Gg := Gg) la P Q) := by
+  unfold lisProtoD; infer_instance
+
 /-- The handle of the connection `cn` with names `γ`, dialed to an address with protocols `Pd`,
 `Pa` (persistent). -/
 def connH (cn : Nat) (γ : ConnPNames) (Pd Pa : Proto GF) : IProp GF :=
@@ -717,6 +729,93 @@ theorem lis_set_proto [NetProtoGS] (E : CoPset) (la : GoString) (P Q : Proto GF)
     iapply H
     ipureintro; exact ha
   · ipureintro; exact hla
+
+/-- D21. Set the protocols of every valid address a listener at `la` takes, once, per address: `P a`
+for what the dialers of `a` write, `Q a` for what its acceptors write (`lis_set_proto` with the same
+protocols for all). -/
+theorem lis_set_protoD [NetProtoGS] (E : CoPset) (la : GoString) (P Q : GoString → Proto GF)
+    (hla : listenOk la = true) :
+    ⊢ regCtx (Gg := Gg) -∗ lisUnset la ={E}=∗ lisProtoD la P Q := by
+  iintro #Hreg Hu
+  unfold lisUnset
+  ihave ⟨Hp, Ht⟩ : ([∗map] a ↦ _u ∈ addrSpace (),
+      iprop(⌜lisAccepts la a⌝ → netPend (NG (Gg := Gg)) a ∅)) ∗ lisToks (NG (Gg := Gg)) la $$ [Hu]
+  · unfold lisToks
+    rw [← BigSepM.bigSepM_sep_eq]
+    iapply BigSepM.bigSepM_mono ?_ $$ Hu
+    intro k v _
+    iintro H
+    by_cases hp : lisAccepts la k
+    · ihave ⟨Hp, Ht⟩ := H $$ %hp
+      isplitl [Hp]
+      · iintro %_; iexact Hp
+      · iintro %_; iexact Ht
+    · isplitl []
+      · iintro %h; exact absurd h hp
+      · iintro %h; exact absurd h hp
+  imod inv_alloc (lisToksN la) E (lisToks (NG (Gg := Gg)) la) $$ [Ht] with #Htok
+  · inext; iexact Ht
+  ihave Hps : [∗map] a ↦ _u ∈ addrSpace (), |={E}=>
+      iprop(⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a (P a) (Q a)) $$ [Hp]
+  · iapply BigSepM.bigSepM_impl $$ Hp
+    imodintro
+    iintro %k %v %hk H
+    by_cases hp : lisAccepts la k
+    · have hok : addrOk k = true := by
+        have := addrSpace_lookup_isSome () k
+        rw [← gmap_get?_eq, hk] at this; exact this.symm
+      ihave Hp := H $$ %hp
+      imod addr_set_proto_tok E k (P k) (Q k) $$ Hreg Hp [] [] with #Hk
+      · unfold addrTok; ipureintro; exact hok
+      · unfold lisTokInv; iright; iexists la; iframe Htok; ipureintro; exact hp
+      imodintro
+      iintro %_
+      iexact Hk
+    · imodintro
+      iintro %h; exact absurd h.2 hp
+  imod BigSepM.bigSepM_fupd E _ _ $$ Hps with #Hps
+  imodintro
+  unfold lisProtoD
+  iframe Htok
+  isplitl
+  · imodintro
+    iintro %a %ha
+    have hl : PartialMap.get? (addrSpace ()) a = some () := by
+      rw [gmap_get?_eq]; exact addrSpace_lookup_ok () ha.1
+    ihave H := BigSepM.bigSepM_lookup hl $$ Hps
+    iapply H
+    ipureintro; exact ha
+  · ipureintro; exact hla
+
+/-- The protocols of an address `la` takes, from `la`'s (per-address protocols). -/
+theorem lisProtoD_addr [NetProtoGS] (la a : GoString) (P Q : GoString → Proto GF)
+    (hok : addrOk a = true) (hacc : lisAccepts la a) :
+    lisProtoD (Gg := Gg) la P Q ⊢ addrProto a (P a) (Q a) := by
+  unfold lisProtoD
+  iintro ⟨#H, -, -⟩
+  iapply H
+  ipureintro; exact ⟨hok, hacc⟩
+
+theorem lisProtoD_ok [NetProtoGS] (la : GoString) (P Q : GoString → Proto GF) :
+    lisProtoD (Gg := Gg) la P Q ⊢ ⌜listenOk la = true⌝ := by
+  unfold lisProtoD; iintro ⟨-, -, $⟩
+
+/-- `Listen` of `la` (`net.Listen.spec`'s update, D21), from per-address protocols: as
+`listen_lis_au`. -/
+theorem listen_lisD_au (la : GoString) (P Q : GoString → Proto GF) [NetProtoGS] :
+    lisProtoD (Gg := Gg) la P Q ⊢ |={⊤,∅}=> lisToks NG la ∗ (lisToks NG la ={∅,⊤}=∗ True) := by
+  unfold lisProtoD
+  iintro ⟨-, #Htok, -⟩
+  iinv Htok with >Ht Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  iframe Ht
+  iintro Ht
+  imod Hmask
+  imod Hclose $$ [Ht] with -
+  · inext; iexact Ht
+  imodintro
+  itrivial
 
 /-- Set the protocols of every address of a list, `P a` and `Q a` for the address `a`. -/
 theorem addrs_set_proto [NetProtoGS] (E : CoPset) (P Q : GoString → Proto GF) :
@@ -1515,6 +1614,39 @@ theorem accept_lis_shared_au (la : GoString) (P Q : Proto GF) (hL : NetLocalGS G
   · iintro %a %ha
     ihave #Ha := lisProto_addr la a P Q ha.1 ha.2 $$ Hp
     imod accept_shared_au_at la a P Q hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
+    imodintro
+    iexists o, S
+    iframe Hl Hpend Hk
+
+/-- D21. `accept_lis_shared_au` with protocols per address (`P a`, `Q a` for a connection dialed to
+`a`), from each address's `addrProto` (`lisProtoD_addr` gives them; at a valid `la`, `la`'s alone). -/
+theorem accept_addrs_shared_au (la : GoString) (P Q : GoString → Proto GF) (hL : NetLocalGS GF)
+    (l : w64) :
+    ⊢ □ (∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ → addrProto (Gg := Gg) a (P a) (Q a)) -∗
+      lisInv hL l la -∗
+      ((|={⊤,∅}=> ∃ o, netLis hL l la o ∗ (netLis hL l la o ={∅,⊤}=∗ True)) ∧
+        ∀ a, ⌜addrOk a = true ∧ lisAccepts la a⌝ -∗
+          |={⊤,∅}=> ∃ o S, netLis hL l la o ∗ netPend NG a S ∗
+            (⌜o = true⌝ -∗ ∀ cn, ⌜cn ∈ S⌝ -∗ netLis hL l la o -∗ netPend NG a (S \ {[cn]}) -∗
+              netConnAt NG cn a ={∅,⊤}=∗ connEnd cn true (Q a) (P a) [] [] ∗ connFresh cn true)) := by
+  iintro #Hp #Hli
+  isplit
+  · unfold lisInv
+    iinv Hli with Hk Hclose
+    icases Hk with ⟨%o, >Hl⟩
+    iapply fupd_mask_intro Std.LawfulSet.empty_subset
+    iintro Hmask
+    iexists o
+    iframe Hl
+    iintro Hl
+    imod Hmask
+    imod Hclose $$ [Hl] with -
+    · inext; iexists o; iexact Hl
+    imodintro
+    itrivial
+  · iintro %a %ha
+    ihave #Ha := Hp $$ %a %ha
+    imod accept_shared_au_at la a (P a) (Q a) hL l $$ Ha Hli with ⟨%o, %S, Hl, Hpend, -, Hk⟩
     imodintro
     iexists o, S
     iframe Hl Hpend Hk

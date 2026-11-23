@@ -262,6 +262,21 @@ theorem req_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (R : List w8) (h
   iframe Hrpc Hlb
   ipureintro; exact ⟨HL, Hlen, Hext.trans Hpre⟩
 
+/-- A reader that has read past the dialer's handshake learns that the acceptor's answer was
+written whole (`reqProto`: the dialer writes nothing more before it has it). -/
+theorem hsAns_of_read (W : RpcWorld GF) (a : GoString) (cn : Nat) (R : List w8)
+    (hR : ¬ R <+: W.hs a) :
+    protoPrefix (reqProto (Gg := hG.goose_globalGS) W a) cn R ⊢
+      sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) := by
+  iintro #Hpp
+  iunfold protoPrefix at Hpp
+  icases Hpp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
+  · subst Hnil; exact absurd List.nil_prefix hR
+  iunfold reqProto at HP
+  icases HP with ⟨%γ, %L, -, -, -, (%Hhs | #Hs)⟩
+  · exact absurd (Hext.trans Hhs) hR
+  · iexact Hs
+
 /-- With the acceptor's fresh token, the reader claims its half of `ctr` (at `0`). -/
 theorem claim_role (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) :
     £ 1 ∗ isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗ connFresh (Gg := hG.goose_globalGS) cn true ⊢
@@ -443,6 +458,21 @@ theorem req_guard (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
   · iapply recvTok_L $$ HrT
   ipureintro; exact Hbody
 
+/-- The right to answer a request says the handshake's answer was written whole. -/
+theorem ansPend_hsAns (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString)
+    (Φ : List w8 → GoString → IProp GF) :
+    ansPend W a cn k sm Φ ⊢
+      ansPend W a cn k sm Φ ∗ sentLb (Gg := hG.goose_globalGS) cn true (W.hsAns a) := by
+  iintro Hp
+  iunfold ansPend at Hp
+  icases Hp with ⟨%γ, %L, %r, #Hrpc, #Hlb, %Hp, Hel, #Hpost, #Hs⟩
+  isplitl
+  · iunfold ansPend
+    iexists γ, L, r
+    iframe Hrpc Hlb Hel Hpost Hs
+    ipureintro; exact Hp
+  · iexact Hs
+
 /-- The answer to request `k`, from the right to answer it and the continuation's `Φ reply msg`:
 its persistent `ans` element; the continuation goes to the connection for the client. -/
 theorem answer (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoString)
@@ -452,7 +482,7 @@ theorem answer (W : RpcWorld GF) (a : GoString) (cn : Nat) (k : Nat) (sm : GoStr
       ghostMapElem γ.ans k .discard (some (msg, reply)) ∗ ⌜k < 2 ^ 64⌝ := by
   iintro ⟨Hlc, Hp, HΦ⟩
   iunfold ansPend at Hp
-  icases Hp with ⟨%γ, %L, %r, #Hrpc, #Hlb, ⟨%hr, %hsm, %hk⟩, Hel, #Hpost⟩
+  icases Hp with ⟨%γ, %L, %r, #Hrpc, #Hlb, ⟨%hr, %hsm, %hk⟩, Hel, #Hpost, -⟩
   ihave #Hrpc' := Hrpc
   iunfold isRpcConn at Hrpc'
   icases Hrpc' with ⟨-, #Hinv⟩
@@ -518,6 +548,7 @@ theorem resp_step (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames
   isplitr
   · imodintro
     iunfold respProto
+    ileft
     iexists γ, Rs ++ [x]
     iframe Hrpc Hels
     isplitr

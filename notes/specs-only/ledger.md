@@ -25,6 +25,127 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: net/http's head readers widened for Go's 400 answer and net/rpc's `CONNECT` request: header blocks, header maps, version prefixes; `readRequestLimit.spec`; the model's `modelHeaderValuesContainsToken` (net/http model)
+
+- **Spec.** `Net/Proof/net/rpc/Proto.lean` (`respProto`, new `badReqAns`, `hsErr`), `HttpDefs.lean`
+  (`crSt`, `resp_before_req`), `ClientRead.lean` (`resp_of_read`); `Net/Spec/net/http/`: `ReadResponse`,
+  `modelReadMIMEHeader`, `shouldClose`, `fixPragmaCacheControl`, `transferReader.parseTransferEncoding`,
+  `fixLength`, `fixTrailer`, `readTransfer`, `ParseHTTPVersion`, `badStringError`; new
+  `readRequestLimit`, `Server.maxHeaderValueCount`, the model's `modelHeaderValuesContainsToken` and its
+  helpers, httpguts' `ValidHeaderFieldValue`; `Net/Proof/net/http/Defs.lean` (`httpEnv`, the header
+  vocabulary `HdrLine`/`hdrBlockOk`/`hdrWire`/`hdrOwn`/`hdrVals`/`mimeErr`, `badHdr`), `RequestDefs.lean`
+  (`connectReqVal`, `connectReqv`, `errMsgOk`).
+- **Defect.** (1) The 400 change decided in the entry below (applying it): `ReadResponse` must read Go's
+  `400` head, whose header block has two lines, and its `readTransfer`/`shouldClose` meet a non-empty
+  header with `Connection: close`; the head readers' specs were stated for an empty header only. (2)
+  `readRequestLimit` (net/rpc's `CONNECT path HTTP/1.0` request, phase 5.2's next step) needs
+  `readTransfer` for a `*Request` (stated for a `*Response` only), `ParseHTTPVersion` on a version cut by
+  an error (stated for the two whole versions), `badStringError`'s error comparable with `io.EOF` (the
+  deferred rewrite), and `Error()` on the header reader's errors. (3) `shouldClose` calls httpguts'
+  `HeaderValuesContainsToken`, whose `headerValueContainsToken` calls `strings.IndexByte`, which
+  Perennial translates as a name only: no proof of `Connection: close` over Go's code.
+- **Evidence.** (1) Go's `conn.serve` (`fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request\r\n…")`);
+  `internal/httpdifftest`'s `TestReadResponse` (the exact answer added to its heads: status
+  `400 Bad Request`, `close=true`, the body read to the end). (2) `request.go` `readRequestLimit` (the
+  `defer` comparing `err == io.EOF`; `err.Error() == "message too large"`). (3)
+  `Perennial/Code/strings.lean` (`IndexByte` a name).
+- **Change.** (1) `respProto W a cn bs` also holds of every prefix of `hsErr (W.hsAns a)` (Go's 400 answer
+  over HTTP, nothing for raw net/rpc), at any time (Go answers before the handshake is whole); the
+  dialer's readers exclude it once past the handshake's answer (`hsErr_excl`); `crSt` keeps the dialer's
+  bytes a prefix of `connectAns` or `badReqAns`; `ReadResponse.spec`'s law the same, its post unchanged
+  (the 400 answer's status is not `connectedStatus`: `DialHTTPPath` returns its error).
+  `modelReadMIMEHeader.spec` over a header block `hb` (`hdrBlockOk`: distinct canonical names, printable
+  values without space at their ends) of at most `maxHeaders` lines, the stream's bytes past the reader a
+  prefix of `hdrWire hb eol ++ rest`, finality; post `hdrOwn m hb` or an error (`mimeErr`: the stream's
+  or a `ProtocolError`); the empty block is the old instance. `shouldClose`, `fixPragmaCacheControl`,
+  `parseTransferEncoding`, `fixLength`, `fixTrailer`, `readTransfer` over a header map `ms` without the
+  names they test (`"Connection"`'s values owned, `hdrVals`); `shouldClose` may delete `"Connection"`.
+  (2) `readTransfer.spec` is a conjunction, the response case and the request case (`reqNoBody`:
+  `NoBody`, `ContentLength` 0, `Trailer` nil); `fixLength.spec` for `isResp` either way;
+  `ParseHTTPVersion.spec` on a prefix of either version (`ok` iff whole); `badStringError.spec`'s error
+  `io.ptrTyped`; `httpEnv` also holds httpguts' `tokenTable` (moved here), `strings`' initialization and
+  `errTooLarge`'s value (premises, as before, until net/http's initialization is proved). New
+  `readRequestLimit.spec` (the stream a prefix of `connectReq path`, finality, `errMsgOk` of its errors;
+  post an error, or `connectReqv req path` and the reader past the request) and
+  `Server.maxHeaderValueCount.spec`. (3) MODEL change (for the user's review): `shouldClose` calls the
+  model's `modelHeaderValuesContainsToken` (`textproto_model.go`: httpguts' code with `strings.IndexByte`
+  as `modelIndexByte`, `tokenEqual`'s range over runes as one over bytes, the same result);
+  `TestReadResponse` gained Connection-token heads (case, whitespace, commas, a non-ASCII token, several
+  lines); `run.sh` passes. httpguts' `HeaderValuesContainsToken` is no longer called by the model.
+- **Decision.** (1) accepted by the user (the entry below); applied with (2) on branch `models-rpc-http`
+  (2026-11-23): no trust added, every result still proved. (3) pending the user's review (a
+  trusted-model change).
+
+## 2026-11-23: `hijackOk` gives the server back a resource; `respProto` does not allow Go's 400 answer to a cut handshake (net/http's server up to the hijack)
+
+- **Spec.** `Net/Proof/net/http/ServerDefs.lean` (`hijackOk`), `Net/Spec/net/rpc/Server__ServeHTTP.lean`
+  (`Server.ServeHTTP.spec`); `Net/Proof/net/rpc/Proto.lean` (`respProto`); new
+  `Net/Spec/net/http/response__Hijack.lean` (`hijackOk` made from `hjPre`).
+- **Defects.** (1) `conn.serve` calls the handler and then `c.hijacked()`: if the connection was not
+  hijacked it goes on to `finishRequest`, the keep-alive loop and the next request; to stop there its proof
+  must learn from the handler that `Hijack` ran, and `hijackOk`'s continuation gave the handler nothing to
+  return. (2) A dialer's handshake cut (the net model's D1: a read may find the direction cut, keeping a
+  strict prefix of its bytes, then EOF, while the dialer has written it whole) makes Go's `readRequest` fail
+  with `io.ErrUnexpectedEOF` or a parse error (a cut request line, `"malformed HTTP request"`/`"malformed
+  HTTP version"`; a whole line, then EOF in the header block), and `conn.serve` answers with one
+  `fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection:
+  close\r\n\r\n400 Bad Request")` (only EOF and `*OpError{Op: "read"}` are "common" read errors answered with
+  nothing). `respProto` lets the acceptor write only prefixes of `connectAns ++ respsWire Rs`, after the whole
+  handshake: Go's server cannot meet it, and the dialer (who may have written the whole handshake) may read
+  that 400 answer, which `DialHTTPPath`'s proof (over `ReadResponse.spec`, answers that are prefixes of
+  `connectAns`) excludes.
+- **Evidence.** (1) the model's `server.go` `conn.serve` (`if c.hijacked() { c.r.releaseConn(); return }`).
+  (2) `GooseLang/Ext/Net/Impl.lean` D1 ("at any read, the connection may break: the direction becomes `cut`,
+  keeping a prefix of its unread bytes"); `request.go` `readRequestLimit` (the deferred `io.EOF` to
+  `io.ErrUnexpectedEOF`), `server.go` `isCommonNetReadError` and the `default:` answer.
+- **Change.** (1) Applied: `hijackOk rp cn a P Q hs D`, the continuation also given `D`;
+  `Server.ServeHTTP.spec` for every `D`, its post `threadTok ∗ D` (proof: `D` framed through the answer's
+  `Write` and `ServeConn`). `response.Hijack.spec`: `hjPre N P Q hs Z ⊢ hijackOk N.w N.cn N.a P Q hs (hjDone N hs)`,
+  `hjDone` the hijacked flag's ghost half (`connMuInv`), the reader's fields, the state word. (2) Proposed,
+  not applied: `respProto W a cn bs` also holds of every prefix of the 400 answer (`badReqAns`), and the
+  client side follows: `ReadResponse.spec` over answers that are prefixes of `connectAns` or of `badReqAns`
+  (the latter's status line `"HTTP/1.1 400 Bad Request"`, two header lines through the model's
+  `modelReadMIMEHeader` and `readTransfer`'s `Connection: close`, `httpguts.HeaderValuesContainsToken` with
+  its body), and `DialHTTPPath` returns its `*OpError` on it (it does already: the status is not
+  `connected`). `conn.serve`'s spec states the premise (the acceptor's protocol allows the 400 answer) until
+  then.
+- **Decision.** (1) applied (branch `models-rpc-http`, 2026-11-23). (2) accepted by the user (2026-11-23: `respProto`
+  also allows prefixes of Go's 400 answer, `ReadResponse` accepts that head, `DialHTTPPath` errors on it); applied
+  2026-11-23 (branch `models-rpc-http`; the entry above).
+
+## 2026-11-23: `http.ReadResponse.spec` over a reader that makes progress; `httpEnv` widened; `connectReader.Read.spec` makes progress; `ReadByte.specNE`; the model's `modelCutByte`/`modelTrimLeftByte` and `connReader.failed` (net/http model, `ReadResponse`'s proof)
+
+- **Spec.** Changed: `Net/Spec/net/http/ReadResponse.lean` (`io.readerStreamNE` for `io.readerStream`; the
+  `net.http.Assumptions` instance), `httpEnv` (moved to `Net/Proof/net/http/Defs.lean`; adds `fmt`'s and
+  `strconv`'s initialization and `NoBody`'s value), `Net/Spec/net/rpc/connectReader__Read.lean` (post: a byte or an
+  error when `p` is not empty). New: `io.readerStreamNE` (`Proof/io/ReaderStreamNE.lean`), `bufio.ownReaderBuf`
+  (`Proof/bufio/Buf.lean`), `bufio.Reader.fill.spec`, `bufio.Reader.ReadByte.specNE` (beside dsv-bufio's
+  `ReadByte.spec`), `bufio.Reader.Peek.spec` (`n = 1`), and net/http's `modelReadLine`, `modelReadMIMEHeader` (a
+  head without header lines), `modelCutByte`, `modelTrimLeftByte`, `ParseHTTPVersion` (`"HTTP/1.0"`, `"HTTP/1.1"`),
+  `badStringError`, `readTransfer` and its helpers (an empty header), textproto's `CanonicalMIMEHeaderKey` (a key its
+  quick check accepts) and `MIMEHeader.Del`, httpguts' `HeaderValuesContainsToken` (no values).
+- **Defect.** (1) Over a reader that may return `(0, nil)`, bufio gives up with `io.ErrNoProgress` and the stream
+  goes on: a status line cut that way and a later `"\n"` parse as a whole answer with its last byte unread, so the
+  stated post (`connected` only with `connectAns` delivered) is false for a generic `io.readerStream`. (2) `Atoi`'s
+  spec does not fix the number, so `readTransfer` may see any status, including those with `NoBody`. (3) Perennial
+  translates `strings.Cut` and `strings.TrimLeft` as names only (`ReadResponse` and `parseRequestLine` call them).
+  (4) net/http's server reads a request's head through `connReader`, which keeps no read error: the same question as
+  the client's answer (ledger entry below), for item 3's head read.
+- **Evidence.** (1) Go's `bufio.Reader.fill` (`maxConsecutiveEmptyReads`); a TCP connection's `Read` of a non-empty
+  buffer never returns `(0, nil)` (the net extension's D1), nor does `connectReader`'s (proved). (2)
+  `Perennial/Spec/strconv/Atoi.lean`. (3) `Perennial/Code/strings.toml`. (4) `models/net/http/server.go`
+  (`connReader.Read`, `backgroundRead`); `examples/net/semantics`' `TestReadEOFAfterFin`, `TestResetInNetwork`,
+  `TestKilledWithUnreadInput`, `TestTimeoutOnBreak` (Linux: no byte after an error but a read deadline's timeout).
+- **Proposed change.** (1) The NE contract, met by `connectReader`; `ReadByte.specNE` proved over `fill.spec`
+  (dsv-bufio's `ReadByte.spec`, over `io.readerOk`, allows `ErrNoProgress` and cannot give it: merging the two, one
+  proof with this an instance, is left). (2) `httpEnv` holds `NoBody`. (3) MODEL: `modelCutByte`/`modelTrimLeftByte`
+  (`textproto_model.go`), Go's `Cut`/`trimLeftByte` for a one-byte separator; `notes/perennial-changes.md`. (4) MODEL:
+  `connReader.failed` (`server.go`): after a read error, no byte; the model's claim excludes programs whose served
+  connections have read deadlines (`ReadTimeout`, `ReadHeaderTimeout`, `IdleTimeout`, a handler's
+  `SetReadDeadline`). Difftests (`models/internal/rpcdifftest/run.sh`, both packages) pass.
+- **Decision.** (1)-(2) applied on branch `models-rpc-http` (2026-11-23). (3) and (4) are trusted-model changes:
+  pending the user's review.
+
 ## 2026-11-23: `DialHTTPPath.spec`, `DialHTTP.spec`, `http.ReadResponse.spec` stated; `respProto` waits for the dialer's handshake; the model's `connectReader` (net/rpc model, HTTP path)
 
 - **Spec.** New: `Net/Spec/net/rpc/DialHTTPPath.lean`, `DialHTTP.lean`, `connectReader__Read.lean`,
@@ -5479,3 +5600,36 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+## 2026-11-23: rpc protocols of a listener's addresses (`rpcLisP`); `Server.Accept.spec` on a wildcard listener; `rpcAccepted` with a cut handshake answer; `ansPend` knows the answer was written (net/rpc model, server over HTTP)
+
+- **Specs.** `Net/Proof/net/rpc/Proto.lean` (`rpcLisP`), `Net/Spec/net/rpc/Server__Accept.lean`,
+  `Net/Proof/net/rpc/ServerDefs.lean` (`rpcAccepted`, `srvSendInv`, `ansPend`), new
+  `Net/Spec/net/rpc/Server__ServeHTTP.lean` over `Net/Proof/net/http/ServerDefs.lean` (`reqHead`, `hijackOk`).
+- **Defects.** (1) The rpc protocols are per address (`reqProto W a`), and `lis_set_proto` sets one pair for
+  every address a wildcard listener takes, so `rpcAddr` of those addresses could not be made (kaashoek's
+  `RpcHttpHyps.lean`, dsv-swiftpaxos, "Design findings"); `Server.Accept.spec` took a listener at a valid
+  address only (`netLisAt`), while craq, epaxos and gryff listen at `":7001"`. (2) `rpcAccepted` asked for the
+  handshake's answer written whole, but `Server.ServeHTTP` writes it with one `Conn.Write` whose error it does
+  not look at: a write cut by a failure leaves a strict prefix, and `ServeHTTP`'s spec was unprovable.
+- **Evidence.** (1) by construction (`lisProto la P Q`'s one `P`). (2) the net model's D2 (a write's steps, a
+  `sys` failure after some of them); Go's `server.go` ignores the error the same way.
+- **Change.** (1) `lisProtoD la P Q` (`GooseLang/Ext/Net/Proto.lean`: per-address protocols, `lis_set_protoD`,
+  `lisProtoD_addr`, `listen_lisD_au`; `accept_addrs_shared_au`, the shared listener's `Accept` updates from each
+  address's `addrProto`); `rpcLisP W la hs hsAns := lisProtoD la (reqProto W) (respProto W) ∗ inv regN' (regInv W)
+  ∗ ⌜every valid address la takes has the handshake hs/hsAns⌝`, laws `rpcLisP_addr` (each such address's
+  `rpcAddrP`), `rpcLisP_addrOk`, `rpcLisP_lis` (the right to listen: `Listen.spec`'s update, in place of
+  kaashoek's `∃ P Q, lisProto la P Q`, which per-address protocols do not give), `rpcLisP_ok`, `rpcLisP_set`
+  (premises: `listenOk la` and the world's handshake at those addresses; kaashoek's has none, which with the
+  handshake in the world is false). `Server.Accept.spec` over `netLisOn l la` and `□ ∀ a, ⌜addrOk a ∧ lisAccepts
+  la a⌝ → rpcAddr W a ∗ srvServes γs C W a` (a connection served at the address it was dialed to: `isRpcConn W a`,
+  not one protocol for the listener); the exact-address shape is `Server.Accept.specAddr`, derived
+  (`AcceptAddr.lean`, `Server.Accept.wp_addr`). (2) `rpcAccepted`: `∃ w, ⌜w <+: W.hsAns a⌝ ∗ sendTok … w ∗ …`;
+  `srvSendInv` allows, before the first answer, any prefix of the handshake's answer; `ansPend` holds `sentLb cn
+  true (W.hsAns a)` (`hsAns_of_read`: a reader past the dialer's handshake knows the whole answer was written,
+  `reqProto`), so `sendResponse` writes the first answer after the whole handshake answer
+  (`sendTok_sentLb_prefix`). Every earlier result unchanged in statement but `Accept`'s; all proved.
+- **Decision.** Applied (branch `models-rpc-http`). `Server.ServeHTTP.spec`: on a `CONNECT` request whose head is
+  `W.hs a` (not empty), with `hijackOk` of the response (the right to `Hijack()`, stated as its weakest
+  precondition: the acceptor's end, the head read exactly, nothing written, its fresh token; what net/http's
+  `conn.serve` will give a handler), it writes `connectAns` and serves the connection; proved and linked. The 405
+  path is outside the spec (net/http's server gives the handler only rpc dialers' `CONNECT`s).

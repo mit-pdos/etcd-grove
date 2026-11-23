@@ -1035,8 +1035,9 @@ func (r *Request) SetBasicAuth(username, password string) {
 
 // parseRequestLine parses "GET /foo HTTP/1.1" into its three parts.
 func parseRequestLine(line string) (method, requestURI, proto string, ok bool) {
-	method, rest, ok1 := strings.Cut(line, " ")
-	requestURI, proto, ok2 := strings.Cut(rest, " ")
+	// MODEL: strings.Cut of a one-byte separator is the model's modelCutByte (textproto_model.go).
+	method, rest, ok1 := modelCutByte(line, ' ')
+	requestURI, proto, ok2 := modelCutByte(rest, ' ')
 	if !ok1 || !ok2 {
 		return "", "", "", false
 	}
@@ -1136,7 +1137,8 @@ func readRequestLimit(b *bufio.Reader, maxHeaders int64) (req *Request, err erro
 		rawurl = "http://" + rawurl
 	}
 
-	if req.URL, err = url.ParseRequestURI(rawurl); err != nil {
+	// MODEL: url.ParseRequestURI is the model's modelParseRequestURI (textproto_model.go).
+	if req.URL, err = modelParseRequestURI(rawurl); err != nil {
 		return nil, err
 	}
 

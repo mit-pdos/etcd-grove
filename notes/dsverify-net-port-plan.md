@@ -901,13 +901,22 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `http.ReadResponse.spec` (`DialHTTPPath.wp_of_ReadResponse`: the CONNECT request by `Conn.Write`, `bufio.NewReader`
    of the `connectReader`, `ReadResponse`, on `connected` the whole answer delivered, so the whole request written,
    `rpcDialed`, `NewClient`; else the `"dial-http"` `*OpError`, `errAny_opErrPtr`, after `Close`).
-   *Stated, not proved*: `http.ReadResponse.spec` (`Net/Spec/net/http/ReadResponse.lean`, for a CONNECT answer).
-   Its proof needs `readTransfer` and its helpers translated (`Net/Code/net/http.toml`: `readTransfer`,
-   `transferReader.parseTransferEncoding`, `fixLength`, `fixTrailer`, `shouldClose`, `bodyAllowedForStatus`,
-   `noResponseBodyExpected`, `ParseHTTPVersion`, `badStringError`, `fixPragmaCacheControl`, `Header.{get,Del}`, and
-   textproto's `CanonicalMIMEHeaderKey`, names only today), specs of `bufio.Reader.{ReadByte,Peek,fill}` (the main
-   tree's `Spec/bufio/` has `NewReader` and `Read`), `strings.{Cut,TrimLeft}` (translated by Perennial, no spec) and
-   `strconv.Atoi` (Perennial's). The parse is a function of the stream's bytes since they are final after an error.
+   *`ReadResponse` proved* (2026-11-23, same branch; ledger 2026-11-23, "`http.ReadResponse.spec` over a reader that
+   makes progress"): `Net/Proof/net/http/` (`Results.lean` links it; `DialHTTPPath.wp`, `DialHTTP.wp` in rpc's
+   `Results.lean` without the hypothesis). The status line is read whole (then it is `statusLine`: the bytes are a prefix
+   of `connectAns`) or cut by an error (then the stream stays there: the finality law); the parse finds `"HTTP/1.0"`
+   (`proto_of_prefix`, by `decide` over the line's prefixes) or fails (`badStringError`); the header block is read over a
+   law that its bytes are a prefix of the position's `"\n"` (`modelReadMIMEHeader`, a head without header lines), read
+   whole only after a whole status line. `readTransfer` on an empty header: no error, nothing read. The spec now takes
+   `io.readerStreamNE` (no `(0, nil)` read: over a reader that has them, bufio gives up with `io.ErrNoProgress` and a cut
+   line and a later `"\n"` parse as the whole answer, its last byte unread: the post is false there); `connectReader`
+   makes progress (proved). `httpEnv` (`Net/Proof/net/http/Defs.lean`) adds `fmt`'s and `strconv`'s initialization and
+   `NoBody` (`Atoi`'s spec does not fix the number, so any status reaches `readTransfer`). bufio (main tree):
+   `fill.spec`, `Peek.spec` (`n = 1`), `ReadByte.specNE` (beside dsv-bufio's `ReadByte.spec`, which allows
+   `ErrNoProgress`; merging them, one proof with this an instance, is left), over `bufio.ownReaderBuf`
+   (`Proof/bufio/Buf.lean`). Model changes (MODEL, pending the user's review): `modelCutByte`/`modelTrimLeftByte` for
+   `strings.Cut`/`TrimLeft` (`textproto_model.go`; Perennial translates them as names only, `notes/perennial-changes.md`),
+   and the server's `connReader.failed` (below).
    *Model changes* (ledger 2026-11-23): `connectReader` (no byte after a read error, Go over Linux;
    `nonissues/go-netrpc-dialhttp-reads-answer-after-read-error.md`), `io.WriteString(conn, s)` as
    `conn.Write([]byte(s))` (`notes/perennial-changes.md`). *Translation*: net/http's `Request` and `Server` were
@@ -920,13 +929,175 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `WriteString`), `HandleHTTP` (`http.Handle` twice; the debug path's handler panics NotModelled, so its spec
    requires it never requested), and net/http's server to the hijack (`ListenAndServe`, `Serve`, `conn.serve`,
    `readRequest`, `ServeMux` dispatch, `response.Hijack` with the background read's abort): none stated yet. The
-   server's head read has the same read-after-error question as the client's: Go's `conn.serve` reads through
-   `connReader`, which does not keep an error, so the model needs the same treatment there (a read after an error
-   returns none) before the hijacked connection's position can be `W.hs a`.
-   *Left*: the server's HTTP path (`ServeHTTP`, `HandleHTTP`), `ReadResponse`'s proof (above); `ServeRequest`; `register`'s logging
+   server's head read had the same read-after-error question as the client's; settled in the model (2026-11-23, MODEL,
+   pending the user's review): `connReader.failed` (`models/net/http/server.go`), after a read error no byte (Read and
+   `backgroundRead`), Go over Linux; the model's claim excludes served connections with read deadlines (`ReadTimeout`,
+   `ReadHeaderTimeout`, `IdleTimeout`, a handler's `SetReadDeadline`). Difftests pass.
+   **The server's handler (2026-11-23, same branch; ledger 2026-11-23, "rpc protocols of a listener's
+   addresses").** *Wildcard listeners*: the rpc protocols are per address (`reqProto W a`), and `lis_set_proto`
+   gives a listener's addresses one pair; `lisProtoD la P Q` (`GooseLang/Ext/Net/Proto.lean`) gives each address
+   `a` the listener takes its own `P a`, `Q a` (`lis_set_protoD`, `lisProtoD_addr`, `listen_lisD_au`,
+   `accept_addrs_shared_au`, proved), and `rpcLisP W la hs hsAns` (`Proto.lean`) is that with `reqProto W`/`respProto
+   W` and the registry, every address `la` takes with the handshake `hs`/`hsAns`: `rpcLisP_addr` (each address's
+   `rpcAddrP`), `rpcLisP_addrOk`, `rpcLisP_lis` (`Listen.spec`'s update), `rpcLisP_ok`, `rpcLisP_set` (from
+   `lisUnset la`; premises `listenOk la` and the world's handshake at the addresses). `Server.Accept.spec` takes
+   `netLisOn l la` and `□ ∀ a, ⌜addrOk a ∧ lisAccepts la a⌝ → rpcAddr W a ∗ srvServes γs C W a`: each connection is
+   served at the address it was dialed to (`isRpcConn W a`); the exact-address shape is `Server.Accept.specAddr`,
+   derived (`AcceptAddr.lean`; `Server.Accept.wp_addr`). *A cut handshake answer*: `ServeHTTP` writes `connectAns`
+   with one `Write` and ignores its error, so `rpcAccepted` now has a prefix of `W.hsAns a` written, `srvSendInv`
+   allows that before the first answer, and `ansPend` holds `sentLb cn true (W.hsAns a)` (`hsAns_of_read`: a reader
+   past the dialer's handshake knows the whole answer was written), which `sendResponse` uses for the first answer.
+   *`Server.ServeHTTP` proved and linked*: on a `CONNECT` request (`reqHead`, `Net/Proof/net/http/ServerDefs.lean`)
+   with the head `W.hs a` (not empty) read and `hijackOk rp cn a (reqProto W a) (respProto W a) (W.hs a)` (the right
+   to call `Hijack()` on the `*response`, stated as its weakest precondition: the acceptor's end, the head read exactly,
+   nothing written, its fresh token), it hijacks, writes the answer (`hsAns_proto`) and runs `ServeConn`. The 405 path
+   is outside the spec: net/http's server gives the handler only rpc dialers' `CONNECT`s (`reqProto`).
+   *Left, net/http's server and `HandleHTTP`*: `hijackOk` is what `conn.serve` must give a handler; `HandleHTTP` and
+   `Serve` need `ServeMux.Handle`/`ServeHTTP` (Go 1.22 patterns: `parsePattern`, the routing tree and index, not
+   translated with bodies), `conn.serve` (`context.WithValue`/`WithCancel`, the deferred `recover`, `newBufioReader`'s
+   `sync.Pool`, `setState`, the shutdown flag), `readRequest` (Go's request parse on the model's head parser,
+   `url.ParseRequestURI`, the `Host` checks) and `Hijack` (`abortPendingRead` with the background read's deadline and
+   `sync.Cond`): their translation (`Net/Code/net/http.toml`) and specs first. The shapes to state, as the kits'
+   hypotheses (kaashoek's `RpcHttpHyps.lean`, dsv-swiftpaxos): `handlerOk W A path h` (for every `a` of `A`, `h`'s
+   `ServeHTTP` on a `CONNECT` with `hijackOk` and `reqHead`: `Server.ServeHTTP.spec` makes it for `*Server`),
+   `muxHas W A path` (`DefaultServeMux` routes `path` to such a handler), `Serve` over `rpcLisP W la (connectReq path)
+   connectAns`, `muxHas W (lisAccepts la) path`, `netLisOn`, `lisInv`.
+   *Left*: net/http's server and `HandleHTTP` (above);
+   `ServeRequest`; `register`'s logging
    premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
    not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
    `invalidRequest` at `()`) and `isPkgInit log` (item 5).
+   **net/http's server, the hijack (2026-11-23, same branch; ledger 2026-11-23, "`hijackOk` gives the server
+   back a resource").** *Translation* (`Net/Code/net/http.toml`): with bodies the server's connection path
+   (`connReader.*`, `conn.{setState,close,finalFlush,closeWriteAndWait}`, `Server.{shuttingDown,trackListener,
+   trackConn,setupHTTP2_Serve,protocols,...}`, `onceCloseListener.*`, `Protocols.*`, the bufio pools'
+   `newBufioReader`/`newBufioWriterSize`/`putBufio*`, `readRequest`/`readRequestLimit`/`parseRequestLine`/
+   `validMethod`, the `Request` predicates, `hasToken`, `Header.get`, the `State*`/`proto*` constants, ...);
+   bufio's `Reader.Reset`, `Writer.Reset` (main tree, `Code/bufio.toml`). *Model changes* (MODEL, pending the
+   user's review; difftests pass): `Server.protocols` does not read `GODEBUG=http2server` (it decides only the
+   HTTP/2 bit, which only TLS, not modelled, reads), and `onceSetNextProtoDefaults` configures no HTTP/2 (as
+   with `nethttpomithttp2`: the model's claim excludes programs reading `TLSConfig`/`TLSNextProto` after
+   `Serve`). *Proved and linked* (`Net/Proof/net/http/Results.lean`, Lean's three axioms): the connection
+   reader's vocabulary (`ConnReader.lean`: `crIs` over a mutex invariant by phase, main or background, the
+   background reader's token, `crRead`; `headLaw P hs Z`: the dialer writes a prefix of its head or `Z cn`,
+   `zLaw Z Q`: `Z cn` refutes the acceptor's `sendTok cn true Q []`), `connReader.backgroundRead` (a byte past
+   the head gives `Z cn`), `connReader.abortPendingRead` (the read deadline in the past, `Cond.Wait` until the
+   read is done, the reader's resources back), `conn.hijackLocked` (the reader's byte refuted, the reader's
+   token at exactly the head), `response.Hijack` (`hjPre ⊢ hijackOk … (hjDone …)`, `ServerConn.lean`), and the
+   helpers `lock`/`unlock`/`closeNotify`/`handleReadErrorLocked`, `trackConn`, `setState`, `putBufioWriter`,
+   bufio's `Writer.Reset` over `rawWriter`. `hijackOk` takes the server's resource `D` (`ServeHTTP.spec` for
+   every `D`). *Finding* (ledger, pending): Go's server answers a cut handshake with a 400 that `respProto`
+   does not allow; the client's `ReadResponse` must then read it.
+   *Left, in order*: `startBackgroundRead`, `connReader.Read` (the head read through bufio as an
+   `io.readerStreamNE`, with `sendTok` in the stream's state so `headLaw` gives the prefix law
+   `modelReadMIMEHeader` needs), `releaseConn`, `newBufioReader`/`newBufioWriterSize` (the pools' predicates:
+   `wPools`, a reader pool likewise; net/http's initialization gives them, a premise until then),
+   `readRequest` (needs `url.ParseRequestURI` with its body: `net/url` is the main tree's names-only
+   translation, project etcd; and `strings` functions Perennial has names-only), `c.readRequest` (contexts:
+   `WithCancel` has Perennial's spec, `WithValue` none, `Background()` no `isContext`: Perennial change or a
+   model change), `conn.serve` (its spec over `rpcLisP`, with the 400 premise of the finding), `Server.Serve`
+   (the accept loop; `Temporary()` back-off, `logf`), `ListenAndServe`, `ServeMux.Handle`/`ServeHTTP` on an exact
+   path (Go 1.22 patterns: `parsePattern`, the routing tree; `use121` reads `GODEBUG=httpmuxgo121` at init:
+   both muxes, or a model decision), `HandleHTTP` (`runtime.Caller` in `registerErr`: not modelled by Perennial).
+   **The connection reader's other methods (2026-11-23, same branch).** *Proved and linked*
+   (`Net/Proof/net/http/Results.lean`, Lean's three axioms): `connReader.startBackgroundRead` (main phase to
+   background: the fields into the mutex invariant, `backgroundRead` forked with the token, the buffer and the
+   reader's token at exactly the head), `connReader.releaseConn` (after a hijack, `crLeft` to `crLeft`), and
+   `connReader.Read` in the head phase: `crHead cr γ cn P Q L c r` (`ConnReaderHead.lean`: the main phase, the
+   fields owned, `remain` at `L - len(r)`, the acceptor's `sendTok cn true Q []`, the reader's token at `R` past the
+   delivered `r`, at it while no read failed), so `io.readerStreamNE` with `crHeadErr` (every error a pointer;
+   `ConnReaderStream.lean`: `crHead_stream`, `crHead_bound`) and the head's prefix law `crHead_prefix` (`headLaw`,
+   `zLaw`: `r <+: hs`), which `modelReadLine`/`modelReadMIMEHeader` take. No spec or model change.
+   *Left, in order*: the pools (`newBufioReader` needs a spec of bufio's `Reader.Reset`, translated but
+   unspecified, and a reader pool predicate like `wPools`; `newBufioWriterSize` needs a lemma from `NewWriterSize`'s
+   `ownBufWriter … [] nil` to `rawWriter`), then `readRequest`, `conn.serve`, `Serve`/`ListenAndServe`, the mux,
+   `HandleHTTP`, as listed above, under the decisions of 2026-11-23 (the 400 answer in `respProto` and read by
+   `ReadResponse`; the model's mux Go 1.22's, not reading `httpmuxgo121`; `registerErr`'s `runtime.Caller`
+   unreachable; contexts by Perennial's specs first; `url.ParseRequestURI` and the `strings` functions by local
+   proofs first). Not yet merged: `origin/lean`'s Perennial bump (`71de6f043`, `strings.Builder` and
+   `bytealg`), which rebuilds the whole tree.
+   **The pools (2026-11-23, same branch).** `origin/lean` merged (Perennial `71de6f043`; nothing regenerated
+   changed, `Net.Proof.net.{rpc,http}.Results` rebuilt without drift). *Proved*: bufio's `Reader.Reset`
+   (main tree, `Spec/bufio/Reader__Reset.lean`: from `bufio.rawReader`, a reader with a buffer of 1 to 4096
+   bytes, to `bufio.freshReader b rd`; `Proof/bufio/RawReader.lean`: `freshReader_own`, a fresh reader over a
+   stream in the state `S r` is `bufio.ownReader … r`); `bufio.NewWriterSize.specRep` (generic: a fresh
+   writer's fields `bufio.writerRep … [] nil` over any destination not a `*bufio.Writer`, nothing asked of
+   it), of which `NewWriterSize.spec` is now an instance (one proof of the body; `wp_proof` takes
+   `wp_proofRep`, the rabia server's `Link` passes it), and `bufio.writerRep_raw` (`RawWriter.lean`). In
+   `ServerConnLemmas.lean`: `wp_newBufioReader` (a pooled reader reset, or `NewReader`: `ownReader … r`
+   over the stream reader) and `wp_newBufioWriterSize` (2048 or 4096: `rawWriter bw sz`, the destination
+   not recorded, as the server writes nothing before the hijack). The reader pool `rPool`
+   (`ServerConn.lean`, like `wPools`) is a premise, as `wPools` is: net/http's initialization gives both,
+   not proved. No spec of a client changed, no model change.
+   *`readRequest`, what it needs first* (found 2026-11-23, nothing done yet): the translation lacks bodies
+   that the `CONNECT path HTTP/1.0` head reaches: `isToken` (`validMethod`'s body) over httpguts'
+   `ValidHeaderFieldName` (httpguts translates only `HeaderValuesContainsToken`), `Server.maxHeaderValueCount`
+   (`conn.readRequest`), and `url.ParseRequestURI` (main tree's `net/url`, project etcd, names-only;
+   `parse`/`getScheme`/`setPath` call `strings.ToLower`/`Count`/`Cut`/`Index`, names-only in Perennial).
+   Plan: add the first two to `Net/Code/net/http.toml` and httpguts' `.toml`; for `url.ParseRequestURI`,
+   bodies over a path in a safe alphabet (`/`-initial, no `?`, `%`, `//` prefix, control bytes), or a
+   minimal model stand-in for review if `strings`' gaps block it. `conn.readRequest` also needs
+   `context.WithCancel` (Perennial spec), `time.Now`, the read limit (`setReadLimit`, translated), the
+   request-body type switch (`readTransfer` on a request: its spec is the response's), and the response's
+   allocation (`newBufioWriterSize(&w.cw, 2048)`, now proved).
+   **The request line and URI (2026-11-23, same branch).** *Translation*: httpguts' `ValidHeaderFieldName` and
+   its table `isTokenTable` (the array literal, so its initializer is translated: `isTokenTable.init` is gone),
+   net/http's `isToken`, `Server.maxHeaderValueCount`, `DefaultMaxHeaderValueCount`; regenerated (`KvNet/`'s
+   copies, `gen-init --check` clean). *`url.ParseRequestURI`, not over its body*: Go's `parse(raw, true)` calls
+   `strings.ToLower` (always) and `strings.Cut(rest, "?")` (Perennial: names only; `Cut`/`Index` reach
+   `bytealg.IndexByteString`, untranslated), `setPath`'s `escape` reads `net/url`'s `table` (a `[[skip]]`
+   variable), and `net/url` is the main tree's names-only translation (bodies would rebuild `zap`, `rafthttp`,
+   `types`): `notes/perennial-changes.md`, 2026-11-23. *Model change* (MODEL, pending the user's review;
+   `models/net/http/textproto_model.go`): `readRequestLimit` calls `modelParseRequestURI`, which on a URI `/`
+   followed by bytes `modelPathByte` accepts (letters, digits, `-_.~$&+,/:;=@`) returns `&url.URL{Path: raw}`
+   (Go's result: no scheme, query, authority, escape or `RawPath`) and otherwise calls Go's function; evidence
+   `internal/httpdifftest`'s `TestReadRequestURI` (every byte after `/`, inside a path, after `//`; 2000 random
+   paths; every `URL` field; golden from the real build), `run.sh` passes. *Proved and linked*
+   (`Results.lean`, Lean's three axioms): `modelParseRequestURI` on a `reqPath` (`RequestDefs.lean`; over
+   `modelPathBytes`, `modelPathByte`), `parseRequestLine` (`parseReqLine`, two `modelCutByte`s), `validMethod`
+   over `isToken` over httpguts' `ValidHeaderFieldName` (`!v.isEmpty && v.all fieldByte`, reading
+   `isTokenTable` through `tokenTable`, `Net/Proof/vendor/.../httpguts/Defs.lean`: the table's value as its
+   initializer sets it, a premise until httpguts' initialization is proved, as `httpEnv`).
+   *Left, in order*: `readRequestLimit` on `CONNECT path HTTP/1.0` + `"\n\n"` (its pieces now all proved:
+   `modelReadLine`, `parseRequestLine`, `validMethod`, `ParseHTTPVersion`, `strings.HasPrefix` (Perennial),
+   `modelParseRequestURI`, `modelReadMIMEHeader`, `Header.get`, `fixPragmaCacheControl`, `shouldClose`; still
+   needed: `readTransfer`'s spec for a `*Request` (it is stated for a `*Response`), `isH2Upgrade`, the deferred
+   `io.EOF` to `io.ErrUnexpectedEOF`; its spec as `ReadResponse.spec`'s over `crHead_stream`/`crHead_prefix`,
+   the failure case any error); `Server.maxHeaderValueCount`, then `conn.readRequest` (`time.Now`,
+   `setReadLimit`/`hitReadLimit`, `http1ServerSupportsRequest`, the `Host` checks on an empty header,
+   `context.WithCancel`, the body type switch on `NoBody`, the response's allocation); the decided 400 change
+   (`respProto` also allows prefixes of `badReqAns`, `ReadResponse.spec` over them, `DialHTTPPath`'s error on
+   it: ledger 2026-11-23, accepted, not applied); then `conn.serve`, `Serve`/`ListenAndServe`, the mux,
+   `HandleHTTP`.
+   **The 400 answer and the request (2026-11-23, same branch; ledger 2026-11-23, "net/http's head readers
+   widened").** *The 400 change, applied*: `respProto` also holds of every prefix of `hsErr (W.hsAns a)`
+   (`badReqAns` over HTTP, nothing for raw net/rpc), at any time; the client's readers exclude it past the
+   handshake's answer (`hsErr_excl`; `resp_of_read`, `resp_before_req`, `crSt`, `DialHTTPPath`: the 400's
+   status is not `connectedStatus`, its error); `ReadResponse.spec`'s stream a prefix of `connectAns` or
+   `badReqAns`. *Generalized, one spec per function, the old ones instances*: `modelReadMIMEHeader` over a
+   header block (`hdrBlockOk`, `hdrWire`, `hdrOwn`, `Defs.lean`; the law relative to the reader's position;
+   errors `mimeErr`: the stream's or a `ProtocolError`), httpguts' `ValidHeaderFieldValue` (translated with its
+   body), `shouldClose`/`fixPragmaCacheControl`/`parseTransferEncoding`/`fixLength`/`fixTrailer` over a
+   header map without the names they test, `readTransfer` for a `*Response` or a `*Request` (a conjunction;
+   the request without a body, `reqNoBody`), `ParseHTTPVersion` on a prefix of either version,
+   `badStringError`'s error a pointer; `httpEnv` also holds httpguts' `tokenTable`, `strings`' initialization
+   and `errTooLarge`. *Model change* (MODEL, pending the user's review): `shouldClose` calls the model's
+   `modelHeaderValuesContainsToken` (httpguts' code, `strings.IndexByte` as `modelIndexByte`: Perennial has it
+   as a name only), with `modelHeaderValueContainsToken`, `modelIndexByte`, `modelTrimOWS`, `modelLowerASCII`,
+   `modelTokenEqual` translated and proved; httpguts' `HeaderValuesContainsToken` no longer translated with its
+   body; evidence `TestReadResponse`'s new heads (Go's 400 answer, Connection tokens), `run.sh` passes.
+   *Proved and linked* (`Results.lean`, Lean's three axioms): all of the above, `readRequestLimit` on
+   `connectReq path` (`readRequestLimit.spec`: the stream a prefix of it, finality, `errMsgOk` of its errors;
+   post an error, or `connectReqv req path` and the reader past the request; `textproto.ProtocolError.Error`
+   translated) and `Server.maxHeaderValueCount`.
+   *Left, in order*: `conn.readRequest` needs of `c.bufr`'s stream (`crHead`) what `readRequestLimit.spec`
+   asks: finality and `errMsgOk` of its errors, which `crHeadErr` (`True`) does not give (strengthen it to the
+   failure's record, as `crErr`, and its errors to `io.EOF`'s and the net model's `OpError`s with their
+   `Error()`), a bound on the path's length (`crHead_bound`'s `L`), and the dialer's handshake a `connectReq
+   path` with `reqPath path`; then `time.Now`, `setReadLimit`/`hitReadLimit`, `http1ServerSupportsRequest`,
+   the `Host` checks, `context.WithCancel` (Perennial's spec), the body switch on `NoBody`,
+   `SetReadDeadline` of the zero time, the response's allocation; then `conn.serve` (the 400 answer is now
+   `respProto`'s), `Serve`/`ListenAndServe`, the mux, `HandleHTTP`.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

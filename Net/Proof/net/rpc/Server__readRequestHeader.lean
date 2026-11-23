@@ -174,10 +174,13 @@ theorem Server.readRequestHeader.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF :=
     icases Hsv with ⟨#Hreg, #HerrOk⟩
     iunfold svcReg at Hreg
     icases Hreg with ⟨%sv, #Hel, #Hsvc⟩
+    ihave #HhsA := hsAns_of_read W a cn (W.hs a ++ framesOf (ps ++ [reqHdr (W64 k) r.sm]))
+      (fun h => framesOf_snoc_ne ps (reqHdr (W64 k) r.sm) (List.eq_nil_of_length_eq_zero (by
+        have := h.length_le; simp only [List.length_append] at this; omega))) $$ Hpp
     ihave Hpend : ansPend W a cn k r.sm Φc $$ [Hans]
     · iunfold ansPend
       iexists γ, L, r
-      iframe Hrpc Hlb Hans Hpost
+      iframe Hrpc Hlb Hans Hpost HhsA
       ipureintro; exact ⟨Hr, rfl, Hk⟩
     ihave Hmid : rdrMid W a cn k r $$ [HrT Hctr]
     · iunfold rdrMid

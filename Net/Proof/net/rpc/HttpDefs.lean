@@ -7,7 +7,8 @@ dialer's end of a connection registered in a world `W`, before any request.
   `cn` to `a` (`connAt`).
 * `crSt W a cn γ cr γe r`: `cr` has delivered `r`, the connection's reader at `R` (`recvTok`), a
   prefix of the answer (`connectAns`: the acceptor writes nothing beyond it before a request, and
-  the dialer, holding its half of the request list at `[]`, has written none); its `failed` flag,
+  the dialer, holding its half of the request list at `[]`, has written none) or of net/http's `400`
+  answer (`badReqAns`, `hsErr`: the server could not read the handshake); its `failed` flag,
   and the once-cell `γe` (a monotone list): empty while `cr` has not failed, and then `R = r`;
   `[r]` once it failed at `r` (its lower bound persistent; after the failure `cr` reads the
   connection on into a buffer of its own: `r <+: R`).
@@ -57,7 +58,7 @@ def crSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (cr : L
   iprop(∃ (f : Bool) (R : List w8), structFieldRef net.rpc.connectReader go!"failed" cr ↦ f ∗
     recvTok (Gg := hG.goose_globalGS) cn false (respProto W a) R ∗
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
-    monoListAuthOwn γ.reqs (1 : Qp).half ([] : List RpcReq) ∗ ⌜r <+: R ∧ R <+: connectAns⌝ ∗
+    monoListAuthOwn γ.reqs (1 : Qp).half ([] : List RpcReq) ∗ ⌜r <+: R ∧ (R <+: connectAns ∨ R <+: badReqAns)⌝ ∗
     ((⌜f = true⌝ ∗ monoListAuthOwn γe 1 [r]) ∨
       (⌜f = false ∧ R = r⌝ ∗ monoListAuthOwn γe 1 ([] : List (List w8)))))
 
@@ -91,20 +92,23 @@ theorem crErr_final (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNam
     exact absurd (List.prefix_nil.1 Hp) (by simp)
 
 /-- Before any request (the dialer's half of the request list at `[]`), what the dialer reads of the
-acceptor is a prefix of the handshake's answer: no answer is recorded (`connInv`: an answer's index
+acceptor is a prefix of the handshake's answer or of the error answer (`hsErr`): no answer is recorded (`connInv`: an answer's index
 is below the requests taken). -/
 theorem resp_before_req (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames)
     (R : List w8) :
     isRpcConn (Gg := hG.goose_globalGS) W a cn γ ∗
       monoListAuthOwn γ.reqs (1 : Qp).half ([] : List RpcReq) ∗ £ 1 ∗
       protoPrefix (respProto (Gg := hG.goose_globalGS) W a) cn R ⊢
-    |={⊤}=> monoListAuthOwn γ.reqs (1 : Qp).half ([] : List RpcReq) ∗ ⌜R <+: W.hsAns a⌝ := by
+    |={⊤}=> monoListAuthOwn γ.reqs (1 : Qp).half ([] : List RpcReq) ∗
+      ⌜R <+: W.hsAns a ∨ R <+: hsErr (W.hsAns a)⌝ := by
   iintro ⟨#Hrpc, Hh, Hlc, #Hpp⟩
   iunfold protoPrefix at Hpp
   icases Hpp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
-  · subst Hnil; iframe Hh; imodintro; ipureintro; exact List.nil_prefix
+  · subst Hnil; iframe Hh; imodintro; ipureintro; exact Or.inl List.nil_prefix
   iunfold respProto at HP
-  icases HP with ⟨%γ', %Rs, #Hrpc', #Hels, ⟨%HRs, %Hpre⟩, -⟩
+  icases HP with (⟨%γ', %Rs, #Hrpc', #Hels, ⟨%HRs, %Hpre⟩, -⟩ | %Herr)
+  rotate_left
+  · iframe Hh; imodintro; ipureintro; exact Or.inr (Hext.trans Herr)
   ihave #Hrpc0 := Hrpc
   iunfold isRpcConn at Hrpc0 Hrpc'
   icases Hrpc0 with ⟨#He, #Hinv⟩
@@ -115,7 +119,7 @@ theorem resp_before_req (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcCon
   cases Rs with
   | nil =>
     iframe Hh; imodintro; ipureintro
-    simpa [respsWire, framesOf] using Hext.trans Hpre
+    exact Or.inl (by simpa [respsWire, framesOf] using Hext.trans Hpre)
   | cons x Rs =>
     ihave #Hx := BigSepL.bigSepL_lookup
       (Φ := fun _ (x : Ans) => ghostMapElem (GF := GF) γ.ans x.idx .discard (some (x.msg, x.reply)))

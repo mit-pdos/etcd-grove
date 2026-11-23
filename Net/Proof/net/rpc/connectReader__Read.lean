@@ -80,7 +80,9 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
     simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
     iframe Hp
     isplitr
-    · ipureintro; exact ⟨by simp, by simp⟩
+    · ipureintro
+      have hx0 : xs.length = 0 := by rw [Hlen.1]; rw [Hif]; rfl
+      exact ⟨by simp, by simp, fun h => absurd (List.eq_nil_of_length_eq_zero hx0) h⟩
     isplitr
     · iapply EtcdGrove.io.errAt_nil
     iunfold crSt
@@ -130,13 +132,13 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
         ipureintro; exact Or.inr ⟨_, pe, rfl⟩
     -- the result: no byte, the error (or `io.ErrUnexpectedEOF`), once the protocol fact is out
     ihave Hpost : (£ 1 -∗ £ 1 -∗ |={⊤}=> ∀ e : GoInterface,
-        ⌜e = interface.nil ∨ (∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l)⌝ -∗
+        ⌜∃ (T : go.GoType) (l : Loc), e = interface.mkOk (go.GoType.PointerType T) #l⌝ -∗
         Φ (PairV #(W64 0) #e)) $$ [Hp Hf HrT Hh HΦ Hc]
     · iintro Hlc1 Hlc2
       imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
       icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp⟩
       imod resp_before_req W a cn γ _ $$ [$Hrpc $Hh $Hlc2 $Hpp] with ⟨Hh, %Hpre⟩
-      rw [HhsA] at Hpre
+      rw [HhsA, show hsErr connectAns = badReqAns from ite_eq_left rfl] at Hpre
       imodintro
       iintro %e %He
       iapply HΦ
@@ -144,15 +146,16 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
       simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
       iframe Hp
       isplitr
-      · ipureintro; exact ⟨by simp, by simp⟩
+      · ipureintro
+        obtain ⟨T, l, rfl⟩ := He
+        exact ⟨by simp, by simp, fun _ => Or.inr (by simp [interface.mkOk])⟩
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []
         · iright; imodintro; iunfold crErr; iexact Hlb
         · ipureintro
-          rcases He with rfl | ⟨T, l, rfl⟩
-          · exact _root_.Perennial.io.ptrTyped_nil
-          · intro ii T' h _; simp only [interface.mkOk] at h; cases h; exact ⟨l, rfl⟩
+          obtain ⟨T, l, rfl⟩ := He
+          intro ii T' h _; simp only [interface.mkOk] at h; cases h; exact ⟨l, rfl⟩
       iunfold crSt
       iexists true, (R ++ res.got)
       iframe Hf HrT Hrpc Hh
@@ -170,10 +173,12 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
     rcases Herr with Herr | ⟨T, l, Herr⟩
     · rw [Herr]
       wp_auto
-      iapply Hpost $$ %_ %(Or.inr ⟨_, xu, rfl⟩)
+      iapply Hpost
+      ipureintro; exact ⟨_, xu, rfl⟩
     · rw [Herr]
       wp_auto
-      iapply Hpost $$ %_ %(Or.inr ⟨T, l, rfl⟩)
+      iapply Hpost
+      ipureintro; exact ⟨T, l, rfl⟩
   | false =>
     -- not failed: read into `p`
     icases Hc with (⟨%Hf, -⟩ | ⟨⟨-, %HR⟩, Hc⟩)
@@ -204,7 +209,7 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
     imod lc_fupd_elim_later (E := ⊤) $$ Hlc1 HrT with HrT
     icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ HrT with ⟨HrT, #Hpp⟩
     imod resp_before_req W a cn γ _ $$ [$Hrpc $Hh $Hlc2 $Hpp] with ⟨Hh, %Hpre⟩
-    rw [HhsA] at Hpre
+    rw [HhsA, show hsErr connectAns = badReqAns from ite_eq_left rfl] at Hpre
     imodintro
     have hxl : xs.length = p.len.toNat := by
       rw [Hlen.1]; have := Hlen.2; unfold sint.nat; word
@@ -229,7 +234,7 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
       iframe Hp
       isplitr
       · ipureintro
-        refine ⟨?_, hbl⟩
+        refine ⟨?_, hbl, fun _ => Or.inl (by rintro rfl; simp at hb1)⟩
         rw [Nat.min_eq_right hbl] at hk
         word
       isplitr
@@ -264,7 +269,8 @@ theorem connectReader.Read.wp_proof (wp_Read : net.Conn.Read.spec (GF := GF) (hG
       simp only [List.append_nil, List.length_nil, List.drop_zero, List.nil_append]
       iframe Hp
       isplitr
-      · ipureintro; exact ⟨by rw [hk]; rfl, by simp⟩
+      · ipureintro
+        exact ⟨by rw [hk]; rfl, by simp, fun _ => Or.inr (by simp [interface.mkOk])⟩
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []

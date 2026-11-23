@@ -711,6 +711,24 @@ type connReader struct {
 	inRead  bool
 	aborted bool  // set true before conn.rwc deadline is set to past
 	remain  int64 // bytes remaining
+
+	// MODEL: failed is the model's own (not in Go's net/http): set by a read of the connection
+	// that returned an error (but the timeout abortPendingRead provokes), after which the
+	// connection reader delivers no byte (Read, backgroundRead). Go's connReader keeps no read
+	// error and reads on, and the server reads a request's head through a bufio.Reader that does
+	// not keep one either (textproto's ReadLine returns a line cut by an error without the error),
+	// so a byte after a read error would be parsed as the head's rest. Over Linux a connection's
+	// end yields no byte after a read error but a read deadline's timeout (EOF, then EOF; a reset,
+	// then EOF; a killed peer's unread input; a broken path: examples/net/semantics'
+	// TestReadEOFAfterFin, TestResetInNetwork, TestKilledWithUnreadInput, TestTimeoutOnBreak), so
+	// Go's later reads fail too; the net extension's semantics allows bytes after a read error (a
+	// broken direction's surviving bytes). After a timeout bytes may follow on Linux, so the
+	// model's claim excludes programs whose served connections have read deadlines: a Server with
+	// ReadTimeout, ReadHeaderTimeout or IdleTimeout set, or a handler's SetReadDeadline
+	// (ResponseController). After a failure a read reads the connection into a buffer of its own
+	// and returns no byte, with the connection's error or io.ErrUnexpectedEOF in place of bytes (a
+	// case Linux does not have). Over Linux without read deadlines the same behavior as Go's.
+	failed bool
 }
 
 func (cr *connReader) lock() {
@@ -745,7 +763,8 @@ func (cr *connReader) startBackgroundRead() {
 func (cr *connReader) backgroundRead() {
 	n, err := cr.rwc.Read(cr.byteBuf[:])
 	cr.lock()
-	if n == 1 {
+	// MODEL: no byte after a read error (connReader.failed).
+	if n == 1 && !cr.failed {
 		cr.hasByte = true
 		// We were past the end of the previous request's body already
 		// (since we wouldn't be in a background read otherwise), so
@@ -774,6 +793,7 @@ func (cr *connReader) backgroundRead() {
 		// Ignore this error. It's the expected error from
 		// another goroutine calling abortPendingRead.
 	} else if err != nil {
+		cr.failed = true // MODEL: connReader.failed
 		cr.handleReadErrorLocked(err)
 	}
 	cr.aborted = false
@@ -852,12 +872,24 @@ func (cr *connReader) Read(p []byte) (n int, err error) {
 		return 1, nil
 	}
 	cr.inRead = true
+	failed := cr.failed
 	cr.unlock()
-	n, err = cr.rwc.Read(p)
+	if failed {
+		// MODEL: no byte after a read error (connReader.failed): the connection read into a
+		// buffer of the model's own.
+		_, err = cr.rwc.Read(make([]byte, len(p)))
+		if err == nil {
+			err = io.ErrUnexpectedEOF
+		}
+		n = 0
+	} else {
+		n, err = cr.rwc.Read(p)
+	}
 
 	cr.lock()
 	cr.inRead = false
 	if err != nil {
+		cr.failed = true // MODEL: connReader.failed
 		cr.handleReadErrorLocked(err)
 	}
 	cr.remain -= int64(n)
@@ -3619,9 +3651,9 @@ func (s *Server) protocols() Protocols {
 	// If GODEBUG=http2server=0, then HTTP/2 is disabled unless
 	// the user has manually added an "h2" entry to TLSNextProto
 	// (probably by using x/net/http2 directly).
-	if http2server.Value() == "0" && !hasH2 {
-		http2Disabled = true
-	}
+	// MODEL: the GODEBUG setting is not read (internal/godebug is not translated): it decides
+	// only the HTTP/2 bit, which only a TLS connection (not modelled) reads; a connection the
+	// model serves reads only HTTP1 and UnencryptedHTTP2 (conn.serve).
 
 	var p Protocols
 	p.SetHTTP1(true) // default always includes HTTP/1
@@ -3936,25 +3968,30 @@ var http2server = godebug.New("http2server")
 // onceSetNextProtoDefaults configures HTTP/2, if the user hasn't
 // configured otherwise. (by setting s.TLSNextProto non-nil)
 // It must only be called via s.nextProtoOnce (use s.setupHTTP2_*).
+//
+// MODEL: HTTP/2 is not configured, as in a build with the nethttpomithttp2 tag (Go's code below,
+// commented out): configuring it sets the Server's TLSConfig, TLSNextProto and h2IdleTimeout and
+// registers a shutdown hook, which only a TLS connection (not modelled) uses; the model's claim
+// excludes programs that read those fields after Serve, or Shutdown's hook count.
 func (s *Server) onceSetNextProtoDefaults() {
-	if omitBundledHTTP2 {
-		return
-	}
-	p := s.protocols()
-	if !p.HTTP2() && !p.UnencryptedHTTP2() {
-		return
-	}
-	if http2server.Value() == "0" {
-		http2server.IncNonDefault()
-		return
-	}
-	if _, ok := s.TLSNextProto["h2"]; ok {
-		// TLSNextProto already contains an HTTP/2 implementation.
-		// The user probably called golang.org/x/net/http2.ConfigureServer
-		// to add it.
-		return
-	}
-	s.configureHTTP2()
+	// if omitBundledHTTP2 {
+	// 	return
+	// }
+	// p := s.protocols()
+	// if !p.HTTP2() && !p.UnencryptedHTTP2() {
+	// 	return
+	// }
+	// if http2server.Value() == "0" {
+	// 	http2server.IncNonDefault()
+	// 	return
+	// }
+	// if _, ok := s.TLSNextProto["h2"]; ok {
+	// 	// TLSNextProto already contains an HTTP/2 implementation.
+	// 	// The user probably called golang.org/x/net/http2.ConfigureServer
+	// 	// to add it.
+	// 	return
+	// }
+	// s.configureHTTP2()
 }
 
 // TimeoutHandler returns a [Handler] that runs h with the given time limit.

@@ -129,13 +129,13 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iexists false, []
       iframe failed Hrecv Hrpc Hreqs
       isplitr
-      · ipureintro; exact ⟨List.nil_prefix, List.nil_prefix⟩
+      · ipureintro; exact ⟨List.nil_prefix, Or.inl List.nil_prefix⟩
       iright
       iframe Hγe
       ipureintro; exact ⟨rfl, rfl⟩
-    ihave #Hstream : EtcdGrove.io.readerStream ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
+    ihave #Hstream : EtcdGrove.io.readerStreamNE ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
         (crSt W a cn γ cr γe) (crErr γe) $$ []
-    · iunfold EtcdGrove.io.readerStream
+    · iunfold EtcdGrove.io.readerStreamNE
       imodintro
       iintro %r0 %p %xs
       imodintro
@@ -152,17 +152,30 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       simp only [ne_eq, go.GoType.PointerType.injEq]
       unfold net.rpc.connectReader.ty _root_.Perennial.bufio.Reader.ty
       simp
-    wp_apply wp_NewReader ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
-        (crSt W a cn γ cr γe) (crErr γe) [] hty $$ [$Hbufio $HS0] as %b Hb
-    irename «$a1» => Hreq
-    generalize «$a1_ptr» = req at *
-    -- the laws `ReadResponse` takes of the stream
-    ihave #Hlaw1 : (□ ∀ r0, crSt W a cn γ cr γe r0 -∗ ⌜r0 <+: connectAns⌝ : IProp GF) $$ []
+    ihave #Hstream0 := EtcdGrove.io.readerStreamNE_readerStream _ _ _ $$ Hstream
+    ihave #Hbound : (□ ∀ r0, crSt W a cn γ cr γe r0 -∗ ⌜r0.length + 2 ^ 12 < 2 ^ 62⌝ : IProp GF) $$ []
     · imodintro
       iintro %r0 HS
       iunfold crSt at HS
       icases HS with ⟨%f, %R, -, -, -, -, ⟨%h1, %h2⟩, -⟩
-      ipureintro; exact h1.trans h2
+      ipureintro
+      have h4 : connectAns.length = 34 := by decide
+      have h5 : badReqAns.length = 103 := by decide
+      rcases h2 with h2 | h2
+      · have h3 := (h1.trans h2).length_le; omega
+      · have h3 := (h1.trans h2).length_le; omega
+    wp_apply wp_NewReader ⟨go.GoType.PointerType net.rpc.connectReader.ty, #cr⟩
+        (crSt W a cn γ cr γe) (crErr γe) [] hty $$ [$Hbufio $Hstream0 $Hbound $HS0] as %b Hb
+    irename «$a1» => Hreq
+    generalize «$a1_ptr» = req at *
+    -- the laws `ReadResponse` takes of the stream
+    ihave #Hlaw1 : (□ ∀ r0, crSt W a cn γ cr γe r0 -∗
+        ⌜r0 <+: connectAns ∨ r0 <+: badReqAns⌝ : IProp GF) $$ []
+    · imodintro
+      iintro %r0 HS
+      iunfold crSt at HS
+      icases HS with ⟨%f, %R, -, -, -, -, ⟨%h1, %h2⟩, -⟩
+      ipureintro; exact h2.imp h1.trans h1.trans
     ihave #Hlaw2 : (□ ∀ (r0 r' : List w8) (e : GoInterface), crErr γe r0 e -∗
         crSt W a cn γ cr γe r' -∗ ⌜r0 <+: r' → r' = r0⌝ : IProp GF) $$ []
     · imodintro
@@ -226,9 +239,11 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     icases HS with ⟨%f, %R, -, Hrecv, -, Hreqs, ⟨%h1, %h2⟩, -⟩
     have hR : R = connectAns := by
       have l1 := h1.length_le
-      have l2 := h2.length_le
       simp only [List.length_append] at l1
-      exact h2.eq_of_length (by omega)
+      rcases h2 with h2 | h2
+      · have l2 := h2.length_le
+        exact h2.eq_of_length (by omega)
+      · exact absurd ((List.prefix_append _ _).trans h1 |>.trans h2) (by decide)
     subst hR
     icases recvTok_proto (Gg := hG.goose_globalGS) cn false _ _ $$ Hrecv with ⟨Hrecv, #Hpp⟩
     -- the acceptor wrote it after the dialer's whole request
@@ -237,7 +252,11 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       icases Hpp with (%Hnil | ⟨%ext, %Hext, #HP⟩)
       · exfalso; simp [connectAns] at Hnil
       iunfold respProto at HP
-      icases HP with ⟨%γ', %Rs, -, -, -, (%He | #Hs)⟩
+      icases HP with (⟨%γ', %Rs, -, -, -, (%He | #Hs)⟩ | %Herr)
+      rotate_right
+      · exfalso
+        rw [HhsA, show hsErr connectAns = badReqAns from ite_eq_left rfl] at Herr
+        exact absurd (Hext.trans Herr) (by decide)
       · exfalso
         subst He
         have := Hext.length_le

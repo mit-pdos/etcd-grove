@@ -170,14 +170,16 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 		}
 		return nil, err
 	}
-	proto, status, ok := strings.Cut(line, " ")
+	// MODEL: strings.Cut and strings.TrimLeft of a one-byte separator are the model's modelCutByte and
+	// modelTrimLeftByte (textproto_model.go).
+	proto, status, ok := modelCutByte(line, ' ')
 	if !ok {
 		return nil, badStringError("malformed HTTP response", line)
 	}
 	resp.Proto = proto
-	resp.Status = strings.TrimLeft(status, " ")
+	resp.Status = modelTrimLeftByte(status, ' ')
 
-	statusCode, _, _ := strings.Cut(resp.Status, " ")
+	statusCode, _, _ := modelCutByte(resp.Status, ' ')
 	if len(statusCode) != 3 {
 		return nil, badStringError("malformed HTTP status code", statusCode)
 	}
