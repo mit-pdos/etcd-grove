@@ -249,7 +249,133 @@ theorem grpc.createHeaderFields.wp_proof
             iexists GoInterface.ok e, _
             iframe
             ipureintro; exact Hne
-      · sorry
+      · -- the credentials' map
+        subst Heq
+        dsimp only
+        wp_auto
+        iunfold credsMapAt at Hcm
+        icases Hcm with (%Hnull | #Hcm)
+        · obtain ⟨rfl, rfl⟩ := Hnull
+          wp_call
+          wp_for_post
+          iframe Hpcs «$res0» «$res1» aud ctxWithRequestInfo authData
+          iexists n + W64 1, GoInterface.ok pci, M, cms ++ [∅]
+          simp only [named]
+          iframe
+          isplitl []
+          · iapply BigSepL.bigSepL_singleton.2
+            iexact HQcm
+          ipureintro
+          refine ⟨by word, by word, by simp; word, ?_, fun k => ?_⟩
+          · intro cm hm
+            rcases List.mem_append.1 hm with hm | hm
+            · exact Hn.2.2.2.1 cm hm
+            · simp at hm; subst hm; exact Hck
+          · rw [grpcHdr.credsLookup_snoc, ← Hn.2.2.2.2 k]; simp
+        · wp_apply (wp_map_for_range (K := GoString) (V := GoString) (fun keys (j : Int) => iprop(
+              ∃ (Mi : GMap GoString GoString) (kv vv : GoString),
+              "k" ∷ k_ptr ↦ kv ∗ "v" ∷ v_ptr ↦ vv ∗ "Ham" ∷ am ↦$ Mi ∗
+              "authData" ∷ authData_ptr ↦ am ∗ "HR" ∷ R ∗ "Hpcs" ∷ pcsl ↦*{dqc} pcs ∗
+              "«$res0»" ∷ «$res0_ptr» ↦ zero_val GoSlice ∗
+              "«$res1»" ∷ «$res1_ptr» ↦ GoInterface.nil ∗
+              "%HMi" ∷ ⌜0 ≤ j ∧ ∀ k, Mi !! k =
+                (if k ∈ keys.take j.toNat then cm !! k else none).or (M !! k)⌝))) $$ Hcm
+          iintro %keys ⟨%Hmem, %Hsize, %Hnd⟩
+          isplitl [k v Ham authData HR Hpcs «$res0» «$res1»]
+          · iexists M, zero_val GoString, zero_val GoString
+            simp only [named]
+            iframe
+            ipureintro
+            refine ⟨by omega, fun k => ?_⟩
+            simp
+          isplitr
+          · imodintro
+            iintro %j %key %vl ⟨%Hk, %Hlook⟩ ⟨%Mi, %kv, %vv, k, v, Ham, authData, HR, Hpcs,
+              «$res0», «$res1», %HMi⟩
+            wp_auto
+            wp_apply wp_ToLower as %r %Hr
+            have hkey := (Hck key vl Hlook).1
+            obtain rfl : r = key := (Hr key hkey).2 (grpcHdr.lowersTo_self key)
+            wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.string))))
+              (Val (LiteralValueV _)))
+            iapply wp_slice_literal (V := GoString) (t := go.string) [vl]
+            wp_auto
+            isplitl []
+            · ipureintro; rfl
+            iintro %vsl ⟨Hvsl, -⟩
+            wp_apply (wp_ValidatePair r _ [vl] (DFrac.own 1)) $$ [$Hvsl] as %ve ⟨Hvsl, %Hve, #Hvf⟩
+            cases ve with
+            | nil =>
+              dsimp only
+              wp_auto
+              wp_apply (wp_mapInsert go.string am Mi r vl) $$ [$Ham] as Ham
+              unfold forMapPostcondition
+              iright; ileft
+              isplitr
+              · itrivial
+              iexists _, r, vl
+              simp only [named]
+              iframe
+              ipureintro
+              refine ⟨by omega, fun k => ?_⟩
+              have htake : keys.take (j + 1).toNat = keys.take j.toNat ++ [r] := by
+                rw [show (j + 1).toNat = j.toNat + 1 by omega, List.take_add_one, Hk]; rfl
+              rw [htake]
+              by_cases hkr : k = r
+              · subst hkr; simp [Hlook]
+              · have h2 := HMi.2 k
+                simp [hkr, Ne.symm hkr, h2]
+            | ok vi =>
+              dsimp only
+              wp_auto
+              ihave #Hvf' := fmtErrorOkOrNil_ne (GoInterface.ok vi) (by simp) $$ Hvf
+              iunfold fmtErrorOk at Hvf'
+              icases Hvf' with ⟨-, #Hstr⟩
+              iunfold fmt.stringMethodSpec at Hstr
+              wp_apply Hstr as %emsg
+              wp_apply (wp_Error (W32 13) emsg) as %e3 ⟨%He3, -⟩
+              · ipureintro
+                simp only [google_golang_org.grpc.codes.OK]
+                exact fun h => absurd (go.intoVal_inj h) (by decide)
+              unfold forMapPostcondition
+              iright; iright; iright; ileft
+              iexists #()
+              isplitr
+              · itrivial
+              iintro -
+              wp_for_post
+              iright
+              isplitr
+              · itrivial
+              iexists e3, _
+              iframe
+              ipureintro; exact He3
+          · iintro ⟨%Mi, %kv, %vv, k, v, Ham, authData, HR, Hpcs, «$res0», «$res1», %HMi⟩ -
+            wp_for_post
+            iframe Hpcs «$res0» «$res1» aud ctxWithRequestInfo authData
+            iexists n + W64 1, GoInterface.ok pci, Mi, cms ++ [cm]
+            simp only [named]
+            iframe
+            isplitl []
+            · iapply BigSepL.bigSepL_singleton.2
+              iexact HQcm
+            ipureintro
+            refine ⟨by word, by word, by simp; word, ?_, fun k => ?_⟩
+            · intro cm' hm
+              rcases List.mem_append.1 hm with hm | hm
+              · exact Hn.2.2.2.1 cm' hm
+              · simp at hm; subst hm; exact Hck
+            · rw [HMi.2 k, grpcHdr.credsLookup_snoc, ← Hn.2.2.2.2 k]
+              have htk : keys.take (GMap.size cm : Int).toNat = keys := by
+                apply List.take_of_length_le; rw [Hsize]; simp
+              rw [htk]
+              by_cases hk : k ∈ keys
+              · simp [hk]
+              · have : cm !! k = none := by
+                  cases h : cm !! k with
+                  | none => rfl
+                  | some _ => exact absurd ((Hmem k).2 (by simp [h])) hk
+                simp [hk, this]
     · have hn : sint.nat n = pcs.length := by
         obtain ⟨_, hle, _⟩ := Hn; obtain ⟨hl, _⟩ := Hpcsl; word
       rw [ite_eq_right (by simp [hlt]), ite_eq_right (by simp [hlt])]
