@@ -7,6 +7,7 @@ module
 
 public import Spec.net.Listen
 public import Net.Spec.net.Listen
+public import Net.Proof.net.AtAddr
 
 @[expose] public section
 
@@ -35,7 +36,9 @@ theorem net.Listen.wp_proof
   subst Hnw
   iunfold netAddrFree at Hfree
   icases Hfree with ⟨Hclaim, %hX, Htok, %Hok⟩
-  iapply (@wp_Listen hX go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ [Htok]
+  haveI : HasExt netExt := hX
+  have hA := _root_.Perennial.net.Listen.spec_addrOk (GF := GF) (hG := hG) wp_Listen
+  iapply (hA go!"tcp" _root_.Perennial.net.tcpNet_tcp addr) $$ [Htok]
   · isplitr
     · ipureintro; exact Hok
     · iapply fupd_mask_intro (by simp)
