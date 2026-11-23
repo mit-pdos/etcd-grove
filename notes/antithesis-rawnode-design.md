@@ -565,6 +565,64 @@ mechanism, refined from the above:
   `prev` and the storage unchanged by a non-snapshot step).
 - **Estimate**: 800-1,500 lines.
 
+### 2.6 Statements as written (2026-11-23)
+
+The statements of §2.1-§2.2 typecheck in `Proof/go_etcd_io/raft/v3/RawNodeAt.lean` (`ownRawNodeAt`,
+`pendAt`, `PendAbs`, `RnScope`, `absMsgOf`, `roleGo`, the entailments as `.law`s),
+`RawNodeAbsSpecs.lean` (`ReadyOut`, `PIdle`, `pInit`, `pAccepted`, `rnCfg`, `antStepTypes`, the
+`RawNode.<F>.form`/`absSpec`/`spec_of_abs.law`, `NewRawNode.emptyStartForm`/`emptyStartAbsSpec`) and
+`RawNodeApi.lean` (`rawNode`, the `apiSpec`s, the laws, `rnBudget`/`rnTermLB` and their laws). No
+proof, `sorry` or axiom. Where they differ from the sketch, and why:
+
+- **A scope flag.** `ownRawNodeAt γ rn id rs ps qs sc`: the scope conjunct (F6) and the no-snapshot
+  conjunct (§2.5) hold at `sc = true` only. With them unconditional (the sketch) `ownRawNode_at` is
+  false (an `ownRawNode` with pre-vote on, or in the dynamic mode, has no `ownRawNodeAt`), and so is
+  every `spec_of_abs`. Each triple is written once, `RawNode.<F>.form R S`, over the node predicate
+  `R` and a guard `S` of the new post conjuncts; `absSpec := ∀ sc, form (ownRawNodeAt … sc)
+  (sc = true)`, `apiSpec := form rawNode True`, `rawNode := ownRawNodeAt … true`. `ownRawNode_at`
+  is at `sc = false`.
+- **The queue named in place.** `pendAbs` is not a persistent conjunct beside `ownRawNode`'s
+  `"Hpend"`: `msgIn` owns each queued message's struct, so nothing persistent pins its state.
+  `"Hpend"` is restated as `pendAt` (the states `sts` out of the big separating conjunction, pure
+  `PendAbs sts rs.steps qs`); with a snapshot lent, `qs` is unconstrained (outside the scope).
+- **The no-snapshot conjunct, directly** (no `nc`/`NoSnapG` yet): `RnScope`'s `s.logst.prev = base0`,
+  `s.logst.snap = none`, `rs.slent = none`, no `MsgSnap` in the outbox, and `storCapF
+  s.logst.storage 0` (refutes `maybeSendAppend`'s fallback `prev ≠ 0 ∨ storPast … 1`).
+  `emptyStartAbsSpec` takes `storCapF (interface.ok si) 0` as a premise: the harness's storage
+  contract (`bootStorage`, S4) must give it.
+- **The scope conjunct** also has `s.rd.pend = []` (`LiftScope`'s); `Step` in the scope takes only
+  `antStepTypes` (no read-index, pre-vote, transfer, snapshot) and a `MsgHeartbeatResp` with empty
+  context (`recvEnd_of_stepEnd_heartbeatResp`'s `hctx`).
+- **Pre at any queue.** `Step`, `Tick`, `Propose` take `R … ps qs` and keep `qs` (the old specs
+  allow a `Ready` outstanding; the sketch had `[]`).
+- **`ProposeEnd` at the message** `absMsg .propose {propMsgM with From' := id} [propEntryM data]`
+  (`InputEnd.lean`'s form), not the stamped entries.
+- **`HasReady`**: the false arm is `⌜sc → PIdle rs ps⌝ ∗ (ownRawNodeIdle … ∧ ownRawNodeAt …)` (an
+  Iris conjunction, so the old spec's `ownRawNodeIdle` is a corollary); `PIdle` takes no id.
+- **`Ready`**: the node after is at `pAccepted ps` (outbox emptied and read states cleared:
+  `acceptReady`'s `r.readStates = nil`; `rd` is part of `PState`), at some `qs'`, with
+  `⌜S → qs' = ps.outbox.filter (·.dst = id) ∧ ReadyOut …⌝`. `ReadyOut` takes the voters `V` and the
+  loan `L`; its message clause is `ms.map (absMsgOf ·.st) ≡ₚ (outbox.filter (·.dst ≠ id)).map some`.
+- **`emptyStartAbsSpec`** also takes `γ.rnMode = .static` (`rawNodeRestarted`'s mode is the
+  cluster's). It has no `spec_of_abs` (its premises are stronger); `emptyStartSpec` keeps its proof.
+- **Laws.** `rawNode_wf` unguarded (`rawNode_noSnap` gives `ps.base = base0`); `rawNode_commit` is
+  `commitIn` only, its `isCommitted` half is `rawNode_committed` under `={↑(raftN γ)}=∗` (read
+  through `committedJust`); new `rawNode_commitInv` (`commitIn_camp` takes `raftCommitInv`);
+  `rawNode_scope` gives the mode only; `rawNode_outbox` not stated (the outbox reaches a client only
+  through `Ready`'s *enter*/`Hlead`); `rawNode_entries` as `[∗list] e ∈ ps.log, entData γ e`; the
+  budget laws plus `raftState_open_rn`, `rnTermLB_bound`, the persistence laws.
+
+**Not covered: a forwarded proposal.** The harness forwards proposals (`DisableProposalForwarding`
+off), so a leader's `RawNode.Step` receives `MsgProp`s with `From` the follower's id and term `0`.
+Neither `RawNode.Step.spec` (`NetMsgOk`: `MsgProp ∉ netStepTypes`) nor `raft.Step.spec`
+(`m.Type' = MsgProp → m.Term' = 0 ∧ (m.From' = 0 ∨ m.From' = id)`, `Spec/.../raft__Step.lean:606`)
+takes one, so `form` does not either. And `InputEnd`'s `ProposeEnd` forward arm (`Msg.mkV .propose id
+s.lead …`) is false for a proposal forwarded again: Go's `send` keeps a nonzero `From`
+(`raft.go:515`), so the re-forward's `From` is the first sender's, not `id`. Needed: `raft.Step`'s
+premise widened to any `From` for an unstamped `MsgProp` (with `RawNode.Step`'s), a `MsgProp` arm in
+`form` (the message's entries owned, their `entTk`s, as `fwdP`), and `ProposeEnd`'s forward at
+`src := if m.src = 0 then id else m.src`.
+
 ---
 
 ## 3. The refinement
