@@ -425,6 +425,16 @@ wp_WriteByte/wp_NewWriter/wp_NewReader` -> `wire.…`, `bufio.prefixClosed` -> `
 `Slots` import -> `Dsverify.Proof.gryff.src.gryff.Base`. Proofs that unfolded the lab's `ownWriter`/
 `writerRep` (e.g. `N/Generic.lean`'s `wp_WriteByte_sticky`) are redone over the wrappers.
 
+**Import tiers (land gate, coordinator 2026-11-23):** `etc/tier-check.py --check` at `90a9b5a2fe`: **8 new
+violations**, all `defs->proof` from `Dsverify.Proof.gryff.Wire.Proof.Lemmas` to dsv-bufio's proof files
+(`Proof.bufio.{NewReaderOk, NewReaderSize, NewWriter, NewWriterSize, Reader__ReadOk, Writer__Flush,
+Writer__Write, Writer__WriteByte}`), for the wrappers and `wp_wire_Write`/`wp_wire_Read*`, which name
+`EtcdGrove.bufio.*.wp_proof`. To fix before landing: import `Spec.bufio.*` only and take the specs as
+hypotheses (section variables `(wp_Write : EtcdGrove.bufio.Writer.Write.spec)` … or one Prop structure
+of the bufio specs threaded through the wire specs), discharged by a `Link`/`*Linked` module with the
+`wp_proof`s. The rest of the port obeys the rule so far; new files must see callees through their specs
+only (lab-style imports of callees' proofs are violations: Rabia's port had 106).
+
 Remaining, in order:
 1. **N** (24 lab modules left): the
    frontier `N/{WireDefs✓,WireInj✓,WireLaws✓,SliceElems✓}` -> `NetDefs` (needs `Proto2/Replica`, NOT
