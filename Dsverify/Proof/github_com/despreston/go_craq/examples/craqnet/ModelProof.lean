@@ -123,6 +123,102 @@ theorem wp_copyMap (mp : Loc) (m : GMap GoString GoString) (dq : DFrac) :
         cases h : m !! x <;> simp_all
     rw [hcm]
     iframe
+/-- `set(m, k, v)`: a fresh map, `m` with `k` mapped to `v`. -/
+theorem wp_set (mp : Loc) (m : GMap GoString GoString) (dq : DFrac) (k v : GoString) :
+    {{ (mp ↦${dq} m : IProp GF) }}
+      (App (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.set)) (Val #mp))
+        (Val #k)) (Val #v))
+    {{ (c : Loc), RET #c; c ↦$ (<[k := v]> m) ∗ mp ↦${dq} m }} := by
+  wp_start as Hm
+  wp_auto
+  wp_apply wp_copyMap mp m dq $$ [$Hm] as %c ⟨Hc, Hm⟩
+  (try wp_auto)
+  wp_apply (wp_mapInsert go.string c m k v) $$ [$Hc] as Hc
+  (try wp_auto)
+  iapply HΦ
+  iframe
+
+/-- `findPend(p, k, v)`: the first index of a put of `v` at `k` in `p`, if any. -/
+theorem wp_findPend (p : GoSlice) (P : List pend) (k v : GoString) :
+    {{ (p ↦*□ P : IProp GF) }}
+      (App (App (App (Val (@! github_com.despreston.go_craq.examples.craqnet.findPend)) (Val #p))
+        (Val #k)) (Val #v))
+    {{ (i : w64) (ok : Bool), RET (PairV #i #ok);
+        ⌜(∀ j < (if ok then sint.nat i else P.length), ∀ e, P[j]? = some e → ¬ (e.K' = k ∧ e.V' = v)) ∧
+          (ok = true → 0 ≤ sint.Z i ∧ P[sint.nat i]? = some (pend.mk k v))⌝ }} := by
+  wp_start as #Hp
+  ihave %Hl := ownSlice_len _ _ _ $$ Hp
+  wp_auto
+  ihave HI : (∃ (i : w64), "i" ∷ i_ptr ↦ i ∗
+      "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z p.len ∧
+        ∀ j < sint.nat i, ∀ e, P[j]? = some e → ¬ (e.K' = k ∧ e.V' = v)⌝ : IProp GF) $$ [i]
+  · iexists W64 0
+    iframe
+    ipureintro
+    exact ⟨by decide, Hl.2, fun j hj => by rw [show sint.nat (W64 0) = 0 from rfl] at hj; omega⟩
+  wp_for HI
+  wp_if_destruct
+  · have hi : sint.Z i < sint.Z p.len := by
+      first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
+    list_elem P (sint.nat i) as e
+    icases ownSlice_elem_acc (sint.Z i) e p DFrac.discard P Hi.1 He_lookup $$ Hp with ⟨#He, -⟩
+    rcases e with ⟨ek, ev⟩
+    iStructNamed He
+    simp only [show (0 ≤ sint.Z i ∧ sint.Z i < sint.Z p.len) = True from eq_true ⟨Hi.1, hi⟩,
+      ite_true]
+    wp_auto
+    by_cases hk : ek = k
+    · rw [decide_eq_true hk]
+      wp_auto
+      simp only [show (0 ≤ sint.Z i ∧ sint.Z i < sint.Z p.len) = True from eq_true ⟨Hi.1, hi⟩,
+        ite_true]
+      wp_auto
+      by_cases hv : ev = v
+      · rw [decide_eq_true hv]
+        wp_auto
+        rw [forPostcondition_unseal]; unfold forPostconditionDef
+        iright; iright; iright; ileft
+        iexists #()
+        isplitr
+        · ipureintro; rfl
+        dsimp only
+        wp_auto
+        iapply HΦ
+        ipureintro
+        subst hk hv
+        exact ⟨fun j hj => Hi.2.2 j (by simpa using hj), fun _ => ⟨Hi.1, He_lookup⟩⟩
+      · rw [decide_eq_false hv]
+        wp_auto
+        wp_for_post
+        iframe
+        iexists i + W64 1
+        iframe
+        ipureintro
+        refine ⟨by word, by word, fun j hj e he => ?_⟩
+        rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word] at hj
+        rcases Nat.lt_succ_iff_lt_or_eq.1 hj with hj | rfl
+        · exact Hi.2.2 j hj e he
+        · rw [He_lookup] at he; cases he; intro h; first | exact hk h.1 | exact hv h.2
+    · rw [decide_eq_false hk]
+      wp_auto
+      wp_for_post
+      iframe
+      iexists i + W64 1
+      iframe
+      ipureintro
+      refine ⟨by word, by word, fun j hj e he => ?_⟩
+      rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word] at hj
+      rcases Nat.lt_succ_iff_lt_or_eq.1 hj with hj | rfl
+      · exact Hi.2.2 j hj e he
+      · rw [He_lookup] at he; cases he; intro h; first | exact hk h.1 | exact hv h.2
+  · have hn : sint.nat i = P.length := by
+      have : ¬ sint.Z i < sint.Z p.len := by
+        first | exact Hif | exact fun h => Hif (by rw [decide_eq_true h])
+      rw [Hl.1]; word
+    (try wp_auto)
+    iapply HΦ
+    ipureintro
+    exact ⟨fun j hj => Hi.2.2 j (by simpa [hn] using hj), fun h => by cases h⟩
 
 end proof
 
