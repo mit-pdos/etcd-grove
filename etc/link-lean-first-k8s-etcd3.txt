@@ -206,7 +206,10 @@ Verbose__InfoS:
 time_Duration__Seconds:
 RecordEtcdEvent:
 RecordEtcdBookmark:
-Event_EventType__StringPtr:
+# (etcd-grove#39, 2026-11-23) the pointer `String`: proved over its trusted model, whose fallback is
+# strconv.Itoa (until then an axiom)
+strconv_Itoa:
+Event_EventType__StringPtr: strconv_Itoa
 Status__Code:
 errors_AsLeafTy: errors_AsNoMatch
 rpctypes_EtcdError__Code:

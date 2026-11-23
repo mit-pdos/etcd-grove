@@ -63,6 +63,7 @@ public import Code.go_opentelemetry_io.otel.trace
 public import Code.golang_org.x.crypto.bcrypt
 public import Code.go_etcd_io.etcd.server.v3.etcdserver.txn
 public import Perennial.Golang.Defn
+public import TrustedCode.go_etcd_io.etcd.server.v3.etcdserver
 
 @[expose] public section
 
@@ -14543,8 +14544,10 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewServerVersionAdapter_unfold : FuncUnfold NewServerVersionAdapter [] NewServerVersionAdapter.impl
   confStateFromMembers_unfold : FuncUnfold confStateFromMembers [] confStateFromMembers.impl
   newCorruptionChecker_unfold : FuncUnfold newCorruptionChecker [] newCorruptionChecker.impl
+  «init.1_unfold» : FuncUnfold init.«1» [] init.«1».impl
   newRaftNode_unfold : FuncUnfold newRaftNode [] newRaftNode.impl
   updateCommittedIndex_unfold : FuncUnfold updateCommittedIndex [] updateCommittedIndex.impl
+  «init.2_unfold» : FuncUnfold init.«2» [] init.«2».impl
   NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
   tickToDur_unfold : FuncUnfold tickToDur [] tickToDur.impl
   verifyConsistentIndexIsLatest_unfold : FuncUnfold verifyConsistentIndexIsLatest [] verifyConsistentIndexIsLatest.impl
@@ -14662,8 +14665,10 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.NewServerVersionAdapter_unfold
   Assumptions.confStateFromMembers_unfold
   Assumptions.newCorruptionChecker_unfold
+  Assumptions.«init.1_unfold»
   Assumptions.newRaftNode_unfold
   Assumptions.updateCommittedIndex_unfold
+  Assumptions.«init.2_unfold»
   Assumptions.NewServer_unfold
   Assumptions.tickToDur_unfold
   Assumptions.verifyConsistentIndexIsLatest_unfold

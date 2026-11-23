@@ -194,3 +194,8 @@ imports = ["!*", "context", "io", "errors", "encoding/json", "fmt", "net/http", 
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
+
+# (etcd-small-3, 2026-11-23, etcd-grove#39) the two `init`s that publish `expvar` variables (`raft.go`,
+# `server.go`) trusted: models that do nothing (TrustedCode/go_etcd_io/etcd/server/v3/etcdserver.lean;
+# until then names-only, the axiom `initFuncsOk`)
+trusted = ["init.1", "init.2"]

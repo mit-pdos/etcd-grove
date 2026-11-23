@@ -8,7 +8,9 @@ initializer allocates and sets the translated gRPC service descriptors (`KV_Serv
 initializers (the generated protobuf descriptors and enum maps), which the trust-boundary axiom
 `opaqueInitsOk` says run. (const-inits, 2026-11-19) The two sort enumerations' name maps the fact
 reads (`RangeRequest_SortOrder_name`, `RangeRequest_SortTarget_name`: `map[int32]string` literals,
-`rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`.
+`rpc.pb.go`) are translated and set; until then the trust-boundary axioms `<X>_init`. (etcd-grove#39, 2026-11-23) And `AlarmType_name` (a `map[int32]string` literal),
+which the fact holds read-only, `etcdserverpb.alarmTypeNames`: `AlarmType.String`'s trusted model reads
+it.
 -/
 module
 
@@ -71,6 +73,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := google_golang_org.grpc.ServiceDesc) KV_ServiceDesc _ as HKV_ServiceDesc
   wp_apply wp_GlobalAlloc (V := Loc) RangeRequest_SortTarget_name _ as HRangeRequest_SortTarget_name
   wp_apply wp_GlobalAlloc (V := Loc) RangeRequest_SortOrder_name _ as HRangeRequest_SortOrder_name
+  wp_apply wp_GlobalAlloc (V := Loc) AlarmType_name _ as HAlarmType_name
   wp_apply (_root_.Perennial.google_golang_org.grpc.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
       EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
@@ -78,6 +81,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.authpb.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.membershippb.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of AlarmType_name))
+  try wp_auto
+  wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHatn Hatn
+  try wp_auto
+  repeat (wp_apply (wp_mapInsert (K := w32) (V := GoString) go.int32) $$ Hatn as Hatn; try wp_auto)
   -- translated initializer of RangeRequest_SortOrder_name))
   try wp_auto
   wp_apply (wp_map_make1 (K := w32) (V := GoString) go.int32 go.string) as %mHso Hso
@@ -147,6 +155,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HRangeRequest_SortTarget_name
   ipersist Hso
   ipersist Hst
+  ipersist HAlarmType_name
+  ipersist Hatn
   iframe Hown
   imodintro
   isplitr
@@ -159,6 +169,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexists _, _; iframe HRangeRequest_SortOrder_name Hso; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; by_cases hk : k = W32 0 ∨ k = W32 1 ∨ k = W32 2; (· rcases hk with rfl | rfl | rfl <;> simp (config := {decide := true})); (· have hr : ¬ (0 ≤ sint.Z k ∧ sint.Z k ≤ 2) := fun hr => hk (by word); simp only [hr, iff_false, Bool.not_eq_true, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none]; rw [if_neg (show ¬(W32 2 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 1 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 0 = k) from fun h => hk (by subst h; simp))])
   isplitl []
   · iexists _, _; iframe HRangeRequest_SortTarget_name Hst; ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; by_cases hk : k = W32 0 ∨ k = W32 1 ∨ k = W32 2 ∨ k = W32 3 ∨ k = W32 4; (· rcases hk with rfl | rfl | rfl | rfl | rfl <;> simp (config := {decide := true})); (· have hr : ¬ (0 ≤ sint.Z k ∧ sint.Z k ≤ 4) := fun hr => hk (by word); simp only [hr, iff_false, Bool.not_eq_true, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none]; rw [if_neg (show ¬(W32 4 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 3 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 2 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 1 = k) from fun h => hk (by subst h; simp)), if_neg (show ¬(W32 0 = k) from fun h => hk (by subst h; simp))])
+  isplitl []
+  · iexists _; iframe HAlarmType_name; unfold go_etcd_io.etcd.cache.v3.etcdserverpb.alarmTypeNames; iexact Hatn
   iframe #
   repeat (first | (isplitl []; · (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64])) | (ipureintro; simp (config := {decide := true}) [go.arrayLiteralSize, EtcdGrove.sint_nat_ofNat64]))
 
