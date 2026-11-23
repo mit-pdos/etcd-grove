@@ -266,6 +266,18 @@ theorem color_upd' {h h0 : Loc → Node} {l : Loc} {X : Node}
   · subst hy; rw [upd_same, hX, hh]
   · rw [upd_ne h l y X hy, hh]
 
+/-- A color store keeps the representation (colors are the heap's). -/
+theorem Rep_recolor (l : Loc) (c : Bool) {t : RB GoInterface} {p : Loc} (hr : Rep enc h t p) :
+    Rep enc (upd h l { h l with color' := c }) t p := by
+  induction t generalizing p with
+  | leaf => trivial
+  | node n k v L R ihl ihr =>
+    obtain ⟨h1, h2, h3, h4⟩ := hr
+    refine ⟨h1, ?_, ihl h3, ihr h4⟩
+    by_cases hn : n = l
+    · subst hn; rw [upd_same]; rw [h2]
+    · rw [upd_ne h l n _ hn]; exact h2
+
 /-- The leftmost node of `T` (`tree.Left()`): `nil` for an empty tree. -/
 def leftmost (T : RB GoInterface) (m : Loc) : Prop :=
   (T = .leaf ∧ m = null) ∨
@@ -561,6 +573,24 @@ theorem holeSet_eq {f : Frame GoInterface} {hole q : Loc} (hf : RepF enc h f hol
     have hr : (h fn).Right' = hole := by rw [hhf]
     simp only [Frame.loc, holeSet, hl, hr, if_false]
     exact ⟨Or.inr trivial, trivial⟩
+
+/-- After a rotation below the root (or making `top` the root), the root is black if it was. -/
+theorem rootBlack_after {C : Ctx GoInterface} {t t' : RB GoInterface} {h h' : Loc → Node}
+    (hrep : Rep enc h (Ctx.plug C t) null) (hdis : ∀ x ∈ t.locs, x ∉ Ctx.locs C)
+    (hrb : rootBlack h (Ctx.plug C t)) (hcol : ∀ x, x ∉ t.locs → (h' x).color' = (h x).color')
+    (htop : C = [] → (h' t'.loc).color' = true) :
+    rootBlack h' (Ctx.plug C t') := by
+  cases C with
+  | nil => right; exact htop rfl
+  | cons f C' =>
+    right
+    have hm := Ctx.plug_loc_mem (C := f :: C') t (by simp)
+    have hm' := Ctx.plug_loc_mem (C := f :: C') t' (by simp)
+    have heq : (Ctx.plug (f :: C') t').loc = (Ctx.plug (f :: C') t).loc := Ctx.plug_loc_cons f C' t' t
+    rw [heq, hcol _ (fun hx => hdis _ hx hm)]
+    rcases hrb with h0 | h0
+    · exact absurd h0 (Rep_locs_ne_null _ _ hrep _ (mem_plug_ctx hm))
+    · exact h0
 
 end heapfn
 

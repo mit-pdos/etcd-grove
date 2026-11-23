@@ -228,6 +228,26 @@ theorem rotR_locs_perm {α : Type u} (n : Loc) (k : w64) (v : α) (l : Loc) (k' 
   simp only [RB.locs_node, List.count_cons, List.count_append]
   omega
 
+theorem Ctx.plug_loc_mem {α : Type u} {C : Ctx α} (t : RB α) (hC : C ≠ []) :
+    (Ctx.plug C t).loc ∈ Ctx.locs C := by
+  induction C generalizing t with
+  | nil => exact absurd rfl hC
+  | cons f C ih =>
+    simp only [Ctx.plug_cons, Ctx.locs, List.mem_append]
+    cases C with
+    | nil => left; cases f <;> simp [Frame.fill, Frame.locs]
+    | cons g C' => right; exact ih _ (by simp)
+
+theorem rotR_entries {α : Type u} (g : Loc) (kg : w64) (vg : α) (p : Loc) (kp : w64) (vp : α)
+    (A B U : RB α) :
+    (RB.node g kg vg (.node p kp vp A B) U).entries = (RB.node p kp vp A (.node g kg vg B U)).entries := by
+  simp
+
+theorem rotL_entries {α : Type u} (g : Loc) (kg : w64) (vg : α) (U : RB α) (p : Loc) (kp : w64)
+    (vp : α) (A B : RB α) :
+    (RB.node g kg vg U (.node p kp vp A B)).entries = (RB.node p kp vp (.node g kg vg U A) B).entries := by
+  simp
+
 /-! ## Search: the keys around a subtree -/
 
 section search
