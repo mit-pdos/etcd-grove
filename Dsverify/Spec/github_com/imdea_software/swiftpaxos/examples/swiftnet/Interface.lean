@@ -29,6 +29,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.Base
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.examples.swiftnet.Base
 public import Dsverify.Spec.github_com.imdea_software.swiftpaxos.swift.Slot
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos.lib.RpcHttpHyps
+public import GooseLang.Ext.Net.Decide
 
 @[expose] public section
 
@@ -189,13 +190,14 @@ section services
 variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 variable [SwiftNetPkgState netDistGF]
 
-/-- The services of each rpc address: the master's (`"Master"` at `masterAddr`) and each
+/-- The services of each rpc address: the master's (`"Master"` at every address its wildcard
+listener `":7001"` takes, `masterAddr` among them) and each
 replica node's (`"Replica"` at its rpc port). The method specs are the SwiftPaxos slot's
 (`sp.masterSpec`, `sp.replicaRpcSpec`, over the codec's encodings, `Spec/swift/Inv.lean`),
 accepting error answers too (`withErr`: `Net/`'s server answers undecodable arguments so). -/
 def services (γconf γmem : GName) :
     GoString → GoString → Option (net.rpc.MethodSpec netDistGF) := fun a svc =>
-  if a = masterAddr ∧ svc = go!"Master" then some (withErr (sp.masterSpec γconf γmem))
+  if lisAcceptsB go!":7001" a = true ∧ svc = go!"Master" then some (withErr (sp.masterSpec γconf γmem))
   else if a ∈ replicaRpcAddrs ∧ svc = go!"Replica" then some (withErr (sp.replicaRpcSpec γconf γmem))
   else none
 
@@ -211,6 +213,7 @@ variable [SwiftNetPkgState netDistGF] [RpcHttpAddr netDistGF]
 `RpcHttpAddr.rpcLisP`) and the shared invariants. -/
 def common (γ : SwiftNames netDistGF) : IProp netDistGF :=
   iprop(([∗list] a ∈ plainAddrs, addrProto a (protoP γ a) (protoQ γ a)) ∗
+    ([∗list] la ∈ replicaLis, lisProto la (sp.inP γ.sp γ.conf γ.mem) (sp.outQ γ.sp γ.conf γ.mem)) ∗
     ⌜γ.W.SS = services γ.conf γ.mem⌝ ∗
     ([∗list] la ∈ rpcLis, RpcHttpAddr.rpcLisP γ.W la (connectReq defaultRPCPath) connectAns) ∗
     sp.inv γ.sp γ.conf γ.mem γ.lin)

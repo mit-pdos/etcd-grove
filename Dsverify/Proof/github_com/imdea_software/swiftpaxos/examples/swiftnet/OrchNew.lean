@@ -91,12 +91,11 @@ instance confEnv_persistent (γ : SwiftNames netDistGF) : Persistent (confEnv γ
 theorem common_confEnv [RpcHttpAddr netDistGF] (γ : SwiftNames netDistGF) :
     common γ ⊢ confEnv γ := by
   unfold common confEnv
-  iintro ⟨#Hpl, -, -, -⟩
+  iintro ⟨#Hpl, -, -, -, -⟩
   have hpl : plainAddrs = ([orchAddr] ++ clientNodeAddrs ++ clientConfAddrs ++ clientStartAddrs) ++
-      confAddrs ++ replicaAddrs := rfl
+      confAddrs := rfl
   rw [hpl]
-  ihave ⟨#H1, -⟩ := BigSepL.bigSepL_append.1 $$ Hpl
-  ihave ⟨#H2, #Hc⟩ := BigSepL.bigSepL_append.1 $$ H1
+  ihave ⟨#H2, #Hc⟩ := BigSepL.bigSepL_append.1 $$ Hpl
   ihave ⟨#H3, #Hcs⟩ := BigSepL.bigSepL_append.1 $$ H2
   ihave ⟨-, #Hcc⟩ := BigSepL.bigSepL_append.1 $$ H3
   isplitl

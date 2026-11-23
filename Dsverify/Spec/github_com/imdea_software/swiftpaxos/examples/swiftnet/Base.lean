@@ -131,15 +131,21 @@ def addrs : List GoString :=
    go!"127.0.0.1:6104", go!"127.0.0.1:6105", go!"127.0.0.1:6106", go!"127.0.0.1:7001",
    go!"127.0.0.1:7002", go!"127.0.0.1:7003", go!"127.0.0.1:7004", go!"127.0.0.1:7005",
    go!"127.0.0.1:7006"]
+/-- The replicas' peer listeners (`waitForPeerConnections`' wildcards, `replica.wildOf` of
+`replicaAddrs`: `0.0.0.0` with each replica's port). -/
+def replicaLis : List GoString :=
+  [go!"0.0.0.0:7002", go!"0.0.0.0:7003", go!"0.0.0.0:7004", go!"0.0.0.0:7005",
+   go!"0.0.0.0:7006"]
 /-- The rpc listeners: the master's wildcard `":7001"` (the fork's `master.Run`) and the
 replicas' rpc ports (exact). -/
 def rpcLis : List GoString := go!":7001" :: replicaRpcAddrs
 /-- The rpc addresses (the rpc world's: `rpcAddr_set`). -/
 def rpcAddrs : List GoString := masterAddr :: replicaRpcAddrs
-/-- The other addresses the run sets (`addrs_set_proto`): all but the rpc addresses and the
-client nodes' request addresses (`ClientAddrs()`, 7101..7106, remote's). -/
+/-- The other addresses the run sets (`addrs_set_proto`): all but the rpc addresses, the
+replicas' peer addresses (their wildcard listeners `replicaLis` take them) and the client nodes'
+request addresses (`ClientAddrs()`, 7101..7106, remote's). -/
 def plainAddrs : List GoString :=
-  orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ clientStartAddrs ++ confAddrs ++ replicaAddrs
+  orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ clientStartAddrs ++ confAddrs
 
 /-- The replica node (index into `replicaAddrs`) of replica id `r` in the membership `l`. -/
 def nodeOf (l : List GoString) (r : Nat) : Option Nat :=

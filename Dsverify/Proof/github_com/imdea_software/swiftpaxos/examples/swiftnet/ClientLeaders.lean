@@ -123,7 +123,7 @@ theorem Sys.changeLeaders.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (wp_at 
       have hS : γ.W.SS ra go!"Replica" = some (withErr (sp.replicaRpcSpec γ.conf γ.mem)) := by
         rw [HSS]; unfold services
         have hm : ra ∈ replicaRpcAddrs := List.mem_of_getElem? hidx
-        have hne : ¬ (ra = masterAddr ∧ go!"Replica" = go!"Master") :=
+        have hne : ¬ (lisAcceptsB go!":7001" ra = true ∧ go!"Replica" = go!"Master") :=
           fun h => by have := h.2; simp at this
         rw [if_neg hne, if_pos ⟨hm, rfl⟩]
       wp_apply wp_callBtl cli γ.W ra γ.conf γ.mem conf ap rp $$ [Hap Hrp] as %err2 -

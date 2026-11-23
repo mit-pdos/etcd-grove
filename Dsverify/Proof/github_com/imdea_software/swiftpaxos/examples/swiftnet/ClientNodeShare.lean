@@ -50,8 +50,30 @@ theorem masterAddr_ok : addrOk masterAddr = true := by decide
 
 theorem replicaRpcAddrs_ok : ∀ a ∈ replicaRpcAddrs, addrOk a = true := by decide
 
+/-- Replica node `k`'s peer address is one its wildcard listener takes. -/
+theorem replicaLis_acc : ∀ (k : Nat) (a : GoString), replicaAddrs[k]? = some a →
+    ∃ la, replicaLis[k]? = some la ∧ addrOk a = true ∧ lisAccepts la a := by
+  intro k a h
+  match k, h with
+  | 0, h | 1, h | 2, h | 3, h | 4, h =>
+    simp only [replicaAddrs, List.getElem?_cons_succ, List.getElem?_cons_zero,
+      Option.some.injEq] at h
+    subst h
+    exact ⟨_, rfl, by decide, lisAcceptsB_iff.1 (by decide)⟩
+  | _ + 5, h => simp [replicaAddrs] at h
+
 section share
 variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [SwiftNetPkgState netDistGF]
+
+/-- The replicas' peer addresses' protocols, from their wildcard listeners'. -/
+theorem lis_replicaAddrs (P Q : Proto netDistGF) :
+    (□ [∗list] la ∈ replicaLis, lisProto la P Q) ⊢ [∗list] a ∈ replicaAddrs, addrProto a P Q :=
+  BigSepL.bigSepL_intro (P := iprop(□ [∗list] la ∈ replicaLis, lisProto la P Q))
+    (fun k a ha => by
+      obtain ⟨la, hla, hok, hacc⟩ := replicaLis_acc k a ha
+      exact BI.intuitionistically_elim.trans
+        ((BigSepL.bigSepL_lookup (Φ := fun _ la => lisProto la P Q) hla).trans
+          (lisProto_addr la a P Q hok hacc)))
 
 theorem protoP_confAddrC (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6) :
     protoP γ (confAddrC c) = conf.dialPC γ := by
@@ -111,13 +133,15 @@ theorem clientNodeShare_split (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
   iintro ⟨-, -, -, Hst, Hpt, Hcom⟩
   ihave Hseq := sp.clientStart_elim (γ := γ.sp) c $$ Hst
   unfold common
-  icases Hcom with ⟨#Hps, %HSS, #Hrpc, #Hinv⟩
+  icases Hcom with ⟨#Hps, #Hlis, %HSS, #Hrpc, #Hinv⟩
   have hp : confAddrC c ∈ plainAddrs := by
+    have := confAddrC_mem c hc
     unfold plainAddrs; simp only [List.cons_append, List.mem_cons, List.mem_append]
-    exact Or.inr (Or.inl (Or.inl (Or.inl (Or.inr (confAddrC_mem c hc)))))
+    exact Or.inr (Or.inl (Or.inl (Or.inr this)))
   have hs : startAddrC c ∈ plainAddrs := by
+    have := startAddrC_mem c hc
     unfold plainAddrs; simp only [List.cons_append, List.mem_cons, List.mem_append]
-    exact Or.inr (Or.inl (Or.inl (Or.inr (startAddrC_mem c hc))))
+    exact Or.inr (Or.inl (Or.inr this))
   ihave #Hcp : addrProto (confAddrC c) (conf.dialPC γ) (conf.ackQP γ (sp.PNode.cl c))
     $$ [Hps]
   · rw [← protoP_confAddrC γ c hc, ← protoQ_confAddrC γ c hc]
@@ -141,14 +165,7 @@ theorem clientNodeShare_split (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
       ((lisAccepts_addrOk (replicaRpcAddrs_ok x (List.mem_of_getElem? hx))).2 rfl) $$ H
   isplitr
   · ipureintro; exact HSS
-  have hsub : plainAddrs = (orchAddr :: clientNodeAddrs ++ clientConfAddrs ++ clientStartAddrs ++
-      confAddrs) ++ replicaAddrs := rfl
-  rw [hsub]
-  icases BigSepL.bigSepL_append.1 $$ Hps with ⟨-, Hps2⟩
-  iapply BigSepL.bigSepL_mono ?_ $$ Hps2
-  intro k x hx
-  obtain ⟨h1, h2⟩ := protos_replica γ x (List.mem_of_getElem? hx)
-  rw [h1, h2]
+  iapply lis_replicaAddrs $$ Hlis
 
 end share
 

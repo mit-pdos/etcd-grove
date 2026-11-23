@@ -130,7 +130,8 @@ theorem Sys.connect.wp_proof (γ : SwiftNames netDistGF) (c : Nat) (hc : c < 6)
   · iframe Hbuf Hmaster HcodecSet HcodecOk Hprotos Hinv
     ipureintro
     refine ⟨masterAddrPort, ?_⟩
-    rw [HSS]; unfold services; simp [masterAddr]
+    rw [HSS]; unfold services
+    rw [if_pos ⟨by decide, rfl⟩]
   icases Herr with (⟨%Herr, %N, Hconn⟩ | ⟨%Herr, Hfailed⟩)
   · subst Herr
     wp_auto
