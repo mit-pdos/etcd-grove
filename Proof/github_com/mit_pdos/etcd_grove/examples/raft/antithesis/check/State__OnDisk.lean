@@ -1251,5 +1251,57 @@ theorem State.OnDisk.wp_proof
       · rw [decide_eq_false hkl]
         odretc (by rw [← hcE]; simp [hk1, hkl])
     odafterj cE
+    have hkb : 1 ≤ k ∧ k ≤ (f.entries.length : Int) := by simpa using hcE
+    -- F: `!s.HasFirst(n, x.f(), k-1)`
+    obtain ⟨f', hf', Ho⟩ := bind_ok Ho
+    rw [hf] at hf'; cases hf'
+    obtain ⟨hy, hhy, Ho⟩ := bind_ok Ho
+    obtain ⟨hpli, -, -, -, -⟩ := OnDisk.fm_within HW (hfnl ▸ hf)
+    odm f
+    wp_apply wp_f _ X f $$ [Hx] as %gf2 #Hf2
+    · iframe Hx; ipureintro; exact hf
+    try wp_auto
+    have hk1 : sint.Z (uk - W64 1) = k - 1 := by rw [sint_sub_one (by omega), Huk]
+    wp_apply wp_SHasFirst p s n gf2 f (uk - W64 1) hy $$ [Hs Hf2]
+    · iframe Hs Hf2; ipureintro
+      refine ⟨Hn, Hlt, by rw [hk1]; exact hhy, hpli, ?_⟩
+      rw [hk1]; unfold numOk numBound; unfold numBound at hb; omega
+    cases hy
+    · simp only [Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+      odjret (by subst Ho; rfl)
+    simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    try wp_auto
+    -- G: `!EntriesEqual(x.es(), SubSeq(x.f().Entries, k, len(x.f().Entries)))`
+    obtain ⟨f', hf', Ho⟩ := bind_ok Ho
+    rw [hf] at hf'; cases hf'
+    obtain ⟨es, hes, Ho⟩ := bind_ok Ho
+    obtain ⟨sub, hsub, Ho⟩ := bind_ok Ho
+    obtain ⟨ee, hee, Ho⟩ := bind_ok Ho
+    odm es
+    wp_apply wp_es _ X es $$ [Hx] as %esl #Hes
+    · iframe Hx; ipureintro; exact hes
+    try wp_auto
+    odm f
+    wp_apply wp_f _ X f $$ [Hx] as %gf3 #Hf3
+    · iframe Hx; ipureintro; exact hf
+    try wp_auto
+    odm f
+    wp_apply wp_f _ X f $$ [Hx] as %gf4 #Hf4
+    · iframe Hx; ipureintro; exact hf
+    try wp_auto
+    iunfold appendFactRO at Hf3 Hf4
+    icases Hf3 with ⟨%-, #Hfes3⟩
+    icases Hf4 with ⟨%-, #Hfes4⟩
+    ihave %Hl4 := logRO_len _ _ $$ Hfes4
+    wp_apply wp_SubSeq gf3.Entries' f.entries uk gf4.Entries'.len sub $$ [Hfes3] as %subl #Hsub
+    · iframe Hfes3; ipureintro; rw [Huk, Hl4]; exact hsub
+    try wp_auto
+    wp_apply wp_EntriesEqual esl es subl sub ee $$ [Hes Hsub]
+    · iframe Hes Hsub; ipureintro; exact hee
+    cases ee
+    · simp only [Bool.not_false, ite_true, pure_ok, Except.ok.injEq] at Ho
+      odjret (by subst Ho; rfl)
+    simp only [Bool.not_true, Bool.false_eq_true, ite_false] at Ho
+    try wp_auto
     done
   done
