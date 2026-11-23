@@ -165,6 +165,18 @@ Read with the eighth session's state below (accurate where this does not say oth
   (`examples.swiftnet.ServersSpecs` → `Interface`, for `setMaxDesc.wp_proof`). Left for the lab
   kit's removal: `net.rpc.rcvrOk`, `RpcCodec.call`/`methods`, `KitLike.call_eq`/`methods_eq`.
 
+- **The model, codec and generator** (`examples/swiftnet/{ModelSet,KitModel,ModelLemmas,
+  ModelProof}.lean`, after dsv-rabia's; Lean's three axioms): the store `swB` (inputs `KIn`: key < 2,
+  value length < 2^48; outputs bounded strings), the set semantics `swSet`, the simulation `Sim`,
+  `stepG_sim`; the far side `swR sys E : RBase` (parametric in the base state and mask: the client
+  step plugs in `sp.inv`'s lin state); `Model.wp_proof : Model.spec` (`isModel swS m`),
+  `Codec.wp_proof : ∀ sys E, … codecOk (swR sys E)`, `Gen.wp_proof` (premise
+  `primitive.RandomUint64.spec`), `swS_pendDec`, `swR_encOut_inj`. **Kit Go change:** `Model()`'s
+  `Equal` is always false (`dff42254a2`): `ModelSet.equal_unsound` proves no `Equal` comparing
+  states meets porcupine's `equalSpec` (put a unknown then put b answered, and the other order,
+  reach one `State` with different configuration sets), dsv-epaxos's finding. Still for `Check`:
+  its mask premises and `Timeless (sys st)` once `sys`/`E` are the SwiftPaxos invariant's.
+
 **Kit build (`sw-build36.log`, after the codec switch):** the only failures are the lab kit
 (`examples.swiftnet.*`: Interface, OrchGen, codec/{Prim,RoundTrip}, CodecFns, ServersLink, …),
 the missing lab files (`netrpc.rpc.LocalRegister`, `encoding.gob.SetCodec` ×2) and `client.Link`
@@ -188,10 +200,7 @@ session's 257 was counted differently).
    `Dsverify/Proof/<pkg>/Init.lean` (`class InitHyp`, no instance), as rabia's `os/signal/Init.lean`.
    `SwiftOsRandom`/`SwiftNoSignals` become/align with rabia's environment classes where they coincide
    (rabia's `NoSignals` is over SIGINT/SIGTERM; ours over SIGUSR1: keep ours, same shape).
-1. **The model** (in flight at the end of the ninth session, a subagent: `examples/swiftnet/
-   {ModelSet,ModelLemmas,KitModel,ModelProof}.lean`, after rabia's): the store over `In`/`Out`, the
-   set semantics (downward closed in the pending puts), `Model()`/`Codec()`/`Gen` specs. If its
-   files are present but uncommitted, check them (`etc/lean-check.py -a`) and commit what checks.
+1. *(Done, ninth session: the model, above.)*
 2. **The client machine** (`Client`/`clientNode`/`newClient`/`op` with `opMu` and `MaxOps`): rabia's
    `ClientProof`/`Kit` (`is_sys`, the store's far side `RBase` `kvR γ` over `sp.inv`'s lin state, the
    lin point `opAU`), reusing the lab kit's `ClientNodeNew` (awaitConf future), `ClientConnect`,
