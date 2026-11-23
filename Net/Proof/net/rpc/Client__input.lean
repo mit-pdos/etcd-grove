@@ -168,29 +168,6 @@ theorem inErr_errorString (x : Loc) (msg : GoString) :
   ipureintro
   exact ⟨by simp [interface.mkOk], notServerErr_errorString x, _, x, rfl⟩
 
-/-- `errors.New(msg)`, its result's type made explicit (`errors.New.spec` says only that it is a
-pointer; `errAny` needs its type to implement `error`): proved from its body, as
-`errors.New.wp_proof`. -/
-theorem wp_errors_New' (msg : GoString) :
-    {{ (True : IProp GF) }}
-      (App (Val (@! errors.New)) (Val #msg))
-    {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x);
-        □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
-          WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
-            (Val #())) {{ Φ }} }} := by
-  wp_start
-  wp_auto
-  wp_alloc x as Hx
-  iStructNamed Hx
-  ipersist s
-  wp_auto
-  iapply HΦ
-  imodintro
-  iintro %Φ HΦ
-  rw [method_unfold]
-  wp_auto
-  iexact HΦ
-
 /-- A decoding error is `inErr`. -/
 theorem inErr_dec (err : GoInterface) : decErr (GF := GF) err ⊢ inErr err := by
   unfold decErr

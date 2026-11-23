@@ -11,6 +11,7 @@ module
 public import Net.Proof.net.rpc.Codec
 public import Net.Proof.net.Base
 public import Perennial.Proof.errors.NewVar
+public import Perennial.Proof.errors.Base
 public import GooseLang.Ext.Net.Specs
 
 @[expose] public section
@@ -201,6 +202,36 @@ theorem notServerErr_resErr (k : NetErr) (op : GoString) (src addr : GoInterface
   exact notServerErr_opError pe
 
 end lemmas
+
+section errorsNew
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics] [errors.Assumptions]
+
+/-- `errors.New(msg)`, its result's type made explicit (`errors.New.spec` says only that it is a
+pointer; `errAny` needs its type to implement `error`): proved from its body, as
+`errors.New.wp_proof`. -/
+theorem wp_errors_New' (msg : GoString) :
+    {{ (True : IProp GF) }}
+      (App (Val (@! errors.New)) (Val #msg))
+    {{ (x : Loc), RET #(interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x);
+        □ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+          WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #x))
+            (Val #())) {{ Φ }} }} := by
+  wp_start
+  wp_auto
+  wp_alloc x as Hx
+  iStructNamed Hx
+  ipersist s
+  wp_auto
+  iapply HΦ
+  imodintro
+  iintro %Φ HΦ
+  rw [method_unfold]
+  wp_auto
+  iexact HΦ
+
+end errorsNew
 
 end net.rpc
 end Perennial
