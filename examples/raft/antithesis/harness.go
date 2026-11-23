@@ -10,7 +10,7 @@
 // reported (`send`) before it is handed to the network; the committed entries reported (`apply`)
 // and applied; Advance. The network delivers each message from a goroutine of its own after a
 // random delay (so messages are reordered), or drops it; a proposer hands proposals to random
-// nodes (a follower forwards them to its leader); an isolator cuts a random node off the network
+// nodes (a follower drops them: forwarding is off, notes/antithesis-s4-design.md §7); an isolator cuts a random node off the network
 // for a while, which makes the others elect another leader.
 //
 // Every report goes to one Recorder, whose lock orders them: the stream is the order in which
@@ -31,7 +31,8 @@
 //
 // Scope (#33's decisions, notes/antithesis-check-design.md §8): three voters with empty logs
 // (EtcdBindingEmpty.cfg: each storage reports the voters as its ConfState and holds no entry),
-// synchronous storage, PreVote and CheckQuorum off, proposal forwarding on, no restarts,
+// synchronous storage, PreVote and CheckQuorum off, proposal forwarding off (notes/antithesis-s4-design.md
+// §7), no restarts,
 // snapshots, membership changes or read indexes.
 package antithesis
 
@@ -338,7 +339,11 @@ func RunCluster(cfg Config) *Cluster {
 			Storage:         &bootStorage{ms: ms, voters: voters},
 			MaxSizePerMsg:   1 << 20,
 			MaxInflightMsgs: 256,
-			Logger:          quietLogger{},
+			// Forwarding disabled because raft.Step's spec covers only local MsgProp (From 0 or the
+			// node itself): a follower drops a proposal instead of forwarding it. Re-enable with option
+			// (a) of notes/antithesis-s4-design.md §7 (widen raft.Step/RawNode.Step to a network MsgProp).
+			DisableProposalForwarding: true,
+			Logger:                    quietLogger{},
 		}
 		rn, err := raft.NewRawNode(rc)
 		if err != nil {

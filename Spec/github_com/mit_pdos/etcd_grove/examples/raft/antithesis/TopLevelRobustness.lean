@@ -39,7 +39,9 @@ variable [go_gctx : GoGlobalContext]
 `Robustness/Statement.lean`): the program alone on one machine that never crashes, a fresh Go
 process (`Robust`'s premise): in every execution of fewer than `2 ^ 61 - 3` steps along which fewer
 than `2 ^ 31` threads are live, no thread is stuck and none has an unrecovered panic. No premise:
-the harness's logs start empty and nothing it runs is assumed. -/
+the harness's logs start empty and nothing it runs is assumed. The harness runs raft with
+proposal forwarding disabled (`DisableProposalForwarding`, `notes/antithesis-s4-design.md` §7: raft's
+proved `Step` covers only local proposals; to be re-enabled). -/
 def raft_antithesis_robust.spec : Prop :=
   ∀ [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]

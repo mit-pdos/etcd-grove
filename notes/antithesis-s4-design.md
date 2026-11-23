@@ -18,7 +18,7 @@ functors of tracecheck's `tcGF`, the same eight slots) in
 initialization, then `Main()`: a three-voter cluster of the verified raft's `RawNode`s run
 concurrently, `RunCluster(DefaultConfig())`, its stream of Antithesis default-mode reports checked
 with `check.Run` against `EtcdBinding.tla` + `EtcdRaft.tla` at `EtcdBindingEmpty.cfg`'s constants,
-and a panic unless ACCEPTED), from a fresh state with one thread, of `n` steps, `n + 4 ≤ 2^61`, along
+and a panic unless ACCEPTED; proposal forwarding disabled, §7), from a fresh state with one thread, of `n` steps, `n + 4 ≤ 2^61`, along
 which fewer than `2^31` threads are live at once, has no stuck thread and no thread that ended in
 a panic; if the main thread has finished, its result is `#()`. -/
 theorem raft_antithesis_safe [lctx : GoLocalContext] [sem : go.Semantics]
@@ -218,3 +218,31 @@ full builds and gates through the VM land queue.
 - **Stress evidence** (scratch, not committed): three extreme harness variants (split votes: 1ms ticks, 15ms
   delays, 20% loss; storm: 30 isolations of 8ms at 40% loss; burst: 200 proposals 0.2ms apart, 12ms
   delays), 340 runs each, every stream ACCEPTED by the Go checker. No discrepancy found.
+
+## 7. Deviation: proposal forwarding disabled (the owner's decision, 2026-11-23) — to undo
+
+**What.** The harness's `raft.Config` sets `DisableProposalForwarding: true` (`harness.go`, `RunCluster`,
+with a comment pointing here): a follower drops a proposal (`ErrProposalDropped`) instead of forwarding it
+to its leader. This reverses S2's decision Q3 (`notes/antithesis-check-design.md` §8-§9: forwarding on).
+`raft_antithesis_safe` is about this configuration.
+
+**Why.** With forwarding on, a leader steps a network `MsgProp` whose `From` is a follower, through
+`RawNode.Step`. Raft's proved `raft.Step.spec` covers only local proposals (`From = 0 ∨ From = id`,
+`Spec/go_etcd_io/raft/v3/raft__Step.lean:606`), and `NetMsgOk` excludes `MsgProp`: the node API never
+needed more (its `node.Step` routes a network `MsgProp` to `propc`). `InputEnd.ProposeEnd`'s forward arm
+also names the wrong source for a proposal forwarded twice (Go's `send` keeps a nonzero `From`). A spec
+gap of our proof, not a raft bug or a discrepancy with the model.
+
+**What the model check loses: essentially nothing.** The binding checks nothing of a `prop` send or
+receipt (B 524, 586); a leader's append is checked by the same `Ready` guards whether it was caused by a
+`recv` of a forwarded proposal or by a local `propose`. The runs differ only in which proposals reach a
+leader (those handed to a follower are dropped), so fewer entries are committed per run.
+
+**The future fix (option (a)), to re-enable forwarding:** widen `raft.Step.spec` and `RawNode.Step`'s
+specs to a network `MsgProp` whose entries carry the proposal resources (the forwarded proposal's
+tickets, `fwdP`), re-prove raft's `MsgProp` step paths (`stepLeader`'s, `stepFollower`'s forward) for
+`From ≠ 0`, fix `ProposeEnd`'s forward arm (`src := if m.src = 0 then id else m.src`), and drop the
+config line. A GitHub issue tracks it.
+
+**Re-run (2026-11-23), forwarding off:** S2's `TestRuns`, 5 variants x 100 runs, and the three stress
+variants of §6 x 100 runs: see the commit that made the change for the counts.

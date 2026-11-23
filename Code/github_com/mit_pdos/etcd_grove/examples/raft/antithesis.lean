@@ -102,7 +102,7 @@ noncomputable def RunCluster [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/raft/antithesis.Main"
 
-/-- go: harness.go:54:20 -/
+/-- go: harness.go:55:20 -/
 noncomputable def quietLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -112,7 +112,7 @@ noncomputable def quietLogger.Debug.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:55:20 -/
+/-- go: harness.go:56:20 -/
 noncomputable def quietLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -124,7 +124,7 @@ noncomputable def quietLogger.Debugf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:56:20 -/
+/-- go: harness.go:57:20 -/
 noncomputable def quietLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -134,7 +134,7 @@ noncomputable def quietLogger.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:57:20 -/
+/-- go: harness.go:58:20 -/
 noncomputable def quietLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -146,7 +146,7 @@ noncomputable def quietLogger.Errorf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:58:20 -/
+/-- go: harness.go:59:20 -/
 noncomputable def quietLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -156,7 +156,7 @@ noncomputable def quietLogger.Info.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:59:20 -/
+/-- go: harness.go:60:20 -/
 noncomputable def quietLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -168,7 +168,7 @@ noncomputable def quietLogger.Infof.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:60:20 -/
+/-- go: harness.go:61:20 -/
 noncomputable def quietLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -178,7 +178,7 @@ noncomputable def quietLogger.Warning.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))
   (Val #()))))
 
-/-- go: harness.go:61:20 -/
+/-- go: harness.go:62:20 -/
 noncomputable def quietLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -190,7 +190,7 @@ noncomputable def quietLogger.Warningf.impl [GooseExts] [GoGlobalContext] : val 
   (Val #())))))
   (Val #())))))
 
-/-- go: harness.go:62:20 -/
+/-- go: harness.go:63:20 -/
 noncomputable def quietLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -201,7 +201,7 @@ noncomputable def quietLogger.Fatal.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: harness.go:63:20 -/
+/-- go: harness.go:64:20 -/
 noncomputable def quietLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -214,7 +214,7 @@ noncomputable def quietLogger.Fatalf.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))
   (Val #())))))
 
-/-- go: harness.go:64:20 -/
+/-- go: harness.go:65:20 -/
 noncomputable def quietLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "v"
@@ -225,7 +225,7 @@ noncomputable def quietLogger.Panic.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
   (Val #()))))
 
-/-- go: harness.go:65:20 -/
+/-- go: harness.go:66:20 -/
 noncomputable def quietLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam "format"
@@ -241,7 +241,7 @@ noncomputable def quietLogger.Panicf.impl [GooseExts] [GoGlobalContext] : val :=
 /-- below is a random number in [0, n) (n > 0): primitive.RandomUint64, whose spec gives any value
     (as examples/raft/tracecheck draws its).
 
-    go: harness.go:69:6 -/
+    go: harness.go:70:6 -/
 noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -255,7 +255,7 @@ noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")))))
 
-/-- go: harness.go:80:20 -/
+/-- go: harness.go:81:20 -/
 noncomputable def Recorder.record.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ev"
@@ -278,7 +278,7 @@ noncomputable def Recorder.record.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Events is a copy of the reports recorded so far.
 
-    go: harness.go:87:20 -/
+    go: harness.go:88:20 -/
 noncomputable def Recorder.Events.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
@@ -312,7 +312,7 @@ noncomputable def Recorder.Events.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Name is the name reports use for node id: "raft<id>" (the binding's servers), "" for none.
 
-    go: harness.go:96:6 -/
+    go: harness.go:97:6 -/
 noncomputable def Name.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -338,7 +338,7 @@ noncomputable def Name.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: harness.go:103:6 -/
+/-- go: harness.go:104:6 -/
 noncomputable def names.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
@@ -375,7 +375,7 @@ noncomputable def names.impl [GooseExts] [GoGlobalContext] : val :=
     empty and "command" (its data as the value) otherwise. A change of membership is out of scope:
     nothing proposes one, and raft makes none by itself in a configuration that is not joint.
 
-    go: harness.go:114:6 -/
+    go: harness.go:115:6 -/
 noncomputable def entryOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty))) (Val #())))
@@ -415,7 +415,7 @@ noncomputable def entryOf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty))) (Var "$res0")))))
 
-/-- go: harness.go:124:6 -/
+/-- go: harness.go:125:6 -/
 noncomputable def entriesOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "es"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Entry.ty)))) (Val #())))
@@ -456,7 +456,7 @@ noncomputable def entriesOf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- msgType is rawnode's msgTypes.
 
-    go: harness.go:133:6 -/
+    go: harness.go:134:6 -/
 noncomputable def msgType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -575,7 +575,7 @@ noncomputable def msgType.impl [GooseExts] [GoGlobalContext] : val :=
 /-- msgOf is rawnode's msgOf, with `to` given (rawnode's `arrived` reports a message handed to a node
     as addressed to it).
 
-    go: harness.go:169:6 -/
+    go: harness.go:170:6 -/
 noncomputable def msgOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "to"
@@ -627,7 +627,7 @@ noncomputable def msgOf.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "index") (Var "$r0"))))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Msg.ty))) (Var "$res0"))))))
 
-/-- go: harness.go:179:6 -/
+/-- go: harness.go:180:6 -/
 noncomputable def roleOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -671,7 +671,7 @@ noncomputable def roleOf.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
-/-- go: harness.go:205:23 -/
+/-- go: harness.go:206:23 -/
 noncomputable def bootStorage.InitialState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -782,7 +782,7 @@ noncomputable def bootStorage.InitialState.impl [GooseExts] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Pair (Var "hs") (Var "$r0")))))))))))))))))
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.HardState.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2")))))))))
 
-/-- go: harness.go:220:23 -/
+/-- go: harness.go:221:23 -/
 noncomputable def bootStorage.Entries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "lo"
@@ -813,7 +813,7 @@ noncomputable def bootStorage.Entries.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Pair (Var "$res0") (Var "$r0")))))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
 
-/-- go: harness.go:224:23 -/
+/-- go: harness.go:225:23 -/
 noncomputable def bootStorage.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
@@ -838,7 +838,7 @@ noncomputable def bootStorage.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0")))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: harness.go:226:23 -/
+/-- go: harness.go:227:23 -/
 noncomputable def bootStorage.LastIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -861,7 +861,7 @@ noncomputable def bootStorage.LastIndex.impl [GooseExts] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: harness.go:228:23 -/
+/-- go: harness.go:229:23 -/
 noncomputable def bootStorage.FirstIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -884,7 +884,7 @@ noncomputable def bootStorage.FirstIndex.impl [GooseExts] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
-/-- go: harness.go:230:23 -/
+/-- go: harness.go:231:23 -/
 noncomputable def bootStorage.Snapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
@@ -909,7 +909,7 @@ noncomputable def bootStorage.Snapshot.impl [GooseExts] [GoGlobalContext] : val 
 
 /-- DefaultConfig is Main's run: three voters, 60 proposals, three isolations (leader changes).
 
-    go: harness.go:251:6 -/
+    go: harness.go:252:6 -/
 noncomputable def DefaultConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc Config.ty))) (App (Val (GoInstruction (GoZeroVal Config.ty))) (Val #())))
@@ -931,7 +931,7 @@ noncomputable def DefaultConfig.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Config.ty))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad Config.ty))) (Var "$res0")))))
 
-/-- go: harness.go:298:19 -/
+/-- go: harness.go:299:19 -/
 noncomputable def Cluster.node.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -958,7 +958,7 @@ noncomputable def Cluster.node.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "$res0"))))))
 
-/-- go: harness.go:305:19 -/
+/-- go: harness.go:306:19 -/
 noncomputable def Cluster.isolatedNow.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -984,7 +984,7 @@ noncomputable def Cluster.isolatedNow.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"isoMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))) (Val #()))))))
   (App (Val (GoInstruction (GoLoad go.uint64))) (Var "$res0"))))))
 
-/-- go: harness.go:312:19 -/
+/-- go: harness.go:313:19 -/
 noncomputable def Cluster.isolate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "id"
@@ -1004,7 +1004,7 @@ noncomputable def Cluster.isolate.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Events is the stream.
 
-    go: harness.go:319:19 -/
+    go: harness.go:320:19 -/
 noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1021,7 +1021,7 @@ noncomputable def Cluster.Events.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Servers is the binding's Server (and InitVoters): the nodes' names.
 
-    go: harness.go:322:19 -/
+    go: harness.go:323:19 -/
 noncomputable def Cluster.Servers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1041,7 +1041,7 @@ noncomputable def Cluster.Servers.impl [GooseExts] [GoGlobalContext] : val :=
 /-- RunCluster runs a cluster: it starts the nodes and their goroutines, makes the proposals and
     isolations, lets the cluster settle, stops it, and returns it (its stream is Events).
 
-    go: harness.go:326:6 -/
+    go: harness.go:327:6 -/
 noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Cluster.ty)))) (Val #())))
@@ -1222,8 +1222,9 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral bootStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ms")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"voters")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v1")))])))))
   (Let "$v4" (Val #(W64 1048576))
   (Let "$v5" (Val #(W64 256))
-  (Let "$v6" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType bootStorage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v6")))]))))))))))
+  (Let "$v6" (Val #true)
+  (Let "$v7" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType bootStorage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"DisableProposalForwarding")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v7")))])))))))))))
   (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (Var "rc"))
@@ -1296,7 +1297,7 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- deliver hands inp to n, unless the run stops first.
 
-    go: harness.go:392:19 -/
+    go: harness.go:397:19 -/
 noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1317,7 +1318,7 @@ noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- run is node n's goroutine: one input at a time, each followed by its Readies.
 
-    go: harness.go:400:19 -/
+    go: harness.go:405:19 -/
 noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1392,7 +1393,7 @@ noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- reportCause is rawnode's: the message being handled is reported once, before the first report
     that follows from it.
 
-    go: harness.go:429:19 -/
+    go: harness.go:434:19 -/
 noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1420,7 +1421,7 @@ noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :
 /-- drain is rawnode's drain in its default mode: for each Ready, the write (announced, then made),
     the messages, the committed entries, Advance.
 
-    go: harness.go:438:19 -/
+    go: harness.go:443:19 -/
 noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1646,7 +1647,7 @@ noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- send delivers m after a random delay, or drops it, from a goroutine of its own.
 
-    go: harness.go:495:19 -/
+    go: harness.go:500:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "m"
