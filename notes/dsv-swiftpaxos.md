@@ -63,7 +63,7 @@ The list asked for. They are named after the lab's specs, with the reason each i
 | net/rpc server | `RpcHttpHyp.{Register_spec, HandleHTTP_spec, Server_HandleHTTP_spec, Server_ServeHTTP_spec, defaultServer_init}` (lab: `net.rpc.{Register, HandleHTTP}`); the codec is `Net/`'s `codecSet` (SetCodec proved) | 6 | models-rpc-http |
 | net/http | `RpcHttpHyp.{Serve_spec, ServeMux_ServeHTTP_spec}` and the wildcard rpc protocols `rpcLisP` (`_addr`, `_lis`, `_set`) | 2 | models-rpc-http (+ the wildcard finding) |
 | net | none: wildcard `Listen` is `Net/`'s (`net-wildcard-listen`, landed); `TCPConn.{Close,RemoteAddr}` and `TCPAddr.String` are proved lab-shaped wrappers (`lib/NetConn.lean`), `DialTimeout`, `Dial`, `Listen` and `TCPListener.Accept` too (`lib/NetLab.lean`, over `lisProto`), `TCPConn.Write` (`lib/BufioNet.lean`) | | |
-| os/signal | `os.signal.Notify.wp_proof` (`Harness/Proof/os/signal`): **an assumption of the deployment** (no signal is delivered: `hook.HookUser1`'s proof needs the channel to stay empty). For review. | 1 | os/signal (names only) |
+| os/signal | not a `SwiftHyps` field: the **environment class `SwiftNoSignals`** (`Hyps.lean`), field `notifyQuiet : os.signal.NotifyQuiet.spec` (`lib/LibSpecs.lean`): `Notify(c, sig)` with `sig ↦*{dq} [SIGUSR1]` (the literal `syscall.Signal(0xa)` `HookUser1` passes) does nothing, in a deployment where no signal is sent (`HookUser1`'s proof needs its channel to stay empty). As dsv-rabia's `os.signal.NoSignals`, restricted to the signal passed (Upamanyu's rabia review). A visible premise of the statement, apart from the library hypotheses. | 1 | os/signal (names only) |
 | math/rand | `math.rand.{NewSource, New, Intn}.wp_proof` (`Harness/Proof/math/rand`), in `SwiftHyps` | 10 | Perennial's `math/rand` translation is names only |
 | uuid | `uuid.wp_New`, `uuid.wp_ID` (results: some `UUID`, some `w32`; the lab's `isV4`/`idOf` are unused), in `SwiftHyps` | 2 | uuid (names only) |
 
@@ -116,7 +116,96 @@ The list asked for. They are named after the lab's specs, with the reason each i
    delivered), not a property of Go's `os/signal`: `hook.HookUser1`'s proof needs the notified channel
    to stay empty (the lab's model made it so).
 
-## State (2026-11-23, sixth session; resume here)
+## State (2026-11-23, seventh session; resume here)
+
+Read with the sixth and fifth sessions' states below (accurate where this does not say otherwise).
+
+**Done (commits `de7d00fb05` .. this one, pushed).**
+- **Tiers: `Hyps.lean` is a defs module.** The lab's names restated from `SwiftHyps` that ended in
+  `wp_proof` (`encoding.gob.*`, `math.rand.*`, `os.signal.Notify`) are now `X.wp_hyp` (uses renamed:
+  `client/NewBufferClient`, `swift/HookUser1`, the lab kit's `OrchParts`/`ServersLink`). The kit's
+  violations: **503 → 257** (`etc/tier-check.py`; tree total 489): defs→proof 148, proof→proof 92,
+  defs→linking 15, proof→linking 2, spread over 161 imported modules (the lab's style: a proof file
+  imports its callees' proof files for their lemmas). Restructuring them is landing work: split each
+  imported proof module's lemmas/defs into a defs module, or have the importer take the callee's
+  spec as a premise and compose in `Link`. New files are tier-clean (`RpcgenCodec`, `RpcHttpHyps`).
+- **Client side of `withErr`** (built): `client.Client.callMasterRL/L.specI`, `CodecG`,
+  `Spec/client/BufferClient__Connect` take `W.SS masterAddr "Master" = some (withErr masterSpec)`;
+  `callMaster` calls with `S := withErr masterSpec`, `Φ := ⌜msg ≠ []⌝ ∨ rlPhi/glPhi`, and drops the
+  left disjunct (`msg = []`) in the decoding continuation. `Connect` builds.
+- **Replicas served as `withErr replicaRpcSpec`** in `run.spec`, `Master__Run`'s `worldOk`, and
+  RunLoop's `wp_call_btl`/`wp_call_ping` (BeTheLeader's caller `Φ := ⌜msg ≠ []⌝ ∨ Φr`). The kit's
+  replica serving must use the same (step 5).
+- **`master/RunLoop` builds** (0 errors, no `sorry`). The four errors had one cause: RunLoop's
+  section variable `[C : RpcCodec] [KitLike C]` is included in every theorem (an instance variable
+  with no dependencies), so the helpers' `codecSet RpcCodec.spec` resolved at `C` while `run.spec`
+  (stated in `Run.lean`) is at the global `kitCodec`; the calls now say `(C := kitCodec)`.
+- **os/signal** (rabia review lesson): `SwiftHyps.os_signal_Notify` is gone; the environment class
+  `SwiftNoSignals` (above, "Hypotheses") holds `NotifyQuiet` over `sig ↦*{dq} [SIGUSR1]`. `HookUser1`
+  builds over it. `ServersLink` (lab kit, unbuilt) still names the old field; step 5 replaces it.
+- **Step 5 started: `examples/swiftnet/RpcgenCodec.lean`** (builds, defs tier): `swiftCodec :
+  CodecSpec`, each transformer the WP of the generated `rpcEncode`/`rpcDecode`/`rpcReceiver`, and
+  `swiftCodec_{encOk,decOk,rcvOk}` by definition (dsv-craq's `Craq/Codec.lean` pattern).
+- **models-rpc-http (`1a4d9546c9`) merge: tried and undone.** Its `Net/Proof/net/rpc/DialHTTPPath.lean`
+  does not build on this branch (`157:4: irename: unknown hypothesis`): it is written against the
+  bufio before the revision that landed on `lean` (`07268ddb57`; `wp_NewReader`'s spec changed),
+  and `Net/Proof/net/rpc/Results.lean` imports it, so every kit file using `Client.Call.wp`
+  (`client/Client__call`, `master/RunLoop`) would fail. A finding for models-rpc-http: merge `lean`
+  (dsv-bufio) there first. The attempt is saved as a patch (scratch `sw-rpchttp-merge-attempt.patch`
+  and `RpcHttpLinked.lean`): it drops `RpcHttpHyp`'s `rpcAddrP`/`rpcAddrP_raw`/`DialHTTPPath_spec`/
+  `DialHTTP_spec` fields for one field `ReadResponse_spec : net.http.ReadResponse.spec`
+  (Upamanyu's hypothesis), restates `rpcHttp` as `net.rpc.DialHTTP.spec`'s precondition
+  (`receiptBound`, `cliEnv`, `net.http.httpEnv`, `globalAddr net.rpc.connected ↦□ connectedStatus`,
+  `rpcAddrP W a (connectReq defaultRPCPath) connectAns`; needs `[bufio.Assumptions]` where used),
+  has `DialHTTP_tcp`/`dialMaster.wp_proof`/`master.Master.run.wp_proof` take `wp_DialHTTP :
+  net.rpc.DialHTTP.spec`, links it in a linking module `lib/RpcHttpLinked.lean`
+  (`DialHTTP.wp_of_ReadResponse H.ReadResponse_spec`), and adds `mime/multipart` (names only,
+  imported by models-rpc-http's net/http) to `genpkg.py`'s package list. Re-apply when the branch
+  builds with lean's bufio.
+
+**Upamanyu's answers (#24, coordinator's scratch `five-answers-24.txt`), to follow:**
+- Wildcards: per listener, `rpcLisP W la hs hsAns` with `rpcAddrP` its instance at an exact address:
+  our `rpcLisP`/`_addr`/`_lis`/`_set` are the names he will use. Keep.
+- `errOk` will be restricted to the server's own error messages (`srvErrMsg`); `withErr` stays valid.
+  When it lands, either keep `withErr` or serve `masterSpec`/`replicaRpcSpec` extended by `srvErrMsg`.
+- `Client.Call`: non-`ServerError` errors will give `∃ msg, errMsg err msg ∗ ⌜msg ≠ []⌝`.
+- **net/rpc init** is a per-machine boot resource (`codecFresh`, `srvEnv`) from `wp_initialize'`, not
+  an `InitHyp` and not `|==> codecFresh`: the boot (step 5) takes it in that shape.
+
+**Hypotheses vs the real libraries (rabia review lessons), checked:**
+- os/signal: fixed (above).
+- math/rand: only the package-level `Intn` (global source; no zero `Rand`), `NewSource` (any seed)
+  and `New(src)` (allocates; Go's `New` does not use `src` until a method call, and the kit calls
+  none on the result) are used: true of Go as stated.
+- uuid: `New` is `Must(NewRandom())`: it panics if the OS's randomness fails. The hypothesis
+  (`True` precondition, returns) assumes it does not: an environment assumption to name with the
+  others in the statement. `UUID.ID` holds.
+- **gob is the one that is not true of Go**: the `gob_*` fields are stated in the lab's frame format
+  (`sp.gobFrame`, one `Write` per value, the kit codec's bytes); real `encoding/gob` writes type
+  descriptors before the first value and its own encoding. Restating them needs an abstract,
+  per-encoder stream (`gobStream γ vs`: the bytes an encoder has written for the values `vs`,
+  prefix-monotone; the decoder reading a prefix of it), which changes `sp.Msg.body`'s `.sync` case
+  and the replica stream protocols of `Spec/swift/Inv.lean` that carry `MSync`. Not started.
+- `log.Println`: proved from Perennial's body (For review 1). dlog's Logger is the fork's (proved).
+- treemap: `NewWith` asks `cmpOk cmp enc`; `Put`/`Get` over `isTreeMap`: plausible as stated, to
+  recheck against dsv-tpmodels' Go model of gods (landed, `models/gods`, no Lean proofs).
+
+**Next, in order (step 5 and landing).**
+1. The codec switch: `sp.KitVal.encode` as rpcgen's bytes; per-type lemmas over the generated
+   `rpcEnc_t*`/`rpcDec_t*` (craq's `CodecProof.lean`, ~2700 lines there; here ~11 types incl.
+   `MSync`'s maps); replace `RpcCodec.spec`/`kitCodec`/`KitLike`/`enc_of`/`dec_intro` uses
+   (48 files) by `swiftCodec`; `master.rcvr.spec`, the replica's, of `rpcReceiver`.
+2. gob restated truthfully (above).
+3. The kit over remote: the boot (`rpcLisP_set`; replicas' `lisProto (wildOf a)` by
+   `lis_set_proto`; net/rpc's boot resource), the `InitHyp`s (gob, signal, uuid, concurrent-map;
+   no instance anywhere), the Mains, `Orch`/`Client`/`Model` as dsv-paxos,
+   `swiftpaxos_remote_robust` with `SwiftHyps`, `SwiftNoSignals`, `RpcHttpHyp` and every `InitHyp`
+   visible, `etc/theorem-loc.py`, `etc/tcb-collections/dsv-swiftpaxos.txt`, Link in namespace
+   `Perennial.EtcdGrove.dsvswiftpaxos`.
+4. models-rpc-http's client (above) once it builds here.
+5. Tier restructuring (257).
+
+## State (2026-11-23, sixth session; superseded where the seventh says so)
 
 Read with the fifth session's state below (still accurate where this does not say otherwise).
 
