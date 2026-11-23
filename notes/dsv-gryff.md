@@ -515,8 +515,8 @@ Everything portable without a design decision is ported. Two designs block the r
 
 1. **The client connection on `Net/` (N/Serve, N/ClientConn, N/ConnLaws, N/StrIndex, N/WaitPeers,
    N/ConnSlots, N/Connect, N/Boot, then Replica2/Specs and everything above it: H1-H3, B/Handler,
-   B/Tables, B/BootLem, X/Bridge, X/Final, Replica2/Link).** `N/Serve.lean` is copied and
-   mechanically rewritten but not checked; its `clientConnInB` is the lab's connection vocabulary:
+   B/Tables, B/BootLem, X/Bridge, X/Final, Replica2/Link).** `N/Serve.lean` is not in the tree (recreate
+   it: scratch `port/port.py N/Serve.lean`, then `port/nport.py` and `port/nextok.py`); its `clientConnInB` is the lab's connection vocabulary:
    `net.rpc.connIface conn c true` -> `∃ t la ra, ⌜conn = interface.mkOk (ptr TCPConn) #t⌝ ∗
    net.connAt t cn true a la ra`; `sendTok c true (addrQ γ a) []` / `connFreshG netDistGS c true`
    -> `Net/`'s `sendTok`/`connFresh` (`GooseLang/Ext/Net/Proto.lean`); the reader's peek
