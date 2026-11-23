@@ -4,7 +4,8 @@ Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/ by the mechanical re
 (notes/dsv-epaxos.md, "Proof port: progress"). Usage: etc/dsv-epaxos/port.py [--bufio] LABPATH...
 (--bufio: also the bufio call-site rewrites of the marshal layer, `bufio_conv`.)
 Hand-maintained after their port (do not re-port; notes/dsv-epaxos.md): Interface/Marshal.lean,
-wire/{WProg,RProg,Link}.lean, wire/Varint/{ReadUvarint,ReadVarint}.lean. Every other ported file is
+wire/{WProg,RProg,Link}.lean, wire/Varint/{ReadUvarint,ReadVarint}.lean,
+Interface/{Replica,ReplicaSpec}.lean. Every other ported file is
 `port.py`'s output (with `FIXUPS`).
 (LAB: the lab's proof directory, read only; DSVLAB_EPAXOS overrides it.) Hand edits after the port
 are listed in the notes."""

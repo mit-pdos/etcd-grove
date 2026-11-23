@@ -149,7 +149,7 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    (changed against the lab):
    - The writer's and reader's parameters are bundled: `BufWr GF` (`wi`, `J`, `Q`, `Ew`, `sz`,
      and `Q_pre : ∀ x y, Q (x ++ y) ⊢ Q x`: the marshalers' partial writes need `Q` prefix-closed,
-     which the lab read off its `writerOk`; dsv-bufio's `io.writerOk` holds it inside the sealed
+     which the lab read off its `writerOk`; dsv-bufio's `io.streamWriterOk` holds it inside the sealed
      `ownBufWriter`, so it is a Lean field; a connection's `Q = P cn` with `ProtoPrefixClosed P`
      gives it) and `BufRd GF` (`ri`, `Pre`, `S`, `E`; a stream fact `F` with `F_pers`,
      `F_of : S r ⊢ S r ∗ F r`, `F_pre` prefix-closed: exactly `bufio.ownBufReader_fact`'s
@@ -162,7 +162,7 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
      For a connection the caller (the replica's listener, the lab's `listener_nextIs`) proves
      `nextIs` from `▷ protoPrefix` and its role element, under the later.
    - `marshalTriple`/`unmarshalTriple`: as the lab's with the bundles; `isPkgInit bufio` stays a
-     conjunct (for `io`'s error values); the lab's `bufio.writerOk`/`readerOk` conjuncts are gone
+     conjunct (for `io`'s error values); the lab's `bufio.streamWriterOk`/`readerOk` conjuncts are gone
      (inside the reader/writer); an unmarshal error is only `⌜err ≠ nil⌝` (the lab's
      `net.rpc.errAny` was its harness's). `wire/RProg`'s `wp_ReadFull_br`/`wp_ReadAtLeast_br` are
      Perennial's `io.wp_ReadFull`/`io.wp_ReadAtLeast` over `bufio.ownBufReader_readerOk`, their
@@ -197,7 +197,7 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `127.0.0.1:(7500+k)`, its rpc at `127.0.0.1:(8500+k)` (`serve`'s `port + 1000`), the master
    `127.0.0.1:7501`; the lab's `nodeAddrs_*` facts of its 10.77.0.x harness are gone; a span
    FIXUP), **`Interface/ConnBuf.lean` (new)**: a connection's ends as the marshal layer's bundles,
-   `connWr t cn s la ra ed P hP sz` (`net.conn_writerOk`'s contract) and
+   `connWr t cn s la ra ed P hP sz` (`net.conn_streamWriterOk`'s contract) and
    `connRd t cn s eof la ra ed P` (`net.conn_readerOk`'s, stream fact `▷ protoPrefix P cn`), and
    `repDialP_ppc`/`repAccP_ppc` (`ProtoPrefixClosed`, the lab's `*_prefixClosed`);
    `replica/{Ghost,RpcTable,SliceElems,ClientWire}`: the slots restated over `Net/`
@@ -284,7 +284,7 @@ review; `/shared/etcd-grove-dsvbufio/notes/dsv-bufio.md`). Use its names (or mer
 `Perennial.EtcdGrove`: `bufio.NewReaderSize.spec`, `NewReader.specOk`, `Reader.Read.specOk`,
 `Reader.ReadByte.spec`, `NewWriterSize.spec`, `NewWriter.spec`, `Writer.Flush.spec`,
 `Writer.Write.spec`, `Writer.WriteByte.spec` over `ownBufReader`/`ownBufWriter` with contracts
-`io.readerOk`/`io.writerOk`; law `ownBufReader_readerOk` (Perennial's `io.wp_ReadFull`/`ReadAtLeast`
+`io.readerOk`/`io.streamWriterOk`; law `ownBufReader_readerOk` (Perennial's `io.wp_ReadFull`/`ReadAtLeast`
 through bufio); `Net/Proof/net/ConnIo.lean`: `conn_readerOk`, `conn_writerOk` (needs
 `ProtoPrefixClosed P`). The lab's `Interface/BufioLocal.lean`, `Proof/wire/BufioSticky` and
 `Harness/Proof/bufio/*` are replaced by these, not ported.

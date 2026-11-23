@@ -3,7 +3,7 @@ A connection's ends as the marshal layer's buffered streams (notes/dsv-epaxos.md
 lab's: the lab's harness had its own `net.rpc.connIface` and `bufio.ownWriter`/`ownReader` over
 connections). For a `*net.TCPConn` `t` at end `s` of connection `cn` (`net.connAt`):
 
-* `connWr t cn s la ra ed P hP sz`: a `*bufio.Writer` of size `sz` over it, by `net.conn_writerOk`'s
+* `connWr t cn s la ra ed P hP sz`: a `*bufio.Writer` of size `sz` over it, by `net.conn_streamWriterOk`'s
   contract (`sendTok cn s P`, protocol `P cn`, errors `connWriteE`), `P` closed under prefixes;
 * `connRd t cn s eof la ra ed P`: a `*bufio.Reader` over it, by `net.conn_readerOk`'s contract
   (reads of a non-empty buffer, `recvTokL cn s P`, errors `connReadE`), with the stream fact
