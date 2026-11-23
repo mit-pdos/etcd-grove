@@ -75,6 +75,66 @@ def wPools : IProp GF :=
 instance wPools_persistent : Persistent (wPools (GF := GF)) := by
   unfold wPools; infer_instance
 
+/-- The names and places of a connection being served, up to its hijack (`hjPre`). -/
+structure HjNames where
+  /-- The connection's reader's ghost names. -/
+  γ : CrNames
+  /-- The hijacked flag's ghost variable (`connMuInv`). -/
+  γh : GName
+  /-- The response, the connection, its reader, its server. -/
+  w : Loc
+  c : Loc
+  cr : Loc
+  s : Loc
+  /-- The connection's `*TCPConn`, its number, the address it was dialed to, its end's addresses. -/
+  t : Loc
+  cn : Nat
+  a : GoString
+  la : GoInterface
+  ra : GoInterface
+  /-- `aLongTimeAgo`'s value; the connection's buffered reader and writer; the response's writer. -/
+  tm : time.Time
+  br : Loc
+  bw : Loc
+  ww : Loc
+
+/-- What `Hijack` needs of the response `w` (its `handlerDone` false, no expect-continue reader,
+nothing written, its buffered writer of 2048 bytes), of its connection (its mutex, the hijacked flag
+false, its reader in the background phase, its writer of 4096 bytes holding nothing, its server)
+and of the network (nothing written yet, the reader's protocol facts `zLaw`): see the file
+header. -/
+def hjPre (N : HjNames) (P Q : Proto GF) (hs : List w8) (Z : Nat → IProp GF) : IProp GF :=
+  iprop(sync.atomic.ownBool (structFieldRef net.http.response go!"handlerDone" N.w) (DFrac.own 1)
+      false ∗
+    structFieldRef net.http.response go!"ecReader" N.w ↦ (null : Loc) ∗
+    structFieldRef net.http.response go!"wroteHeader" N.w ↦ false ∗
+    structFieldRef net.http.response go!"conn" N.w ↦□ N.c ∗
+    structFieldRef net.http.response go!"w" N.w ↦ N.ww ∗ EtcdGrove.bufio.rawWriter N.ww 2048 ∗
+    sync.isMutex (structFieldRef net.http.conn go!"mu" N.c) (connMuInv N.c N.γh) ∗
+    ghostVar N.γh (1 : Qp).half false ∗
+    structFieldRef net.http.conn go!"r" N.c ↦□ N.cr ∗
+    structFieldRef net.http.conn go!"rwc" N.c ↦□
+      interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #N.t ∗
+    structFieldRef net.http.conn go!"bufr" N.c ↦□ N.br ∗
+    structFieldRef net.http.conn go!"bufw" N.c ↦□ N.bw ∗ EtcdGrove.bufio.rawWriter N.bw 4096 ∗
+    structFieldRef net.http.conn go!"server" N.c ↦□ N.s ∗ srvConst N.s ∗
+    (∃ v : w64, sync.atomic.ownUint64 (structFieldRef net.http.conn go!"curState" N.c)
+      (DFrac.own 1) v) ∗
+    crIs N.cr N.γ N.cn P hs Z ∗ globalAddr net.http.aLongTimeAgo ↦□ N.tm ∗
+    structFieldRef net.http.connReader go!"rwc" N.cr ↦□
+      interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #N.t ∗
+    ghostVar N.γ.ph (1 : Qp).half true ∗ ghostVar N.γ.r (1 : Qp).half hs ∗
+    connAt N.t N.cn true N.a N.la N.ra ∗ sendTok (Gg := hG.goose_globalGS) N.cn true Q [] ∗
+    connFresh (Gg := hG.goose_globalGS) N.cn true ∗ zLaw Z Q ∗ wPools)
+
+/-- What a hijack gives back to the serving thread (`hijackOk`'s `D`): the hijacked flag, the
+reader's fields, the connection's state word, the response's `handlerDone`. -/
+def hjDone (N : HjNames) (hs : List w8) : IProp GF :=
+  iprop(ghostVar N.γh (1 : Qp).half true ∗ crLeft N.cr N.γ hs ∗
+    (∃ v : w64, sync.atomic.ownUint64 (structFieldRef net.http.conn go!"curState" N.c)
+      (DFrac.own 1) v) ∗
+    sync.atomic.ownBool (structFieldRef net.http.response go!"handlerDone" N.w) (DFrac.own 1) false)
+
 end defs
 
 end net.http

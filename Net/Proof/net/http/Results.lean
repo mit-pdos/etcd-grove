@@ -7,6 +7,11 @@ the model's head parser (`modelReadLine`, `modelReadMIMEHeader`), `modelCutByte`
 `Header.Del`, textproto's `MIMEHeader.Del` and `CanonicalMIMEHeaderKey`, httpguts'
 `HeaderValuesContainsToken`), `fixPragmaCacheControl`, Perennial's `strconv.Atoi`, and bufio's
 `ReadByte` (`specNE`), `Peek` and `fill` (the main tree's `Proof/bufio/`).
+
+The server's hijack (2026-11-23): `response.Hijack` (`hijackOk` from `hjPre`, what `conn.serve` has
+when it calls the handler) over `conn.hijackLocked`, `connReader.abortPendingRead`, the net
+extension's `Conn.SetDeadline`/`SetReadDeadline` and bufio's `Writer.Reset`; and the background
+read, `connReader.backgroundRead`, over `Conn.Read` and `OpError.Timeout`.
 -/
 module
 
@@ -32,6 +37,15 @@ public import Proof.bufio.Reader__Peek
 public import Proof.bufio.Reader__ReadByteNE
 public import Perennial.Proof.fmt.Link
 public import Perennial.Proof.strconv.Link
+public import Net.Proof.net.http.response__Hijack
+public import Net.Proof.net.http.conn__hijackLocked
+public import Net.Proof.net.http.connReader__abortPendingRead
+public import Net.Proof.net.http.connReader__backgroundRead
+public import Net.Proof.net.Conn__Read
+public import Net.Proof.net.Conn__SetDeadline
+public import Net.Proof.net.Conn__SetReadDeadline
+public import Net.Proof.net.OpError__Timeout
+public import Proof.bufio.Writer__Reset
 
 @[expose] public section
 
@@ -76,7 +90,34 @@ theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
 
 end link
 
+section server
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+variable [HasExt netExt] [π : NetProtoGS] [net.Assumptions] [field_sem : net.FieldAssumptions]
+variable [bufio_sem : bufio.Assumptions]
+
+theorem connReader.backgroundRead.wp :
+    connReader.backgroundRead.spec (GF := GF) (hG := hG) :=
+  connReader.backgroundRead.wp_proof net.Conn.Read.wp_proof net.OpError.Timeout.wp_proof
+
+theorem connReader.abortPendingRead.wp :
+    connReader.abortPendingRead.spec (GF := GF) (hG := hG) :=
+  connReader.abortPendingRead.wp_proof net.Conn.SetReadDeadline.wp_proof
+
+theorem conn.hijackLocked.wp : conn.hijackLocked.spec (GF := GF) (hG := hG) :=
+  conn.hijackLocked.wp_proof connReader.abortPendingRead.wp net.Conn.SetDeadline.wp_proof
+    EtcdGrove.bufio.Writer.Reset.wp_proof
+
+theorem response.Hijack.wp : response.Hijack.spec (GF := GF) (hG := hG) :=
+  response.Hijack.wp_proof conn.hijackLocked.wp EtcdGrove.bufio.Writer.Reset.wp_proof
+
+end server
+
 end net.http
 end Perennial
 
 #print axioms Perennial.net.http.ReadResponse.wp
+#print axioms Perennial.net.http.connReader.backgroundRead.wp
+#print axioms Perennial.net.http.response.Hijack.wp

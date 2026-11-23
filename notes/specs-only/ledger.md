@@ -25,6 +25,42 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: `hijackOk` gives the server back a resource; `respProto` does not allow Go's 400 answer to a cut handshake (net/http's server up to the hijack)
+
+- **Spec.** `Net/Proof/net/http/ServerDefs.lean` (`hijackOk`), `Net/Spec/net/rpc/Server__ServeHTTP.lean`
+  (`Server.ServeHTTP.spec`); `Net/Proof/net/rpc/Proto.lean` (`respProto`); new
+  `Net/Spec/net/http/response__Hijack.lean` (`hijackOk` made from `hjPre`).
+- **Defects.** (1) `conn.serve` calls the handler and then `c.hijacked()`: if the connection was not
+  hijacked it goes on to `finishRequest`, the keep-alive loop and the next request; to stop there its proof
+  must learn from the handler that `Hijack` ran, and `hijackOk`'s continuation gave the handler nothing to
+  return. (2) A dialer's handshake cut (the net model's D1: a read may find the direction cut, keeping a
+  strict prefix of its bytes, then EOF, while the dialer has written it whole) makes Go's `readRequest` fail
+  with `io.ErrUnexpectedEOF` or a parse error (a cut request line, `"malformed HTTP request"`/`"malformed
+  HTTP version"`; a whole line, then EOF in the header block), and `conn.serve` answers with one
+  `fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\nConnection:
+  close\r\n\r\n400 Bad Request")` (only EOF and `*OpError{Op: "read"}` are "common" read errors answered with
+  nothing). `respProto` lets the acceptor write only prefixes of `connectAns ++ respsWire Rs`, after the whole
+  handshake: Go's server cannot meet it, and the dialer (who may have written the whole handshake) may read
+  that 400 answer, which `DialHTTPPath`'s proof (over `ReadResponse.spec`, answers that are prefixes of
+  `connectAns`) excludes.
+- **Evidence.** (1) the model's `server.go` `conn.serve` (`if c.hijacked() { c.r.releaseConn(); return }`).
+  (2) `GooseLang/Ext/Net/Impl.lean` D1 ("at any read, the connection may break: the direction becomes `cut`,
+  keeping a prefix of its unread bytes"); `request.go` `readRequestLimit` (the deferred `io.EOF` to
+  `io.ErrUnexpectedEOF`), `server.go` `isCommonNetReadError` and the `default:` answer.
+- **Change.** (1) Applied: `hijackOk rp cn a P Q hs D`, the continuation also given `D`;
+  `Server.ServeHTTP.spec` for every `D`, its post `threadTok ∗ D` (proof: `D` framed through the answer's
+  `Write` and `ServeConn`). `response.Hijack.spec`: `hjPre N P Q hs Z ⊢ hijackOk N.w N.cn N.a P Q hs (hjDone N hs)`,
+  `hjDone` the hijacked flag's ghost half (`connMuInv`), the reader's fields, the state word. (2) Proposed,
+  not applied: `respProto W a cn bs` also holds of every prefix of the 400 answer (`badReqAns`), and the
+  client side follows: `ReadResponse.spec` over answers that are prefixes of `connectAns` or of `badReqAns`
+  (the latter's status line `"HTTP/1.1 400 Bad Request"`, two header lines through the model's
+  `modelReadMIMEHeader` and `readTransfer`'s `Connection: close`, `httpguts.HeaderValuesContainsToken` with
+  its body), and `DialHTTPPath` returns its `*OpError` on it (it does already: the status is not
+  `connected`). `conn.serve`'s spec states the premise (the acceptor's protocol allows the 400 answer) until
+  then.
+- **Decision.** (1) applied (branch `models-rpc-http`, 2026-11-23). (2) pending: a change of `respProto`, the
+  rpc world's client-visible protocol, for the user's review.
+
 ## 2026-11-23: `http.ReadResponse.spec` over a reader that makes progress; `httpEnv` widened; `connectReader.Read.spec` makes progress; `ReadByte.specNE`; the model's `modelCutByte`/`modelTrimLeftByte` and `connReader.failed` (net/http model, `ReadResponse`'s proof)
 
 - **Spec.** Changed: `Net/Spec/net/http/ReadResponse.lean` (`io.readerStreamNE` for `io.readerStream`; the

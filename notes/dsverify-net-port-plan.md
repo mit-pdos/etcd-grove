@@ -967,6 +967,38 @@ tests kept as differential tests against the real library, a "not modelled" pani
    premises (`regNameOk`, at least one method) could now go (`log.Println` is modelled and specified),
    not done (ledger, 2026-11-23, pending); the package's initialization giving `srvEnv` (with
    `invalidRequest` at `()`) and `isPkgInit log` (item 5).
+   **net/http's server, the hijack (2026-11-23, same branch; ledger 2026-11-23, "`hijackOk` gives the server
+   back a resource").** *Translation* (`Net/Code/net/http.toml`): with bodies the server's connection path
+   (`connReader.*`, `conn.{setState,close,finalFlush,closeWriteAndWait}`, `Server.{shuttingDown,trackListener,
+   trackConn,setupHTTP2_Serve,protocols,...}`, `onceCloseListener.*`, `Protocols.*`, the bufio pools'
+   `newBufioReader`/`newBufioWriterSize`/`putBufio*`, `readRequest`/`readRequestLimit`/`parseRequestLine`/
+   `validMethod`, the `Request` predicates, `hasToken`, `Header.get`, the `State*`/`proto*` constants, ...);
+   bufio's `Reader.Reset`, `Writer.Reset` (main tree, `Code/bufio.toml`). *Model changes* (MODEL, pending the
+   user's review; difftests pass): `Server.protocols` does not read `GODEBUG=http2server` (it decides only the
+   HTTP/2 bit, which only TLS, not modelled, reads), and `onceSetNextProtoDefaults` configures no HTTP/2 (as
+   with `nethttpomithttp2`: the model's claim excludes programs reading `TLSConfig`/`TLSNextProto` after
+   `Serve`). *Proved and linked* (`Net/Proof/net/http/Results.lean`, Lean's three axioms): the connection
+   reader's vocabulary (`ConnReader.lean`: `crIs` over a mutex invariant by phase, main or background, the
+   background reader's token, `crRead`; `headLaw P hs Z`: the dialer writes a prefix of its head or `Z cn`,
+   `zLaw Z Q`: `Z cn` refutes the acceptor's `sendTok cn true Q []`), `connReader.backgroundRead` (a byte past
+   the head gives `Z cn`), `connReader.abortPendingRead` (the read deadline in the past, `Cond.Wait` until the
+   read is done, the reader's resources back), `conn.hijackLocked` (the reader's byte refuted, the reader's
+   token at exactly the head), `response.Hijack` (`hjPre ⊢ hijackOk … (hjDone …)`, `ServerConn.lean`), and the
+   helpers `lock`/`unlock`/`closeNotify`/`handleReadErrorLocked`, `trackConn`, `setState`, `putBufioWriter`,
+   bufio's `Writer.Reset` over `rawWriter`. `hijackOk` takes the server's resource `D` (`ServeHTTP.spec` for
+   every `D`). *Finding* (ledger, pending): Go's server answers a cut handshake with a 400 that `respProto`
+   does not allow; the client's `ReadResponse` must then read it.
+   *Left, in order*: `startBackgroundRead`, `connReader.Read` (the head read through bufio as an
+   `io.readerStreamNE`, with `sendTok` in the stream's state so `headLaw` gives the prefix law
+   `modelReadMIMEHeader` needs), `releaseConn`, `newBufioReader`/`newBufioWriterSize` (the pools' predicates:
+   `wPools`, a reader pool likewise; net/http's initialization gives them, a premise until then),
+   `readRequest` (needs `url.ParseRequestURI` with its body: `net/url` is the main tree's names-only
+   translation, project etcd; and `strings` functions Perennial has names-only), `c.readRequest` (contexts:
+   `WithCancel` has Perennial's spec, `WithValue` none, `Background()` no `isContext`: Perennial change or a
+   model change), `conn.serve` (its spec over `rpcLisP`, with the 400 premise of the finding), `Server.Serve`
+   (the accept loop; `Temporary()` back-off, `logf`), `ListenAndServe`, `ServeMux.Handle`/`ServeHTTP` on an exact
+   path (Go 1.22 patterns: `parsePattern`, the routing tree; `use121` reads `GODEBUG=httpmuxgo121` at init:
+   both muxes, or a model decision), `HandleHTTP` (`runtime.Caller` in `registerErr`: not modelled by Perennial).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

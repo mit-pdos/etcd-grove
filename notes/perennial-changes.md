@@ -17,6 +17,23 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `sync.NewCond.spec` does not say its result is not `nil`; `context.WithValue` names-only (2026-11-23, models-rpc-http)
+
+- **Limitation.** (1) `NewCond.spec`'s post is `isCond c m`, without `⌜c ≠ null⌝` (the struct field
+  points-to it holds does not give it: no lemma relates `structFieldRef` and `null`). A lazily made
+  condition variable (`if cr.cond == nil { cr.cond = sync.NewCond(&cr.mu) }`, net/http's `connReader.lock`)
+  needs it: with `cv = nil` stored, the next `lock` would store again into a field already read-only.
+  (2) `context.WithValue` has no body in Perennial's translation (and `Background()` is not an `isContext`),
+  so net/http's `Serve` (`WithValue(baseCtx, ServerContextKey, s)`) and `conn.serve`
+  (`WithValue(ctx, LocalAddrContextKey, ...)`) are stuck at that call.
+- **Who needs it.** net/http's server (`Net/Proof/net/http/`, `notes/dsverify-net-port-plan.md`, phase 5.2).
+- **Workaround.** (1) `wp_NewCond_nn` (`Net/Proof/net/http/ConnReaderLemmas.lean`): Perennial's proof of
+  `NewCond` over the translated body, the allocation's non-null kept. (2) None yet (`conn.serve` not proved).
+- **Proposed change.** (1) `NewCond.spec`'s post with `⌜c ≠ null⌝` (the proof has it). (2) `WithValue`
+  translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
+  `isContext` of a value context over `isContext` or `Background()`.
+- **Status.** Not proposed yet.
+
 ### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
 
 - **Limitation.** `glang/lean.go`'s `leanComment` keeps a Go doc comment's tabs; a doc comment
