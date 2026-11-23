@@ -101,21 +101,27 @@ the shared piece lands; none is an axiom.
 - **H3. net/http's server**: `http.ListenAndServe(addr, nil)` with `DefaultServeMux` routing net/rpc's
   path to the `DefaultServer` (plan 5.2, item 7: `Serve`, `conn.serve` up to the hijack). Nothing in
   `Net/` yet (the lab had `Harness/Proof/net/http/{Base,Mux,Serve}.lean`).
-- **H4. net/rpc's `DialHTTP`** (`Hyps.lean`'s `DialHTTP.spec`, used by `Netrpc/Connect.lean`).
-  **Finding: as stated it is false of the model.** `DialHTTPPath` (models/net/rpc/client.go) writes
-  `CONNECT /_goRPC_ HTTP/1.0\n\n` on the connection before `NewClient(conn)`, but Net's `isClient`
-  (`ClientDefs.lean`'s `sendInv`) holds the dialer's `sendTok cn false (reqProto W a) Wd` with
-  `Wd <+: reqsWire L`: every byte written on the connection is a prefix of the request frames, which
-  the handshake is not. The server side likewise reads the handshake first, where `rpcAddr`'s
-  `reqProto` speaks of frames from byte 0. So rpc over HTTP needs a **shared Net piece**: an address
-  protocol `handshake ++ frames` (or `sendTok`/`recvTok` from an offset), `DialHTTP.spec` and
-  `HandleHTTP`/`ServeHTTP`/`ListenAndServe` specs over it, and `isClient` for a connection whose
-  first bytes were the handshake. epaxos and gryff use rpc over HTTP too (their forks call
-  `DialHTTP`/`HandleHTTP`). **Alternative** (a kit decision for the coordinator/user): plain net/rpc
-  over TCP -- `transport/netrpc`'s `Connect` calls `rpc.Dial` (proved on `lean`, `Net/Proof/net/rpc/
-  Dial.lean`), the servers `rpc.NewServer()` + `RegisterName` + `net.Listen` + `server.Accept(l)`
-  (all proved on models-rpc-server): then H2-H4 disappear (only H1, net/rpc's `Init`, remains of
-  the rpc pieces). It changes go-craq's transport (one call) and the kit's `Server`/`runNode`.
+- **H4. net/rpc over HTTP, client side: restated, true of the model (`Craq/HttpRpc.lean`), awaiting
+  Net's piece.** The first statement (`DialHTTP` giving Net's `isClient` over `rpcAddr`) was false
+  of the model: `DialHTTPPath` writes the CONNECT handshake before the frames, and `rpcAddr`'s
+  protocols speak of frames from byte 0. Decision (coordinator, 2026-11-23): go-craq stays the
+  lab's fork; Net gets rpc over HTTP (upamanyus's shapes, #24: branch `models-rpc-http`, stacked on
+  `models-rpc-server`, no date; text in the coordinator's scratchpad `rpc-http-shapes.md`):
+  `rpcAddrP a hs …` (client-to-server bytes `hs ++ reqsWire`, server-to-client `hsAns ++
+  ansWire`; `rpcAddr = rpcAddrP a [] []`), `connectReq path`, `isClient` unchanged (over the frame
+  part), `rpc.DialHTTPPath.spec`, `rpc.DialHTTP.spec`. Here, matching: class `RpcHttpAddr GF`
+  (`rpcAddrP W a hs hsAns`, abstract, persistent), `connectReq`, `connectedAns`, `defaultRPCPath`,
+  `httpRpcAddr W a` (at `DefaultRPCPath`), class `RpcHttpDial GF` with `rpc.DialHTTPPath.spec`
+  and `rpc.DialHTTP.spec` (giving Net's `isClient`, so the client proofs `Netrpc/` keep using Net's
+  proved `Client.Call`/`Close`). `craqCtx` now says every address is an `httpRpcAddr`. Every file
+  with `[π : NetProtoGS]` takes `[ra : RpcHttpAddr GF]` (`Netrpc/Connect`, `New` also `[rd :
+  RpcHttpDial GF]`). No instance of either class exists; they become premises of the statement.
+  **Still to state** (the server side, same shapes): `rpc.Server.ServeHTTP.spec`,
+  `rpc.Server.HandleHTTP.spec`, `rpc.HandleHTTP.spec` (the debug path never requested),
+  `http.ListenAndServe.spec`/`http.Serve.spec`/`ServeMux.ServeHTTP.spec` with `handlerOk` per path,
+  over `rpcAddrP`; the package-level `rpc.RegisterName` (`DefaultServer`); and the allocation of
+  `rpcAddrP` for the deployment's addresses (without it the abstract `rpcAddrP` could be `False`
+  and the client specs vacuous: the statement must take allocation and server specs together).
 - **H5. The generated codec**: the kit's `rpcEncode`/`rpcDecode` meet a `CodecSpec` (`encOk`/`decOk`,
   `decErr`), and `rpcReceiver`'s methods (`NewArg`, `NewReply`, `Call` through the bindings) meet
   `methodOk` for `nodeSpec`/`coordSpec` (the lab's `Methods.lean`). Per-kit proofs of rpcgen output
