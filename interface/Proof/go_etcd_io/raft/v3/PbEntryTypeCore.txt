@@ -19,8 +19,8 @@ theorem PbModelC.mk.congr_simp.{u_1} (toPbType : PbType GF) (C : Type) (roC roC�
     roC_persistent := ⋯, modelOf := modelOf✝, levels := levels✝, size := size✝, tree := tree✝, decOk
     := decOk✝, ro_iff := ⋯, roC_ufValid := ⋯, decC := decC✝, decC_dec := ⋯ }
 
-axiom entryEncC_ok (c : EntryC) : ufWire entrySchema c.uf → entrySize c < 2 ^ 63 → EntWireOk c.model
-    (entryEncC c) ∧ (entryEncC c).length = entrySize c
+theorem entryEncC_ok (c : EntryC) : ufWire entrySchema c.uf → entrySize c < 2 ^ 63 → EntWireOk
+    c.model (entryEncC c) ∧ (entryEncC c).length = entrySize c
 
 theorem optCell_freeze [package_sem' : raftpb.Assumptions] [package_sem : Assumptions] {V : Type}
     [ZeroVal V] [TypedPointsto V] (p : Loc) (x : V) : ⌜p = null ∧ x = zero_val V⌝ ∨ typedPointsto p
@@ -47,7 +47,9 @@ def pbEntryM : PbModelC GF :=
     tree := entryTree, decOk := fun x => True, ro_iff := ⋯, roC_ufValid := ⋯,
     decC := fun l c => entPtsCC l (DFrac.own 1) c, decC_dec := ⋯ }
 
-def (sealed) entDecode (bs : List w8) : Option EntryM
+def entDecode (bs : List w8) : Option EntryM :=
+  Option.map (fun x => { Term' := x.fst, Index' := x.snd.fst, Type' := x.snd.snd.fst, Data' := x.snd.snd.snd })
+    (entDecodeRaw bs)
 
 axiom pbEntryC_reg [GoGlobalContext] [go.Semantics] : pbModelOf GF raftpb.Entry.ty = some pbEntryC
 
@@ -70,7 +72,8 @@ theorem treeWp_entryTree [package_sem' : raftpb.Assumptions] [package_sem : Assu
 
 theorem pbEntryC_marshals (e : EntryM) : pbEntryC.data.marshals e = True
 
-def (sealed) entryEncC (c : EntryC) : List w8
+def entryEncC (c : EntryC) : List w8 :=
+  entryEncRaw c.type c.term c.index c.data c.uf
 
 theorem pbEntryC_size : pbEntryC.data.size = entrySize
 

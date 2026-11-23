@@ -19,8 +19,6 @@
 # node API's `ctx.Done()` case returns `ctx.Err()`, named (`Canceled`/`DeadlineExceeded`) for the
 # server's contract.
 roots ^Proof/go_etcd_io/raft/v3/(Link|Results)\.lean$
-axiom ccDecodeV2_nil
-axiom entryEncC_ok
 axiom pbEntryC_reg
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof

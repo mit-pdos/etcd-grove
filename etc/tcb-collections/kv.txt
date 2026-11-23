@@ -44,8 +44,6 @@ roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/(Link|Results)\.lea
 # `protoreflect` and `internal/impl` initializers (`opaqueInitsOk`, `initFuncsOk`): their
 # untranslated initializers are goose `trusted` no-op models (`TrustedCode/`), raftpb's two
 # descriptor literals translated. `os`'s and `strconv`'s (Perennial's names-only packages) remain.
-axiom ccDecodeV2_nil
-axiom entryEncC_ok
 axiom pbEntryC_reg
 axiom proto.CloneConfState.wp_proof
 axiom proto.ClonePb.wp_proof

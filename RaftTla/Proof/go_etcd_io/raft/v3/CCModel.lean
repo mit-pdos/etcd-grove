@@ -3,7 +3,8 @@
 The pure vocabulary of conf-change messages (moved here from `InvConfChangeMsg.lean` on
 2026-10-13, reconfiguration stage D, so that the protocol's ghost state can name it
 without importing `Base`; see `InvConfChangeMsg.lean` for what each means):
-`ConfChangeM`, `ConfChangeV2M`, the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `ConfChangeIM`; and (new)
+`ConfChangeM`, `ConfChangeV2M`, the decoders `ccDecodeV1` (opaque) and `ccDecodeV2` (since
+2026-11-23 protobuf stage S1's `cc2DecodeRaw`), `ConfChangeIM`; and (new)
 `IsConfEnt` (an entry of type `EntryConfChange` or `EntryConfChangeV2`), `CCDecodes` (a
 conf-change entry's bytes decode), `ccWantsLeave` (an empty `ConfChangeV2`: leave the joint
 configuration) and `PropRepl` (a proposal's batch after `stepLeader`'s conf-change loop:
@@ -13,6 +14,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import RaftTla.Proof.go_etcd_io.raft.v3.PbModel
+public import Proof.go_etcd_io.raft.v3.PbWireRaft
 
 @[expose] public section
 
@@ -49,8 +51,10 @@ opaque ccDecodeV1 [GooseExts] : List w8 → Option ConfChangeM
 
 /-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
 retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
-Opaque, as `ccDecodeV1`. -/
-opaque ccDecodeV2 [GooseExts] : List w8 → Option ConfChangeV2M
+`cc2DecodeRaw` (`PbWireRaft.lean`, protobuf stage S1: until 2026-11-23 opaque, as `ccDecodeV1`
+still is), checked against protobuf-go by `EntryWireVectors.lean`. -/
+def ccDecodeV2 [GooseExts] (bs : List w8) : Option ConfChangeV2M :=
+  (cc2DecodeRaw bs).map fun x => ⟨x.1, x.2.1.map fun c => ⟨c.1, c.2⟩, x.2.2⟩
 
 /-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
 inductive ConfChangeIM [GooseExts] where

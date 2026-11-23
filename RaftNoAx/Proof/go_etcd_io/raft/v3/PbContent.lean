@@ -2,8 +2,8 @@
 /-
 **The wire content of raft's messages and entries** (raft-entsize §2, 2026-11-09: moved verbatim
 from stage A's `PerTypeEntry.lean` and `PerTypeMessage.lean`, rafthttp, so that raft's API can speak
-of content-pinned objects; the per-type instances, their encoders' trust boundaries `entryEncC_ok`
-and `msgEncC_ok`, the registrations and `MsgEnc` stay there).
+of content-pinned objects; the per-type instances, their encoders' facts `entryEncC_ok` (a theorem
+since 2026-11-23) and `msgEncC_ok`, the registrations and `MsgEnc` stay there).
 
 - `EntryC`, `MsgC` (with `CSC`, `SnapMetaC`, `SnapC`, `MsgFC`): the wire contents (every proto2
   optional scalar's presence, `nil` or non-nil bytes, the unknown fields of every level), their
