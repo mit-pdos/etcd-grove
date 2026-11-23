@@ -396,10 +396,15 @@ class AlarmType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq AlarmType.ty AlarmType.underlying
   method_set : go.MethodSetIs AlarmType.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType AlarmType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmType.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType AlarmType.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  String_unfold : MethodUnfold AlarmType.ty go!"String" AlarmType.String.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType AlarmType.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve AlarmType.ty go!"String"))) (App (Val (GoInstruction (GoLoad AlarmType.ty))) (Var "$r"))))
 
 attribute [instance] AlarmType.TypeAssumptions.underlying
   AlarmType.TypeAssumptions.method_set
   AlarmType.TypeAssumptions.ptr_method_set
+  AlarmType.TypeAssumptions.String_unfold
+  AlarmType.TypeAssumptions.ptr_String_unfold
 
 class RangeRequest_SortOrder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RangeRequest_SortOrder.ty RangeRequest_SortOrder.underlying

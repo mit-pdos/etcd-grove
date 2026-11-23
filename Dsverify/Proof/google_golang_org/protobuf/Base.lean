@@ -9,6 +9,7 @@ module
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl
 public import Perennial.Proof.sync.Base
+public import Perennial.Proof.strconv.Base
 
 @[expose] public section
 
