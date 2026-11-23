@@ -51,8 +51,57 @@ theorem Server.Accept.wp_proof (wp_Accept : net.Listener.Accept.spec (GF := GF) 
   ihave HI : (True : IProp GF) $$ []
   · itrivial
   wp_for HI
-  wp_auto
-  sorry
+  wp_apply wp_Accept tl l x a (fun _ => iprop(True))
+      (fun cn => iprop(connEnd (Gg := hG.goose_globalGS) cn true (respProto (Gg := hG.goose_globalGS) W a)
+        (reqProto (Gg := hG.goose_globalGS) W a) [] [] ∗ connFresh (Gg := hG.goose_globalGS) cn true))
+      $$ [$HlisAt $Hat]
+    as %c %err (⟨%Herr, %cn, #Hc, Hend, Hfr⟩ | ⟨%k, -, #HE⟩)
+  · iapply accept_shared_au $$ Hap Hli
+  · -- a connection: served in a goroutine of its own
+    subst Herr
+    iunfold net.isConn at Hc
+    icases Hc with ⟨%t, %la, %ra, %Hct, #Hca⟩
+    subst Hct
+    wp_auto
+    iunfold connEnd at Hend
+    icases Hend with ⟨Hsend, Hrecv⟩
+    wp_bind (Fork _)
+    iapply wp_fork_tok_body $$ [Hsend Hrecv Hfr]
+    · inext
+      iintro Htok
+      wp_apply wp_ServeConn s γs C W a t cn la ra
+        $$ [$Hsrv $Hserves $Henv $Hset $Hca Hsend Hrecv Hfr Htok] as Htok
+      · isplitr
+        · ipureintro; exact Hb
+        isplitr [Htok]
+        · iunfold rpcAccepted; iframe Hsend Hrecv Hfr
+        iexact Htok
+      iframe Htok
+      ipureintro; exact isPanic_intoVal ()
+    inext
+    wp_auto
+    wp_for_post
+    iframe
+  · -- `Accept` failed: logged, and the loop ends
+    ihave #Ha := errAny_resErr $$ HE
+    ihave #Ha' := Ha
+    iunfold models_lab.errAny at Ha'
+    icases Ha' with ⟨%e, %He, -, #HW⟩
+    subst He
+    wp_auto
+    wp_bind (App (Val #(methods _ go!"Error" _)) (Val #()))
+    iapply HW
+    inext
+    iintro %msg
+    wp_auto
+    wp_apply wp_slice_literal
+    isplitr
+    · ipureintro; rfl
+    iintro %sl ⟨Hsl, -⟩
+    wp_apply wp_Println _ _ _ (fmt.ArgsWf.cons_string _ _ fmt.ArgsWf.nil) $$ [$Hlog $Hsl] as -
+    wp_for_post
+    iapply HΦ
+    itrivial
 
 end proof
 

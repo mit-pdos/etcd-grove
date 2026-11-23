@@ -10,6 +10,7 @@ fails, which it logs (`log.Println`) before it returns. Proved in
 module
 
 public import Net.Proof.net.rpc.ServerDefs
+public import Perennial.Proof.log.Base
 
 @[expose] public section
 
@@ -26,7 +27,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS]
+variable [π : NetProtoGS] [log.Assumptions]
 
 /-- See the file header. -/
 abbrev Server.Accept.spec : Prop :=

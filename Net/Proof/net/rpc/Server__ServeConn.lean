@@ -35,7 +35,6 @@ theorem Server.ServeConn.wp_proof (wp_newServerCodec : newServerCodec.spec (GF :
   wp_auto
   wp_apply wp_newServerCodec as %sc ⟨Hrwc, Hwerr, Hrerr, Hclosed⟩
   ipersist Hrwc
-  wp_auto
   wp_apply wp_ServeCodec s γs C W a sc t cn la ra $$ [$Hsrv $Hserves $Henv $Hset Hwerr Hrerr Hclosed
       Hacc Htok] as Htok
   · isplitr
