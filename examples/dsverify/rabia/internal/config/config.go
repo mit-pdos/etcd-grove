@@ -24,25 +24,25 @@ import (
 )
 
 /*
-    1. Package Description
+	1. Package Description
 
-    The config package defines the Config object that stores most (if not all) parameters needed by a Rabia server, a
-    client, or a controller.
+	The config package defines the Config object that stores most (if not all) parameters needed by a Rabia server, a
+	client, or a controller.
 
-    Nearly all other packages access a global Config object named Conf to retrieve OS environmental variables,
-    command-line arguments, and hard-coded or calculated parameters.
+	Nearly all other packages access a global Config object named Conf to retrieve OS environmental variables,
+	command-line arguments, and hard-coded or calculated parameters.
 */
 
 /*
-    Conf is the global object that stores this server's/client's/controller's configurations. It needs to be global
-    because functions in other go files of Rabia often needs to use it
+	Conf is the global object that stores this server's/client's/controller's configurations. It needs to be global
+	because functions in other go files of Rabia often needs to use it
 */
 var Conf Config
 
 type Config struct {
 	/*
-        Sec 1. load these fields from system environment variables (see the loadEnvVars1 function)
-    */
+		Sec 1. load these fields from system environment variables (see the loadEnvVars1 function)
+	*/
 	// For all roles, the following 5 fields should be filled
 	Role           string // ctrl | svr | cli
 	Id             string // 0 | 1 | 2 | ...
@@ -56,8 +56,8 @@ type Config struct {
 	NetworkPort string   // network port (connect by all servers)
 	Peers       []string // the array of all servers' SvrIp:NetworkPort
 	/*
-        Peers: an array of lister address, each server uses it to contact every other server to establish TCP connections.
-    */
+		Peers: an array of lister address, each server uses it to contact every other server to establish TCP connections.
+	*/
 
 	// If Role == cli, the following field should be filled
 	ProxyAddr string // the client proxy's SvrIp:ProxyPort
@@ -78,9 +78,9 @@ type Config struct {
 	NetworkBatchTimeout time.Duration // reserved (ms, Millisecond)
 
 	/*
-        Sec 2. load these fields from the LoadConst function, they are not assigned from environment variables because
-        there is no need to override the original value below in most cases
-    */
+		Sec 2. load these fields from the LoadConst function, they are not assigned from environment variables because
+		there is no need to override the original value below in most cases
+	*/
 	NMinusF       int // the "constant" n - f
 	Majority      int
 	MajorityPlusF int
@@ -185,8 +185,8 @@ func getEnvInt(key string) int {
 }
 
 /*
-    Convert a string to an integer array
-    str: the input string, integers in the string are separated by spaces (e.g., "1 3 5 7 9")
+	Convert a string to an integer array
+	str: the input string, integers in the string are separated by spaces (e.g., "1 3 5 7 9")
 */
 func strToIntArray(str string) []int {
 	strs := strings.Split(str, " ")

@@ -14,18 +14,18 @@
     limitations under the License.
 */
 /*
-    The network package defines the network layer of a server, which in charge of communicating with server peers. It
-    sends messages produced by executors, messages received from network layer message handlers, and messages forwarded
-    from the proxy to one or more servers (may include itself). When it receives a message from its peer, it routes the
-    message to a channel (to a proxy, or an executor, or a handler) according to the message's type.
+	The network package defines the network layer of a server, which in charge of communicating with server peers. It
+	sends messages produced by executors, messages received from network layer message handlers, and messages forwarded
+	from the proxy to one or more servers (may include itself). When it receives a message from its peer, it routes the
+	message to a channel (to a proxy, or an executor, or a handler) according to the message's type.
 
-    Note: for messages of type ProposalRequest and ProposalReply, some fields besides the type fields are also used in
-    determining routing destination. See the comment in msg.proto for more details.
+	Note: for messages of type ProposalRequest and ProposalReply, some fields besides the type fields are also used in
+	determining routing destination. See the comment in msg.proto for more details.
 
-    Comments on the sequence number / logical slot number / message sequence number:
-    They mean the same thing and I use them interchangeably. Why "message sequence number" means the same is a little
-    obscure, basically, messages except those of type ClientRequests has a slot number associated with it, and that
-    number is called "message sequence number."
+	Comments on the sequence number / logical slot number / message sequence number:
+	They mean the same thing and I use them interchangeably. Why "message sequence number" means the same is a little
+	obscure, basically, messages except those of type ClientRequests has a slot number associated with it, and that
+	number is called "message sequence number."
 */
 package network
 
@@ -38,7 +38,7 @@ import (
 )
 
 /*
-    A Rabia server's peer networking layer (i.e., a network layer)
+	A Rabia server's peer networking layer (i.e., a network layer)
 */
 type Network struct {
 	SvrId uint32
@@ -54,7 +54,7 @@ type Network struct {
 }
 
 /*
-    Initiate the network layer
+	Initiate the network layer
 */
 func NetworkInit(svrId uint32, done chan struct{}, doneWg *sync.WaitGroup, netIp string,
 	toProxy, proxyIn, msgHandlerIn, conExecutorIn chan message.Msg,
@@ -78,7 +78,7 @@ func NetworkInit(svrId uint32, done chan struct{}, doneWg *sync.WaitGroup, netIp
 }
 
 /*
-    1. establish network-layer TCP connection(s)
+	1. establish network-layer TCP connection(s)
 */
 func (n *Network) Prologue() {
 	n.TCP.Connect()
@@ -88,14 +88,14 @@ func (n *Network) Prologue() {
 }
 
 /*
-    1. close network-layer TCP connection(s)
+	1. close network-layer TCP connection(s)
 */
 func (n *Network) Epilogue() {
 	n.TCP.Close()
 }
 
 /*
-    MsgRouter, the main routine of the network layer, see detailed comments below about how it routes messages
+	MsgRouter, the main routine of the network layer, see detailed comments below about how it routes messages
 */
 func (n *Network) MsgRouter() {
 	defer n.Wg.Done()
@@ -111,9 +111,9 @@ func (n *Network) MsgRouter() {
 
 		case msg := <-n.MsgHandlerIn: // ProposalReply msg
 			/*
-                send to the peer which sends the respective ProposalRequest
-                msg.Phase contains the destination server's id
-            */
+				send to the peer which sends the respective ProposalRequest
+				msg.Phase contains the destination server's id
+			*/
 			data, err := msg.Marshal() // gogo-protobuf
 			//data, err := proto.Marshal(&msg) // vanilla protobuf
 			if err != nil {
@@ -123,13 +123,13 @@ func (n *Network) MsgRouter() {
 
 		case msg := <-n.ConExecutorIn: // Proposal, State, Vote, ProposalRequest, and Decision msg
 			/*
-                broadcast the message so all peers' network layers can receive it
-            */
+				broadcast the message so all peers' network layers can receive it
+			*/
 			n.ToSerializer <- msg
 
 		/*
-            receives a message from a peer
-        */
+			receives a message from a peer
+		*/
 		case msg := <-n.TCP.RecvChan:
 			if msg.Type == message.ProposalReply {
 				n.ToConExecutor <- msg // sends the proposal reply to the executor directly
@@ -141,10 +141,10 @@ func (n *Network) MsgRouter() {
 }
 
 /*
-    MsgSerializer routine serialize messages of type Msg to byte arrays. So that multiple NetworkTCP SendHandlers
-    do not need to serialize the same message repeatedly, instead, they take the serialized byte arrays and send
-    them to different peers through TCP connections. For each msg in ToSerializer, MsgSerializer serializes it and
-    send it to all send channels.
+	MsgSerializer routine serialize messages of type Msg to byte arrays. So that multiple NetworkTCP SendHandlers
+	do not need to serialize the same message repeatedly, instead, they take the serialized byte arrays and send
+	them to different peers through TCP connections. For each msg in ToSerializer, MsgSerializer serializes it and
+	send it to all send channels.
 */
 func (n *Network) MsgSerializer() {
 	defer n.Wg.Done()

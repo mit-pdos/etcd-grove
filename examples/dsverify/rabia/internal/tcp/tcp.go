@@ -14,17 +14,17 @@
     limitations under the License.
 */
 /*
-    The tcp package defines ClientTCP, ProxyTCP, and NetTCP objects, which are the TCP communication component of a
-    client, a server's proxy layer, and a server network layer, respectively. These objects and their functions help
-    establish and maintain TCP connections and let Go routines to listen to SendChan (the channel that queues messages
-    to be sent) and forward messages received over TCP to RecvChan (to be subsequently accessed by caller routines).
+	The tcp package defines ClientTCP, ProxyTCP, and NetTCP objects, which are the TCP communication component of a
+	client, a server's proxy layer, and a server network layer, respectively. These objects and their functions help
+	establish and maintain TCP connections and let Go routines to listen to SendChan (the channel that queues messages
+	to be sent) and forward messages received over TCP to RecvChan (to be subsequently accessed by caller routines).
 
-    Note:
+	Note:
 
-    1. This package assumes Conf is initialized.
+	1. This package assumes Conf is initialized.
 
-    2. This version of TCP endpoints does no support reconfiguration. Reconfiguring a server requires having multiple
-    TCP endpoint objects
+	2. This version of TCP endpoints does no support reconfiguration. Reconfiguring a server requires having multiple
+	TCP endpoint objects
 */
 package tcp
 
@@ -39,17 +39,17 @@ import (
 )
 
 /*
-    Generates a reader and a writer from a connection.
+	Generates a reader and a writer from a connection.
 
-    Note: I suspect that if we call this function twice, the newly generated reader and writer will replace the
-    previously allocated reader and writer. Be aware of any side-effects.
+	Note: I suspect that if we call this function twice, the newly generated reader and writer will replace the
+	previously allocated reader and writer. Be aware of any side-effects.
 */
 func GetReaderWriter(conn *net.Conn) (*bufio.Reader, *bufio.Writer) {
 	/*
-        The socket options tune the connection. They fail only for a connection that is already broken or closed; such
-        a connection's reads and writes fail too, and its readers and writers handle that (a failed read ends a receive
-        routine, a failed write a send routine), so a failed option is not a reason to stop the process.
-    */
+		The socket options tune the connection. They fail only for a connection that is already broken or closed; such
+		a connection's reads and writes fail too, and its readers and writers handle that (a failed read ends a receive
+		routine, a failed write a send routine), so a failed option is not a reason to stop the process.
+	*/
 	_ = (*conn).(*net.TCPConn).SetWriteBuffer(config.Conf.TcpBufSize)
 	_ = (*conn).(*net.TCPConn).SetReadBuffer(config.Conf.TcpBufSize)
 	_ = (*conn).(*net.TCPConn).SetKeepAlive(true)
@@ -60,7 +60,7 @@ func GetReaderWriter(conn *net.Conn) (*bufio.Reader, *bufio.Writer) {
 }
 
 /*
-    Client TCP, each client connects to a single proxy
+	Client TCP, each client connects to a single proxy
 */
 type ClientTCP struct {
 	Id   uint32          // client id
@@ -77,7 +77,7 @@ type ClientTCP struct {
 }
 
 /*
-    Returns a ClientTCP with channels initialized, but not Conns, Reader, and Writer fields
+	Returns a ClientTCP with channels initialized, but not Conns, Reader, and Writer fields
 */
 func ClientTcpInit(Id uint32, ProxyIp string) *ClientTCP {
 	c := &ClientTCP{
@@ -118,8 +118,8 @@ func (c *ClientTCP) Connect() {
 }
 
 /*
-    For each message received, send the message to RecvChan.
-    RecvHandler exits when the channel is closed.
+	For each message received, send the message to RecvChan.
+	RecvHandler exits when the channel is closed.
 */
 func (c *ClientTCP) RecvHandler() {
 	defer c.Wg.Done()
@@ -135,15 +135,15 @@ func (c *ClientTCP) RecvHandler() {
 }
 
 /*
-    For each message in SendChan, marshal the message and flush its bytes to the TCP connection through Writer before
-    it exits (when c.Done channel is closed, SendHandler exits).
-    Note:
+	For each message in SendChan, marshal the message and flush its bytes to the TCP connection through Writer before
+	it exits (when c.Done channel is closed, SendHandler exits).
+	Note:
 
-    1. it is likely that c.Done closes before SendHandler sends every message ever passed in SendChan. In that case,
-    some messages are remained in the channel but not sent.
+	1. it is likely that c.Done closes before SendHandler sends every message ever passed in SendChan. In that case,
+	some messages are remained in the channel but not sent.
 
-    2. if the receiver has closed its connection, it is likely that no error msg is produced here at the sender; if the
-    sender has closed its connection, error indeed happens.
+	2. if the receiver has closed its connection, it is likely that no error msg is produced here at the sender; if the
+	sender has closed its connection, error indeed happens.
 */
 func (c *ClientTCP) SendHandler() {
 	defer c.Wg.Done()
@@ -161,7 +161,7 @@ func (c *ClientTCP) SendHandler() {
 }
 
 /*
-    Prints the connection status.
+	Prints the connection status.
 */
 func (c *ClientTCP) PrintStatus() {
 	fmt.Printf("ClientTcp, SvrId=%d, ProxyAddr=%s, Conns.local=%s, Conns.remote=%s\n",
@@ -169,7 +169,7 @@ func (c *ClientTCP) PrintStatus() {
 }
 
 /*
-    Closes the connection and waits SendHandler and RecvHandler to exit.
+	Closes the connection and waits SendHandler and RecvHandler to exit.
 */
 func (c *ClientTCP) Close() {
 	_ = (*c.Conn).Close()
@@ -178,7 +178,7 @@ func (c *ClientTCP) Close() {
 }
 
 /*
-    Proxy TCP, each proxy connects to one or more clients
+	Proxy TCP, each proxy connects to one or more clients
 */
 type ProxyTCP struct {
 	Id   uint32          // proxy id
@@ -195,11 +195,11 @@ type ProxyTCP struct {
 	Writers  []*bufio.Writer
 
 	/*
-        ConnsLock: the client table (Conns, SendChan, Readers, Writers) is written by the accept routine (connect) when
-        a client connects, at any time, and read by the proxy's executor (to reply) and the server's terminal logger: it
-        is accessed under ConnsLock (an entry, once set, is read by its own send and receive routines too, which start
-        after it is set).
-    */
+		ConnsLock: the client table (Conns, SendChan, Readers, Writers) is written by the accept routine (connect) when
+		a client connects, at any time, and read by the proxy's executor (to reply) and the server's terminal logger: it
+		is accessed under ConnsLock (an entry, once set, is read by its own send and receive routines too, which start
+		after it is set).
+	*/
 	ConnsLock sync.Mutex
 }
 
@@ -227,10 +227,10 @@ func ProxyTcpInit(Id uint32, ProxyIp string, ToProxy chan message.Command) *Prox
 		Writers:  make([]*bufio.Writer, config.Conf.NClients),
 	}
 	/*
-        Note: SendChan, Conns, Readers, and Writers entries are not initialized at this points.
-        Why arrays are of length NClients but not Clients[id]?
-        Because the proxy needs to perform quick lookups of clients, see "if p.TCP.Conns[cid] != nil" on proxy.go
-    */
+		Note: SendChan, Conns, Readers, and Writers entries are not initialized at this points.
+		Why arrays are of length NClients but not Clients[id]?
+		Because the proxy needs to perform quick lookups of clients, see "if p.TCP.Conns[cid] != nil" on proxy.go
+	*/
 	return p
 }
 
@@ -278,10 +278,10 @@ func (p *ProxyTCP) connect() {
 }
 
 /*
-    Proxy's Connect function is asynchronous - it exits early before connection to all clients (but it has a background
-    routine that waits connections). The primary purpose of this function is exiting correctly. If we want the proxy to
-    exit before connecting to all clients (due to some error or misconfiguration may happened), this function needs to
-    be non-blocking ("Listener.Accept()" is blocking).
+	Proxy's Connect function is asynchronous - it exits early before connection to all clients (but it has a background
+	routine that waits connections). The primary purpose of this function is exiting correctly. If we want the proxy to
+	exit before connecting to all clients (due to some error or misconfiguration may happened), this function needs to
+	be non-blocking ("Listener.Accept()" is blocking).
 */
 func (p *ProxyTCP) Connect() {
 	go func() { p.connect() }()
@@ -335,7 +335,7 @@ func (p *ProxyTCP) sendLoop(ch chan message.Command, writer *bufio.Writer) {
 }
 
 /*
-    Returns the send channel of client cid, or nil if the client is not connected to this proxy.
+	Returns the send channel of client cid, or nil if the client is not connected to this proxy.
 */
 func (p *ProxyTCP) ClientSendChan(cid uint32) chan message.Command {
 	p.ConnsLock.Lock()
@@ -347,7 +347,7 @@ func (p *ProxyTCP) ClientSendChan(cid uint32) chan message.Command {
 }
 
 /*
-    Returns the number of clients connected to this proxy.
+	Returns the number of clients connected to this proxy.
 */
 func (p *ProxyTCP) NumConns() int {
 	p.ConnsLock.Lock()
@@ -386,17 +386,17 @@ func (p *ProxyTCP) Close() {
 }
 
 /*
-    Network Layer TCP endpoints, each Rabia server has exactly one NetTCP struct and one network address (NetAddr
-    below). Each server needs to dial to all peers (including itself) to establish send TCP channels, and needs to
-    accept connections from all peers (and itself) to establish receive TCP channels.
+	Network Layer TCP endpoints, each Rabia server has exactly one NetTCP struct and one network address (NetAddr
+	below). Each server needs to dial to all peers (including itself) to establish send TCP channels, and needs to
+	accept connections from all peers (and itself) to establish receive TCP channels.
 
-    For example, when N = 3, each server does the following in Connect initially:
-        waits server 0-2 to connect
-        connects to server 0-2
+	For example, when N = 3, each server does the following in Connect initially:
+		waits server 0-2 to connect
+		connects to server 0-2
 
-    For example, when N = 5, each server does the following in Connect initially:
-        waits server 0-4 to connect
-        connects to server 0-4
+	For example, when N = 5, each server does the following in Connect initially:
+		waits server 0-4 to connect
+		connects to server 0-4
 */
 type NetTCP struct {
 	Id   uint32
@@ -407,9 +407,9 @@ type NetTCP struct {
 	RecvChan chan message.Msg
 	SendChan []chan []byte
 	/*
-        Note: each SendChan is of type "chan []byte" but not "chan Command" because for each message to be broadcasted,
-        we only need to serialize once and let each SendHandler sends the serialized array of bytes.
-    */
+		Note: each SendChan is of type "chan []byte" but not "chan Command" because for each message to be broadcasted,
+		we only need to serialize once and let each SendHandler sends the serialized array of bytes.
+	*/
 
 	Listener net.Listener
 	RecvConn []*net.Conn
@@ -446,8 +446,8 @@ func NetTCPInit(Id uint32, NetIp string) *NetTCP {
 	}
 
 	/*
-        Note: SendChan, RecvConn, SendConn, Readers, Writers entries are not initialized at this points.
-    */
+		Note: SendChan, RecvConn, SendConn, Readers, Writers entries are not initialized at this points.
+	*/
 	return n
 }
 

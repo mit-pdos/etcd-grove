@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose copies Go doc comments' tabs into Lean doc comments (2026-11-23, dsv-rabia)
+
+- **Limitation.** `glang/lean.go`'s `leanComment` keeps a Go doc comment's tabs; a doc comment
+  whose lines start with a tab (Rabia's, indented with tabs throughout) fails to parse ("tabs are not
+  allowed").
+- **Who needs it.** dsv-rabia (`notes/dsv-rabia.md`): every package of the fork.
+- **Workaround.** `etc/goose.py`'s `Project.expand_comment_tabs` (set for `dsv-rabia`): the tabs in
+  the translation's comments become four spaces (the lab's `goose.sh` did the same); the Go source
+  stays the fork's.
+- **Proposed change.** `leanComment` expands tabs.
+- **Status.** Not proposed yet.
+
 ### Goose converts to another package's constant type without importing its module (2026-11-23, dsv-rabia)
 
 - **Limitation.** `err == redis.Nil` (go-redis v8: `const Nil = proto.Nil`, of type

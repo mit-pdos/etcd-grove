@@ -32,7 +32,7 @@ func RedisInit(id uint32) *redis.Client {
 }
 
 /*
-    Execute the KV store command and assemble a reply to return
+	Execute the KV store command and assemble a reply to return
 */
 
 func (p *Proxy) redisExecuteCmd(cmd string) string {
@@ -106,8 +106,8 @@ func (p *Proxy) RedisBatchExecuteCmd() [][]string {
 			for _, v := range vs {
 				for ; len(replies[repliesI][repliesJ]) != 0; { // if not a read op
 					/*
-                        find the next read op
-                    */
+						find the next read op
+					*/
 					repliesJ++
 					if repliesJ == config.Conf.ClientBatchSize {
 						repliesJ = 0

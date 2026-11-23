@@ -14,16 +14,16 @@
     limitations under the License.
 */
 /*
-    The queue package defines an implementation of the ConsensusObj priority queue, which is used to sort (based on the
-    proxy id and proxy sequence fields) and store pending proxy-batched requests.
+	The queue package defines an implementation of the ConsensusObj priority queue, which is used to sort (based on the
+	proxy id and proxy sequence fields) and store pending proxy-batched requests.
 
-    Note:
-    1. A proxy-batched request contains one or more client-batched requests that are batched again by the proxy. The
-    size (number of requests) of the batch depends on several parameters in Conf and the arrival time of client
-    requests.
-    2. Each consensus instance has its pending request queue, which means a server can have more than one queue when
-    Concurrency is greater than 1.
-    3. The priority queue follows the example at https://golang.org/pkg/container/heap
+	Note:
+	1. A proxy-batched request contains one or more client-batched requests that are batched again by the proxy. The
+	size (number of requests) of the batch depends on several parameters in Conf and the arrival time of client
+	requests.
+	2. Each consensus instance has its pending request queue, which means a server can have more than one queue when
+	Concurrency is greater than 1.
+	3. The priority queue follows the example at https://golang.org/pkg/container/heap
 */
 package queue
 
@@ -45,10 +45,10 @@ func (q PQueue) Swap(i, j int) {
 }
 
 /*
-    Note: suppose q is a PQueue object, do not call q.Push and q.Pop directly, instead, call heap.Push and heap.Pop,
-    which calls q.Push or q.Pop and performs sorting.
+	Note: suppose q is a PQueue object, do not call q.Push and q.Pop directly, instead, call heap.Push and heap.Pop,
+	which calls q.Push or q.Pop and performs sorting.
 
-    Push and Pop use pointer receivers because they modify the slice's length, not just its contents.
+	Push and Pop use pointer receivers because they modify the slice's length, not just its contents.
 */
 func (q *PQueue) Push(x interface{}) {
 	*q = append(*q, x.(message.ConsensusObj))

@@ -47,9 +47,12 @@ ported yet.
   configuration 7621-7625, clients' requests 7631-7636, clients' configuration 7641-7646), constants;
   the lab's `10.77.0.x` hosts with shared port numbers are gone. `kit_test.go` runs each machine in a
   process of its own (the test binary re-executed), since Rabia's `config.Conf` is a process global.
-- **Go source:** tabs in the fork's Go comments expanded to four spaces (Lean rejects tabs in the
-  translation's doc comments; the lab's `goose.sh` did the same on its output). Upstream's two Redis
-  tests skip without a Redis server (`redisUp`; the lab ran them against its go-redis model).
+- **Go source:** the fork's packages are byte-identical to the lab's fork. Lean rejects the tabs of
+  Rabia's Go doc comments, which goose copies into `/-- … -/`: `etc/goose.py`'s
+  `expand_comment_tabs` (project option, set for `dsv-rabia`) makes them four spaces in the
+  translation, as the lab's `goose.sh` did (`notes/perennial-changes.md`, 2026-11-23). Upstream's two
+  Redis tests skip without a Redis server (`redisUp`, in `proxy/redis_test.go`; the lab ran them
+  against its go-redis model).
 - **Translation:** `Proxy.redisExecuteCmd` names only (`Dsverify/Code/rabia/roles/server/layers/proxy.toml`):
   goose converts to go-redis's `internal/proto.RedisError` without importing it
   (`notes/perennial-changes.md`, 2026-11-23); the kit never uses Redis (`StorageMode` 0).
@@ -58,7 +61,10 @@ ported yet.
   chunks, `internal/proto` 4, `os/signal` 4): types of those libraries goose cannot translate (their
   own dependencies are not translated), none of them a type rabia's code stores. As in the main tree
   (CLAUDE.md, "The Goose translations"), no linked result should reach them; models of the libraries
-  (the lab's cut-down copies) would remove them.
+  (the lab's cut-down copies) would remove them. **The gates accept them** (checked 2026-11-23): `etc/tcb-report.py` counts a `sorry`
+  only when a root (a `Link`/`Results`/`MainLinked`) reaches it, and no gate greps for `sorry`; the
+  main tree has 170 such files in `GeneratedProof/`, and `Net/GeneratedProof/net.lean` alone 168
+  instances. The collection's `--check` will show any that a rabia result reaches.
 - **OrdChan:** the channel idioms' atomic updates are crash-aware at Perennial `9c3b81f3`
   (`notCrashed ={⊤,∅}=∗ notCrashed ∗ …`): `ncfupd_of_fupd` at the start of each update's proof.
 

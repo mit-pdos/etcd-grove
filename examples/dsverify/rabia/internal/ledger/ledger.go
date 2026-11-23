@@ -23,38 +23,38 @@ import (
 )
 
 /*
-    1. Package Description
+	1. Package Description
 
-    The ledger package defines the Ledger object, and exactly one copy of a Ledger is held by each server. A Ledger is
-    made by an array of Slot objects, and the Slot associated with index i (of the ledger array) stores all current
-    information this server holds regarding the replicated log entry i, including: 1) this server's proposal for this
-    replicated log entry and this server's binary consensus messages, 2) other servers' proposals and binary consensus
-    messages, 3) whether a decision message has received, 4) whether this server has made a decision, 5) what is the
-    decision, 6) what's the current phase and round of the consensus protocol that this server has proceeded so far. Due
-    to the network latency and other factors, each server may have (slightly) different views about a replicated log
-    entry at a certain time, so it is natural that they hold (slightly) different values in some fields of a Slot
-    object. Nevertheless, Rabia's goal is to let all servers in the cluster agree on the same sequence of decisions
-    eventually, and as fast as possible
+	The ledger package defines the Ledger object, and exactly one copy of a Ledger is held by each server. A Ledger is
+	made by an array of Slot objects, and the Slot associated with index i (of the ledger array) stores all current
+	information this server holds regarding the replicated log entry i, including: 1) this server's proposal for this
+	replicated log entry and this server's binary consensus messages, 2) other servers' proposals and binary consensus
+	messages, 3) whether a decision message has received, 4) whether this server has made a decision, 5) what is the
+	decision, 6) what's the current phase and round of the consensus protocol that this server has proceeded so far. Due
+	to the network latency and other factors, each server may have (slightly) different views about a replicated log
+	entry at a certain time, so it is natural that they hold (slightly) different values in some fields of a Slot
+	object. Nevertheless, Rabia's goal is to let all servers in the cluster agree on the same sequence of decisions
+	eventually, and as fast as possible
 
-    Note: At each server, the ledger is read by the proxy layer and read and written by the consensus layer.
+	Note: At each server, the ledger is read by the proxy layer and read and written by the consensus layer.
 
-    2. About ConsensusObj
+	2. About ConsensusObj
 
-    A ConsensusObj is uniquely identified by its ProId and ProSeq fields; if two objects' ProId and ProSeq fields are
-    identical, they are considered as equal. This has been discussed in the msg package.
+	A ConsensusObj is uniquely identified by its ProId and ProSeq fields; if two objects' ProId and ProSeq fields are
+	identical, they are considered as equal. This has been discussed in the msg package.
 
-    3. The Majority Value and the Majority Tally
+	3. The Majority Value and the Majority Tally
 
-    RecvProposals' majority value (MajV): the proposal (consensus object) that occurred most often. If two proposals
-    have the same number of occurrences, then the consensus object that wins the less-than relation is the majority
-    value.
+	RecvProposals' majority value (MajV): the proposal (consensus object) that occurred most often. If two proposals
+	have the same number of occurrences, then the consensus object that wins the less-than relation is the majority
+	value.
 
-    RecvProposals' majority value's tally (MajT): the occurrences of MajV
+	RecvProposals' majority value's tally (MajT): the occurrences of MajV
 
-    RecvBCMsgs' majority value (MajV): Is either 0 or 1, depends on which occurs more. If then occur evenly, then this
-    function prefers to output 1
+	RecvBCMsgs' majority value (MajV): Is either 0 or 1, depends on which occurs more. If then occur evenly, then this
+	function prefers to output 1
 
-    RecvBCMsgs' majority value's tally (MajT): the occurrences of MajV
+	RecvBCMsgs' majority value's tally (MajT): the occurrences of MajV
 */
 
 // A Tally object counts the number of occurrences of a proposal
@@ -75,24 +75,24 @@ type Slot struct {
 	wake       chan struct{}        // R1-wake: closed when the decision state changes; nil while no one waits
 
 	/*
-        Lock: prevents undesirable concurrent reset. Also see the Race Conditions Documented section in consensus.go
+		Lock: prevents undesirable concurrent reset. Also see the Race Conditions Documented section in consensus.go
 
-        MyProposal: does not change after a variable assignment
-        RecvProposals: the order of elements is not stable -- some functions may sort the Tally objects
-        MyBCMsgs: stands for "my binary consensus messages".
-            MyBCMsgs[p][0] stores the STATE of phase p, round 1
-            MyBCMsgs[p][1] stores the VOTE of phase p, round 2
-        RecvBCMsgs: stands for "received binary consensus messages".
-            RecvBCMsgs[p][r][0] counts the number of 0s received at phase p, round r+1
-            RecvBCMsgs[p][r][1] counts the number of 1s received at phase p, round r+1
-            RecvBCMsgs[p][0][2] is not used
-            RecvBCMsgs[p][1][2] counts the number of ?s received at phase p, round 2
-        RecvBCMsgsT: stands for "received messages' tallies"
-            RecvBCMsgsT[p][0] counts the number of 0s and 1s received at phase p, round 1
-            RecvBCMsgsT[p][1] counts the number of 0s, 1s, and ?s received at phase p, round 2
+		MyProposal: does not change after a variable assignment
+		RecvProposals: the order of elements is not stable -- some functions may sort the Tally objects
+		MyBCMsgs: stands for "my binary consensus messages".
+			MyBCMsgs[p][0] stores the STATE of phase p, round 1
+			MyBCMsgs[p][1] stores the VOTE of phase p, round 2
+		RecvBCMsgs: stands for "received binary consensus messages".
+			RecvBCMsgs[p][r][0] counts the number of 0s received at phase p, round r+1
+			RecvBCMsgs[p][r][1] counts the number of 1s received at phase p, round r+1
+			RecvBCMsgs[p][0][2] is not used
+			RecvBCMsgs[p][1][2] counts the number of ?s received at phase p, round 2
+		RecvBCMsgsT: stands for "received messages' tallies"
+			RecvBCMsgsT[p][0] counts the number of 0s and 1s received at phase p, round 1
+			RecvBCMsgsT[p][1] counts the number of 0s, 1s, and ?s received at phase p, round 2
 
-        Note: when updating an RecvBCMsgs entry, also update the corresponding RecvBCMsgsT entry
-    */
+		Note: when updating an RecvBCMsgs entry, also update the corresponding RecvBCMsgsT entry
+	*/
 	MyProposal    message.ConsensusObj // this server's proposal at phase 0
 	RecvProposals []Tally              // received proposals at phase 0 and their occurrences
 	MyBCMsgs      [][2]uint32          // this server's state and vote messages
@@ -126,10 +126,10 @@ func (s *Slot) Reset() {
 
 // Increases the Phase variable by one and decreases the Round variable by one
 /*
-    The slot's decision state (IsDone, Decision) and whether a decision message was received (HasRecvDec) are read
-    and written by several routines (the consensus executor and message handler, the proxy's executor): they are
-    accessed under the slot's Lock, as the "Race Conditions Documented" note of the consensus package prescribes
-    ("When modifying or reading Term, IsDone, and Decision fields, acquire Slot.lock first").
+	The slot's decision state (IsDone, Decision) and whether a decision message was received (HasRecvDec) are read
+	and written by several routines (the consensus executor and message handler, the proxy's executor): they are
+	accessed under the slot's Lock, as the "Race Conditions Documented" note of the consensus package prescribes
+	("When modifying or reading Term, IsDone, and Decision fields, acquire Slot.lock first").
 */
 
 // SetDecision records dec as the slot's decision and marks the slot done.
@@ -214,9 +214,9 @@ func (s *Slot) GetMyProposal() message.ConsensusObj {
 }
 
 /*
-    The received proposals and binary consensus messages (RecvProposals, RecvBCMsgs, RecvBCMsgsT) are written by the
-    message handler and read (and RecvProposals sorted) by both the handler and the executor: they are accessed under
-    the slot's Lock too.
+	The received proposals and binary consensus messages (RecvProposals, RecvBCMsgs, RecvBCMsgsT) are written by the
+	message handler and read (and RecvProposals sorted) by both the handler and the executor: they are accessed under
+	the slot's Lock too.
 */
 
 // RecvProposals setter
@@ -235,8 +235,8 @@ func (s *Slot) PutRecvProposals(p message.ConsensusObj) {
 }
 
 /*
-    Sort RecvProposals according to their occurrences so that the fist proposal after sorting is the majority value,
-    if two proposals have the same number of occurrences, put the one wins the less-than relation to the front.
+	Sort RecvProposals according to their occurrences so that the fist proposal after sorting is the majority value,
+	if two proposals have the same number of occurrences, put the one wins the less-than relation to the front.
 */
 func (s *Slot) SortRecvProposals() {
 	// VERIFICATION WORKAROUND (G5): sort.Sort over the named slice type tallies (Perennial has a spec of sort.Sort,
@@ -278,10 +278,10 @@ func (s *Slot) RecvProposalsMajT() int {
 }
 
 /*
-    Rabia's binary consensus runs phase after phase until it decides: nothing bounds the phase a slot reaches (with
-    probability 1 it ends, but under some schedules and coin flips it takes any number of phases). The per-phase
-    arrays start with LenBlockArray entries and grow when a later phase is used; a phase not reached yet has no
-    messages.
+	Rabia's binary consensus runs phase after phase until it decides: nothing bounds the phase a slot reaches (with
+	probability 1 it ends, but under some schedules and coin flips it takes any number of phases). The per-phase
+	arrays start with LenBlockArray entries and grow when a later phase is used; a phase not reached yet has no
+	messages.
 */
 
 // MyBCMsgs setter
@@ -327,8 +327,8 @@ func (s *Slot) recvBCMsgsT(phase, round uint32) int {
 }
 
 /*
-    RecvBCMsgs' majority value getter (when RecvBCMsgs[p][0] == RecvBCMsgs[p][1], this function prefers to
-    output 1, as implied in the algorithm)
+	RecvBCMsgs' majority value getter (when RecvBCMsgs[p][0] == RecvBCMsgs[p][1], this function prefers to
+	output 1, as implied in the algorithm)
 */
 func (s *Slot) RecvBCMsgsMajV(phase, round uint32) uint32 {
 	s.Lock.Lock()
@@ -342,8 +342,8 @@ func (s *Slot) RecvBCMsgsMajV(phase, round uint32) uint32 {
 }
 
 /*
-    RecvBCMsgs' majority tally getter (when RecvBCMsgs[p][0] == RecvBCMsgs[p][1], this function prefers to
-    output RecvBCMsgs[p][1], as implied in the algorithm)
+	RecvBCMsgs' majority tally getter (when RecvBCMsgs[p][0] == RecvBCMsgs[p][1], this function prefers to
+	output RecvBCMsgs[p][1], as implied in the algorithm)
 */
 func (s *Slot) RecvBCMsgsMajT(phase, round uint32) int {
 	s.Lock.Lock()
@@ -364,8 +364,8 @@ func (s *Slot) GetRecvBCMsgsT(phase, round uint32) int {
 }
 
 /*
-    Determines whether enough messages have received in order to proceed the executor (note: this function assumes
-    Conf.NMinusF is initialized). Enough messages means no less than n-f messages.
+	Determines whether enough messages have received in order to proceed the executor (note: this function assumes
+	Conf.NMinusF is initialized). Enough messages means no less than n-f messages.
 */
 func (s *Slot) HasEnoughMsg(phase, round uint32) bool {
 	s.Lock.Lock()
