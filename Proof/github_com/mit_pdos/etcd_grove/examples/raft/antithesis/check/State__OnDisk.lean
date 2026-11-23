@@ -2309,6 +2309,111 @@ theorem State.OnDisk.wp_proof
       wp_join_done
       simp only [Bool.not_true, Bool.false_eq_true, ite_false]
       iexists _; iframe; iexact Hvi
+  -- v2: `if x.adv() { for _, p := range ll { if p.T > x.T1() && !IsPrefix(x.newC(), p.L) {
+  --   viol = violAdd(viol, "LeaderCompleteness"); break } } }`
+  obtain ⟨viol2, Ho, ad2, had2, had2f, had2t⟩ := OnDiskProofLaws.v2_ok'' Ho
+  rw [hXll] at had2t
+  have hv1l := OnDiskProofLaws.setAddIf_len cs vi go!"CommitSafety"
+  wp_join (v := executeVal) iprop(∃ vl, viol_ptr ↦ vl ∗ strsRO vl viol2) at next with [viol] as ⟨%vl2, viol, #Hvl2⟩
+  · odm adv
+    wp_apply wp_adv _ X ad2 $$ [Hx]
+    · iframe Hx; ipureintro; exact had2
+    cases ad2
+    · rw [had2f rfl]
+      try wp_auto
+      wp_join_done
+      iexists _; iframe; iexact Hvl1
+    obtain ⟨lc, hlc, rfl⟩ := had2t rfl
+    try wp_auto
+    ihave #Hll2 := Hll
+    iunfold termLogsRO at Hll2
+    icases Hll2 with ⟨%gls, #Hgls, #Hglb⟩
+    ihave %Hlll := sliceRO_len (fun (g : G.TermLog) (p : Int × List Entry) => iprop(⌜sint.Z g.T' = p.1⌝ ∗ logRO g.L' p.2))
+      lll gls ll $$ [Hgls Hglb]
+    · iframe Hgls Hglb
+    ihave IH : iprop(∃ (i : w64) (gpv : G.TermLog),
+        "i" ∷ i_ptr ↦ i ∗ "p" ∷ p_ptr ↦ gpv ∗ "viol" ∷ viol_ptr ↦ vl1 ∗
+        "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z lll.len ∧ anyM (ll.drop (sint.nat i))
+          (fun p => andM (pure (decide (p.1 > t1))) (notM (do isPrefix (← X.newC) p.2))) = .ok lc⌝) $$ [i p viol]
+    · iexists _, _
+      iframe
+      ipureintro
+      refine ⟨by word, by word, ?_⟩
+      rw [show sint.nat (W64 0) = 0 by word, List.drop_zero]; exact hlc
+    wp_for IH
+    obtain ⟨hi0, hi1, hany⟩ := Hi
+    wp_if_destruct
+    · have Hil : sint.nat i < ll.length := by have := sint_nat_cast hi0; omega
+      icases sliceRO_at (fun (g : G.TermLog) (p : Int × List Entry) => iprop(⌜sint.Z g.T' = p.1⌝ ∗ logRO g.L' p.2))
+        lll gls ll i ⟨hi0, by omega⟩ $$ [Hgls Hglb] with ⟨%gi, #Hgi, %HgiT, #HgiL⟩
+      · iframe Hgls Hglb
+      wp_apply wp_load_at _ _ _ hi0 $$ [Hgi] as -
+      · iexact Hgi
+      try wp_auto
+      obtain ⟨y, hy, hyt, hyf⟩ := OnDiskProofLaws.anyM_drop_step Hil hany
+      have hget : ll[sint.nat i]! = ll[sint.nat i] := by
+        rw [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem Hil]; rfl
+      rw [← hget] at hy
+      obtain ⟨gt, hgt, hgtt, hgtf⟩ := andM_ok hy
+      simp only [pure_ok, Except.ok.injEq] at hgt
+      odm T1
+      wp_apply wp_T1 _ X t1 $$ [Hx] as %u1 %Hu1
+      · iframe Hx; ipureintro; exact ht1
+      try wp_auto
+      have hcont : y = false → ∀ gpv : G.TermLog,
+          (i_ptr ↦ (i + W64 1) ∗ p_ptr ↦ gpv ∗ viol_ptr ↦ vl1 : IProp GF) ⊢ iprop(∃ (i : w64) (gpv : G.TermLog),
+            "i" ∷ i_ptr ↦ i ∗ "p" ∷ p_ptr ↦ gpv ∗ "viol" ∷ viol_ptr ↦ vl1 ∗
+            "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.Z i ≤ sint.Z lll.len ∧ anyM (ll.drop (sint.nat i))
+              (fun p => andM (pure (decide (p.1 > t1))) (notM (do isPrefix (← X.newC) p.2))) = .ok lc⌝) := by
+        intro hy0 gpv
+        iintro ⟨Hi, Hp, Hv⟩
+        iexists _, gpv
+        iframe Hi Hp Hv
+        ipureintro
+        refine ⟨by word, by word, ?_⟩
+        rw [show sint.nat (i + W64 1) = sint.nat i + 1 by word]; exact hyf hy0
+      wp_if_destruct
+      · have hgt' : gt = true := by rw [← hgt]; simp only [decide_eq_true_eq]; rw [← HgiT, ← Hu1]; omega
+        have h2 := hgtt hgt'
+        unfold notM at h2
+        obtain ⟨ip, hip, h2⟩ := bind_ok h2
+        simp only [pure_ok, Except.ok.injEq] at h2
+        obtain ⟨nc, hnc, hip⟩ := bind_ok hip
+        odm newC
+        wp_apply wp_newC _ X nc $$ [Hx] as %gnc #Hnc
+        · iframe Hx; ipureintro; exact hnc
+        try wp_auto
+        wp_apply wp_IsPrefix gnc nc gi.L' ll[sint.nat i]!.2 ip $$ [Hnc HgiL]
+        · iframe Hnc HgiL; ipureintro; exact hip
+        cases ip
+        · have hlc' : lc = true := hyt (by rw [← h2]; try rfl)
+          subst hlc'
+          try wp_auto
+          wp_apply wp_violAdd vl1 _ _ $$ [Hvl1] as %vl #Hvl
+          · iframe Hvl1; ipureintro; omega
+          try wp_auto
+          wp_for_post
+          try wp_auto
+          wp_join_done
+          iexists _; iframe; simp only [ite_true]; iexact Hvl
+        · try wp_auto
+          wp_for_post
+          iframe
+          iapply hcont (by rw [← h2]; try rfl)
+          iframe
+      · have hgt' : gt = false := by rw [← hgt]; simp only [decide_eq_false_iff_not]; rw [← HgiT, ← Hu1]; omega
+        try wp_auto
+        wp_for_post
+        iframe
+        iapply hcont (hgtf hgt')
+        iframe
+    · try wp_auto
+      have hil : sint.nat i = ll.length := by have := sint_nat_cast hi0; omega
+      rw [hil] at hany
+      have := OnDiskProofLaws.anyM_drop_end hany
+      subst this
+      wp_join_done
+      iexists _; iframe; simp only [Bool.false_eq_true, ite_false]; iexact Hvl1
   done
 
 end proof

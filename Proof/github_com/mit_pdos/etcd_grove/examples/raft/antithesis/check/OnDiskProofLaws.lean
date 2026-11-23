@@ -113,6 +113,67 @@ theorem v5_ok' {t1 : Int} {ns : State} {viol : SSet} {r : Option State} (h : v5 
   · exact ⟨c1, true, hc1, hcb, by cases h; rfl⟩
   · exact ⟨c1, false, hc1, hcb, by cases h; rfl⟩
 
+/-- `v2` with its result named (one continuation whether or not `adv`). -/
+theorem v2_ok'' {t1 : Int} {viol : SSet} {K : SSet → EvalM (Option State)} {r : Option State}
+    (h : v2 x t1 viol K = .ok r) :
+    ∃ v, K v = .ok r ∧ ∃ ad, x.adv = .ok ad ∧ (ad = false → v = viol) ∧
+      (ad = true → ∃ lc, anyM x.ll (fun p => andM (pure (decide (p.1 > t1)))
+          (notM (do isPrefix (← x.newC) p.2))) = .ok lc ∧
+        v = if lc then setAdd viol go!"LeaderCompleteness" else viol) := by
+  obtain ⟨ad, had, hf, ht⟩ := v2_ok' h
+  cases ad
+  · exact ⟨viol, hf rfl, false, had, fun _ => rfl, fun h => absurd h (by decide)⟩
+  · obtain ⟨lc, hlc, hK⟩ := ht rfl
+    exact ⟨_, hK, true, had, fun h => absurd h (by decide), fun _ => ⟨lc, hlc, rfl⟩⟩
+
+/-- `v3` with its result named (one continuation whether or not the log changed). -/
+theorem v3_ok'' {viol : SSet} {K : List Entry → Bool → SSet → EvalM (Option State)} {r : Option State}
+    (h : v3 x viol K = .ok r) :
+    ∃ l1 ee v, x.L1 = .ok l1 ∧ entriesEqual l1 x.L0 = .ok ee ∧ K l1 (!ee) v = .ok r ∧ (ee = true → v = viol) ∧
+      (ee = false → ∃ lm, anyM (List.range x.s.cfg.server.length)
+          (fun b => andM (pure (b != x.n)) (notM (matching l1 (x.s.log[b]!)))) = .ok lm ∧
+        v = if lm then setAdd viol go!"LogMatching" else viol) := by
+  obtain ⟨l1, ee, hl1, hee, ht, hf⟩ := v3_ok' h
+  cases ee
+  · obtain ⟨lm, hlm, hK⟩ := hf rfl
+    exact ⟨l1, false, _, hl1, hee, hK, fun h => absurd h (by decide), fun _ => ⟨lm, hlm, rfl⟩⟩
+  · exact ⟨l1, true, viol, hl1, hee, ht rfl, fun _ => rfl, fun h => absurd h (by decide)⟩
+
+theorem setAdd_len (s : SSet) (x : Str) : (setAdd s x).length ≤ s.length + 1 := by
+  unfold setAdd
+  simp only
+  split
+  · omega
+  · simp only [List.length_append, List.length_take, List.length_cons, List.length_drop]
+    omega
+
+/-- A violation added or not (`viol`'s updates, B 422-436): at most one more. -/
+theorem setAddIf_len (c : Bool) (s : SSet) (x : Str) :
+    ((if c then setAdd s x else s).length : Int) ≤ s.length + 1 := by
+  have := setAdd_len s x
+  split <;> omega
+
+/-- One step of a Go `range` loop computing `anyM` (its `break` at the first hit). -/
+theorem anyM_drop_step {α : Type} {xs : List α} {f : α → EvalM Bool} {r : Bool} {i : Nat}
+    (hi : i < xs.length) (h : anyM (xs.drop i) f = .ok r) :
+    ∃ y, f xs[i] = .ok y ∧ (y = true → r = true) ∧ (y = false → anyM (xs.drop (i + 1)) f = .ok r) := by
+  rw [List.drop_eq_getElem_cons hi] at h
+  simp only [anyM] at h
+  obtain ⟨y, hy, h⟩ := bind_ok h
+  refine ⟨y, hy, fun hy' => ?_, fun hy' => ?_⟩ <;> subst hy'
+  · cases r
+    · simp at h
+    · rfl
+  · simpa using h
+
+/-- The end of such a loop: no hit. -/
+theorem anyM_drop_end {α : Type} {xs : List α} {f : α → EvalM Bool} {r : Bool}
+    (h : anyM (xs.drop xs.length) f = .ok r) : r = false := by
+  rw [List.drop_length] at h
+  cases r
+  · rfl
+  · simp [anyM] at h
+
 /-- `votes` after `u3`, as one term (the vote where `voted`, B 401). -/
 def votes3 (x : OnDisk) (t1 : Int) (voted : Bool) : List VoteRec :=
   if voted then lset.add x.s.votes { voter := x.s.cfg.server[x.n]!, term := t1, cand := x.w.vote.getD [] }
