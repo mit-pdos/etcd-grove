@@ -17,8 +17,9 @@ every Go semantics with the twelve programs' `Assumptions`, `net.FieldAssumption
 `go.BasicIntoValInj` and these **visible premises** (each quantified over the machine's heap,
 `heapAt G L`): the `InitHyp`s of zerolog, gogo `proto`, `gogoproto`, go-redis v8, `os/signal`,
 `math/rand` (go-redis' `internal/proto` `InitHyp` is not needed: no initializer reaches it),
-`github_com.rs.zerolog.Hyps`, `math.rand.Hyps`, `log.Hyps` (`log.Println`), and the environment
-assumption `os.signal.NoSignals` (revised after review #24, below: `proto.Hyps` added, `log.Hyps` gone). `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
+`github_com.gogo.protobuf.proto.Hyps` (the three `Register*` calls), `github_com.rs.zerolog.Hyps`,
+`math.rand.Hyps`, and the environment assumption `os.signal.NoSignals` (SIGINT/SIGTERM): ten in all
+(after review #24, below; `log.Println` is proved, so there is no `log.Hyps`). `#print axioms`: `propext`, `Classical.choice`, `Quot.sound`.
 `lake build` of the top module (2937 jobs): ok. `etc/theorem-loc.py --file … rabia_remote_robust`
 counts every one of these classes as a statement premise (`--list-tcb`: `stmt class …InitHyp`, …,
 `os.signal.NoSignals`, `NotifyQuiet.spec`). Not run: `etc/tcb-report.py --check` of the collection
