@@ -11,6 +11,10 @@ library, 2026-11-19, so that the kits' protocol library `Proto.lean` and the exa
   `dirOk_empty`, `dirOk_abandoned`).
 * Facts of the outcomes (`readOutcome_got_le`, `readOutcome_bytes_pos`, `closeOutcome_closed`,
   `closeOutcome_of_closed`, `writeOutcome_of_closed`, `readOutcome_of_closed`).
+* Dead directions (`NetDir.dead`: nothing unread, not open; D1 v3.5, `notes/net-sticky-read.md`):
+  a read that returns EOF or `sys` leaves its direction dead (`readOutcome_dead_of`), every outcome
+  keeps a dead direction dead (`readOutcome_dead`, `writeOutcome_dead`, `closeOutcome_dead`,
+  `closeWriteOutcome_dead`), and a read of a dead direction returns no byte (`readOutcome_dead`).
 * `setMap`: a set as the map `[∗map]` ranges over (`GSet` has no `[∗set]` instance; as raft's
   `Protocol.toMap`), with its laws; `ndot_mask`, disjoint namespaces.
 
@@ -68,7 +72,7 @@ theorem dirOk_cut {d : NetDir} {W R : List w8} (k : Nat) (h : DirOk d W R) :
 
 theorem dirOk_avail {st : NetEnd} {d d' : NetDir} {W R : List w8} {n : Nat} {r : ReadRes}
     (h : DirOk d W R) (hr : ReadAvail st d n r d') : DirOk d' W (R ++ r.got) := by
-  rcases hr with ⟨k, -, -, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
+  rcases hr with ⟨k, -, -, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
   · simp only [ReadRes.got, DirOk, List.append_assoc, List.take_append_drop] at h ⊢
     exact h
   all_goals simpa [ReadRes.got] using h
@@ -135,7 +139,7 @@ theorem readOutcome_got_le {st : NetEnd} {d : NetDir} {m : Nat} {r : ReadRes} {d
     (h : ReadOutcome st d m r d') : r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
   have hav : ∀ d0, ReadAvail st d0 m r d' → r.got.length ≤ m ∧ (r = .bytes [] → m = 0) := by
     intro d0 h
-    rcases h with ⟨k, hk1, hk, hkd, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨-, rfl, -⟩
+    rcases h with ⟨k, hk1, hk, hkd, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, -, rfl, -⟩ | ⟨-, rfl, -⟩
     · refine ⟨by simp only [ReadRes.got, List.length_take]; omega, ?_⟩
       intro h
       have h' := congrArg (fun r => r.got.length) h
@@ -156,7 +160,7 @@ theorem readOutcome_bytes_pos {st : NetEnd} {d d' : NetDir} {n : Nat} {bs : List
     (h : ReadOutcome st d n (.bytes bs) d') (hn : 0 < n) : 1 ≤ bs.length := by
   have hav : ∀ (d0 : NetDir), ReadAvail st d0 n (.bytes bs) d' → 1 ≤ bs.length := by
     intro d0 hr
-    rcases hr with ⟨k, hk1, -, hkl, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, hr, -⟩ | ⟨-, hr, -⟩
+    rcases hr with ⟨k, hk1, -, hkl, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, -, hr, -⟩ | ⟨-, hr, -⟩
     · cases hr; simp only [List.length_take]; omega
     all_goals cases hr
   unfold ReadOutcome at h
@@ -195,6 +199,98 @@ theorem readOutcome_of_closed {st : NetEnd} {d : NetDir} {n : Nat} {r : ReadRes}
     (hc : st.closed = true) (h : ReadOutcome st d n r d') : r = .err .closed := by
   simp only [ReadOutcome, hc, ↓reduceIte] at h
   exact h.1
+
+/-! ### Dead directions (D1 v3.5) -/
+
+/-- A direction is dead: nothing is unread and its writer is done (`fin` or `cut`). No outcome
+gives it a byte or reopens it, so a read of it returns no byte. -/
+def NetDir.dead (d : NetDir) : Prop := d.bytes = [] ∧ d.status ≠ .open
+
+/-- A read of a dead direction leaves it dead and returns no byte. -/
+theorem readAvail_dead {st : NetEnd} {d d' : NetDir} {n : Nat} {r : ReadRes}
+    (hd : d.dead) (h : ReadAvail st d n r d') : d'.dead ∧ ∀ bs, r ≠ .bytes bs := by
+  have hb := hd.1
+  rcases h with ⟨k, hk1, -, hkl, -, -⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, -, rfl, rfl⟩ | ⟨-, rfl, rfl⟩
+  · rw [hb] at hkl; simp at hkl; omega
+  all_goals exact ⟨hd, fun _ h => by cases h⟩
+
+/-- A read that returns EOF or a `sys` error leaves its direction dead (D1 v3.5: a `sys` error needs
+nothing unread). -/
+theorem readOutcome_dead_of {st : NetEnd} {d d' : NetDir} {n : Nat} {r : ReadRes}
+    (h : ReadOutcome st d n r d') (hr : r = .eof ∨ r = .err .sys) : d'.dead := by
+  have hav : ∀ d0, ReadAvail st d0 n r d' → d'.dead := by
+    intro d0 h
+    rcases h with ⟨k, -, -, -, rfl, -⟩ | ⟨hb, hs, -, rfl⟩ | ⟨hs, hb, -, rfl⟩ | ⟨-, rfl, -⟩
+    · rcases hr with h | h <;> cases h
+    · exact ⟨hb, hs⟩
+    · exact ⟨hb, by rw [hs]; decide⟩
+    · rcases hr with h | h <;> cases h
+  unfold ReadOutcome at h
+  split at h
+  · obtain ⟨rfl, -⟩ := h; rcases hr with h | h <;> cases h
+  split at h
+  · obtain ⟨rfl, -⟩ := h; rcases hr with h | h <;> cases h
+  rcases h with h | ⟨k, -, h⟩
+  · exact hav _ h
+  · exact hav _ h
+
+/-- A read of a dead direction leaves it dead and returns no byte: nothing for `n = 0` or on a
+closed end, else an error or EOF. -/
+theorem readOutcome_dead {st : NetEnd} {d d' : NetDir} {n : Nat} {r : ReadRes}
+    (hd : d.dead) (h : ReadOutcome st d n r d') :
+    d'.dead ∧ r.got = [] ∧ (n ≠ 0 → ∀ bs, r ≠ .bytes bs) := by
+  have hav : ∀ d0 : NetDir, d0.dead → ReadAvail st d0 n r d' →
+      d'.dead ∧ r.got = [] ∧ (n ≠ 0 → ∀ bs, r ≠ .bytes bs) := by
+    intro d0 hd0 h
+    obtain ⟨h1, h2⟩ := readAvail_dead hd0 h
+    refine ⟨h1, ?_, fun _ => h2⟩
+    cases r with
+    | bytes bs => exact absurd rfl (h2 bs)
+    | eof => rfl
+    | err e => rfl
+  unfold ReadOutcome at h
+  split at h
+  · obtain ⟨rfl, rfl⟩ := h; exact ⟨hd, rfl, fun _ _ h => by cases h⟩
+  split at h
+  · obtain ⟨rfl, rfl⟩ := h; exact ⟨hd, rfl, fun h => absurd ‹n = 0› h⟩
+  rcases h with h | ⟨k, -, h⟩
+  · exact hav d hd h
+  · refine hav _ ⟨?_, by simp⟩ h
+    show d.bytes.take k = []
+    rw [hd.1]; simp
+
+/-- A step of a `Write` keeps a dead direction dead (nothing is appended to a shut or cut one). -/
+theorem writeOutcome_dead {st : NetEnd} {d d' : NetDir} {rs : List w8} {k : Nat}
+    {res : Option NetErr} (hd : d.dead) (h : WriteOutcome st d rs k res d') : d'.dead := by
+  unfold WriteOutcome at h
+  split at h
+  · obtain ⟨-, -, rfl⟩ := h; exact hd
+  · split at h
+    · obtain ⟨-, rfl, -⟩ := h; exact hd
+    · obtain ⟨rfl, -⟩ := h; exact hd
+    · rename_i hopen; exact absurd hopen hd.2
+
+theorem shut_dead {d : NetDir} (hd : d.dead) : d.shut.dead := by
+  unfold NetDir.shut
+  simp only [hd.2, ↓reduceIte]; exact hd
+
+/-- A close keeps a dead direction dead. -/
+theorem closeOutcome_dead {st st' : NetEnd} {d d' : NetDir} {res : Option NetErr}
+    (hd : d.dead) (h : CloseOutcome st d res st' d') : d'.dead := by
+  unfold CloseOutcome at h
+  split at h
+  · obtain ⟨-, -, rfl⟩ := h; exact hd
+  · obtain ⟨-, -, rfl⟩ := h; exact shut_dead hd
+
+/-- A `CloseWrite` keeps a dead direction dead. -/
+theorem closeWriteOutcome_dead {st : NetEnd} {d d' : NetDir} {res : Option NetErr}
+    (hd : d.dead) (h : CloseWriteOutcome st d res d') : d'.dead := by
+  unfold CloseWriteOutcome at h
+  split at h
+  · obtain ⟨-, rfl⟩ := h; exact hd
+  · rcases h with ⟨-, rfl⟩ | ⟨-, rfl⟩
+    · exact shut_dead hd
+    · exact hd
 
 end pure
 

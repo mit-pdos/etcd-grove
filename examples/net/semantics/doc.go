@@ -64,14 +64,14 @@
 //	                                  every Write fails (EPIPE: RST in CLOSE_WAIT); the Read is EOF
 //	TestPartialWriteOnReset      D2   a Write cut by a RST returns 0 < n < len, ECONNRESET                 measured   WriteOutcome (open: steps, then sys, cut)
 //
-// Sticky read errors (sticky_test.go, sticky_netns_test.go; notes/net-sticky-read.md, a proposed
-// change to D1, not yet in Impl.lean: a sys read error only once nothing is unread, so that no
-// byte follows a read error but a deadline's timeout):
+// Sticky read errors (sticky_test.go, sticky_netns_test.go; notes/net-sticky-read.md; D1 v3.5,
+// Impl.lean's ReadAvail: a sys read error only once nothing is unread, so that no byte follows a
+// read error but a deadline's timeout):
 //
 //	TestStickyEOF                D1   FIN: the bytes, EOF, EOF ...; a later RST (peer's Close with      measured   ReadAvail (EOF; sticky
 //	                                  unread input) changes nothing, EOF (SOCK_DONE before sk_err);                 already)
 //	                                  a Write after EOF succeeds, after the RST EPIPE
-//	TestStickyReset              D1,D14 a RST with bytes received: the bytes, then ECONNRESET with 0     measured   ReadAvail (sys: proposed
+//	TestStickyReset              D1,D14 a RST with bytes received: the bytes, then ECONNRESET with 0     measured   ReadAvail (sys: v3.5,
 //	                                  unread (SIOCINQ), then EOF on every Read; an expired deadline:                d.bytes = [])
 //	                                  timeout; an empty Read (0, nil); Writes EPIPE
 //	TestStickyResetBlockedRead   D1,D14 a RST while a Read waits: ECONNRESET, then EOF                   measured   ReadOutcome (break)
@@ -80,7 +80,7 @@
 //	TestStickyOwnClose           D1,D3 own Close with bytes unread: ErrClosed on every Read and Write   measured   NetEnd.closed
 //	TestStickyNotTimeout         D1,D5 the exception: after a read deadline's timeout (blocked, or       measured   ReadAvail (timeout: d' = d)
 //	                                  expired with bytes unread) the bytes follow once it is cleared
-//	TestStickyTimedOut           D1,D14 (network namespaces) the kernel gives up with bytes received:    measured   ReadAvail (sys: proposed
+//	TestStickyTimedOut           D1,D14 (network namespaces) the kernel gives up with bytes received:    measured   ReadAvail (sys: v3.5,
 //	                                  the bytes, then ETIMEDOUT (a partition) or EHOSTUNREACH (an ICMP              d.bytes = [])
 //	                                  host-unreachable: sk_err_soft) with 0 unread, then EOF; Write EPIPE
 //
@@ -346,6 +346,16 @@
 // (lisAccepts). It only adds behaviors, each from a step that was a panic: a
 // Listen the kernel refuses (EADDRNOTAVAIL, TestListenNotLocal; EADDRINUSE)
 // is a sys failure, and which machine listens where is the proofs' business.
+//
+// v3.5 (2026-11-23, notes/net-sticky-read.md): a sys read error only once
+// nothing is unread (D1, ReadAvail's sys clause gains d.bytes = []). Before,
+// a Read could fail ECONNRESET with bytes unread and a later Read return
+// them; Linux never does (the sticky tests above: an error from read(2)
+// only when it copied nothing, and every sys source ends the socket's
+// receiving). It only removes behaviors. So after a Read returns EOF or a
+// sys error, its direction is dead (empty, not open), which no step undoes,
+// and every later non-empty Read of that end returns no byte; a read
+// deadline's timeout stays non-sticky (TestStickyNotTimeout).
 //
 // Not measured here: D12 (ENOMEM, ENOBUFS), unreachable addresses. What a
 // peer sees of a machine that dies silently (nothing, then its kernel's
