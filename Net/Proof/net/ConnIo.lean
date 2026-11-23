@@ -61,9 +61,8 @@ variable [π : NetProtoGS]
 def connIface (t : Loc) : GoInterfaceOk := ⟨go.GoType.PointerType TCPConn.ty, #t⟩
 
 /-- The errors of a connection's reads: `io.EOF`'s value, or a read `*OpError`. Position-free: an
-`io.EOF` claims nothing about the bytes `R` read so far being the peer's whole stream (the model's
-EOF is the peer's half-close or close, after which its unread writes may still be lost in
-transit); a client that needs it proves it from its protocol (review C4 on #24). -/
+`io.EOF` claims nothing about the bytes `R` read so far being all the peer wrote (the evidence
+ignores `R`); a client that needs that proves it from its protocol (review C4 on #24). -/
 def connReadE (eof la ra ed : GoInterface) : List w8 → GoInterface → IProp GF :=
   fun _ e => iprop(⌜e = eof⌝ ∨ ∃ k, resErr (some k) go!"read" la ra (some ed) (· = go!"read") e)
 
