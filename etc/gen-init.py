@@ -5267,6 +5267,15 @@ DSV_PROGRAMS = {f'{DSV_PAXOS}.examples.paxosnet.cmd.{n}':
                 f'Proof/{DSV_PAXOS.replace(".", "/")}/examples/paxosnet/cmd/{n}/PkgTable.lean'
                 for n in DSV_NODES}
 
+# project dsv-craq (notes/dsv-craq.md): go-craq's packages and the kit's programs
+DSV_CRAQ = 'github_com.despreston.go_craq'
+DSV_CRAQ_NODES = ['orch'] + [f'client{c}' for c in range(5)] + [f'server{s}' for s in range(1, 7)]
+DSV_PKGS += [f'{DSV_CRAQ}.{p}' for p in ['transport', 'transport.netrpc', 'store', 'store.kv',
+                                         'node', 'coordinator', 'examples.craqnet']] + \
+    [f'{DSV_CRAQ}.examples.craqnet.cmd.{n}' for n in DSV_CRAQ_NODES]
+DSV_PROGRAMS.update({f'{DSV_CRAQ}.examples.craqnet.cmd.{n}':
+                     f'Proof/{DSV_CRAQ.replace(".", "/")}/examples/craqnet/cmd/{n}/PkgTable.lean'
+                     for n in DSV_CRAQ_NODES})
 
 def dsv_inits():
     """The part's `Init.lean` files and its programs' `PkgTable.lean`."""

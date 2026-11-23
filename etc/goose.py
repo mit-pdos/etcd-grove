@@ -932,6 +932,31 @@ PROJECTS = [
         owned=[os.path.join("github_com", "xiang90")],
     ),
     Project(
+        name="dsv-craq",
+        # dsverify-lab's craq kit (notes/dsv-craq.md; notes/dsverify-net-port-plan.md, phase 6):
+        # the lab's fork of despreston/go-craq (examples/craq/fork/go-craq at lab master 915f964,
+        # fork a0238ac) with its kit ported onto examples/lib/remote, `examples/dsverify/craq` (a
+        # Go module of its own, module path the fork's). Into the part `Dsverify/`, with remote,
+        # `net`, `net/rpc` and `net/http` the part `Net/`'s (the models: std_models), lintest and
+        # porcupine the main tree's.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "dsverify", "craq"),
+        root="Dsverify",
+        lean_roots=["github.com/despreston/go-craq=Dsverify",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/remote=Net",
+                    "github.com/mit-pdos/etcd-grove=", "github.com/anishathalye/porcupine=",
+                    "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=", "internal/syscall=",
+                    "bufio=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
+                    "golang.org/x/net/http/httpguts=Net", "go/token=Net"],
+        packages=["./transport", "./transport/netrpc", "./store", "./store/kv", "./node",
+                  "./coordinator", "./examples/craqnet", "./examples/craqnet/cmd/orch"]
+                 + ["./examples/craqnet/cmd/client%d" % c for c in range(5)]
+                 + ["./examples/craqnet/cmd/server%d" % s for s in range(1, 7)],
+        owned=[os.path.join("github_com", "despreston")],
+        std_models=["net/rpc", "net/http"],
+    ),
+    Project(
         name="models-net",
         # Our models of standard-library packages (models/README.md; notes/dsverify-net-port-plan.md,
         # phase 5.2): `net/rpc` and `net/http`, Go 1.27.3's source with the parts goose cannot take
