@@ -102,7 +102,8 @@ abbrev config.ProxyInfo.IsProxy.spec : Prop :=
 
 /-- `r.clientListener(conn, br, first, hasFirst)` on a connection accepted on the replica's
 port, nothing written yet, nothing read (`hasFirst` false) or only its first byte `first`, not
-the peers' hello (`hasFirst` true: read by `waitForPeerConnections`; see the file header). -/
+the peers' hello (`hasFirst` true: read by `waitForPeerConnections`; see the file header), with
+the protocol fact of what was read (`protoPrefix`: the reader's comes a step later). -/
 abbrev replica.Replica.clientListener.spec : Prop :=
   ∀ (r : Loc) (γ : sp.Names) (γc γm γw : GName) (N : Nat) (me : w32) (al : GoString)
     (cv : GoInterface) (cid : Nat) (br : Loc) (first : w8) (hasFirst : Bool),
@@ -115,6 +116,7 @@ abbrev replica.Replica.clientListener.spec : Prop :=
       net.rpc.connIface cv cid true ∗
       bufio.ownReader br cv (recvTokL cid true (sp.inP γ γc γm))
         (if hasFirst then [first] else []) ∗
+      protoPrefix (sp.inP γ γc γm) cid (if hasFirst then [first] else []) ∗
       ⌜hasFirst = true → first ≠ W8 0xFF⌝ ∗
       sendTok cid true (sp.outQ γ γc γm) [] }}
     (App (App (App (App

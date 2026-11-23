@@ -66,7 +66,7 @@ def replica.pendingOk (γ : sp.Names) (γc γm : GName) (p : replica.pendingClie
     IProp netDistGF :=
   iprop(∃ cid : Nat, net.rpc.connIface p.conn' cid true ∗
     bufio.ownReader p.reader' p.conn' (recvTokL cid true (sp.inP γ γc γm)) [p.first'] ∗
-    ⌜p.first' ≠ W8 0xFF⌝ ∗ sendTok cid true (sp.outQ γ γc γm) [])
+    protoPrefix (sp.inP γ γc γm) cid [p.first'] ∗ ⌜p.first' ≠ W8 0xFF⌝ ∗ sendTok cid true (sp.outQ γ γc γm) [])
 
 /-- The replica's listener `lv`: a TCP listener bound to `a` (persistent). -/
 def replica.listenerOk (lv : GoInterface) (a : GoString) : IProp netDistGF :=

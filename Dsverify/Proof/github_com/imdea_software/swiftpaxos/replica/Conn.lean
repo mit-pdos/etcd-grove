@@ -215,6 +215,7 @@ theorem replica.Replica.waitForPeerConnections.wp_proof
           cid true $$ []
         · unfold net.rpc.connIface; iexists c; iframe Hown; ipureintro; rfl
         ihave #Hrdok := bufio.readerOk_conn _ cid true (sp.inP γ γc γm) $$ [$Hpkg3 $Hci]
+        ihave Hrecv := recvTok_L _ _ _ _ $$ Hrecv
         wp_apply bufio.wp_NewReader _ _ [] $$ [$Hrdok $Hrecv] as %br Hrd
         try wp_auto
         wp_apply bufio.wp_ReadByte br _ _ [] $$ [$Hpkg2 $Hrdok $Hrd] as %c0 %er Hres

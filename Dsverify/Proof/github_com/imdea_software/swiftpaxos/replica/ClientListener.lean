@@ -73,7 +73,7 @@ theorem replica.Replica.clientListener.wp_proof
     (wp_Split : strings.Split.spec (GF := netDistGF) (hG := hG)) :
     replica.Replica.clientListener.spec (hG := hG) := by
   intro r γ γc γm γw N me al cv cid br first hasFirst
-  wp_start as ⟨#Hrep, #HAlias, #Hc, Hrd, %Hff, Hsend⟩
+  wp_start as ⟨#Hrep, #HAlias, #Hc, Hrd, #Hpp0, %Hff, Hsend⟩
   ihave #Hr := Hrep
   iunfold replica.isReplica at Hr
   icases Hr with ⟨%lg, %cfgp, %tbl, %pc, %fr, %nid, %ents, %γpc, %pwsl, %alsl, %latsl,
@@ -100,6 +100,7 @@ theorem replica.Replica.clientListener.wp_proof
   try wp_auto
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ fv : w8, first_ptr ↦ fv ∗
       hasFirst_ptr ↦ true ∗ bufio.ownReader br cv (recvTokL cid true (sp.inP γ γc γm)) [fv] ∗
+      protoPrefix (sp.inP γ γc γm) cid [fv] ∗
       (∃ cl, sp.connKind γ cid (.client cl))) ∨ ⌜v = returnVal #()⌝)) at next
     with [Hrd first hasFirst]
   · cases hasFirst
@@ -107,9 +108,16 @@ theorem replica.Replica.clientListener.wp_proof
       simp only [Bool.false_eq_true, ↓reduceIte] at *
       wp_pures
       wp_auto
-      wp_apply bufio.wp_ReadByte br cv _ [] $$ [$Hpkg2 $Hrdok $Hrd] as %c %er Hr
+      wp_apply (lc := 1) bufio.wp_ReadByte br cv _ [] $$ [$Hpkg2 $Hrdok $Hrd] as %c %er Hr
       icases Hr with (⟨%Hen, Hrd⟩ | ⟨%Hen, #Hea, Hrd⟩)
       · subst Hen
+        icases sp.ownReader_proto br _ cid true _ ([] ++ [c]) $$ Hrd with ⟨Hrd, HpL⟩
+        iapply fupd_wp
+        imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with #HppU
+        ihave #Hpp' : protoPrefix (sp.inP γ γc γm) cid ([] ++ [c]) $$ []
+        · unfold protoPrefix; iexact HppU
+        imodintro
+        isimp only [List.nil_append] at Hpp' Hrd
         try wp_auto
         wp_if_destruct
         · -- a peer's hello (P1): the connection is not a client's
@@ -118,8 +126,9 @@ theorem replica.Replica.clientListener.wp_proof
           wp_apply wp_Close cl0 cid true $$ [$Hpkg3 $Hown] as %e2 -
           iright; ipureintro; rfl
         · -- a client's connection
-          icases sp.ownReader_proto br _ cid true _ ([] ++ [c]) $$ Hrd with
-            ⟨Hrd, (%Hnil | ⟨%ext, %Hext, #HP⟩)⟩
+          ihave Hpx := Hpp'
+          try iunfold protoPrefix at Hpx
+          icases Hpx with (%Hnil | ⟨%ext, %Hext, #HP⟩)
           · simp at Hnil
           ihave ⟨%cl, #Hk⟩ := sp.client_kind cid ext c (by simpa using Hext) Hif $$ HP
           try wp_auto
@@ -128,6 +137,8 @@ theorem replica.Replica.clientListener.wp_proof
           · ipureintro; first | rfl | trivial
           iexists c
           iframe
+          isplitr
+          · unfold protoPrefix; iexact Hpp'
           iexists cl; iexact Hk
       · -- R-F2: a failed first read closes the connection
         rcases er with eo | _
@@ -140,8 +151,9 @@ theorem replica.Replica.clientListener.wp_proof
       simp only [↓reduceIte] at *
       have hff : first ≠ W8 0xFF := by simpa using Hff
       try wp_auto
-      icases sp.ownReader_proto br _ cid true _ [first] $$ Hrd with
-        ⟨Hrd, (%Hnil | ⟨%ext, %Hext, #HP⟩)⟩
+      ihave Hpx := Hpp0
+      try iunfold protoPrefix at Hpx
+      icases Hpx with (%Hnil | ⟨%ext, %Hext, #HP⟩)
       · simp at Hnil
       ihave ⟨%cl, #Hk⟩ := sp.client_kind cid ext first Hext hff $$ HP
       ileft
@@ -149,8 +161,10 @@ theorem replica.Replica.clientListener.wp_proof
       · ipureintro; first | rfl | trivial
       iexists first
       iframe
+      isplitr
+      · iexact Hpp0
       iexists cl; iexact Hk
-  iintro (⟨%Hv, %fv, first, hasFirst, Hrd, Hk0⟩ | %Hv) <;> subst Hv
+  iintro (⟨%Hv, %fv, first, hasFirst, Hrd, #Hppf, Hk0⟩ | %Hv) <;> subst Hv
   rotate_left
   · wp_auto
     iapply HΦ; itrivial
@@ -187,7 +201,7 @@ theorem replica.Replica.clientListener.wp_proof
     | cons a0 rest => exact ⟨a0, rest, rfl⟩
   rw [hsp] at Hsplen
   isimp only [hsp] at Hspl
-  rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨by decide, by
+  rw [if_pos (show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z spl.len from ⟨by decide, by
     have h1 : sint.nat spl.len = rest.length + 1 := by simpa using Hsplen.1.symm
     have h0 : sint.Z (W64 0) = 0 := rfl
     have e1 : sint.nat spl.len = (sint.Z spl.len).toNat := rfl
@@ -221,6 +235,7 @@ theorem replica.Replica.clientListener.wp_proof
       "err" ∷ err_ptr ↦ er ∗ "msgType" ∷ msgType_ptr ↦ mt ∗ "hasFirst" ∷ hasFirst_ptr ↦ hf ∗
       "Hrd" ∷ bufio.ownReader br (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #cl0)
         (recvTokL cid true (sp.inP γ γc γm)) (R ++ if hf then [fv] else []) ∗
+      "#Hpp" ∷ protoPrefix (sp.inP γ γc γm) cid (R ++ if hf then [fv] else []) ∗
       "Hk" ∷ (match ko with
         | none => ⌜False⌝
         | some cl => sp.connKind γ cid (.client cl) ∗
@@ -233,6 +248,8 @@ theorem replica.Replica.clientListener.wp_proof
     iexists [], [], _, _, some cl, true
     iframe
     isplitr
+    · iExactEq Hppf; simp
+    isplitr
     · simp only [named]
       iframe Hk
       ipureintro; intro _; exact ⟨by simp [sp.RdKind.head, sp.framesOf], by simp⟩
@@ -244,7 +261,9 @@ theorem replica.Replica.clientListener.wp_proof
   · -- an error: the loop ends
     try wp_auto
     cleanup_bool_decide
-    try rw [if_neg (by decide)]
+    try rw [if_neg (show ¬ (decide (#false = #true) = true) by
+      simp only [decide_eq_true_eq]; exact fun h => absurd (go.intoVal_inj h) (by decide))]
+    try rw [if_pos (show decide (#false = #false) = true by simp)]
     postloop
   · try wp_auto
     rw [if_pos (decide_eq_true rfl)]
@@ -253,19 +272,27 @@ theorem replica.Replica.clientListener.wp_proof
     wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ c : w8, msgType_ptr ↦ c ∗
         hasFirst_ptr ↦ false ∗ err_ptr ↦ interface.nil ∗
         bufio.ownReader br (interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #cl0)
-          (recvTokL cid true (sp.inP γ γc γm)) (R ++ [c])) ∨ ⌜v = breakVal⌝)) at next
+          (recvTokL cid true (sp.inP γ γc γm)) (R ++ [c]) ∗
+        protoPrefix (sp.inP γ γc γm) cid (R ++ [c])) ∨ ⌜v = breakVal⌝)) at next
       with [Hrd msgType hasFirst err]
     · cases hf
       · simp only [Bool.false_eq_true, ↓reduceIte, List.append_nil] at *
         try wp_auto
-        wp_apply bufio.wp_ReadByte br _ _ R $$ [$Hpkg2 $Hrdok $Hrd] as %c %er2 Hr
+        wp_apply (lc := 1) bufio.wp_ReadByte br _ _ R $$ [$Hpkg2 $Hrdok $Hrd] as %c %er2 Hr
         icases Hr with (⟨%Hen, Hrd⟩ | ⟨%Hen, #Hea, Hrd⟩)
         · subst Hen
+          icases sp.ownReader_proto br _ cid true _ (R ++ [c]) $$ Hrd with ⟨Hrd, HpL⟩
+          iapply fupd_wp
+          imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with #HppU
+          ihave #Hpp' : protoPrefix (sp.inP γ γc γm) cid (R ++ [c]) $$ []
+          · unfold protoPrefix; iexact HppU
+          imodintro
           try wp_auto
           ileft
           isplitr
           · ipureintro; first | rfl | trivial
           iexists c; iframe
+          first | iexact Hpp' | (iExactEq Hpp'; simp) | (unfold protoPrefix; iexact Hpp') | (simp only [named]; unfold protoPrefix; iExactEq Hpp'; simp [BIBase.pure_false])
         · rcases er2 with eo | _
           · try wp_auto
             iright; ipureintro; rfl
@@ -276,14 +303,16 @@ theorem replica.Replica.clientListener.wp_proof
         isplitr
         · ipureintro; first | rfl | trivial
         iexists fv; iframe
-    iintro (⟨%Hv, %c, msgType, hasFirst, err, Hrd⟩ | %Hv) <;> subst Hv
+        first | iexact Hpp | (iExactEq Hpp; simp) | (unfold protoPrefix; iexact Hpp) | (simp only [named]; unfold protoPrefix; iExactEq Hpp; simp [BIBase.pure_false])
+    iintro (⟨%Hv, %c, msgType, hasFirst, err, Hrd, #Hppc⟩ | %Hv) <;> subst Hv
     rotate_left
     · try wp_auto
       wp_for_post
       postloop
     try wp_auto
-    icases sp.ownReader_proto br _ cid true _ (R ++ [c]) $$ Hrd with
-      ⟨Hrd, (%Hnil | ⟨%ext, %Hext, #HP⟩)⟩
+    ihave Hpx := Hppc
+    try iunfold protoPrefix at Hpx
+    icases Hpx with (%Hnil | ⟨%ext, %Hext, #HP⟩)
     · simp at Hnil
     -- the connection's kind (a client's) and the type byte (PROPOSE)
     ihave ⟨%cl, %done', #Hk1, %Hat1, %Hc0, Hwr⟩ : (∃ (cl : w32) (done' : List sp.Msg),
@@ -317,7 +346,13 @@ theorem replica.Replica.clientListener.wp_proof
     · exact absurd rfl Hif
     try wp_auto
     ihave #Hrs := bufio.bufioReadsOk br _ _ $$ [$Hpkg2 $Hrdok]
-    wp_apply wp_PUnm _ _ _ _ (R ++ [W8 0]) $$ [$Hpkg4 $Hrs $Hrd $«$r0»] as %er3 ⟨%data, Hrd, Hres⟩
+    wp_apply (lc := 1) wp_PUnm _ _ _ _ (R ++ [W8 0]) $$ [$Hpkg4 $Hrs $Hrd $«$r0»] as %er3 ⟨%data, Hrd, Hres⟩
+    icases sp.ownReader_proto br _ cid true _ (R ++ [W8 0] ++ data) $$ Hrd with ⟨Hrd, HpL⟩
+    iapply fupd_wp
+    imod (lc_fupd_elim_later (GF := netDistGF) (E := ⊤)) $$ Hlc1 HpL with #HppU
+    ihave #Hpp' : protoPrefix (sp.inP γ γc γm) cid (R ++ [W8 0] ++ data) $$ []
+    · unfold protoPrefix; iexact HppU
+    imodintro
     icases Hres with (⟨%Hen, %seq, %cl', %cm, %ts, %vs, %Hdec, Hp, Hvs⟩ | ⟨%Hen, %pv', Hp⟩)
     rotate_left
     · rcases er3 with eo | _
@@ -327,6 +362,8 @@ theorem replica.Replica.clientListener.wp_proof
         iexists _, done', _, _, some cl, false
         simp only [Bool.false_eq_true, ↓reduceIte, List.append_nil]
         iframe
+        isplitr
+        · first | iexact Hpp' | (iExactEq Hpp'; simp) | (unfold protoPrefix; iexact Hpp') | (simp only [named]; unfold protoPrefix; iExactEq Hpp'; simp [BIBase.pure_false])
         isplitl []
         · simp only [named]; iframe Hk1; ipureintro; intro h; cases h
         icases Hwr with (Hwr | #Hg)
@@ -334,8 +371,9 @@ theorem replica.Replica.clientListener.wp_proof
         · iright; iexists cl; iframe Hg; ipureintro; rfl
       · exact absurd rfl Hen
     subst Hen
-    icases sp.ownReader_proto br _ cid true _ (R ++ [W8 0] ++ data) $$ Hrd with
-      ⟨Hrd, (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)⟩
+    ihave Hpx := Hpp'
+    try iunfold protoPrefix at Hpx
+    icases Hpx with (%Hnil | ⟨%ext2, %Hext2, #HP2⟩)
     · simp at Hnil
     have hpre : (sp.RdKind.client cl).head ++ sp.framesOf done' ++ W8 0 :: data <+: ext2 := by
       rw [hR] at Hext2; simpa [sp.RdKind.head, List.append_assoc] using Hext2
@@ -413,6 +451,8 @@ theorem replica.Replica.clientListener.wp_proof
     simp only [Bool.false_eq_true, ↓reduceIte, List.append_nil]
     rw [show R ++ [W8 0] ++ data = R ++ W8 0 :: data by simp]
     iframe
+    isplitr
+    · first | iexact Hpp' | (iExactEq Hpp'; simp) | (unfold protoPrefix; iexact Hpp') | (simp only [named]; unfold protoPrefix; iExactEq Hpp'; simp [BIBase.pure_false])
     isplitl []
     · simp only [named]
       iframe Hk1

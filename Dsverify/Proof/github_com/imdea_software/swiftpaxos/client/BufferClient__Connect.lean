@@ -448,6 +448,7 @@ theorem client.BufferClient.Connect.wp_proofG (facts : swift.handler.ClientPkgFa
     ihave #Hbufio : (isPkgInit (PROP := IProp netDistGF) pkg_id.bufio) $$ []
     · solve_pkg_init
     ihave #Hrdok := bufio.readerOk_conn _ cid0 false (sp.outQ γ γc γm) $$ [$Hnet $Hci]
+    ihave Hrecv := recvTok_L _ _ _ _ $$ Hrecv
     wp_apply bufio.wp_NewReader _ _ [] $$ [$Hbufio $Hrdok $Hrecv] as %br Hrd
     have hxr : 0 ≤ sint.Z x ∧ sint.Z x < sint.Z rsl.len := by
       constructor; word

@@ -268,6 +268,7 @@ theorem replica.Replica.ConnectToPeers.wp_proof
           cid false $$ []
         · unfold net.rpc.connIface; iexists c; iframe Hown; ipureintro; rfl
         ihave #Hrdok := bufio.readerOk_conn _ cid false (sp.outQ γ γc γm) $$ [$Hpkg3 $Hci]
+        ihave Hrecv := recvTok_L _ _ _ _ $$ Hrecv
         wp_apply bufio.wp_NewReader _ _ [] $$ [$Hpkg2 $Hrdok $Hrecv] as %br Hrd
         try wp_auto
         repeat rw [ite_eq_left_of_eq_true _ _ (eq_true ⟨hiv0, by omega⟩)]
