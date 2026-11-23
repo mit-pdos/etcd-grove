@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Port dsverify-lab files (examples/epaxos/proof/<path>, e.g. Epaxos/Model/Msg.lean) into
 Dsverify/Proof/github_com/imdea_software/swiftpaxos_epaxos/ by the mechanical renames
-(notes/dsv-epaxos.md, "Proof port: progress"). Usage: etc/dsv-epaxos/port.py LABPATH...
+(notes/dsv-epaxos.md, "Proof port: progress"). Usage: etc/dsv-epaxos/port.py [--bufio] LABPATH...
+(--bufio: also the bufio call-site rewrites of the marshal layer, `bufio_conv`.)
 (LAB: the lab's proof directory, read only; DSVLAB_EPAXOS overrides it.) Hand edits after the port
 are listed in the notes."""
 import os, re, sys
@@ -47,9 +48,32 @@ def conv(t):
     t = re.sub(r'(?m)^(theorem \S+\.spec_holds : \S+\.spec) :=', r'\1 (GF := GF) :=', t)
     return t
 
-for p in sys.argv[1:]:
+def bufio_conv(t):
+    # the lab harness's bufio streams -> dsv-bufio's, bundled (Interface/Marshal.lean: BufRd, BufWr)
+    t = re.sub(r'\(rd : GoInterface\)\s*\(I : List w8 → IProp GF\)', '(rd : BufRd GF)', t)
+    t = re.sub(r'\(wr : GoInterface\)\s*\(J Q : List w8 → IProp GF\)', '(wr : BufWr GF)', t)
+    t = t.replace('bufio.ownReader br rd I', 'rdOwn br rd').replace('bufio.ownWriter bw wr J Q', 'wrOwn bw wr')
+    t = re.sub(r'bufio\.readerOk rd I ∗\s*', '', t)
+    t = re.sub(r'bufio\.writerOk wr J Q ∗\s*', '', t)
+    t = re.sub(r'\bnextIs I ', 'nextIs rd ', t)
+    t = re.sub(r'\brd I\b', 'rd', t)
+    t = re.sub(r'\bwr J Q\b', 'wr', t)
+    t = t.replace('#Hrd, ', '').replace('$Hrd ', '').replace('#Hwr, ', '').replace('$Hwr ', '')
+    t = t.replace(', #Herr⟩', '⟩')
+    t = re.sub(r'(?m)^\s*ihave #He := errOrNil_errAny .*\n', '', t)
+    t = re.sub(r'(?m)^(\s*)iframe He\n', '', t)
+    t = re.sub(r'net\.rpc\.errAny err ∗\s*', '', t)
+    t = re.sub(r'(?<![.\w])Q \(sent ', 'wr.Q (sent ', t)
+    t = t.replace('io.ExtraAssumptions', 'io.Assumptions')
+    t = t.replace('bufio.io_init_of_bufio', 'EtcdGrove.bufio.io_init_of_bufio')
+    return t
+
+BUFIO = '--bufio' in sys.argv
+for p in [a for a in sys.argv[1:] if a != '--bufio']:
     src = os.path.join(LAB, p)
     out = dstpath(p)
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    open(out, 'w').write(conv(open(src).read()))
+    s = conv(open(src).read())
+    if BUFIO: s = bufio_conv(s)
+    open(out, 'w').write(s)
     print(out[len(DST) + 1:])
