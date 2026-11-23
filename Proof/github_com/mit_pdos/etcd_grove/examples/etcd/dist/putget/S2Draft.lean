@@ -148,6 +148,12 @@ structure S2Draft (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInt
         ⌜err ≠ GoInterface.nil⌝ ∨
         (⌜err = GoInterface.nil⌝ ∗ ∃ ν : EnvView, envAt γE ν ∗ ⌜viewRd ν = ρ.rd⌝) }}
 
+/-- **S2's names hold** (what S2 proves, at every global ghost state and net protocol names), at the
+functors `GF`: `putget_safe`'s skeleton takes it at `putgetGF`, `etcd_safe_nocrash`'s at `etcdDistGF`. -/
+def S2Holds (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+    [GoGlobalContext] : Prop :=
+  ∀ [G : GooseGlobalGS .hasLC GF] [π : NetProtoGS], Nonempty (S2Draft GF)
+
 attribute [instance] S2Draft.depSlotsCtx_persistent S2Draft.grpcAddrAt_persistent
   S2Draft.envAt_persistent S2Draft.envPubInv_persistent S2Draft.kvRegsPub_persistent
 

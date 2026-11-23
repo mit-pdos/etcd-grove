@@ -876,6 +876,25 @@ process, `HardStop`, no crash) keeps the heap, so nothing changes for it. The gl
 
 Ledger: `notes/specs-only/ledger.md`, 2026-11-23, "idutil's cluster claims hold every machine's generator facts".
 
+### D9: the interim statement and its skeleton (2026-11-23, coordinator-E; branch `dist-d9-skel/2026-11-23`)
+
+- **Two statements** in `Spec/.../examples/etcd/dist/TopLevelRobustness.lean`, both over the fixed bundle
+  `etcdNetExts` (an unprovable quantification over any extension list dropped: the bridge needs the bundle's
+  `GooseGpreS`, `etcdDistGF`): `etcd_robust.spec` (`etcd_safe`, crashes) and **`etcd_robust_nocrash.spec`**
+  (`etcd_safe_nocrash`, no machine crashing, Q7; the weaker variant takes the longer name). Both take
+  `putget_safe`'s `HEnv`/`HEnvTok` and the bound `2 ^ 28 - 1` (until perennial#690). **Not instantiable**
+  until the k-member boot replaces the opaque `TrustBoundary` and D2 the opaque programs.
+- **D8's machines in the deployment** (`TopLevelDefs.lean`): `Workload.nodeCount` (Go's `NodeCount`),
+  `Deployment.nodes` (each workload's client machines' addresses), `nodeList`, `nodeProg`
+  (`client.NodeMain`), `clientProg w eps nodes` (`client.MainReady`), `machines` (members, orchestrators,
+  client machines); `WellFormed` gains the node counts and covers the node addresses (`addrs`). The Go
+  mirror `examples/etcd/dist`'s `WellFormed` does not check nodes yet (the harness assigns them).
+- **The skeleton** (`Proof/.../examples/etcd/dist/TopLevelRobustness.lean`): `etcd_safe_nocrash_of_boot`
+  (from `EtcdBootNC`, by `robust_of_distBootIL`). Next: the reduction from S2's names (`S2Holds GF`, now
+  generic in `putget/S2Draft.lean`, at `etcdDistGF`), S5's (`S5Holds`, `dist/S5Draft.lean`: `httpAddrAt`,
+  `http_addr_set`; its fields to be agreed with proving session 2) and D7's `etcdClusterStart`, once the
+  interim S2 interface fixes the member's and client's shares.
+
 ### D2's `net` half: the net swap (plan, 2026-11-22; not started, decisions below)
 
 **Decided (the user, 2026-11-22, relayed by the coordinator).** (1) **Retire** the single-process `etcd_robust`/`etcd_safe`,

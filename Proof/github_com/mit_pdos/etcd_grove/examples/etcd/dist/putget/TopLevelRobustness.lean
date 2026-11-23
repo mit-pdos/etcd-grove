@@ -104,10 +104,6 @@ theorem putget_safe_of_boot (HS : PutgetBoot) : putget_safe.spec := by
 section s2
 variable [GoGlobalContext]
 
-/-- **S2's names hold** (what S2 proves, at every global ghost state and net protocol names). -/
-def S2Holds : Prop :=
-  ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS], Nonempty (S2Draft putgetGF)
-
 /-- **The deployment's start, against S2's names** (upamanyus's §1.3 steps 1-4): the slot map, `γE`
 allocated, the publication invariant, the client address set to `etcdSvc` (spending its `addrUnset`), the
 member's and the client's shares. The peer address's `addrUnset` is unused (nothing listens there). -/
@@ -168,7 +164,7 @@ def PutgetClientS2 : Prop :=
 proved (`putget_start`), the member's boot is proved (`member_boot`, at `Pub = putgetPub`), the bridge is
 proved (`putget_safe_of_boot`). The hypotheses: `S2Holds` (phase 7 S2, with `Serve`'s S2 form), the member's
 start resources with no source yet (`MemberBootHyps`), and the client's boot (`PutgetClientS2`). -/
-theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds)
+theorem putget_safe_of_s2 (HS2 : ∀ [GoGlobalContext], S2Holds putgetGF)
     (HM : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics]
       [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions], MemberBootHyps)
     (HC : PutgetClientS2) :
