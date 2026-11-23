@@ -40,7 +40,7 @@ trust-boundary axioms `raftpb.opaqueInitsOk` and `raftpb.initFuncsOk` said they 
 untranslated protobuf plumbing reads them (`file_raft_proto_init`, the messages' `ProtoReflect`
 through `file_raft_proto_msgTypes[i]`, the enums' `Descriptor`/`Type`), and a translated reader
 could not load them: nothing gives a points-to for them (`raftpb`'s package fact holds only
-`MessageType_name`, below).
+`MessageType_name`, `ConfChangeType_name` and `ConfChangeTransition_name`, below).
 
 **`(MessageType).String`** (Q9 of `notes/trace-validation-plan.md`, the user's decision of
 2026-11-09; until then names-only, with the trust-boundary axiom that it returns some string). The
@@ -200,6 +200,132 @@ noncomputable def MessageType.String.impl : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "__p" (App (App (Val (map.lookup2 go.int32 go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int32 go.string)))) (App (Val (GoInstruction (GlobalVarAddr model.MessageType_name))) (Val #())))) (App (Val (GoInstruction (GoLoad model.MessageType))) (Var "x")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- `ConfChangeType`'s type (the translation's `ConfChangeType.ty`). -/
+@[reducible] def model.ConfChangeType : go.GoType :=
+  go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeType" []
+
+/-- `ConfChangeType_name`'s name (the translation's `ConfChangeType_name`). -/
+@[reducible] def model.ConfChangeType_name : GoString := go!"go.etcd.io/raft/v3/raftpb.ConfChangeType_name"
+
+/-- `(ConfChangeType).String` (#25, 2026-11-23; until then names-only): the GooseLang goose produces for
+
+```go
+func (x ConfChangeType) String() string {
+	if s, ok := ConfChangeType_name[int32(x)]; ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+```
+
+(`MessageType.String.impl` with `MessageType` renamed). Go's method is protoc-gen-go's
+`protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))`, as `MessageType`'s; the
+file header's argument applies word for word: protoc-gen-go generates `ConfChangeType_name` and the
+descriptor's values from the one `enum ConfChangeType` of `raft.proto`, which declares no aliases.
+Evidence: `TestConfChangeEnumStringIsNameTable` (`examples/raft/tracecheck/msgtype_string_test.go`).
+Trusted model approved by the coordinator under the user's delegation (2026-11-23); review requested
+on etcd-grove#25. -/
+noncomputable def ConfChangeType.String.impl : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc model.ConfChangeType))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert model.ConfChangeType go.int))) (App (Val (GoInstruction (GoLoad model.ConfChangeType))) (Var "x")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.int32 go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int32 go.string)))) (App (Val (GoInstruction (GlobalVarAddr model.ConfChangeType_name))) (Val #())))) (App (Val (GoInstruction (GoLoad model.ConfChangeType))) (Var "x")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- `ConfChangeTransition`'s type (the translation's `ConfChangeTransition.ty`). -/
+@[reducible] def model.ConfChangeTransition : go.GoType :=
+  go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition" []
+
+/-- `ConfChangeTransition_name`'s name (the translation's `ConfChangeTransition_name`). -/
+@[reducible] def model.ConfChangeTransition_name : GoString := go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition_name"
+
+/-- `(ConfChangeTransition).String` (#25, 2026-11-23; until then names-only): the GooseLang goose produces for
+
+```go
+func (x ConfChangeTransition) String() string {
+	if s, ok := ConfChangeTransition_name[int32(x)]; ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+```
+
+(`MessageType.String.impl` with `MessageType` renamed). Go's method is protoc-gen-go's
+`protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))`, as `MessageType`'s; the
+file header's argument applies word for word: protoc-gen-go generates `ConfChangeTransition_name` and the
+descriptor's values from the one `enum ConfChangeTransition` of `raft.proto`, which declares no aliases.
+Evidence: `TestConfChangeEnumStringIsNameTable` (`examples/raft/tracecheck/msgtype_string_test.go`).
+Trusted model approved by the coordinator under the user's delegation (2026-11-23); review requested
+on etcd-grove#25. -/
+noncomputable def ConfChangeTransition.String.impl : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc model.ConfChangeTransition))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert model.ConfChangeTransition go.int))) (App (Val (GoInstruction (GoLoad model.ConfChangeTransition))) (Var "x")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.int32 go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int32 go.string)))) (App (Val (GoInstruction (GlobalVarAddr model.ConfChangeTransition_name))) (Val #())))) (App (Val (GoInstruction (GoLoad model.ConfChangeTransition))) (Var "x")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")

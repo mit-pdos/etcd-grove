@@ -1,0 +1,4 @@
+# Names only (the lab's goose.sh's config): configuration's `NewInstanceConfig` calls
+# `yaml.UnmarshalStrict`; the kit makes its configuration in code and never reaches it.
+translate = ["!*"]
+imports = ["!*"]
