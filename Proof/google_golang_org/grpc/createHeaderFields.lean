@@ -42,6 +42,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : google_golang_org.grpc.Assumptions]
+variable [ctx_sem : _root_.Perennial.context.Assumptions]
 
 set_option hygiene false in
 /-- One `headerFields = append(headerFields, headerField{...})`: the one-element literal, then the
@@ -520,6 +521,77 @@ theorem grpc.createHeaderFields.wp_proof
         simp [Hfs1, grpcHdr.encFields, Hif]
       simp [grpcHdr.regCompOf, Hif, hacc]
       iframe
+  wp_join iprop(∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField),
+      headerFields_ptr ↦ hsl ∗ hsl ↦* fs ∗
+      ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+      ⌜hfPairs fs = grpcHdr.callHdrFields ch acc ua⌝)
+    with [headerFields Hhf Hcap registeredCompressors]
+    as ⟨%hsl3, %fs3, headerFields, Hhf, Hcap, %Hfs3⟩
+  · iexists _, _
+    iframe
+    ipureintro
+    simp only [hfPairs] at Hfs2 ⊢
+    simp [Hfs2, grpcHdr.callHdrFields, grpcHdr.acceptFields, Hif]
+  · append_hf
+    isplitr
+    · itrivial
+    iexists _, _
+    iframe
+    ipureintro
+    simp only [hfPairs] at Hfs2 ⊢
+    simp [Hfs2, grpcHdr.callHdrFields, grpcHdr.acceptFields, Hif]
+  iunfold ctxDeadline at Hdl
+  wp_apply Hdl as %dl %dok
+  wp_join (Q := fun v => iprop(
+      (⌜v = executeVal⌝ ∗ ∃ (hsl : GoSlice) (fs : List google_golang_org.grpc.headerField)
+          (tfs : List (GoString × GoString)),
+        headerFields_ptr ↦ hsl ∗ hsl ↦* fs ∗
+        ownSliceCap google_golang_org.grpc.headerField hsl (DFrac.own 1) ∗
+        ⌜hfPairs fs = grpcHdr.callHdrFields ch acc ua ++ tfs ∧ grpcHdr.timeoutFieldsOk tfs⌝ ∗
+        «$res0_ptr» ↦ slice.nil ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
+      (⌜v = returnVal #()⌝ ∗ ∃ (e : GoInterface) (sl : GoSlice), ⌜e ≠ GoInterface.nil⌝ ∗
+        «$res0_ptr» ↦ sl ∗ «$res1_ptr» ↦ e)))
+    with [headerFields Hhf Hcap «$res0» «$res1» dl]
+  · ileft
+    isplitr
+    · itrivial
+    iexists _, _, []
+    iframe
+    ipureintro
+    exact ⟨by simp [Hfs3], Or.inl rfl⟩
+  · wp_apply wp_Until as %d -
+    wp_if_destruct
+    · -- the deadline has passed
+      ihave #Hctxp : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+      · iPkgInit
+      ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+      · iapply isPkgInit_access $$ Hctxp
+      icases Hci with ⟨-, -, -, -, -, -, #Hdv, -⟩
+      wp_auto
+      iclear Hdl Hcv Hcd
+      wp_method_call; wp_call
+      wp_auto
+      wp_apply (wp_Error (W32 4)) as %e4 ⟨%He4, -⟩
+      · ipureintro
+        simp only [google_golang_org.grpc.codes.OK]
+        exact fun h => absurd (go.intoVal_inj h) (by decide)
+      iright
+      isplitr
+      · itrivial
+      iexists e4, _
+      iframe
+      ipureintro; exact He4
+    · wp_apply wp_EncodeDuration
+      append_hf
+      ileft
+      isplitr
+      · itrivial
+      iexists _, _, [(go!"grpc-timeout", grpcHdr.encodeDurationOf d)]
+      iframe
+      ipureintro
+      refine ⟨?_, Or.inr ⟨d, by simpa using Hif, rfl⟩⟩
+      simp only [hfPairs] at Hfs3 ⊢
+      simp [Hfs3]
   sorry
 
 end proof
