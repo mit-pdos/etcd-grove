@@ -255,20 +255,42 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
    `replica.{Beacon,ReplyPropose,PrefixReader,Quorum,DelayChan,Stream,Defs}` and
    `Interface.ReplicaSpec` passes (2026-11-23; `etc/lean-check.py` may return after the first
    clean declaration, so build a file before calling it done).
-   **Next (in this order):** `ReplicaListener` (403 lines; it had 1 error after the port and
-   was removed from the tree: the reader side wants a `reader_conv` like `writer_conv`: its loop
-   invariant's `bufio.ownReader rd c (recvTok …) R` → `rdOwn rd (connRd tc cid side eof la ra ed
-   (peerPin γ id L j side)) R` (the connection's `t la ra ed eof` from `lisRes`'s `connIn`);
-   `bufio.readerOk_conn`/`Hrdok` dropped (the contract is inside `ownBufReader`);
-   `bufio.wp_ReadByte` → dsv-bufio's `Reader.ReadByte.spec` proof; `ownReader_proto` →
-   `EtcdGrove.bufio.ownBufReader_fact` with `rd.F_of` (gives `▷ protoPrefix`, strip with `inext`
-   or `imod` in a WP goal); `listener_nextIs` takes `tc eof la ra ed` after `cid`; the unmarshal
-   calls `hBU gbeacon_ptr gb rd c _ _` → `… br (connRd …)` with manual framing; `hRB`'s
-   `ReplyBeacon.specI` now has `hNN`), then `ClientListener` (with `prRd`, `prefixReader_readerOk`
-   and dsv-bufio's `NewReader`; `net.ownTCPConn`/`TCPConn.RemoteAddr.wp_String` → `Net/`'s
-   `connAt`/`Conn.RemoteAddr.spec`), `Dial`, `ConnectGhost`, `Connect`, `ServeConn` (accept/dial
-   by `Proto.lean`'s `accept_au`/`dial_au`, `Listen.spec` via `listen_au` from `clientInvs`'
-   `addrProto`), `WaitPeers`, `WaitClients`, `ClosestPeers`, `New`, `Link` (lab ~3.4k lines).
+   **2026-11-23 (later, resumed agent): `BufWriterNotNull` discharged** (merged `origin/dsv-bufio-laws`
+   `f5de3d32b8`: `bufio.ownBufWriter_not_null`; `bufWriterNotNull` is now a theorem in
+   `Interface/ConnBuf.lean`, the premise is gone from SendMsg/Beacon and from `port.py`'s `writer_conv`).
+   **Done since (each `lake build` passes, no `sorry`; hand-maintained, listed in `port.py`'s docstring):**
+   - `replica/ReplicaListener`: `Reader.ReadByte.wp_proof`; `connRd_fact`/`connRd_fact'` (bufio's
+     `ownBufReader_fact` at `connRd`, for the reader's unfolded form, as `ReadByte`'s post returns it, and
+     for `rdOwn`); `listener_shape`, `listener_msgSent_later` (`pin_stream`/`listener_msgSent` under the
+     stream fact's later, stripped by `imod`: pure, resp. `msgSent` timeless); unmarshal calls framed by
+     `simp only [rdOwn, connRd]; iframe`. The ewma update is float64: this Perennial's float ops are
+     relational (`wp_float64_mul`/`add`/`div`, `Golang/Theory/Float.lean`), which `wp_auto` does not do.
+   - `replica/ClientListener`: `bufio.NewReader.wp_proofOk` over `prefixReader_readerOk` (with
+     `net.Conn.Read.wp_proof`), `NewWriter.wp_proof` over `net.conn_streamWriterOk`; `proto_client`,
+     `prRd_fact`, `rd_client`/`rd_clientU` (the two forms again), `client_nextIs` over `prRd`;
+     `wp_connClose` (`net.Conn.Close.wp_proof` with `close_au`, outcome dropped; `connIs` from
+     `sendTok_connIs`); `ownBufWriter_excl` (dsv-bufio-laws) for the writer registration.
+     **`clientListener.spec` now takes `connIn conn cid true t la ra ed eof`** (binders `t la ra ed eof`):
+     `clientSlotX` needs the connection's globals. **New hypothesis `TCPAddrStringHyp`** (in the file): no
+     spec of `net`'s `(*TCPAddr).String` (the lab's `net.TCPConn.RemoteAddr.wp_String`; used for
+     `strings.Split(conn.RemoteAddr().String(), ":")[0]`); a premise of `clientListener.spec_holds`.
+   - `replica/Pkg` (`replica_net_errs`: `io.EOF`'s, `ErrDeadlineExceeded`'s values from `pkgInit_replica`).
+   - `replica/WaitClients`: `Listener.Accept.spec_addrOk Listener.Accept.wp_proof` with `accept_au`
+     (paxos's pattern). **`accEnd` now carries `∃ t la ra ed eof, connIn …`** (`replica/Specs.lean`).
+   - `replica/ClosestPeers`: one float division step added.
+   - `replica/ServeConn`: `io.ReadFull(conn, …)` by **`replica/IoReadFull.lean`, a local copy of Perennial
+     branch `readatleast-prefix`'s fixed ReadAtLeast/ReadFull specs and proofs** (Perennial gap, review C1,
+     recorded in `notes/perennial-changes.md`); each read's `recvTokL` turned into `recvTok` by a later
+     credit (`wp_apply (lc := 1)`, `lc_fupd_elim_later`); NewReader/NewWriter on the conn as above.
+   These sections need `[field_sem : net.FieldAssumptions]` (as paxos's): a section variable, so a
+   premise of the statement, like paxos's.
+   **Next (in this order):** `New` (ported, errors: `fwFresh`/instance binders), `Dial` (ported, not checked:
+   dial by `Net/`'s `Dial.spec` and `dial_au`), `WaitPeers`, `ConnectGhost`, `Connect` (`Listen.spec_addrOk`
+   via `listen_au` from `clientInvs`' `addrProto`), `Link`. The untracked `replica/{New,Dial,ConnectGhost}.lean`
+   are raw `port.py` output. Then (2) `Interface/{RpcPure,Rpc,MasterSpec,Servers}` over models-rpc-server
+   (decode guards: `callfix.txt`/`srvfix.txt` in the coordinator's scratchpad) and `RpcHttpHyp`; (3) the
+   epaxos code proofs (`Epaxos/Proof/epaxos`, 71 files, 24k lines) and the codec; (4) the model proof,
+   mains, `epaxos_remote_robust`, TCB baseline.
    - **port.py** has three layers: `conv` (renames), `generic_conv` (every port: section headers,
      `(GF := GF)` on spec statements, spec hypotheses `(hP : X.spec)` and `have h := thm γ …`,
      `Dsv.` names, unseal equations, `clientN` → `epEop` masks, `[net.model.Assumptions]` →
@@ -296,7 +318,8 @@ every program (`go list -deps ./cmd/server2`, and the 17 `PkgTable`s) links all 
 (`epaxos`' `errVarintOverflow`, `deferMap`, `LatencyConf`: package variables, no hooks) are of
 linked packages. No vacuous premise of this kind.
 
-- `BufWriterNotNull` (`Interface/ConnBuf.lean`): see 3h (a missing bufio law).
+- `BufWriterNotNull`: discharged (3h).
+- `TCPAddrStringHyp` (`replica/ClientListener.lean`): `(*net.TCPAddr).String()` returns (no spec in `Net/`).
 
 Stated in Lean (no axiom, no `sorry`; each a `Prop` class taken as an instance by every theorem
 that needs it):
