@@ -3952,6 +3952,16 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
   WAL uses its own `Spec/io/ReadFull.lean`.
 
+## 2026-11-23: `io.ReadFull` directly over a connection, local workaround (dsv-rabia)
+
+- **Problem.** The rabia kit's `sendConf`/`awaitConf` call `io.ReadFull(conn, buf)` on a `net.Conn`
+  (no `bufio`). Perennial's `io.ReadFull.spec` asks the reader's condition `Pre` at every
+  `ys.length ≤ len(buf)`, the full buffer included (`m = 0`), which a connection's contract
+  (`net.conn_readerOk`, `0 < m`) does not give: the entry above (`readatleast-prefix`).
+- **Workaround (local).** `Dsverify/Proof/rabia/examples/rabianet/ConnReadFull.lean`: a copy of
+  Perennial's `ReadAtLeast`/`ReadFull` proof with the premise asked only below the buffer's length,
+  as the `readatleast-prefix` branch states it. To delete when that branch lands (then use Perennial's).
+
 ## 2026-11-23: `make([]byte, size)` at sizes Go refuses (dsv-bufio, #24 review W6; a question)
 
 - **Question.** Real Go panics in `make` for a size too large to allocate (`bufio.NewWriterSize` and
