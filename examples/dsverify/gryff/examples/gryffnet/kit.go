@@ -253,24 +253,25 @@ func Model() porcupine.Model {
 	}
 }
 
-// Codec is the register's codec: an input as 17 bytes (Op's low byte, A, B), an output as 9 (1 if
-// unknown, else 0; V), each int64 8 bytes little-endian of its two's complement.
+// Codec is the register's codec: an input as 24 bytes (Op, A, B), an output as 9 (1 if unknown,
+// else 0; V), each 64-bit field 8 bytes little-endian (of its two's complement). Every input has
+// its own encoding (remote's Check needs DecIn to give back the input EncIn encoded).
 func Codec() remote.Codec {
 	return remote.Codec{
 		EncIn: func(in any) []byte {
 			x := in.(In)
-			b := make([]byte, 17)
-			b[0] = byte(x.Op)
-			binary.LittleEndian.PutUint64(b[1:9], uint64(x.A))
-			binary.LittleEndian.PutUint64(b[9:17], uint64(x.B))
+			b := make([]byte, 24)
+			binary.LittleEndian.PutUint64(b[0:8], x.Op)
+			binary.LittleEndian.PutUint64(b[8:16], uint64(x.A))
+			binary.LittleEndian.PutUint64(b[16:24], uint64(x.B))
 			return b
 		},
 		DecIn: func(b []byte) (any, bool) {
-			if len(b) != 17 || b[0] > 2 {
+			if len(b) != 24 {
 				return nil, false
 			}
-			return In{Op: uint64(b[0]), A: int64(binary.LittleEndian.Uint64(b[1:9])),
-				B: int64(binary.LittleEndian.Uint64(b[9:17]))}, true
+			return In{Op: binary.LittleEndian.Uint64(b[0:8]), A: int64(binary.LittleEndian.Uint64(b[8:16])),
+				B: int64(binary.LittleEndian.Uint64(b[16:24]))}, true
 		},
 		EncOut: func(out any) []byte {
 			o := out.(Out)
@@ -357,18 +358,22 @@ type client struct {
 
 // Sys is client machine c's view of the deployment: the server machines' addresses, client c's
 // Gryff client (used by its operations only, one at a time: remote.Serve serves one request at a
-// time), and whether its first operation has waited for its start.
+// time), and whether its first operation has waited for its start. mu guards the rest: remote's
+// ServeClient takes the client's state only through a resource newClient can give any number of
+// times (a lock), and serves one request at a time, so the lock is never contended.
 type Sys struct {
+	mu      *sync.Mutex
 	c       uint64
 	addrs   []string
 	cl      *client
 	started bool
+	ops     uint64
 }
 
 // newSys is client c's side of the deployment at addrs (ServerAddrs, or kit_test.go's), with no
 // connection yet.
 func newSys(addrs []string, c uint64) *Sys {
-	return &Sys{c: c, addrs: addrs, cl: &client{}, started: false}
+	return &Sys{mu: new(sync.Mutex), c: c, addrs: addrs, cl: &client{}, started: false}
 }
 
 // noDep is the dependency of an operation of a non-sequential client (Gryff's emptyDep: key -1,
@@ -424,7 +429,21 @@ func unknown() any {
 // operation first waits for the client's start (Start).
 func Op(s any, in any) any {
 	sys := s.(*Sys)
-	x := in.(In)
+	sys.mu.Lock()
+	out := op(sys, in.(In))
+	sys.mu.Unlock()
+	return out
+}
+
+// op is Op under client c's lock. Client c answers at most K operations (the orchestrator's
+// share of each client: remote.Check calls each client K times); any later one is unknown, so
+// that no client sends Gryff more than K requests (the replicas' instance space is bounded by
+// the requests of the run, decision D14 of the lab's proof).
+func op(sys *Sys, x In) any {
+	if sys.ops >= K {
+		return unknown()
+	}
+	sys.ops++
 	if !sys.started {
 		sys.started = true
 		time.Sleep(time.Duration(Start(sys.c)) * time.Millisecond)

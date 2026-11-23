@@ -455,10 +455,12 @@ variable [package_sem' : gryff.examples.gryffnet.Assumptions]
 noncomputable instance Sys_typed_pointsto :
     TypedPointsto (GF := GF) gryff.examples.gryffnet.Sys where
   typedPointstoDef l v dq := iprop(
+    "mu" ∷ typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"mu" l) v.mu' dq ∗
     "c" ∷ typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"c" l) v.c' dq ∗
     "addrs" ∷ typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"addrs" l) v.addrs' dq ∗
     "cl" ∷ typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"cl" l) v.cl' dq ∗
     "started" ∷ typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"started" l) v.started' dq ∗
+    "ops" ∷ typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"ops" l) v.ops' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -467,6 +469,22 @@ noncomputable instance Sys_typed_pointsto :
 noncomputable instance Sys_into_val_typed :
     IntoValTypedUnderlying (GF := GF) gryff.examples.gryffnet.Sys gryff.examples.gryffnet.Sys.underlying := by
   solve_into_val_typed_struct
+
+noncomputable instance Sys_access_load_mu (l : Loc) (v : gryff.examples.gryffnet.Sys) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"mu" l) v.mu' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Sys_access_store_mu (l : Loc) (v : gryff.examples.gryffnet.Sys) (mu' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"mu" l) mu' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : gryff.examples.gryffnet.Sys) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 noncomputable instance Sys_access_load_c (l : Loc) (v : gryff.examples.gryffnet.Sys) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
@@ -529,6 +547,22 @@ noncomputable instance Sys_access_store_started (l : Loc) (v : gryff.examples.gr
       (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"started" l) v.started' (DFrac.own 1))
       (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"started" l) started' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with started' := started' } : gryff.examples.gryffnet.Sys) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Sys_access_load_ops (l : Loc) (v : gryff.examples.gryffnet.Sys) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"ops" l) v.ops' dq)
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"ops" l) v.ops' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Sys_access_store_ops (l : Loc) (v : gryff.examples.gryffnet.Sys) (ops' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"ops" l) v.ops' (DFrac.own 1))
+      (typedPointsto (structFieldRef gryff.examples.gryffnet.Sys go!"ops" l) ops' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ops' := ops' } : gryff.examples.gryffnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
