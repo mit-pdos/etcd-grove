@@ -35,6 +35,25 @@ axiom Perennial.google_golang_org.grpc.health.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
+axiom Perennial.hash.crc32.crcBit_xor._native.bv_decide.ax_1_5
+axiom Perennial.hash.crc32.crcBits8_lowzero._native.bv_decide.ax_1_9
+axiom Perennial.hash.crc32.crcBits8_shl8._native.bv_decide.ax_1_10
+axiom Perennial.hash.crc32.crcBits8_shl8._native.bv_decide.ax_1_5
+axiom Perennial.hash.crc32.crcBits8_split._native.bv_decide.ax_1_5
+axiom Perennial.hash.crc32.crcBits_bytes._native.bv_decide.ax_1_12
+axiom Perennial.hash.crc32.crcBits_bytes._native.bv_decide.ax_1_18
+axiom Perennial.hash.crc32.crcBits_bytes._native.bv_decide.ax_1_23
+axiom Perennial.hash.crc32.crcBits_bytes._native.bv_decide.ax_1_28
+axiom Perennial.hash.crc32.crcBits_bytes._native.bv_decide.ax_1_5
+axiom Perennial.hash.crc32.crcStep4._native.bv_decide.ax_1_11
+axiom Perennial.hash.crc32.crcStep4._native.bv_decide.ax_1_16
+axiom Perennial.hash.crc32.crcStep4._native.bv_decide.ax_1_21
+axiom Perennial.hash.crc32.crcStep4._native.bv_decide.ax_1_26
+axiom Perennial.hash.crc32.crcStep4._native.bv_decide.ax_1_31
+axiom Perennial.hash.crc32.crcStep4._native.bv_decide.ax_1_36
+axiom Perennial.hash.crc32.crcStep4._native.bv_decide.ax_1_6
+axiom Perennial.hash.crc32.crcUpdByte_tableOf._native.bv_decide.ax_1_12
+axiom Perennial.hash.crc32.crcUpdByte_tableOf._native.bv_decide.ax_1_7
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
@@ -47,7 +66,6 @@ axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
 axiom addrClaim
 axiom addrUnclaimed
-axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom auth.NewAuthStore.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
@@ -73,7 +91,6 @@ axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
 axiom errors.AsNoMatch.wp_proof
-axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
@@ -160,7 +177,6 @@ axiom membership.membersOf_decode
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
-axiom msgEncC_ok
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
@@ -245,7 +261,6 @@ axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Limiter.Wait.wp_proof
-axiom recEncC_ok
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -288,6 +303,5 @@ axiom verifyEnvOff
 axiom withVersion.wp_proof
 axiom zap.Logger.Fatal.wp_proof
 axiom zap.Logger.Panic.wp_proof
-axiom zap.Logger.check.wp_proof
 axiom zap.Stack.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
