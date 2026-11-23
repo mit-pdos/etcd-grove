@@ -291,8 +291,16 @@ all 20 operations are answered; about 21 s), `TestModel`, `TestCodec`, and rpcge
      Listen.wp_proof` with `listen_au` from the address's `addrProto`, `addrTok_ok`/`addrProto_tok` for
      the valid address; **`waitForPeerConnections.specX` no longer takes `addrTok`**; the loop keeps
      `netLis`; Accept as WaitClients), `replica/ConnectGhost` (port output, checks).
-   **Next (in this order):** `replica/Connect` (565 lines; untracked raw `port.py` output in the tree, 2
-   errors at first): `lisRes_not_null` → `bufio.ownBufReader_not_null` (dsv-bufio-laws) on `lisRes`'s
+   **Next (in this order):** `replica/Connect` — **work in progress at
+   `etc/dsv-epaxos/wip/Connect.lean.wip`** (move it back to `replica/Connect.lean`): already rewritten
+   there: `lisRes_not_null` (bufio's `ownBufReader_not_null`), no `addrTok`/`Htok`, the dial by
+   `net.Dial.wp_proof` + `dial_au`, the handshake by `net.Conn.Write.wp_proof` + `write_acc`/`writeP_init`
+   (`resErr_netErr` for `err = nil → res = none`), NewReader/NewWriter on the dialer's end, `connIn`
+   built from `isConn` and `replica_net_errs`. Remaining errors (6, at the last check): l.57 (an
+   `initOrder`/`neg` goal), l.92 (`iframe` of `ghostMapAuth (γ.rep.cwriters id)`: `fwStartDef`'s
+   shape changed in the port, check `Interface/Replica.lean`), l.148 (an `omega` on `p.lat.len`), l.167
+   (`slotConn`'s icases needs `%t', %la', %ra', %ed', %eof'` after `%ws`, as Dial's `pend_null_of_peer`),
+   l.182 (`rw [hkz]`: the goal already reduced; `try`). The original notes on it: `lisRes_not_null` → `bufio.ownBufReader_not_null` (dsv-bufio-laws) on `lisRes`'s
    `rdOwn`; `hWP` loses its `addrTok` (`Htok` in `fwStart`: check what `fwStartDef` still carries);
    the dial by `Net/`'s `Dial.spec` (or `DialTimeout`) with `dial_au` (`GooseLang/Ext/Net/Proto.lean`
    l.1190; paxos's `NetProof.lean` dials the same way); the handshake `conn.Write(b[:4])` by
