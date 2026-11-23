@@ -213,6 +213,15 @@ These are pure definitions, not trust. They are what the final stage substitutes
   against `models/json/jsongen.py`'s codec and a Go test. `bootGo.ctxs` maps `memberJSON` over the
   members in `ps` order. `bootGo.bootLog` is `BootLog ps ctxs`'s log.
 
+Checked 2026-11-23 against Go 1.27.3: `sha1([])`, `memberID(["http://127.0.0.1:2380"], "tok")`,
+`genID` of two ids and `memberJSON` of a member named `a<b"` + U+2028 agree byte for byte with
+`crypto/sha1`/`encoding/json` (a throwaway Go program and `#eval`; stage 4 turns it into a Go test).
+A peer URL's string is `urlStr u = "http://" ++ u.Host'`, which is `URL.String()` only for a plain URL
+(`http.urlRootPlain`, the only case this repository specifies), so `bootstrap.spec` takes the pure
+precondition `bootGo.bootURLsPlain U`. `bootstrapContract_holds` then holds for `U` meeting it, and the
+final stage checks that each example's `Uok` implies it (as its `peerURLsDir` already does for
+`cfg.PeerURLs`). This narrows no top-level statement: `bootPremise` is already `∀ U, Uok U → …`.
+
 ### 7.3 Stage 3: `bootstrap`'s body (first start), over its callees' specs
 
 - Translate `bootstrap` with its body (`etcdserver.toml`), plus `config`'s path methods `MemberDir`,
@@ -276,7 +285,18 @@ These are pure definitions, not trust. They are what the final stage substitutes
   (`reflect`, `unsafe`). Goose has no `reflect`, so this is a case where the semantics genuinely
   can't support the code. The options to bring: (a) a trusted triple `json.Marshal(m) = memberJSON
   mm`; (b) replace the call by a generated codec (`models/json`). (b) changes the Go code, so it is
-  not available. Expected: (a), +1 axiom, brought first.
+  not available. Expected: (a), brought first.
+  Facts (2026-11-23): the call is `bootstrap.go:553`, `json.Marshal((*cl).Member(id))`. `Member`,
+  `RaftAttributes`, `Attributes` and `types.ID` define no `MarshalJSON`/`MarshalText`
+  (`git grep` at `edc800c6f`), so `encoding/json` goes through `reflect` (`encode.go`'s
+  `typeEncoder`, `reflect.Value.Field`). Perennial translates `reflect` names-only
+  (`Perennial/Code/reflect.toml`), because its values read runtime type descriptors through
+  `unsafe`, which the semantics can't represent. No etcd code writes a member's JSON by hand. The
+  proof can't avoid the bytes: `Hctx`'s `peersCtx pv ctxs` names them, and `BootCore`'s
+  `ccBootOk`/`bootURLsOk`/`bootDataOk` are facts about them. The existing axiom
+  `encoding.json.MarshalMember.spec` already covers the call, returning some bytes `b`. The
+  proposal: **strengthen its post to `b = bootGo.memberJSON ⟨m.ID', ps, m.IsLearner', m.Name', cs⟩`
+  for `ps`, `cs` and the name valid UTF-8.** That changes an existing axiom, not +1.
 - **S2, `ccMemberOf`** (`Hmem`, `SrvRaftLog.lean:460`) is `opaque`. The proof needs
   `ccMemberOf (memberJSON m) = m`, which means defining it (`json.Unmarshal`'s model). That is a
   change to a trusted definition, brought first.
