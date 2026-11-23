@@ -420,7 +420,38 @@ reference to a skipped variable) and specs of `credentials`, `grpcutil`, `string
   attempt's spec therefore needs the credentials' keys not to be pseudo-headers (etcd's token
   credentials return `token` only): a premise from the credentials' contract (`connCredsOk`).
 
-Next: the four callees left above, then `createHeaderFields`, `newClientTransportStream`, the stream's
+**Built in the session's fifth part** (`phase7-s2-core`, 2026-11-23; no axiom added, no `sorry`):
+- **Proved** (Lean's three axioms; not linked): `imetadata.hasNotPrintable` (`decide (¬ ∀ b ∈ msg,
+  printable b)`), `imetadata.ValidateKey` (`nil` iff `keyOk`, otherwise an error `fmtErrorOk`: the
+  repository's `fmt.Errorf.spec`, a callee), `imetadata.ValidatePair` (`nil` iff `pairOk`, the values'
+  slice back; over `ValidateKey`, `hasNotPrintable` and Perennial's `strings.HasSuffix.spec`),
+  `grpcutil.div` (`durDiv`: `sdiv`, plus one on a positive `srem`), `grpcutil.EncodeDuration`
+  (`encodeDurationOf`: the units in Go's order, over Perennial's `strconv.FormatInt.spec`), the model's
+  `encodeBinHeader` (`b64Raw` of the bytes) and `encodeMetadataHeader` (`encMdHdr k v`). Pure laws in
+  `HeaderFields`: `keyByteOk_iff`, `printable_iff`. No Perennial gap met (Perennial's `fmt.Errorf`,
+  `strconv.FormatInt`, `strings.HasSuffix` specs sufficed).
+- **base64's fact gains `rawStdEncInit`** (`RawStdEncoding`'s `EncodeToString` returns `rawStdEnc`, the
+  standard alphabet without padding): `base64Init` is now four parts; `rawStdEncInit_intro`
+  (`InitFacts`), proved in the generated `InitLinked` from `StdEncoding.WithPadding(NoPadding)`
+  (`etc/gen-init.py`'s `SPECIAL['encoding.base64']`); `rawStdEncInit_access`. A change to base64's fact:
+  its ~7700 importers rebuild (only the targets this work needs were built here; CI builds the rest).
+  `InvGrpcWire`'s `b64Raw` is now an abbreviation of base64's `rawStdEnc` (its copy of the encoder,
+  `b64Char`/`b64Alphabet`, removed), so the protocol and the code use one encoder.
+- **`credentials.NewContextWithRequestInfo.spec`** (`Spec/google_golang_org/grpc/credentials/`), stated, no
+  proof file: the new context's `Value(requestInfoKey{})` is `ri`, every other key the parent's (in
+  `context.WithValue.spec`'s form), and a description of the parent describes the child with the key
+  added (`credentials.withRequestInfo`). To be taken as a callee-spec hypothesis by
+  `createHeaderFields`' proof until the user decides on `context.WithValue`
+  (`Proof/context/WithValue.lean` untouched).
+
+Next: `createHeaderFields`. Its spec is not yet written; what it needs: the head's fields as a function
+of the call header, the connection's user agent, the deadline (`encodeDurationOf (time.Until dl)`), the
+credentials' metadata (a premise from `connCredsOk`/`perRPCCredsOk`: `pairOk` keys, none `:`-prefixed,
+above) and the outgoing metadata (`metadata.Outgoing`'s raw form, `encMdHdr`, reserved keys skipped:
+`grpcHdr.reservedHdr`), stated so that `grpcFieldsMd`/`headOk` follow; the map ranges' order is
+arbitrary, so the post is over a permutation within each map's block. Its error arms: the credentials'
+errors (`status.FromError`, `IsRestrictedControlPlaneCode`, `status.Errorf`), `ValidatePair`'s
+(`status.Error(Internal, err.Error())`), the deadline's. Then `newClientTransportStream`, the stream's
 `Write`/`reader`; `grpcInit` gains, once, what the client proof needs (`metadataFromOutgoingContextRaw`
 holding `fromOutgoingContextRaw`, `errStreamDone` non-nil, `transportFailureCodes`' contents).
 
