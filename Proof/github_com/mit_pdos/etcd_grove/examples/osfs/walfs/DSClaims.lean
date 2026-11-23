@@ -1,24 +1,32 @@
 /-
-**Spike** (`notes/fs-interp-state-determined.md`, §5): `dirswap`'s crash facts (`SafeH`, `MonoH`,
-stated over whole histories and `TreeCrashed`) restated over the shared view's claims, to check that
-they need no reshaping.
+**`dirswap`'s crash facts and invariant over the shared view's claims**
+(`notes/fs-interp-state-determined.md`, §7.1).
 
-The region is the claim on `wal`/`wal.tmp` of the root `j` and, once `wal` can name a directory `J`,
-the claim on `J`'s `seg`. The facts quantify over every kept set `K` closed under the region's
+The region is the claim on `wal` of the root `j` and, once `wal` can name a directory `J`, the claim
+on `J`'s `seg`. The facts (`DInv`) quantify over every kept set `K` closed under the region's
 `Follows` (`RegionCut`), the set a crash's `RegionCrashed` hands out, and read each name through
-`NamesH.valAfter`. So no prefix argument (`regionCrashed_seq`) is needed here: a step that keeps the
+`NamesH.valAfter`. So no prefix argument (`regionCrashed_seq`) is needed: a step that keeps the
 rename keeps every entry its call followed, `seg`'s create among them.
 
-What changes against today: the facts live on the two claims, not on the whole history, so a step
-that writes neither `wal` nor the tracked `seg` (the removes of the old `wal.tmp`, `mkdir`, the
-create of the new `seg`) leaves them as they are (`dinv_log_other`); the rename is the one step
-that changes them (`dinv_rename`); a crash concludes `SafeT` of the tree left (`dinv_crash`); a
-new generation's fresh claims start them (`dinv_init`).
+The claim on `wal` is keyed `.only [wal]` (`wO`) until `Create` merges it with the claim on
+`wal.tmp` for the rename (`wN`, `wp_osRenameDirS` writes both names of one claim). The facts are
+stated over its restriction to `wal` (`NamesH.restrict … wO`), which the merge keeps. A crash
+concludes `SafeT` of the tree left (`dinv_crash`, through `regionCrashed_restrict`); a new
+generation's fresh claims start the facts (`dinv_init`); the rename onto the absent `wal` is the one
+step that changes them (`dinv_rename`); with `wal` absent the key may change (`dinv_rekey`).
+
+The invariant (`dsInv`) holds half of the claim on `wal` (and, once tracked, of `J`'s `seg`), a
+ghost variable recording the key, whether the claim is merged and both claims' histories, the facts,
+and the invariant's half of the key's file (`keyRes`). The program holds the other halves
+(`dsOwn`): every claim and every ghost value is the same on both sides, so opening the invariant
+needs no agreement lemma beyond `ghostVar_agree`.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwap
+public import GooseLang.Ext.Fs.TreeShared
 public import GooseLang.Ext.Fs.TreeSharedCoh
+public import GooseLang.Ext.Fs.CrashRegion
+public import Perennial.Ghost.GhostVar
 
 @[expose] public section
 
@@ -29,9 +37,57 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace osfs_walfs
+
+namespace DSBase
+
+open Fs
+
+/-- The data of a committed segment (`newData`). -/
+def dataC : List w8 := [W8 0xde, W8 0xad, W8 0xbe, W8 0xef, W8 0x01, W8 0x23, W8 0x45, W8 0x67]
+
+end DSBase
+
 namespace DS
 
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open Fs DSBase
+
+/-! ## The names -/
+
+def walB : GoString := go!"wal"
+def wtB : GoString := go!"wal.tmp"
+def segB : GoString := go!"seg"
+
+theorem walB_ok : NameOk walB := by decide
+theorem wtB_ok : NameOk wtB := by decide
+theorem segB_ok : NameOk segB := by decide
+theorem wt_ne_wal : wtB ≠ walB := by decide
+theorem seg_ne_wal : segB ≠ walB := by decide
+theorem seg_ne_wt : segB ≠ wtB := by decide
+
+/-! ## What every crash must be -/
+
+/-- **The tree a boot may find**, in the directory `j`: `wal` no file; if `wal` is a directory, its
+`seg` the file of the key `ko`. -/
+def SafeT (j : Ino) (ko : Option Ino) (m : Tree) : Prop :=
+  (∀ i, m.entry j walB ≠ some (.file i)) ∧
+  (∀ J, m.entry j walB = some (.dir J) → ∃ k, ko = some k ∧ m.entry J segB = some (.file k))
+
+theorem safeT_none {j : Ino} {ko : Option Ino} {m : Tree} (h : m.entry j walB = none) :
+    SafeT j ko m :=
+  ⟨fun i => by rw [h]; simp, fun J hJ => by rw [h] at hJ; cases hJ⟩
+
+/-- With the key's file named nowhere, the key `none` will do. -/
+theorem safeT_unnamed {j k : Ino} {m : Tree} (h : SafeT j (some k) m) (hn : ¬ Named m k) :
+    SafeT j none m := by
+  refine ⟨h.1, fun J hJ => ?_⟩
+  obtain ⟨k', hk', hs⟩ := h.2 J hJ
+  cases hk'
+  exact absurd ⟨J, segB, hs⟩ hn
+
+/-- What a crash may leave of the segment's file: no file, or the data at 0. -/
+def DataGood (fo : Option OsFile) : Prop :=
+  ∀ f, fo = some f → 8 ≤ f.size ∧ ∀ b < 8, f.contents[b]? = dataC[b]?
 
 /-! ## Kept sets of a region -/
 
@@ -69,18 +125,110 @@ theorem valAfter_init (m : Tree) (j : Ino) (N : NameSet) (K : Nat → Prop) (b :
   simp only [List.filter_nil, List.getLast?_nil]
   rw [restrictN_lookup N _ b hb, entsOf_lookup]
 
+/-! ## Restricting a claim's history -/
+
+/-- A claim's history restricted to some of its names reads them as it does. -/
+theorem valAfter_restrict (h : NamesH) (j : Ino) (M : NameSet) (K : Nat → Prop) (b : GoString)
+    (hb : M.Mem b) : (h.restrict j M).valAfter j K b = h.valAfter j K b := by
+  classical
+  unfold NamesH.valAfter NamesH.restrict
+  simp only [List.filter_map, Function.comp_def, List.filter_filter]
+  rw [List.filter_congr (q := fun xe => decide (K xe.1 ∧ xe.2.1.op.Writes j b))
+    (fun xe _ => by
+      by_cases hw : xe.2.1.op.Writes j b
+      · simp only [hw, and_true, decide_eq_decide]
+        have hex : ∃ b, M.Mem b ∧ xe.2.1.op.Writes j b := ⟨b, hb, hw⟩
+        simp only [decide_eq_true hex, Bool.and_true]
+      · simp [hw])]
+  rw [List.getLast?_map]
+  cases (h.ents.filter (fun xe => decide (K xe.1 ∧ xe.2.1.op.Writes j b))).getLast? with
+  | none => simp [restrictN_lookup _ _ _ hb]
+  | some xe => simp [restrictN_lookup _ _ _ hb]
+
+theorem restrict_cur (h : NamesH) (j : Ino) (M : NameSet) (b : GoString) (hb : M.Mem b) :
+    (h.restrict j M).cur !! b = h.cur !! b := restrictN_lookup _ _ _ hb
+
+theorem mem_restrict_ents {h : NamesH} {j : Ino} {M : NameSet} {x : Nat} {e : LogEntry} {E : Ents}
+    (hx : (x, e, E) ∈ (h.restrict j M).ents) : ∃ E', (x, e, E') ∈ h.ents := by
+  unfold NamesH.restrict at hx
+  simp only [List.mem_map, List.mem_filter] at hx
+  obtain ⟨⟨x', e', E'⟩, ⟨hm, -⟩, he⟩ := hx
+  simp only [Prod.mk.injEq] at he
+  obtain ⟨rfl, rfl, -⟩ := he
+  exact ⟨E', hm⟩
+
+/-- A step writing one of the names restricted to: the restriction logs it. -/
+theorem restrict_log_writes (h : NamesH) (j : Ino) (M : NameSet) (x : Nat) (e : LogEntry) (c : Ents)
+    (b : GoString) (hb : M.Mem b) (hw : e.op.Writes j b) :
+    (h.log x e c).restrict j M = (h.restrict j M).log x e (restrictN M c) := by
+  classical
+  unfold NamesH.restrict NamesH.log
+  simp only [List.filter_append, List.filter_cons, List.filter_nil, List.map_append]
+  rw [if_pos (by simpa using ⟨b, hb, hw⟩)]
+  rfl
+
+theorem restrict_restrict (h : NamesH) (j : Ino) (M : NameSet) :
+    ((h.restrict j M).restrict j M).cur = (h.restrict j M).cur := by
+  unfold NamesH.restrict
+  exact restrictN_restrictN M M h.cur (fun _ hb => hb)
+
+/-- **A crash of a region, with one claim restricted to some of its names**, is a crash of the
+region so restricted. -/
+theorem regionCrashed_restrict {c : Claim} {rest : List Claim} {n : Nat} {m' : Tree} (M : NameSet)
+    (hM : ∀ b, M.Mem b → c.2.1.Mem b) (h : RegionCrashed (c :: rest) n m') :
+    RegionCrashed ((c.1, M, c.2.2.restrict c.1 M) :: rest) n m' := by
+  obtain ⟨K, h1, h2, h3⟩ := h
+  -- each claim of the restricted region has its entries among one claim's of the region
+  have back : ∀ d ∈ ((c.1, M, c.2.2.restrict c.1 M) :: rest), ∃ d' ∈ (c :: rest),
+      ∀ x e E, (x, e, E) ∈ d.2.2.ents → ∃ E', (x, e, E') ∈ d'.2.2.ents := by
+    intro d hd
+    rcases List.mem_cons.1 hd with rfl | hd
+    · exact ⟨c, List.mem_cons_self .., fun x e E hx => mem_restrict_ents hx⟩
+    · exact ⟨d, List.mem_cons_of_mem _ hd, fun x e E hx => ⟨E, hx⟩⟩
+  refine ⟨K, fun d hd d' hd' x e E y e' E' hx hy hK hlt => ?_, fun d hd y e E hy hn => ?_,
+    fun d hd b hb => ?_⟩
+  · obtain ⟨d1, hd1, hb1⟩ := back d hd
+    obtain ⟨d2, hd2, hb2⟩ := back d' hd'
+    obtain ⟨E1, hx1⟩ := hb1 x e E hx
+    obtain ⟨E2, hy2⟩ := hb2 y e' E' hy
+    exact h1 d1 hd1 d2 hd2 x e E1 y e' E2 hx1 hy2 hK hlt
+  · obtain ⟨d1, hd1, hb1⟩ := back d hd
+    obtain ⟨E1, hy1⟩ := hb1 y e E hy
+    exact h2 d1 hd1 y e E1 hy1 hn
+  · rcases List.mem_cons.1 hd with rfl | hd
+    · show m'.entry c.1 b = (c.2.2.restrict c.1 M).valAfter c.1 K b
+      rw [valAfter_restrict _ _ _ _ _ hb]
+      exact h3 c (List.mem_cons_self ..) b (hM b hb)
+    · exact h3 d (List.mem_cons_of_mem _ hd) b hb
+
 /-! ## The region and its facts -/
 
+/-- The claim on `wal` alone, and merged with `wal.tmp`'s. -/
+def wO : NameSet := .only [walB]
 def wN : NameSet := .only [walB, wtB]
 def sN : NameSet := .only [segB]
 
+theorem wO_wal : wO.Mem walB := by simp [wO, NameSet.Mem]
 theorem wN_wal : wN.Mem walB := by simp [wN, NameSet.Mem]
+theorem wN_wt : wN.Mem wtB := by simp [wN, NameSet.Mem]
 theorem sN_seg : sN.Mem segB := by simp [sN, NameSet.Mem]
 
-/-- The region: `wal`/`wal.tmp` of `j`, and the tracked `seg`, if any. -/
+/-- The key of the claim on `wal`: alone, or merged (`mg`). -/
+def wKey : Bool → NameSet
+  | false => wO
+  | true => wN
+
+theorem wKey_wal (mg : Bool) : (wKey mg).Mem walB := by cases mg <;> simp [wKey, wO_wal, wN_wal]
+
+theorem wO_sub (mg : Bool) : ∀ b, wO.Mem b → (wKey mg).Mem b := by
+  intro b hb
+  simp only [wO, NameSet.Mem, List.mem_singleton] at hb
+  subst hb; exact wKey_wal mg
+
+/-- The region: `wal` of `j`, and the tracked `seg`, if any. -/
 def regionOf (j : Ino) (hw : NamesH) : Option (Ino × NamesH) → List Claim
-  | none => [(j, wN, hw)]
-  | some (J, hs) => [(j, wN, hw), (J, sN, hs)]
+  | none => [(j, wO, hw)]
+  | some (J, hs) => [(j, wO, hw), (J, sN, hs)]
 
 /-- **`SafeT` of every crash keeping `K`**, read through the claims. -/
 def DSafeK (j : Ino) (ko : Option Ino) (hw : NamesH) (hsO : Option (Ino × NamesH))
@@ -89,8 +237,8 @@ def DSafeK (j : Ino) (ko : Option Ino) (hw : NamesH) (hsO : Option (Ino × Names
   (∀ J, hw.valAfter j K walB = some (.dir J) →
     ∃ k hs, hsO = some (J, hs) ∧ ko = some k ∧ hs.valAfter J K segB = some (.file k))
 
-/-- **`MonoH` of every crash keeping `K`**: `wal`, once there, as now. (Its `seg` half is in
-`DSafeK`, which tracks `seg` exactly once `wal` can be a directory.) -/
+/-- **Every crash keeping `K` has `wal` as now, once there.** (Its `seg` half is in `DSafeK`, which
+tracks `seg` exactly once `wal` can be a directory.) -/
 def DMonoK (j : Ino) (hw : NamesH) (K : Nat → Prop) : Prop :=
   hw.valAfter j K walB ≠ none → hw.valAfter j K walB = hw.cur !! walB
 
@@ -104,7 +252,7 @@ theorem dinv_crash {j : Ino} {ko : Option Ino} {hw : NamesH} {hsO : Option (Ino 
     SafeT j ko m' := by
   obtain ⟨K, hK, hv⟩ := regionCut_of_crashed hc
   have hwal : m'.entry j walB = hw.valAfter j K walB :=
-    hv (j, wN, hw) (by cases hsO <;> simp [regionOf]) walB wN_wal
+    hv (j, wO, hw) (by cases hsO <;> simp [regionOf]) walB wO_wal
   obtain ⟨⟨h1, h2⟩, -⟩ := h K hK
   refine ⟨fun i => by rw [hwal]; exact h1 i, fun J hJ => ?_⟩
   rw [hwal] at hJ
@@ -113,60 +261,29 @@ theorem dinv_crash {j : Ino} {ko : Option Ino} {hw : NamesH} {hsO : Option (Ino 
   rw [hv (J, sN, hs) (by simp [regionOf]) segB sN_seg]
   exact hseg
 
+/-- The tracked `seg`'s claim of a fresh generation. -/
+def initSeg (m : Tree) (j : Ino) : Option (Ino × NamesH) :=
+  match m.entry j walB with
+  | some (.dir J) => some (J, NamesH.init m J sN)
+  | _ => none
+
 /-- A new generation's fresh claims, on a `SafeT` tree, start the facts. -/
 theorem dinv_init {j : Ino} {ko : Option Ino} {m : Tree} (h : SafeT j ko m) :
-    DInv j ko (NamesH.init m j wN)
-      (match m.entry j walB with
-       | some (.dir J) => some (J, NamesH.init m J sN)
-       | _ => none) := by
+    DInv j ko (NamesH.init m j wO) (initSeg m j) := by
   intro K _
-  have hw : (NamesH.init m j wN).valAfter j K walB = m.entry j walB := valAfter_init _ _ _ _ _ wN_wal
+  have hw : (NamesH.init m j wO).valAfter j K walB = m.entry j walB :=
+    valAfter_init _ _ _ _ _ wO_wal
   refine ⟨⟨fun i => by rw [hw]; exact h.1 i, fun J hJ => ?_⟩, fun _ => ?_⟩
   · rw [hw] at hJ
     obtain ⟨k, hk, hs⟩ := h.2 J hJ
-    refine ⟨k, _, by rw [hJ], hk, ?_⟩
+    refine ⟨k, _, by unfold initSeg; rw [hJ], hk, ?_⟩
     rw [valAfter_init _ _ _ _ _ sN_seg]; exact hs
-  · rw [hw]; unfold NamesH.init; rw [restrictN_lookup _ _ _ wN_wal, entsOf_lookup]
-
-/-- A kept set closed in a region whose first claim logged one more entry is closed in the region
-before it. -/
-theorem regionCut_log {j : Ino} {hw : NamesH} {hsO : Option (Ino × NamesH)} {x : Nat}
-    {e : LogEntry} {c : Ents} {K : Nat → Prop}
-    (hK : RegionCut (regionOf j (hw.log x e c) hsO) K) : RegionCut (regionOf j hw hsO) K := by
-  have sub : ∀ cc ∈ regionOf j hw hsO, ∃ cc' ∈ regionOf j (hw.log x e c) hsO,
-      cc'.1 = cc.1 ∧ ∀ xe ∈ cc.2.2.ents, xe ∈ cc'.2.2.ents := by
-    intro cc hcc
-    cases hsO with
-    | none =>
-      simp only [regionOf, List.mem_singleton] at hcc; subst hcc
-      exact ⟨(j, wN, hw.log x e c), by simp [regionOf], rfl, fun xe hxe => by simp [NamesH.log, hxe]⟩
-    | some p =>
-      simp only [regionOf, List.mem_cons, List.mem_nil_iff, or_false] at hcc
-      rcases hcc with rfl | rfl
-      · exact ⟨(j, wN, hw.log x e c), by simp [regionOf], rfl, fun xe hxe => by simp [NamesH.log, hxe]⟩
-      · exact ⟨(p.1, sN, p.2), by simp [regionOf], rfl, fun xe hxe => hxe⟩
-  intro c1 hc1 c2 hc2 x' e' E' y e'' E'' hx hy hKx hlt
-  obtain ⟨d1, hd1, -, hs1⟩ := sub c1 hc1
-  obtain ⟨d2, hd2, -, hs2⟩ := sub c2 hc2
-  exact hK d1 hd1 d2 hd2 x' e' E' y e'' E'' (hs1 _ hx) (hs2 _ hy) hKx hlt
-
-/-- **A step writing `wal.tmp` only** (`mkdir`, `rmdir` of `wal.tmp`): the facts stay. -/
-theorem dinv_log_other {j : Ino} {ko : Option Ino} {hw : NamesH} {hsO : Option (Ino × NamesH)}
-    (h : DInv j ko hw hsO) (x : Nat) (e : LogEntry) (c : Ents) (hnw : ¬ e.op.Writes j walB)
-    (hc : c !! walB = hw.cur !! walB) : DInv j ko (hw.log x e c) hsO := by
-  intro K hK
-  have hv : (hw.log x e c).valAfter j K walB = hw.valAfter j K walB :=
-    valAfter_log_skip _ _ _ _ _ _ _ (fun h => hnw h.2)
-  obtain ⟨⟨h1, h2⟩, h3⟩ := h K (regionCut_log hK)
-  refine ⟨⟨fun i => by rw [hv]; exact h1 i, fun J hJ => h2 J (by rw [← hv]; exact hJ)⟩, ?_⟩
-  intro hne
-  rw [hv] at hne ⊢
-  rw [h3 hne]; simp only [NamesH.log]; exact hc.symm
+  · rw [hw]; unfold NamesH.init; rw [restrictN_lookup _ _ _ wO_wal, entsOf_lookup]
 
 /-- **The rename of `wal.tmp` (the directory `J`, whose `seg` is the key's file) onto the absent
 `wal`**: the facts hold with `J`'s claim tracked. Every entry of `J`'s claim is below the rename's
-call's start (`hs.next ≤ e.start`, from `osNames_next` and `CallBegin`), so a crash keeping the
-rename keeps them, and leaves `seg` as now (`HistCoh`). -/
+call's start (`hs.next ≤ e.start`, from `osNames_next` and the call's begin), so a crash keeping
+the rename keeps them, and leaves `seg` as now (`HistCoh`). -/
 theorem dinv_rename {j J k : Ino} {ko : Option Ino} {hw hs : NamesH} (h : DInv j ko hw none)
     (hnone : hw.cur !! walB = none) (x : Nat) (e : LogEntry) (c : Ents)
     (hwr : e.op.Writes j walB) (hc : c !! walB = some (.dir J))
@@ -178,7 +295,7 @@ theorem dinv_rename {j J k : Ino} {ko : Option Ino} {hw hs : NamesH} (h : DInv j
       rw [valAfter_log_last _ _ _ _ _ _ _ hKx hwr, hc]
     have hall : ∀ xe ∈ hs.ents, K xe.1 := by
       intro xe hxe
-      exact hK (j, wN, hw.log x e c) (by simp [regionOf]) (J, sN, hs) (by simp [regionOf])
+      exact hK (j, wO, hw.log x e c) (by simp [regionOf]) (J, sN, hs) (by simp [regionOf])
         x e c xe.1 xe.2.1 xe.2.2 (by simp [NamesH.log]) (by simpa using hxe) hKx
         (Nat.lt_of_lt_of_le (hcoh.1 xe hxe) hst)
     refine ⟨⟨fun i => by rw [hv]; simp, fun J' hJ' => ?_⟩, fun _ => ?_⟩
@@ -190,7 +307,7 @@ theorem dinv_rename {j J k : Ino} {ko : Option Ino} {hw hs : NamesH} (h : DInv j
     have hK0 : RegionCut (regionOf j hw none) K := by
       intro c1 hc1 c2 hc2 x' e' E' y e'' E'' hx hy hKx' hlt
       simp only [regionOf, List.mem_singleton] at hc1 hc2; subst hc1 hc2
-      exact hK (j, wN, hw.log x e c) (by simp [regionOf]) (j, wN, hw.log x e c)
+      exact hK (j, wO, hw.log x e c) (by simp [regionOf]) (j, wO, hw.log x e c)
         (by simp [regionOf]) x' e' E' y e'' E'' (by simp [NamesH.log, hx])
         (by simp [NamesH.log, hy]) hKx' hlt
     have hnone' : hw.valAfter j K walB = none := by
