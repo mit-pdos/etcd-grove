@@ -121,10 +121,217 @@ noncomputable def Tree.IteratorAt.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Iterator.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad Iterator.ty))) (Var "$res0"))))))
 
+/-- Next moves the iterator to the next element and returns true if there was a next element in the container.
+    If Next() returns true, then next element's key and value can be retrieved by Key() and Value().
+    If Next() was called for the first time, then it will point the iterator to the first element if it exists.
+    Modifies the state of the iterator.
+
+    go: iterator.go:39:27 -/
+noncomputable def Iterator.Next.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "iterator"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "iterator" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val «end»)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val «end»)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val begin))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Tree.ty) go!"Left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tree.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"tree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))) (Val #()))
+  (Let "left" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "left")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "left"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val between)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (Var "left") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val between)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0")))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))
+  (Let "node" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "node")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))))))
+  (Let "$r0" (Val between)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (Var "node") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- Prev moves the iterator to the previous element and returns true if there was a previous element in the container.
+    If Prev() returns true, then previous element's key and value can be retrieved by Key() and Value().
+    Modifies the state of the iterator.
+
+    go: iterator.go:80:27 -/
+noncomputable def Iterator.Prev.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "iterator"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "iterator" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val begin)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val begin)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals position.ty))) (Pair (App (Val (GoInstruction (GoLoad position.ty))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))) (Val «end»))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Tree.ty) go!"Right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Tree.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"tree"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))) (Val #()))
+  (Let "right" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "right")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "right"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val between)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (Var "right") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val between)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0")))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Node.ty)))) (Val UntypedNil))))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))
+  (Let "node" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Node.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (Var "node")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"Right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Node.ty)))) (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator")))))))))
+  (Let "$r0" (Val between)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore position.ty))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"position"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef Iterator.ty go!"node"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Iterator.ty)))) (Var "iterator"))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Node.ty)))) (Pair (Var "node") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- Value returns the current element's value.
     Does not modify the state of the iterator.
 
-    go: iterator.go:118:27 -/
+    go: iterator.go:117:27 -/
 noncomputable def Iterator.Value.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam BAnon
@@ -142,7 +349,7 @@ noncomputable def Iterator.Value.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Key returns the current element's key.
     Does not modify the state of the iterator.
 
-    go: iterator.go:124:27 -/
+    go: iterator.go:123:27 -/
 noncomputable def Iterator.Key.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam BAnon
@@ -160,7 +367,7 @@ noncomputable def Iterator.Key.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Node returns the current element's node.
     Does not modify the state of the iterator.
 
-    go: iterator.go:130:27 -/
+    go: iterator.go:129:27 -/
 noncomputable def Iterator.Node.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam BAnon
@@ -178,7 +385,7 @@ noncomputable def Iterator.Node.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Begin resets the iterator to its initial state (one-before-first)
     Call Next() to fetch the first element if any.
 
-    go: iterator.go:136:27 -/
+    go: iterator.go:135:27 -/
 noncomputable def Iterator.Begin.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam BAnon
@@ -196,7 +403,7 @@ noncomputable def Iterator.Begin.impl [GooseExts] [GoGlobalContext] : val :=
 /-- End moves the iterator past the last element (one-past-the-end).
     Call Prev() to fetch the last element if any.
 
-    go: iterator.go:143:27 -/
+    go: iterator.go:142:27 -/
 noncomputable def Iterator.End.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam BAnon
@@ -215,7 +422,7 @@ noncomputable def Iterator.End.impl [GooseExts] [GoGlobalContext] : val :=
     If First() returns true, then first element's key and value can be retrieved by Key() and Value().
     Modifies the state of the iterator
 
-    go: iterator.go:151:27 -/
+    go: iterator.go:150:27 -/
 noncomputable def Iterator.First.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam BAnon
@@ -237,7 +444,7 @@ noncomputable def Iterator.First.impl [GooseExts] [GoGlobalContext] : val :=
     If Last() returns true, then last element's key and value can be retrieved by Key() and Value().
     Modifies the state of the iterator.
 
-    go: iterator.go:159:27 -/
+    go: iterator.go:158:27 -/
 noncomputable def Iterator.Last.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam BAnon
@@ -260,7 +467,7 @@ noncomputable def Iterator.Last.impl [GooseExts] [GoGlobalContext] : val :=
     If NextTo() returns true, then next element's key and value can be retrieved by Key() and Value().
     Modifies the state of the iterator.
 
-    go: iterator.go:168:27 -/
+    go: iterator.go:167:27 -/
 noncomputable def Iterator.NextTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam "f"
@@ -307,7 +514,7 @@ noncomputable def Iterator.NextTo.impl [GooseExts] [GoGlobalContext] : val :=
     If PrevTo() returns true, then next element's key and value can be retrieved by Key() and Value().
     Modifies the state of the iterator.
 
-    go: iterator.go:182:27 -/
+    go: iterator.go:181:27 -/
 noncomputable def Iterator.PrevTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "iterator"
   (Lam "f"
@@ -2084,8 +2291,10 @@ class Iterator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   ptr_First_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"First" Iterator.First.impl
   ptr_Key_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Key" Iterator.Key.impl
   ptr_Last_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Last" Iterator.Last.impl
+  ptr_Next_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Next" Iterator.Next.impl
   ptr_NextTo_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"NextTo" Iterator.NextTo.impl
   ptr_Node_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Node" Iterator.Node.impl
+  ptr_Prev_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Prev" Iterator.Prev.impl
   ptr_PrevTo_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"PrevTo" Iterator.PrevTo.impl
   ptr_Value_unfold : MethodUnfold (go.GoType.PointerType Iterator.ty) go!"Value" Iterator.Value.impl
 
@@ -2104,8 +2313,10 @@ attribute [instance] Iterator.TypeAssumptions.type_repr
   Iterator.TypeAssumptions.ptr_First_unfold
   Iterator.TypeAssumptions.ptr_Key_unfold
   Iterator.TypeAssumptions.ptr_Last_unfold
+  Iterator.TypeAssumptions.ptr_Next_unfold
   Iterator.TypeAssumptions.ptr_NextTo_unfold
   Iterator.TypeAssumptions.ptr_Node_unfold
+  Iterator.TypeAssumptions.ptr_Prev_unfold
   Iterator.TypeAssumptions.ptr_PrevTo_unfold
   Iterator.TypeAssumptions.ptr_Value_unfold
 
