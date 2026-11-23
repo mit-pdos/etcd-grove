@@ -3917,3 +3917,55 @@ crash opens the generation's file invariant (allocated at the boot) and must tak
   Perennial states `log.Printf.spec` but no `log.Println.spec`: stated and proved here
   (`Net/Spec/log/Println.lean`, `wp_start; wp_end` on the trusted no-op model), to move to Perennial
   beside `Printf`'s. Not filed yet.
+## 2026-11-23: bufio's generic specs over an `io.Writer` contract and slice helpers kept locally (dsv-bufio, #24, branch `dsv-bufio`)
+
+- **Limitation.** Perennial has an `io.Reader` contract (`io.readerOk`, `Perennial/Proof/io/Reader.lean`)
+  but no `io.Writer` counterpart with short writes; and a few slice facts `*bufio.Reader`/`*bufio.Writer`
+  need (a sub-slice accessor `[r, w)`, the suffix accessor `b[n:]`, advancing a slice `p = p[k:]`,
+  `copy` within one slice) are not in its slice library.
+- **Workaround here.** `io.streamWriterOk wi J Q Ew` (`Proof/io/StreamWriterOk.lean`: `Write` accepts a prefix of the
+  bytes, `nil` only for all of them; `Q` closed under prefixes, `io.prefixClosed`) with `io.wp_streamWriter_Write`;
+  the slice facts in `Proof/bufio/Base.lean` (`bufio.ownSlice_sub_acc`, `bufio.suffix_acc`,
+  `bufio.slice_advance`, `bufio.flush_shift`, ...).
+- **`io.ReadFull`/`io.ReadAtLeast`** are translated and proved in Perennial at the pin (`io.wp_ReadFull`,
+  `io.wp_ReadAtLeast`, over `io.readerOk`). Through a `*bufio.Reader` they apply unchanged
+  (`bufio.ownBufReader_readerOk`, `Proof/bufio/ReaderLaws.lean`: its condition `0 < m → Pre R m` is
+  vacuous at `m = 0`). Directly over a connection they do **not** (corrected 2026-11-23 after the review
+  on #24, C1; this entry said they did): `net.conn_readerOk`'s condition is `0 < len(p)`, and their
+  premise asks `Pre` at `ys.length = len(buf)` too, an empty read. See the next entry. The `copy` count
+  trap (#24 item 4) is gone at the pin (`wp_slice_copy_int` states `sint.Z n = min ...`); it remains in
+  the net model's `Conn.Read` spec (`ReadOut`: `sint.nat k = min ...`), the reason for `0 < len(p)`.
+- **Proposed.** `io.streamWriterOk` next to `io.readerOk` in `Perennial/Proof/io/`; the slice facts in
+  `Perennial/Proof/` slice library; `bufio.wand_pure_persistent` (`Proof/bufio/Own.lean`: `□ (∀ _ : φ, P)`
+  from `⌜φ⌝ -∗ □ P`, a general Iris fact, review round 2 on #24, N6) in Perennial's (or iris-lean's)
+  BI lemmas.
+- **Status.** Not filed yet.
+
+## 2026-11-23: `io.ReadAtLeast`/`io.ReadFull` ask `Pre` of a read they never make (dsv-bufio, #24 review C1)
+
+- **Limitation.** `io.ReadAtLeast.spec`'s premise is `∀ ys, ys.length ≤ len(buf) → Pre (r0 ++ ys)
+  (len(buf) - ys.length)` (`io.ReadFull.spec`'s the same), so at `ys.length = len(buf)` it asks `Pre` of an
+  empty read. The code reads only while `n < min` (`io.go`), so no such read happens when
+  `min ≤ len(buf)`. A reader whose condition refuses `len(p) = 0` (a `net.Conn`, `net.conn_readerOk`'s
+  `0 < m`) cannot be read with `io.ReadFull` directly.
+- **Who needs it.** The dsverify kits' `io.ReadFull(conn, …)` without a `*bufio.Reader` in between.
+- **Workaround here.** Read through a `*bufio.Reader` (`bufio.ownBufReader_readerOk`); the claim that it
+  works directly was removed from `Net/Proof/net/ConnIo.lean`'s header.
+- **Proposed change.** Ask `Pre` only at `(ys.length : Int) < sint.Z min ∧ ys.length < len(buf)`
+  (`ReadFull`: `ys.length < len(buf)`); both proofs change by one line. (The first version asked it at
+  `ys.length < min` alone: with `min > len(buf)`, the `ErrShortBuffer` path, which reads nothing,
+  Nat subtraction then asked `Pre _ 0`; round 2 of the review on #24, N3.) Alternative (not taken: Upamanyu's `Net/` spec, 64 importers
+  and the `KvNet/` copies): make `net.Conn.Read`'s `ReadOut` exact (`sint.Z k = min …`), so a connection's
+  condition can be `True`.
+- **Status.** On Perennial branch `readatleast-prefix` (`af905abba`, after `d5cdfc558`, off `lean`
+  `7b2259a12`, pushed; the io modules built, `#print axioms` of both proofs: Lean's three), not landed. On the pin bump, the
+  callers of Perennial's `io.ReadFull.spec`/`ReadAtLeast.spec` here re-prove their (weaker) premise; the
+  WAL uses its own `Spec/io/ReadFull.lean`.
+
+## 2026-11-23: `make([]byte, size)` at sizes Go refuses (dsv-bufio, #24 review W6; a question)
+
+- **Question.** Real Go panics in `make` for a size too large to allocate (`bufio.NewWriterSize` and
+  `NewReaderSize` pass the caller's `size`). If Perennial's `wp_slice_make2` does not model that panic,
+  every spec built on it (bufio's constructors' `size` premise-free statements among them) inherits the
+  gap: a Perennial-wide question about `make`'s model, not one for the bufio specs.
+- **Status.** Unchecked; recorded for Perennial's `make` model.

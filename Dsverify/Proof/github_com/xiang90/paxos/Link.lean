@@ -30,7 +30,10 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Net
 
-namespace github_com.xiang90.paxos
+-- (in `EtcdGrove.`, as every `Link.lean`: `etc/proof_roots.py`'s `namespace()` is their common prefix)
+namespace EtcdGrove.dsvpaxos
+
+open github_com.xiang90.paxos
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
@@ -39,7 +42,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [π : NetProtoGS]
-variable [package_sem : paxos.Assumptions] [field_sem : net.FieldAssumptions]
+variable [package_sem : github_com.xiang90.paxos.Assumptions] [field_sem : net.FieldAssumptions]
   [sync.Assumptions]
 
 -- transport (no callees outside its module)
@@ -73,6 +76,6 @@ theorem wp_Propose : NetCluster.Propose.spec (GF := GF) (hG := hG) :=
 
 end link
 
-end github_com.xiang90.paxos
+end EtcdGrove.dsvpaxos
 
 end Perennial
