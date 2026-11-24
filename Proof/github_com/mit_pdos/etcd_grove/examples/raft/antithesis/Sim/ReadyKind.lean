@@ -201,6 +201,10 @@ def StoreLog (s : PState) (m : Msg) (ps₁ : PState) (rd : ReadyD) : Prop :=
     uint.Z e.Index' = uint.Z m.index + (d : Int) + 1 ∧ uint.Z e.Index' ≤ (s.log.length : Int) + 1 ∧
     ps₁.log = s.log.take (uint.nat e.Index' - 1) ++ rd.ents)
 
+/-- No message in `s`'s outbox is addressed to the node itself: a leader's `Ready` that writes no
+entry queues no self-acknowledgement (only `appendEntry` does, at a win or a proposal). -/
+def NoSelf (id : w64) (s : PState) : Prop := ∀ q ∈ s.outbox, q.dst ≠ id
+
 /-- **The kinds of a reported `Ready`** taken at `ps₁` from the view `v`, with the protocol facts
 each kind's `OnDisk`/`InMemory` evaluation reads. -/
 inductive ReadyKind (id : w64) (net : List Msg) (v : NodeView) (ps₁ : PState) (rd : ReadyD) : Prop
@@ -259,7 +263,7 @@ inductive ReadyKind (id : w64) (net : List Msg) (v : NodeView) (ps₁ : PState) 
   commit `CmtOk` at the `Ready`'s state. -/
   | cmt : v.ps.role = .leader → ps₁.role = .leader → ps₁.term = v.ps.term → ps₁.vote = v.ps.vote →
       ps₁.log = v.ps.log → rd.ents = [] → uint.Z v.ps.commit < uint.Z ps₁.commit →
-      CmtOk ps₁ ps₁.commit → ReadyKind id net v ps₁ rd
+      CmtOk ps₁ ps₁.commit → NoSelf id ps₁ → ReadyKind id net v ps₁ rd
 
 /-! ## Sets and tallies -/
 
@@ -380,7 +384,7 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
     (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
     (hat : RecvAt id net v m) (hm : InMsg m)
     (ht1 : s1.term = m.term) (hl1 : s1.log = v.ps.log) (hc1 : s1.commit = v.ps.commit)
-    (hb1 : s1.base = v.ps.base) (hpre : PreFacts v.ps m s1)
+    (hb1 : s1.base = v.ps.base) (hpre : PreFacts v.ps m s1) (hX : s1.outbox = [])
     (h : HandleEnd cfgM3 id s1 m ps₁) : ReadyKind id net v ps₁ rd := by
   obtain ⟨hsc, hpay, -, hprop⟩ := hm
   have hm0 : m.term ≠ W64 0 := hat.2.2.2.2
@@ -467,13 +471,14 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
       rcases hpre with ⟨-, -, hrf⟩ | ⟨hmt, rfl⟩
       · rw [hrf] at hlead; cases hlead
       · unfold AppRespEnd at h
-        rcases h with ⟨-, rfl⟩ | ⟨-, -, ms, -, rfl⟩ | ⟨-, x, n, -, hn, ms, -, rfl⟩
+        rcases h with ⟨-, rfl⟩ | ⟨-, -, ms, -, rfl⟩ | ⟨-, x, n, -, hn, ms, hms, rfl⟩
         · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
         · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
         · rcases hn with rfl | hpc
           · exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
           · exact .cmt hlead hlead rfl rfl rfl (ents_nil_of_log hro rfl) hpc.1
               ⟨hpc.2.1, hpc.2.2.1, hpc.2.2.2⟩
+              (fun q hq => (hms q (mem_psend (X := { v.ps with matched := _, commit := n }) hX hq)).1.2.2.2.1)
     · subst h; exact kind_of_s1 hro hrep hat ht1 hl1 hc1 hpre rfl rfl rfl rfl rfl
   · -- a heartbeat
     split at h
@@ -508,7 +513,7 @@ theorem kind_handle {id : w64} {net : List Msg} {v : NodeView} {s1 ps₁ : PStat
 theorem kind_recv {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     {m : Msg} (hro : ReadyOutP id v ps₁ rd) (hrep : Reported v rd) (hb : v.ps.base = base0)
     (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
-    (hat : RecvAt id net v m) (hm : InMsg m) (h : RecvEnd cfgM3 id v.ps m ps₁) :
+    (hat : RecvAt id net v m) (hm : InMsg m) (h : RecvEnd cfgM3 id v.ps m ps₁) (hX : v.ps.outbox = []) :
     ReadyKind id net v ps₁ rd := by
   rcases h with ⟨h0, -⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, hh⟩
   · exact absurd h0 hat.2.2.2.2
@@ -516,9 +521,9 @@ theorem kind_recv {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {r
   · rcases hpre with ⟨hlt, rfl⟩ | ⟨hmt, rfl⟩
     · have hne : m.term ≠ v.ps.term := fun h => by rw [h] at hlt; exact Int.lt_irrefl _ hlt
       exact kind_handle (s1 := pbecomeFollower v.ps m.term _) hro hrep hb hid0 hvs hat hm rfl rfl
-        rfl rfl (.inl ⟨hlt, by simp [pbecomeFollower, hne], rfl⟩) hh
+        rfl rfl (.inl ⟨hlt, by simp [pbecomeFollower, hne], rfl⟩) hX hh
     · exact kind_handle (s1 := v.ps) hro hrep hb hid0 hvs hat hm hmt.symm rfl rfl rfl
-        (.inr ⟨hmt, rfl⟩) hh
+        (.inr ⟨hmt, rfl⟩) hX hh
 
 
 /-! ## A tick, a proposal -/
@@ -560,7 +565,7 @@ candidate's own vote tallied; a leader's self-acknowledgements (`LeadC`); a cand
 self-acknowledgements. -/
 def AdvP (id : w64) (s₀ : PState) (W : Prop) (s : PState) : Prop :=
   (s = s₀ ∨ (s₀.role = .candidate ∧ s = { s₀ with votes := recordVote s₀.votes id true })) ∨
-  (s₀.role = .leader ∧ LeadC id s₀ s) ∨
+  (s₀.role = .leader ∧ LeadC id s₀ s ∧ NoSelf id s) ∨
   (s₀.role = .candidate ∧ s.role = .follower ∧ s.term = s₀.term ∧ s.vote = s₀.vote ∧
     s.log = s₀.log ∧ s.commit = s₀.commit) ∨
   (s₀.role = .candidate ∧ W ∧ ∃ mt, JQuorum cfgM3 (granted (recordVote s₀.votes id true)) ∧
@@ -568,7 +573,7 @@ def AdvP (id : w64) (s₀ : PState) (W : Prop) (s : PState) : Prop :=
     LeadC id (pwinState id { s₀ with votes := recordVote s₀.votes id true } mt) s)
 
 theorem AdvP.term {id : w64} {s₀ s : PState} {W : Prop} (h : AdvP id s₀ W s) : s.term = s₀.term := by
-  rcases h with (heq | ⟨-, heq⟩) | ⟨-, hl⟩ | ⟨-, -, ht, -⟩ | ⟨-, -, mt, -, -, hl⟩
+  rcases h with (heq | ⟨-, heq⟩) | ⟨-, hl, -⟩ | ⟨-, -, ht, -⟩ | ⟨-, -, mt, -, -, hl⟩
   · rw [heq]
   · rw [heq]
   · exact hl.2.1
@@ -606,9 +611,28 @@ theorem leadC_step {id : w64} {y s s' : PState} {q : Msg} (hL : LeadC id y s) (h
   · rw [if_neg (by rw [hr]; decide)] at h
     subst h; exact ⟨hr, ht, hv, hb, hl, hm, hc⟩
 
+/-- A leader's step of a self-addressed message queues nothing to itself. -/
+theorem noSelf_step {id : w64} {s s' : PState} {q : Msg} (hr : s.role = .leader) (hn : NoSelf id s)
+    (hrj : q.reject = false) (hty : q.ty = .appResp ∨ q.ty = .voteResp)
+    (h : HandleEnd cfgM3 id s q s') : NoSelf id s' := by
+  unfold HandleEnd at h
+  rcases hty with hty | hty <;> rw [hty] at h <;> simp only at h
+  · rw [if_pos hr] at h
+    unfold AppRespEnd at h
+    rcases h with ⟨-, rfl⟩ | ⟨h', -⟩ | ⟨-, x, c, -, -, ms, hms, rfl⟩
+    · exact hn
+    · rw [hrj] at h'; cases h'
+    · intro y hy
+      rw [psendMsgs_outbox] at hy
+      rcases List.mem_append.mp hy with hy | hy
+      · exact hn y hy
+      · exact (hms y hy).1.2.2.2.1
+  · rw [if_neg (by rw [hr]; decide)] at h
+    subst h; exact hn
+
 /-- One step of `Advance` keeps `AdvP`. -/
 theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : AdvP id s₀ W s)
-    (hq : SelfMsg id s₀.term q) (hW : q.ty = .voteResp → W) (h : RecvEnd cfgM3 id s q s') :
+    (hX0 : s₀.outbox = []) (hq : SelfMsg id s₀.term q) (hW : q.ty = .voteResp → W) (h : RecvEnd cfgM3 id s q s') :
     AdvP id s₀ W s' := by
   obtain ⟨hqs, -, hqt, hrj, hty⟩ := hq
   have hqt' : q.term = s.term := hqt.trans hi.term.symm
@@ -620,11 +644,12 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
       · rw [hqt'] at hlt; exact absurd hlt (Int.lt_irrefl _)
       · exact hh
   have hlead : ∀ y, LeadC id y s → LeadC id y s' := fun y hL => leadC_step hL hqs hrj hty hh
-  rcases hi with (heq | ⟨hc, heq⟩) | ⟨hl0, hL⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ |
+  have hns : s.role = .leader → NoSelf id s → NoSelf id s' := fun hr hn => noSelf_step hr hn hrj hty hh
+  rcases hi with (heq | ⟨hc, heq⟩) | ⟨hl0, hL, hn0⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ |
       ⟨hc, hw, mt, hq, hlm, hL⟩
-  · rw [heq] at hh hlead
+  · rw [heq] at hh hlead hns
     by_cases hl0 : s₀.role = .leader
-    · exact .inr (.inl ⟨hl0, hlead _ (leadC_refl hl0)⟩)
+    · exact .inr (.inl ⟨hl0, hlead _ (leadC_refl hl0), hns hl0 (fun x hx => by rw [hX0] at hx; cases hx)⟩)
     · unfold HandleEnd at hh
       rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
       · rw [if_neg hl0] at hh; subst hh; exact .inl (.inl rfl)
@@ -653,7 +678,7 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
         exact .inr (.inr (.inr ⟨hc, hW hty, mt, hq, hlm,
           ⟨rfl, rfl, rfl, rfl, rfl, fun _ _ => rfl, .inl rfl⟩⟩))
       · exact .inr (.inr (.inl ⟨hc, rfl, rfl, by simp [pbecomeFollower], rfl, rfl⟩))
-  · exact .inr (.inl ⟨hl0, hlead _ hL⟩)
+  · exact .inr (.inl ⟨hl0, hlead _ hL, hns hL.1 hn0⟩)
   · unfold HandleEnd at hh
     rcases hty with hty | hty <;> rw [hty] at hh <;> simp only at hh
     · rw [if_neg (by rw [hf]; decide)] at hh; subst hh
@@ -663,30 +688,31 @@ theorem advP_step {id : w64} {s₀ s s' : PState} {W : Prop} {q : Msg} (hi : Adv
   · exact .inr (.inr (.inr ⟨hc, hw, mt, hq, hlm, hlead _ hL⟩))
 
 theorem advP_run {id : w64} {s₀ s s' : PState} {qs : List Msg} {W : Prop}
-    (h : AdvanceEnd cfgM3 id s qs s') (hq : ∀ q ∈ qs, SelfMsg id s₀.term q)
+    (hX0 : s₀.outbox = []) (h : AdvanceEnd cfgM3 id s qs s') (hq : ∀ q ∈ qs, SelfMsg id s₀.term q)
     (hW : ∀ q ∈ qs, q.ty = .voteResp → W) (hi : AdvP id s₀ W s) : AdvP id s₀ W s' := by
   induction h with
   | nil => exact hi
   | cons s s1 s' q qs hr _ ih =>
     exact ih (fun x hx => hq x (List.mem_cons_of_mem _ hx))
       (fun x hx => hW x (List.mem_cons_of_mem _ hx))
-      (advP_step hi (hq q (List.mem_cons_self ..)) (hW q (List.mem_cons_self ..)) hr)
+      (advP_step hi hX0 (hq q (List.mem_cons_self ..)) (hW q (List.mem_cons_self ..)) hr)
 
 /-- **`Advance`'s run** (a drain's later `Ready`), reported: a leader's commit, a candidate's loss,
 or its win on its own vote; never a term or vote change. -/
 theorem kind_advance {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hro : ReadyOutP id v ps₁ rd) (hrep : Reported v rd)
-    (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (h : AdvanceEnd cfgM3 id v.ps v.qs ps₁) :
+    (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (h : AdvanceEnd cfgM3 id v.ps v.qs ps₁)
+    (hX : v.ps.outbox = []) :
     ReadyKind id net v ps₁ rd := by
   have hP : AdvP id v.ps (∃ q ∈ v.qs, q.ty = .voteResp) ps₁ :=
-    advP_run h hqs (fun q hq hty => ⟨q, hq, hty⟩) (.inl (.inl rfl))
-  rcases hP with (heq | ⟨-, heq⟩) | ⟨hl0, hL⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ | ⟨hc, hw, mt, hq, hlm, hL⟩
+    advP_run hX h hqs (fun q hq hty => ⟨q, hq, hty⟩) (.inl (.inl rfl))
+  rcases hP with (heq | ⟨-, heq⟩) | ⟨hl0, hL, hns⟩ | ⟨hc, hf, ht, hv, hl, hcm⟩ | ⟨hc, hw, mt, hq, hlm, hL⟩
   · subst heq; exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · subst heq; exact (not_reported hro hrep rfl rfl rfl rfl rfl).elim
   · obtain ⟨hr, ht, hv, -, hl, -, hc⟩ := hL
     rcases hc with hc | ⟨hlt, hcm⟩
     · exact (not_reported hro hrep ht hv hc hl (hr.trans hl0.symm)).elim
-    · exact .cmt hl0 hr ht hv hl (ents_nil_of_log hro hl) hlt hcm
+    · exact .cmt hl0 hr ht hv hl (ents_nil_of_log hro hl) hlt hcm hns
   · exact .demote hc hf ht hv hl hcm (ents_nil_of_log hro hl)
   · exact .win id false mt hc (.inr ⟨rfl, rfl, hw⟩) hq hlm hL
       (ents_of_append hro (es := [pleaderEntry v.ps]) hL.2.2.2.2.1)
@@ -700,7 +726,7 @@ reaching `ps₁` (`Reach`; the messages sent of a type in scope and `MsgShape`),
 theorem ready_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hr : Reach id net v ps₁) (hro : ReadyOutP id v ps₁ rd) (hrep : Reported v rd)
     (hb : v.ps.base = base0) (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
-    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) :
+    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
     ReadyKind id net v ps₁ rd := by
   cases hr with
   | stay _ => exact absurd hrep (stay_quiet hro)
@@ -708,10 +734,10 @@ theorem ready_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {
     cases inp with
     | recv m =>
       obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
-      exact kind_recv hro hrep hb hid0 hvs ⟨hbe, hca, hmn, hmd, hm0⟩ (hin m hmn) hs
+      exact kind_recv hro hrep hb hid0 hvs ⟨hbe, hca, hmn, hmd, hm0⟩ (hin m hmn) hs hX
     | tick => exact kind_tick hro hrep hbe hs
     | propose d => exact kind_propose hro hrep hbe hs
-  | advance _ _ _ _ ha => exact kind_advance hro hrep hqs ha
+  | advance _ _ _ _ ha => exact kind_advance hro hrep hqs ha hX
 
 
 /-! ## A non-follower's vote is its own -/
@@ -738,10 +764,10 @@ theorem voteSelf_kind {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState
 theorem voteSelf_ready {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {rd : ReadyD}
     (hr : Reach id net v ps₁) (hro : ReadyOutP id v ps₁ rd)
     (hb : v.ps.base = base0) (hid0 : id ≠ W64 0) (hvs : v.ps.role ≠ .follower → v.ps.vote = id)
-    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) :
+    (hin : ∀ m ∈ net, InMsg m) (hqs : ∀ q ∈ v.qs, SelfMsg id v.ps.term q) (hX : v.ps.outbox = []) :
     ps₁.role ≠ .follower → ps₁.vote = id := by
   by_cases hrep : Reported v rd
-  · exact voteSelf_kind (ready_kind hr hro hrep hb hid0 hvs hin hqs) hvs
+  · exact voteSelf_kind (ready_kind hr hro hrep hb hid0 hvs hin hqs hX) hvs
   · have hrr : rd.role = v.ps.role := by
       by_cases h : rd.role = v.ps.role
       · exact h

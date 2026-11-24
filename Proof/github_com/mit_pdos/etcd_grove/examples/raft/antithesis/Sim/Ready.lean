@@ -176,7 +176,7 @@ theorem fol_tl {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
           S.commitIndex[k.val]!) := by
   subst hT
   obtain ⟨hld, hk⟩ := fol_led hs hgo hl hm hty hdst hle
-  have hb17 := hs.2.1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  have hb17 := hs.2.1.termLenOk
   refine ⟨fun T' => ?_, fun T' hlt => ?_⟩
   · rw [tlOld_with]; unfold imax
     by_cases h1 : T' = uint.Z m.term
@@ -190,7 +190,7 @@ theorem fol_tl {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
     subst hT'
     refine ⟨rfl, hld, fun k _ hkl hkt => ?_⟩
     have h1 := hk k hkl hkt
-    have h2 := (hb17.2.2 k hkl).2
+    have h2 := (hb17.2 k hkl).2
     rw [hkt] at h2
     rw [tlOld_with, if_pos rfl]; unfold imax; split <;> omega
 
@@ -234,10 +234,11 @@ theorem readyOk_plain {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G :
   obtain ⟨hsh, hb, hnet, hno⟩ := hs
   obtain ⟨hd, -, -, -, -, -, -, -⟩ := hno n
   obtain ⟨d1, d2, d3, d4, d5, -, -, -, -, -, -, -, -⟩ := hd
-  obtain ⟨hb1, -, -, hb4, hb5, hb6, hb7, -⟩ := hb
+  obtain ⟨hb1, -, -, hb4, hb5, hb6, hb7, -⟩ := id hb
   have hrl : S.role.length = 3 := hsh.2.2.2.2.2.2.1
   have hn3 : n.val < S.role.length := by rw [hrl]; exact n.isLt
   obtain ⟨-, -, -, -, -, -, -, -, hpre, hlen, hbase, hidx, -⟩ := id hro
+  have hbL : LedConfOk S := hb.ledConfOk
   have hcmZ : S.commitIndex[n.val]! = uint.Z ps₁.commit := by rw [d4, hcm]
   exact {
     hterm := rfl
@@ -310,7 +311,8 @@ theorem readyOk_plain {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G :
       exact hrnf hpf hvt ((roleOf_follower_iff _).mp h')
     tlMono := fun _ => Int.le_refl _
     tlNew := fun _ h => absurd h (Int.lt_irrefl _)
-    tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl }
+    tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl
+    lconf := hbL }
 
 /-! ## Facts of the kinds -/
 
@@ -588,6 +590,7 @@ theorem readyOk_fol {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : R
   have hrl : S.role.length = 3 := hsh.2.2.2.2.2.2.1
   have hn3 : n.val < S.role.length := by rw [hrl]; exact n.isLt
   obtain ⟨-, -, -, -, -, -, -, -, hpre, hlen, hbase, hidx, -⟩ := id hro
+  have hbL : LedConfOk S := hb.ledConfOk
   have hnl : ps₁.role ≠ .leader := by rw [hpr]; decide
   exact {
     hterm := rfl
@@ -648,7 +651,8 @@ theorem readyOk_fol {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : R
     rnf := fun hf _ => absurd (by rw [get!_set_self _ hn3, hpr]; rfl) hf
     tlMono := htlM
     tlNew := htlN
-    tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl }
+    tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl
+    lconf := hbL }
 
 theorem nat_commit_le {G : RaftFacts} {id : w64} {ps : PState} (hrf : ReadyFacts G id ps) :
     uint.Z ps.commit ≤ ps.log.length := by
@@ -788,7 +792,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
       ps₁.commit = (V n).ps.commit → ReadyGoal S V net evs G n ps₁ rd)
     (hcmt : (V n).ps.role = .leader → ps₁.role = .leader → ps₁.term = (V n).ps.term →
       ps₁.vote = (V n).ps.vote → ps₁.log = (V n).ps.log → rd.ents = [] →
-      uint.Z (V n).ps.commit < uint.Z ps₁.commit → CmtOk ps₁ ps₁.commit →
+      uint.Z (V n).ps.commit < uint.Z ps₁.commit → CmtOk ps₁ ps₁.commit → NoSelf (nodeId n) ps₁ →
       ReadyGoal S V net evs G n ps₁ rd) :
     ∃ S', Prefix cfg3
         (evs ++ [evReady (nodeId n) (V n).byE rd.role rd.term rd.vote rd.commit rd.ents]) S' ∧
@@ -811,7 +815,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
   have hso := selfOut_reach hr d7 hlo hin hqs
   have hlh := reach_leadOk hnet (hno n) hr
   have hbyE := reach_byE hr hro hrep
-  have hk := ready_kind hr hro hrep d8 (nodeId_ne_zero n) hvs hin hqs
+  have hk := ready_kind hr hro hrep d8 (nodeId_ne_zero n) hvs hin hqs d7
   have hvs1 := voteSelf_kind hk hvs
   obtain ⟨hR, hT, hVt, hC, -⟩ := id hro
   rw [hR, hT, hVt, hC]
@@ -1132,7 +1136,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
       unfold ReadyGoal at this; rw [hm.1] at this; exact this
   | win src rej mt h1 h2 h3 h4 h5 h6 => exact hwin src rej mt h1 h2 h3 h4 h5 h6
   | prop es h1 h2 h3 h4 h5 h6 h7 h8 h9 => exact hprop es h1 h2 h3 h4 h5 h6 h7 h8 h9
-  | cmt h1 h2 h3 h4 h5 h6 h7 h8 => exact hcmt h1 h2 h3 h4 h5 h6 h7 h8
+  | cmt h1 h2 h3 h4 h5 h6 h7 h8 h9 => exact hcmt h1 h2 h3 h4 h5 h6 h7 h8 h9
 
 theorem plog_pos {l : List EntryM} {k : w64} (hk1 : 1 ≤ uint.Z k) :
     plogTermAt base0 l k = (fun e : EntryM => e.Term') <$> l[(uint.Z k - 1).toNat]? := by
@@ -1422,7 +1426,7 @@ theorem ready_nonleader (S : State) (V : Fin 3 → NodeView) (net : List Msg) (e
       ps₁.commit = (V n).ps.commit → ReadyGoal S V net evs G n ps₁ rd)
     (hcmt : (V n).ps.role = .leader → ps₁.role = .leader → ps₁.term = (V n).ps.term →
       ps₁.vote = (V n).ps.vote → ps₁.log = (V n).ps.log → rd.ents = [] →
-      uint.Z (V n).ps.commit < uint.Z ps₁.commit → CmtOk ps₁ ps₁.commit →
+      uint.Z (V n).ps.commit < uint.Z ps₁.commit → CmtOk ps₁ ps₁.commit → NoSelf (nodeId n) ps₁ →
       ReadyGoal S V net evs G n ps₁ rd) :
     ∃ S', Prefix cfg3
         (evs ++ [evReady (nodeId n) (V n).byE rd.role rd.term rd.vote rd.commit rd.ents]) S' ∧

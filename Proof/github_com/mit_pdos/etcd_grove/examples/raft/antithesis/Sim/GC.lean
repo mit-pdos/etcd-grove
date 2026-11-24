@@ -532,10 +532,10 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
     (ho : S.oldVotes = .ok o) : AntSim (gcRes S g o) V net ∧ GlobalOk (gcRes S g o) net G := by
   obtain ⟨hsh, hb, hn, hno⟩ := hs
   have hc : S.cfg = cfg3 := hsh.1
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18⟩ := hb
   refine ⟨⟨hsh, ?_, ?_, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_⟩
+    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_, ?_⟩
     · intro n l hl
       exact hb7 n l (gcRes_get_ok hl)
     · intro n a ha
@@ -573,6 +573,14 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
           refine Int.lt_of_not_ge fun hle => ?_
           rw [over_false (S := S) (t := l.term) hc i (by rw [hlt]; exact hle)] at hov; cases hov
       · exact .inr h
+    · intro T hT
+      change (S.ledLog.without S.staleLed).has T = true at hT
+      show (S.ledConf.without S.staleLed).get T = _
+      rw [has_without] at hT
+      rw [get_without]
+      cases hs : S.staleLed.contains T
+      · rw [hs] at hT; exact hb18 T (by simpa using hT)
+      · rw [hs] at hT; cases hT
   · -- NetOk
     refine ⟨fun m hm => ?_, hn.2.1, hn.2.2.1, hn.2.2.2⟩
     obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm

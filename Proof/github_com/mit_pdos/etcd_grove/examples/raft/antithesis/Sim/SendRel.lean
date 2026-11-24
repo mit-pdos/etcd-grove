@@ -134,7 +134,7 @@ theorem send_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : Raft
     AntSim (sendS S n.val M C) (setV V n { V n with pend := rest }) (net ++ [q]) ∧
       GlobalOk (sendS S n.val M C) (net ++ [q]) G := by
   obtain ⟨hsh, hb, hn, hno⟩ := hs
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17, hb18⟩ := hb
   have hsub := hok.sub
   have hack : ∀ {src dst : Str} {t k : Int}, AckIn S src dst t k → AckIn (sendS S n.val M C) src dst t k :=
     fun h => AckIn.mono hsub h
@@ -142,7 +142,7 @@ theorem send_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : Raft
   refine ⟨⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, hok.clen, by simpa [sendS] using sh11,
     sh12, sh13, sh14⟩, ?_, ?_, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, ?_, hb4, hb5, hb6, ?_, ?_, hb9, hb10, ?_, hb12, hb13, ?_, hb15, ?_, hb17⟩
+    refine ⟨hb1, hb2, ?_, hb4, hb5, hb6, ?_, ?_, hb9, hb10, ?_, hb12, hb13, ?_, hb15, ?_, hb17, hb18⟩
     · intro j p hp
       by_cases hj : j = n
       · subst hj

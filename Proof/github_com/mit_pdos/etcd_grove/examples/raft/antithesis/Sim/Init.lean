@@ -65,7 +65,7 @@ theorem antSim_init : antSim_init.stmt := by
   · exact ⟨rfl, rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _,
       rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _, rep3_length _,
       rep3_length _, rep3_length _, rep3_length _⟩
-  · refine ⟨rfl, fun n => ⟨rep3_get _ n, rep3_get _ n⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · refine ⟨rfl, fun n => ⟨rep3_get _ n, rep3_get _ n⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro n p hp
       change (List.replicate cfg3.server.length (none : Option Pre))[n.val]! = some p at hp
       rw [rep3_get] at hp; cases hp
@@ -103,6 +103,7 @@ theorem antSim_init : antSim_init.stmt := by
     · refine ⟨fun T hT => by change 0 < tlOld [] T at hT; simp [tlOld] at hT, fun n hn => ?_⟩
       have hr : initS.role[n.val]! = follower := rep3_get _ n
       rw [hr] at hn; exact absurd hn (by decide)
+    · intro T hT; change TermFn.has ([] : TermFn (List Entry)) T = true at hT; cases hT
   · unfold NetOk HbCommitOk NetShape LeadCommitMsgOk
     refine ⟨?_, ?_, ?_, ?_⟩ <;> intro m hm <;> cases hm
   · intro n

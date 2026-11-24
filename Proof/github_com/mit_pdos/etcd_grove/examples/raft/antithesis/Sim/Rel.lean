@@ -276,6 +276,13 @@ def TermLenOk (S : AntCheck.State) : Prop :=
       S.commitIndex[n.val]! ≤ tlOld S.termLen (S.currentTerm[n.val]!)) ∧
     tlOld S.termLen (S.currentTerm[n.val]!) ≤ S.commitIndex[n.val]!
 
+/-- **C3, the leader configurations**: every term with a leader log has the initial configuration
+as its leader configuration (`InMemory`'s `lc1` records `config[n]`, the initial one, at a win,
+B 260; `GC` drops a term from `ledLog` and `ledConf` together, B 717; no configuration change is
+ever proposed). `cmt`'s `Acked` quorum (B 252) reads `ledConf` at the leader's term. -/
+def LedConfOk (S : AntCheck.State) : Prop :=
+  ∀ T, S.ledLog.has T = true → S.ledConf.get T = .ok cfg3.initConf
+
 /-- **C3**: facts about `S` alone, kept by every step and by `GC` (§3.2): no violation; no queued
 write or read (default mode); an announced write never `made` (`undo`, B 349-359, only between a
 `ready` and the next `send`/`apply`); `termLen` within `chain`; each node's commit within `chain`
@@ -287,7 +294,7 @@ only while it leads it; the grants' and acks' senders and receivers and the vote
 (`GC` looks them up, B 699-708: an evaluation error otherwise); a node's vote at its term in
 `votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540);
 the acks' terms (`AckTermsOk`), the votes' terms (`VoteTermOk`) and the `confirmed` records'
-(`ConfirmedOk`) within the nodes' terms; the terms' recorded commits (`TermLenOk`). -/
+(`ConfirmedOk`) within the nodes' terms; the terms' recorded commits (`TermLenOk`); the leader configurations (`LedConfOk`). -/
 def BindingOk (S : AntCheck.State) : Prop :=
   S.viol = [] ∧
   (∀ n : Fin 3, S.queue[n.val]! = [] ∧ S.reads[n.val]! = []) ∧
@@ -313,7 +320,13 @@ def BindingOk (S : AntCheck.State) : Prop :=
   (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i)) ∧
   (∀ n : Fin 3, S.vote n.val ≠ [] →
     { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes) ∧
-  AckTermsOk S ∧ VoteTermOk S ∧ ConfirmedOk S ∧ TermLenOk S
+  AckTermsOk S ∧ VoteTermOk S ∧ ConfirmedOk S ∧ TermLenOk S ∧ LedConfOk S
+
+theorem BindingOk.termLenOk {S : AntCheck.State} (h : BindingOk S) : TermLenOk S :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+
+theorem BindingOk.ledConfOk {S : AntCheck.State} (h : BindingOk S) : LedConfOk S :=
+  h.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
 
 /-! ## C4: the network -/
 
