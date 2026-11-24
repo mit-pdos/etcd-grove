@@ -18,7 +18,12 @@ translate = ["!*", "Errno", "LOCK_SH", "LOCK_EX", "LOCK_NB", "LOCK_UN", "PROT_RE
   "MAP_POPULATE",
   # (2026-11-22, wal-safe-errors) `Errno.Is` with its body (what `errors.Is` calls on an errno) and the
   # constants it compares with
-  "Errno.Is", "EACCES", "EPERM", "EEXIST", "ENOTEMPTY", "ENOTSUP", "EOPNOTSUPP"]
+  "Errno.Is", "EACCES", "EPERM", "EEXIST", "ENOTEMPTY", "ENOTSUP", "EOPNOTSUPP",
+  # (2026-11-24, Go-model overlays S6) what net's translated `OpError.Timeout`/`Temporary` and
+  # `isConnError` call on an errno: `Errno.Timeout`/`Temporary` with Go's bodies, the constants
+  # they compare with
+  "Errno.Timeout", "Errno.Temporary", "EINTR", "EMFILE", "ENFILE", "ETIMEDOUT", "ECONNRESET",
+  "ECONNABORTED"]
 imports = ["!*", "sync", "errors", "internal/oserror", "internal/gomodel"]
 # (2026-11-24, Go-model overlays S5, perennial#692) The functions minibolt, the WAL, fileutil and
 # os's Go code call are the Go model of the [model] table below (models/syscall/model.go, each

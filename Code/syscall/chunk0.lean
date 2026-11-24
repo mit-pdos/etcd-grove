@@ -2934,11 +2934,13 @@ opaque ECHRNG [GooseExts] [GoGlobalContext] : val
 
 opaque ECOMM [GooseExts] [GoGlobalContext] : val
 
-opaque ECONNABORTED [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ECONNABORTED [GooseExts] [GoGlobalContext] : val :=
+  #(W64 103)
 
 opaque ECONNREFUSED [GooseExts] [GoGlobalContext] : val
 
-opaque ECONNRESET [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ECONNRESET [GooseExts] [GoGlobalContext] : val :=
+  #(W64 104)
 
 opaque EDEADLK [GooseExts] [GoGlobalContext] : val
 
@@ -2969,7 +2971,8 @@ opaque EILSEQ [GooseExts] [GoGlobalContext] : val
 
 opaque EINPROGRESS [GooseExts] [GoGlobalContext] : val
 
-opaque EINTR [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def EINTR [GooseExts] [GoGlobalContext] : val :=
+  #(W64 4)
 
 @[reducible] noncomputable def EINVAL [GooseExts] [GoGlobalContext] : val :=
   #(W64 22)
@@ -3012,7 +3015,8 @@ opaque ELOOP [GooseExts] [GoGlobalContext] : val
 
 opaque EMEDIUMTYPE [GooseExts] [GoGlobalContext] : val
 
-opaque EMFILE [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def EMFILE [GooseExts] [GoGlobalContext] : val :=
+  #(W64 24)
 
 opaque EMLINK [GooseExts] [GoGlobalContext] : val
 
@@ -3030,7 +3034,8 @@ opaque ENETRESET [GooseExts] [GoGlobalContext] : val
 
 opaque ENETUNREACH [GooseExts] [GoGlobalContext] : val
 
-opaque ENFILE [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ENFILE [GooseExts] [GoGlobalContext] : val :=
+  #(W64 23)
 
 opaque ENOANO [GooseExts] [GoGlobalContext] : val
 
@@ -3148,7 +3153,8 @@ opaque ESTRPIPE [GooseExts] [GoGlobalContext] : val
 
 opaque ETIME [GooseExts] [GoGlobalContext] : val
 
-opaque ETIMEDOUT [GooseExts] [GoGlobalContext] : val
+@[reducible] noncomputable def ETIMEDOUT [GooseExts] [GoGlobalContext] : val :=
+  #(W64 110)
 
 opaque ETOOMANYREFS [GooseExts] [GoGlobalContext] : val
 
@@ -5847,6 +5853,36 @@ noncomputable def Errno.Is.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: syscall_unix.go:134:16 -/
+noncomputable def Errno.Temporary.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc Errno.ty))) (Var "e"))
+  (Let "$r0" (If (If (If (App (Val (GoInstruction (GoOp GoEquals Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")) (Val EINTR))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")) (Val EMFILE)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")) (Val ENFILE)))) (Val #true) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Errno.ty) go!"Timeout"))) (Var "e")) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: syscall_unix.go:138:16 -/
+noncomputable def Errno.Timeout.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc Errno.ty))) (Var "e"))
+  (Let "$r0" (If (If (App (Val (GoInstruction (GoOp GoEquals Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")) (Val EAGAIN))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")) (Val EWOULDBLOCK)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals Errno.ty))) (Pair (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")) (Val ETIMEDOUT))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- MODEL: errnoErr (syscall_unix.go): nil for 0, else e as an error. Go returns the preallocated
