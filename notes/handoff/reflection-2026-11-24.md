@@ -373,3 +373,14 @@ assignTo, Set and valueInterface/packEface; and `as`'s walk on the old asWalk te
 3. Port the F1 fix to Perennial lean (with review); the packet's items 3 (goose: + F1) and 7 (gate: the
    strict `lawDomOk`) are updated.
 4. The full Perennial build at 2eeebdbfc (chunked: `bin/pfull.sh`-style, 3 chunks).
+
+## Round 3 (pickup 2026-11-24 night): errors.As option (A), in progress
+
+Decision: option (A) (posted for Upamanyu on #40; no reply yet, proceeding as instructed). Plan:
+- Perennial reflect-s05: per-error premise `asModelled ii.ty` in `AsDecided` (non-interface, defined
+  kind, not the model rtype's layout, `directIfaceN` defined) plus `T`'s kind defined; for an interface
+  `T`, a per-error Lean representation (`IntoValTyped V ii.ty`) in `isErrorTree`'s node and `asNoMatch`.
+- reflectlite specs/proofs: isZeroSize/isDirectIface (ports of reflect's), general isModelRType,
+  unpackEface/ValueOf, Value.{Kind,Type,IsNil,Elem,Set}, packEface, valueInterface, assignTo,
+  isDefined, directlyAssignable, implements, rtype.{Implements,AssignableTo}; then errors.as/As.
+- F1 for Perennial lean: branch `goose-localtype-varinit` off origin/lean (a helper is doing it).
