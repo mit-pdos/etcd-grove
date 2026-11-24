@@ -797,3 +797,37 @@ option D); steps 2, 4, 5 after them; `NewServerCrash.lean`'s `sorry` (the case `
 
 Checkpoint 2026-11-24: the lifetime law proved and exposed (`e3572c99c0`); next decision: the L2
 bridge's form (a) or (b) above.
+
+**2026-11-24, decision: option (b) for the L2 bridge (L2 applied at the producer, not a raft ghost
+change). Not started; the next agent's starting point.**
+
+*Where the `MsgSnap` is in hand.* Not at `rnApSnap`'s production (`raftNode.start`'s snapshot hand-off):
+the payload's `rnReplayJob` quantifies over `MsgSnap`s that reach `applyAll` later through `msgSnapC`,
+from this `Ready` or a later one. The raft loop has the `MsgSnap` in hand where `processMessages` puts it
+on `msgSnapC` (`rnSnapMsg`, built from `rnRawMsgs` after the WAL `Save`, `rn_enter`), and there it holds
+`raftState γ.node.cl γ.id S'` (the busy driver's durable state after the batch is entered). So (b) is:
+1. At that point, for a `MsgSnap` `sm` of the `Ready` (`rnMessageSource`), with `nodeStartTerm γ.nl γ.t0`
+   from `rnRestartOk` and `readySnapSources_startTerm` (`t0 < sm.term`), `sentMsg_localSnapshotLeader`
+   (`snapshotLeader γ id sm.term`), and `sm.term = S'.term` (to check: the `Ready`'s hard-state term is
+   the leader's term while it sends; a later step-down raises `S'.term`, then `snapshotLeader` is at an
+   older term and L2 does not apply: that case must be shown unreachable at the merge, or the fact
+   carried only when the terms agree), apply L2 `raftState_cmtBefore_agree` with `cmtBefore γ id t0 a0`
+   (L1 at `raftNode.start`'s restart, `raftState_cmtBefore` with `l = srvLE … a0`, kept in the loop's
+   persistent restart data next to `rnRestartOk`) and `confFixed` (`srv_confFixed`). Result:
+   `⌜DurAgrees S' (a0.map toLE)⌝`.
+2. Carry it in `rnSnapMsg` (a new pure conjunct `sm.msg.Term' = S'.term → DurAgrees S' a0` with `S'`
+   existential), and change `rnReplayJob`'s premise to take that conjunct instead of
+   `rnMessageSource`.
+3. Open question that decides whether (b) works: `rnReplayJob_of_history` needs `replayRunsDescribe runs S n`
+   for the **same** `S` as the `DurAgrees`; the payload's runs describe the durable state at the snapshot
+   `Ready` (`S` = the snapshot at `k` plus `rd.Entries`), while step 1 gives `DurAgrees` at the `MsgSnap`'s
+   `Ready`. Needed: both durable states agree on `(n, |a0|]`, i.e. log monotonicity of the node's durable
+   log within a term between the two `Ready`s (a leader's log only grows), or produce the job at the
+   merge from the `MsgSnap`'s own `S'`. If neither holds, (b) is blocked and option (a) is the fallback:
+   report before starting it.
+
+Next statement to write (`ReplayJob.lean`, server): `rnReplayJob_of_snapMsg` — from `rnRestartOk γ`, the
+persistent L1 mark `cmtBefore γ.node.cl γ.id γ.t0 (srvLE γ.srv γ.a0)`, `srvRaftLogInv`, and
+`raftState γ.node.cl γ.id S'` with `rnMessageSource γ ⟨ml, sm⟩`, `sentMsg … sm`, `sm.msg.Type' = MsgSnap`,
+`sm.msg.Term' = S'.term`, `γ.a0 ≠ []`: `|={E}=> raftState … S' ∗ ⌜DurAgrees S' (γ.a0.map EntryModel.toLE)⌝`
+(L2 instantiated; `↑srvClusterN ∪ ↑srvConfN ∪ ↑srvLogN ⊆ E`).
