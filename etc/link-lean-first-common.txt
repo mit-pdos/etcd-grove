@@ -52,14 +52,10 @@ etcdstart_StartMembers: etcdstart_NewMember EtcdServer__Start
 # `Serve`: the member's gRPC service (v3rpc's results, linked in its `Link.lean`; `net`'s and
 # grpc's trust-boundary axioms, the keepalive policy's among them, D28)
 v3rpc_Server: @
-# (per-type stage B) `Serve` is the trusted model (`Server.Serve.impl := model.Serve`), proved over
-# its leaves' axioms (model-only names, `google.golang.org/grpc#model.*`)
-grpc_Server__Serve: model_Serve
-model_Serve: model_acceptRun model_acceptRunConns model_respond model_finishStream
-model_acceptRun:
-model_acceptRunConns:
-model_respond:
-model_finishStream:
+# (phase 7 S2's interface, 2026-11-24) `Serve` is a trust-boundary axiom over the right to serve a
+# service table (`grpcServeTok gs lis a Svc`); per-type stage B to then: the trusted model
+# `Server.Serve.impl := model.Serve`, proved over its leaves' axioms, retired
+grpc_Server__Serve:
 grpc_KeepaliveEnforcementPolicy:
 # (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
 etcdstart_Serve: grpc_KeepaliveEnforcementPolicy v3rpc_Server net_Listen grpc_Server__Serve =client.grpcCfgOk_of_startedM_law_holds =client.raftKV_serverM_law_holds

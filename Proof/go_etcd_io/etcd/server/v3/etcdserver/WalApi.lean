@@ -533,7 +533,7 @@ approved by the user via etcd-grove-03, `notes/datadir-relative-unsat.md`): what
 snapshots' file claims `bootOk` gives are made of. (Sweep repairs 1, W3/W4, 2026-11-07: until then the
 WAL directory's `walDirFresh`, which said nothing of the backend file a first start opens; wal-link P2,
 2026-11-19: until then no dedicated WAL directory, the WAL in the data directory.) (2026-11-24, approved
-by Upamanyu for `putget_safe`, `notes/putget-dist-plan.md` §12: a deletion of trust) It no longer takes
+for `putget_safe`, `notes/putget-dist-plan.md` §12: a deletion of trust) It no longer takes
 the axiomatized token `dataDirFresh cfg.DataDir'` (the data directory absent or empty, so no backend
 file at `config.backendPathOf`): `dataAreaFresh cfg.DataDir'` already says it, as a claim on every name
 of the directory, none of which names an entry (`dataAreaFresh`'s definition, `storage/WalAreaFresh.lean`:

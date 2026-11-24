@@ -102,7 +102,6 @@ theorem delCountT_le : ∀ ops : List TxnOp, delCountT ops ≤ (ops.map TxnOp.wi
     have := delCountT_le us
     simp only [delCountT, List.map_cons, List.sum_cons]; omega
 
-
 section send
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -182,118 +181,7 @@ end
 
 end send
 
-
 /-! ## The store -/
-
-section trees
-variable [GooseExts] [GoGlobalContext]
-
-/-- The type of a comparison's operand wrapper (`TargetUnion`'s dynamic type). -/
-def unionTy : CmpTarget → go.GoType
-  | .value => go.GoType.PointerType etcdserverpb.Compare_Value.ty
-  | .version => go.GoType.PointerType etcdserverpb.Compare_Version.ty
-  | .create => go.GoType.PointerType etcdserverpb.Compare_CreateRevision.ty
-  | .mod => go.GoType.PointerType etcdserverpb.Compare_ModRevision.ty
-  | .lease => go.GoType.PointerType etcdserverpb.Compare_Lease.ty
-
-/-- **The store of a comparison's operand**: the target's wrapper, always allocated. -/
-def unionTree (c : CmpModel) : VTree :=
-  match c.target with
-  | .value => .ptr etcdserverpb.Compare_Value.ty (.strct etcdserverpb.Compare_Value.ty
-      [(go!"Value", go.GoType.SliceType go.byte)] [bytesTree go.byte c.val])
-  | .version => .ptr etcdserverpb.Compare_Version.ty (.strct etcdserverpb.Compare_Version.ty
-      [(go!"Version", go.int64)] [.leaf #c.num])
-  | .create => .ptr etcdserverpb.Compare_CreateRevision.ty
-      (.strct etcdserverpb.Compare_CreateRevision.ty [(go!"CreateRevision", go.int64)] [.leaf #c.num])
-  | .mod => .ptr etcdserverpb.Compare_ModRevision.ty
-      (.strct etcdserverpb.Compare_ModRevision.ty [(go!"ModRevision", go.int64)] [.leaf #c.num])
-  | .lease => .ptr etcdserverpb.Compare_Lease.ty (.strct etcdserverpb.Compare_Lease.ty
-      [(go!"Lease", go.int64)] [.leaf #c.num])
-
-/-- **The store of a comparison** (its key and range end `nil` if empty). -/
-def cmpTree (c : CmpModel) : VTree :=
-  .ptr etcdserverpb.Compare.ty (.strct etcdserverpb.Compare.ty
-    [(go!"Result", etcdserverpb.Compare_CompareResult.ty),
-     (go!"Target", etcdserverpb.Compare_CompareTarget.ty),
-     (go!"Key", go.GoType.SliceType go.byte), (go!"TargetUnion", unionTy c.target),
-     (go!"RangeEnd", go.GoType.SliceType go.byte)]
-    [.leaf #c.op.code, .leaf #c.target.code, bytesTree go.byte c.key, unionTree c,
-     bytesTree go.byte c.rangeEnd])
-
-/-- **The store of a get's request** (its fields read back from the get's `OpFull`). -/
-def getStrct (o : OpFull) : VTree :=
-  .strct etcdserverpb.RangeRequest.ty
-    [(go!"Key", go.GoType.SliceType go.byte), (go!"RangeEnd", go.GoType.SliceType go.byte),
-     (go!"Limit", go.int64), (go!"Revision", go.int64),
-     (go!"SortOrder", etcdserverpb.RangeRequest_SortOrder.ty),
-     (go!"SortTarget", etcdserverpb.RangeRequest_SortTarget.ty),
-     (go!"Serializable", go.bool), (go!"KeysOnly", go.bool), (go!"CountOnly", go.bool),
-     (go!"MinModRevision", go.int64), (go!"MaxModRevision", go.int64),
-     (go!"MinCreateRevision", go.int64), (go!"MaxCreateRevision", go.int64)]
-    [bytesTree go.byte o.key, bytesTree go.byte o.base.rangeEnd, .leaf #o.base.limit,
-     .leaf #o.base.rev, .leaf #(W32 (uint.Z o.sortOrder)), .leaf #(W32 (uint.Z o.sortTarget)),
-     .leaf #o.base.serializable, .leaf #o.keysOnly, .leaf #o.base.countOnly,
-     .leaf #o.base.minModRev, .leaf #o.base.maxModRev, .leaf #o.base.minCreateRev,
-     .leaf #o.base.maxCreateRev]
-
-/-- **The store of a delete's request.** -/
-def delStrct (o : OpFull) : VTree :=
-  .strct etcdserverpb.DeleteRangeRequest.ty
-    [(go!"Key", go.GoType.SliceType go.byte), (go!"RangeEnd", go.GoType.SliceType go.byte),
-     (go!"PrevKv", go.bool)]
-    [bytesTree go.byte o.key, bytesTree go.byte o.base.rangeEnd, .leaf #o.base.prevKV]
-
-/-- **A put's request from the model's operation** (`putTxnOp` maps it back: `putTxnOp_putOfOp`). -/
-def putOfOp : TxnOp → OpFull
-  | .put k v l => txn.putOpOf k v l false false false
-  | .putKeep k v => txn.putOpOf k v (W64 0) false false true
-  | .putIgnVal k none => txn.putOpOf k [] (W64 0) false true true
-  | .putIgnVal k (some l) => txn.putOpOf k [] l false true false
-  | _ => txn.putOpOf [] [] (W64 0) false false false
-
-/-- **A `RequestOp` whose oneof wraps (`wty`, its field `fname`) a fresh request.** -/
-def wrapTree (wty : go.GoType) (fname : GoString) (innerTy : go.GoType) (inner : VTree) : VTree :=
-  .ptr etcdserverpb.RequestOp.ty (.strct etcdserverpb.RequestOp.ty
-    [(go!"Request", go.GoType.PointerType wty)]
-    [.ptr wty (.strct wty [(fname, go.GoType.PointerType innerTy)] [inner])])
-
-/-- **A transaction request's fields**: its comparisons, its branches' stores `tsT`, `esT`. -/
-def txnStrct (cs : List CmpModel) (tsT esT : VTree) : VTree :=
-  .strct etcdserverpb.TxnRequest.ty
-    [(go!"Compare", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.Compare.ty)),
-     (go!"Success", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.RequestOp.ty)),
-     (go!"Failure", go.GoType.SliceType (go.GoType.PointerType etcdserverpb.RequestOp.ty))]
-    [sliceTree (go.GoType.PointerType etcdserverpb.Compare.ty) (cs.map cmpTree), tsT, esT]
-
-mutual
-/-- **The store of an operation** (a nested transaction's recursively). -/
-def reqOpTree : TxnOp → VTree
-  | .get o => wrapTree etcdserverpb.RequestOp_RequestRange.ty go!"RequestRange"
-      etcdserverpb.RangeRequest.ty (.ptr etcdserverpb.RangeRequest.ty (getStrct o))
-  | .delete o => wrapTree etcdserverpb.RequestOp_RequestDeleteRange.ty go!"RequestDeleteRange"
-      etcdserverpb.DeleteRangeRequest.ty (.ptr etcdserverpb.DeleteRangeRequest.ty (delStrct o))
-  | .txn cs ts es => wrapTree etcdserverpb.RequestOp_RequestTxn.ty go!"RequestTxn"
-      etcdserverpb.TxnRequest.ty (.ptr etcdserverpb.TxnRequest.ty (txnStrct cs
-        (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree ts))
-        (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree es))))
-  | op => wrapTree etcdserverpb.RequestOp_RequestPut.ty go!"RequestPut"
-      etcdserverpb.PutRequest.ty (.ptr etcdserverpb.PutRequest.ty (putReqTree (putOfOp op)))
-/-- The stores of operations, in order. -/
-def reqOpsTree : List TxnOp → List VTree
-  | [] => []
-  | op :: ops => reqOpTree op :: reqOpsTree ops
-end
-
-/-- **The store of a transaction request.** -/
-def txnReqTree (t : TxnModel) : VTree :=
-  txnStrct t.cmps (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree t.thenOps))
-    (sliceTree (go.GoType.PointerType etcdserverpb.RequestOp.ty) (reqOpsTree t.elseOps))
-
-theorem reqOpsTree_length : ∀ ops : List TxnOp, (reqOpsTree ops).length = ops.length
-  | [] => rfl
-  | _ :: ops => by simp only [reqOpsTree, List.length_cons, reqOpsTree_length ops]
-
-end trees
 
 theorem w32_of_w64_sext (x : w32) : W32 (uint.Z (W64 (sint.Z x))) = x := by
   word
@@ -346,7 +234,6 @@ theorem len_bound (sl : GoSlice) (e : GoString) (hk : e.length < 2 ^ 32)
   rw [e1] at hlen
   generalize sint.Z sl.len = n at hlen ⊢
   omega
-
 
 /-! ## The store's WPs -/
 
@@ -555,7 +442,6 @@ theorem treeWp_cmp (c : CmpModel) (hk : c.key.length < 2 ^ 32) (Φ : val → IPr
       exact Hw
     · ipureintro; exact len_bound ksl c.key hk Hk'.2.2.1
 
-
 /-- **A get's request, stored.** -/
 theorem treeWp_get (o : OpFull) (hg : GetOk o) (hk : o.key.length < 2 ^ 32) (Φ : val → IProp GF) :
     (∀ r : Loc, txn.rangeRequestIs r o -∗ Φ #r) ⊢
@@ -608,7 +494,6 @@ theorem treeWp_get (o : OpFull) (hg : GetOk o) (hk : o.key.length < 2 ^ 32) (Φ 
   isplitr
   · ipureintro; rw [He'.1]; refine (getOk_eq hg).trans ?_; simp
   · ipureintro; exact len_bound ksl o.key hk Hk'.2.2.1
-
 
 /-- **A delete's request, stored**, with its range end as decoded (`nil` or not empty) through any
 points-to of the field. -/
@@ -719,7 +604,6 @@ theorem treeWp_put (op : TxnOp) (hk : (putOfOp op).key.length < 2 ^ 32) (Φ : va
   isplitr
   · ipureintro; refine (putOfOp_eq op).trans ?_; simp
   · ipureintro; exact len_bound ksl _ hk Hkl.1
-
 
 /-- **A `RequestOp` wrapping a fresh `RequestRange`** (its request's store `inner`, giving `Q`). -/
 theorem treeWp_wrapRequestRange (inner : VTree) (Q : Loc → IProp GF)
@@ -905,7 +789,6 @@ theorem treeWp_wrapRequestTxn (inner : VTree) (Q : Loc → IProp GF)
   imodintro
   iapply H $$ %p %w %r %Hnn HR HW Hr
 
-
 /-! ### Repeated fields with a precondition, a transaction's fields -/
 
 /-- `delWireAtT` is persistent (as `Results.lean`'s, which this module does not import). -/
@@ -1088,7 +971,6 @@ theorem treeWp_txnStrct (cs : List CmpModel) (ts es : List TxnOp) (tsT esT : VTr
   ihave %E4 := ownSlice_agree _ _ _ _ _ $$ Hfsl Hfsl'
   subst E4
   iframe Hsw Hfw
-
 
 /-- **A put operation, stored.** -/
 theorem treeWp_reqOpPut (op : TxnOp) (hk : (putOfOp op).key.length < 2 ^ 32)
@@ -1291,7 +1173,6 @@ end
 
 end wps
 
-
 /-! ## The instance -/
 
 section inst
@@ -1303,7 +1184,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 /-- **`pbTxnRequest` with its store**, its `wireLen` set explicitly (`[v6a]` item 5). -/
 def pbTxnRequestT : ProtoMsgT GF :=
-  { pbTxnRequest with wireLen := txnWireLen, tree := txnReqTree }
+  { pbTxnRequest with wireLen := txnWireLen }
 
 /-- **Some transaction's request fits** (`[v6a]` item 5: the `wireLen` premise is satisfiable). -/
 theorem pbTxnRequestT_wireLen_ok : ∃ m, (pbTxnRequestT (GF := GF)).wireLen m < grpcMsgMax :=

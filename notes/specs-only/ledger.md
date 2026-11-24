@@ -56,6 +56,27 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Decision.** Accepted (the owner, 2026-11-24: interim axioms for `putget_safe`, F1's option (a)); applied on
   `dist-putget-interim/2026-11-24`, not landed (the owner reviews the trusted delta: the five axioms and
   `grpc.NewClient`'s axiom now covering dials with `WithNoProxy`).
+## 2026-11-24: `roundTripperOk` (`SpecPlan/Spec/net/http/Api.lean`) -- a length-framed body's completion fact comes too late
+
+- **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (the body premise
+  `□ (∀ B, Φb B -∗ P.body R τ B)`) and `reqOwn r R bd`; the main tree's `Proof/net/http/Boundary.lean`
+  does not have the defect (its fixed body's bytes are `HReq.body`).
+- **Defect.** Unprovable over Go's Transport for a body of declared length. `NewRequest` of a
+  `*bytes.Buffer`/`*bytes.Reader`/`*strings.Reader` sets `ContentLength = n`, and the Transport writes
+  `Content-Length: n`, then copies `n` bytes of the body, and only then reads on to `EOF`
+  (`transferWriter.writeBody`: `io.LimitReader(body, n)`, then the extra-byte check). The server's body
+  reader returns `EOF` after `n` bytes, and `readerAt_read.spec` makes it give `□ P.body R τ B`. But
+  the client has `Φb B` only after its reader's `EOF`, when the last byte is already on the wire. So the
+  byte protocol cannot carry `P.body` with the request's last byte.
+- **Evidence.** Design of S5's byte protocol (`notes/phase7-plan.md`, "S5 draft signatures", §5 C2);
+  Go 1.27.3 `net/http/transfer.go`, `writeBody`.
+- **Proposed change.** `reqOwn r R bd cl` records the declared length (`cl : Option Nat`, which
+  `NewRequest` sets), and for `cl = some n`, `roundTripperOk` asks
+  `□ ∀ B, Preb B -∗ ⌜B.length = n⌝ -∗ P.body R τ B` in place of the `Φb` clause. `NewBuffer_reader.spec`'s
+  `Pre B := ⌜B <+: ys⌝` gives it at `n = ys.length`. A streamed body (`cl = none`, sent chunked) keeps
+  the `Φb` clause: the terminator is written after the reader's `EOF`.
+- **Decision.** Pending (posted on #24 with the S5 draft; the client boundary's statement, so it needs
+  coordinator-E's and the user's agreement).
 
 ## 2026-11-23: the model's `strings` stand-ins and read-error wrappers removed (`modelCutByte`/`modelTrimLeftByte`, `connectReader`, `connReader.failed`); `parseRequestLine.spec`, `connReader.Read.spec`, the server reader's deadline specs, `Conn.Read.specLc` (net/http and net/rpc models)
 
@@ -5808,3 +5829,132 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+
+## 2026-11-24: phase 7 S2's interface switch (branch `s2-switch`; option (A); seven entries)
+
+The switch the user asked for ("do S2's interface switch now, with the unproved parts as axioms, so
+etcd-dist can proceed without waiting for the S2 proofs"), as designed and adversarially reviewed
+(`notes/axiom-review/s2-interface.md`). Statements of every closed theorem unchanged (`git diff
+origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'` empty).
+
+### 1. `isGrpcRpcMd` redefined over `grpcSvcAt` and `grpcReach` (a definition that stays)
+
+- **Spec.** `isGrpcRpcMd addr name Spec := ∃ a₀ (_ : HasExt netExt) π σ, grpcReach addr a₀ ∗ grpcSvcAt a₀
+  name Req.wire Rep.wire Spec` (`Proof/google_golang_org/grpc/InvGrpc.lean`), with `grpcReach a a₀ := ⌜a = a₀⌝ ∨
+  □ ∀ γ, grpcAddrIs a₀ γ -∗ grpcAddrIs a γ`; until then `∃ γ, grpcAddrIs addr γ ∗ isGrpcRpcAt γ name Spec`
+  (`isGrpcRpcAt`: a WP of the server's handler at the holder's heap, deleted). `isGrpcRpc`, `isGrpcRpcs`,
+  `isGrpcRpcsMd` keep their text; `isGrpcRpcMd_mono`/`_mono_upd` (through `grpcSvcAt_mono_upd`),
+  `isGrpcRpc_mono_with` (`InvLeaseGrant.lean`) and `isGrpcRpcMd_forwards` (`cluster3/Defs.lean`, by
+  composing the bridge's wand with `grpcReach`) reproved, statements unchanged. `InvGrpc.lean` is split:
+  `InvGrpcBase.lean` (everything up to the run contracts, the metadata keys) below `InvGrpcWire.lean`, the
+  registrations and the client attempt above it.
+- **Defect.** A registration named the server's heap, so a service table shared by two machines could not
+  hold it (#24, O2).
+- **Evidence.** The full build (VM); `etc/heapfree-check.py` roots `grpcSvcAt`, `grpcAddrAt`, `grpcCliPI`,
+  `grpcSrvPI`, `ProtoMsg.wire`.
+- **Decision.** Applied (the user's request, 2026-11-24).
+
+### 2. `ProtoMsg` gains `tree`; `ProtoWire := ⟨ty, M, tree⟩`; `protoEncodes` (kept)
+
+- **Spec.** `ProtoMsg.tree : M → VTree` (moved from `ProtoMsgT`, which adds no field and stays for the
+  registries and `ReqSat`/`RepSat`; the thirty instances' trees moved into the base modules, `InvKVConn`,
+  `InvLease`, `InvLeaseRead`, `InvAuthConn`, `InvClientAuth`, so `pbXT := { pbX with }` and
+  `pbXT.toProtoMsg = pbX` stays `rfl`); `ProtoWire := ⟨ty, M, tree⟩` (it had `enc : M → List w8`);
+  `ProtoMsg.wire T := ⟨T.ty, T.M, T.tree⟩`; the opaque `protoEncodes ty t bs` (`Store.lean`, no law) in
+  place of `enc` in the defined protocols (O3, O7).
+- **Defect.** `enc` would have needed some thirty hand-written, trusted encoders; the tree is the store's,
+  already reviewed.
+- **Decision.** Applied.
+
+### 3. `grpcAddrAt`'s protocols are the opaque `grpcCliPI`/`grpcSrvPI` (S2 interface, retired as S2 proves it)
+
+- **Spec.** Already on `lean` from `s2-vocab` (2026-11-23); now the protocols every registration rests on.
+- **Defect.** With the defined `grpcCliP`/`grpcSrvP`, `Serve`'s and `Invoke`'s axioms are unsound (C1, C2,
+  C2' of the review).
+- **Proposed change at S2.** `grpcCliP`/`grpcSrvP` take their place once S2 proves `Invoke` and `Serve` over
+  the model, with the dec-shaped run contract (the deposit claimed through grpc's `dec`, §0a correction 1)
+  and a stated world premise (F2: no code but grpc's and the trusted bridges touches a grpc address's
+  connections).
+- **Decision.** Applied.
+
+### 4. `Server.Serve.spec`/axiom over `grpcServeTok gs lis a Svc` and `grpcServes` (S2 interface, retired as S2 proves it)
+
+- **Spec.** `grpc.Server.Serve.spec : ∀ gs lis a Svc, {{ grpcServeTok gs lis a Svc }} gs.Serve(lis) {{ err,
+  True }}` and `axiom grpc.Server.Serve.wp_proof`; `grpcServeTok gs lis a Svc` (`InvGrpcRun.lean`): Go's
+  configuration started (`grpcSrvLink`, `grpcAddrIs a γ`, `grpcSrvCfg γ c`) or being built (`grpcSrvNew`,
+  `netListenerOpen lis a`), distinct names, `grpcRepliesFit`, `grpcAddrAt a Svc`, `grpcServes Svc c.ics
+  c.regs c.sregs` (each entry names no stream, C3, and is met by Go's registered handler's run contract at
+  the registered models). Until then a theorem over the model `Serve` and `grpcServeTok gs lis γ`.
+- **Defect.** None of meaning for the single-process results; the statement is what a member of a
+  distributed deployment, whose table was set by the deployment's start, can meet.
+- **Evidence.** The review's attacks (`notes/axiom-review/s2-interface.md`).
+- **Decision.** Applied.
+
+### 5. `ClientConn.Invoke.wp_proof` re-reviewed under its new meaning (S2 interface, retired as S2 proves it)
+
+- **Spec.** Text unchanged (`Spec/google_golang_org/grpc/ClientConn__Invoke.lean`, `grpcInvokerOk`); its
+  `isGrpcRpcsMd` premise now means the heap-free registration of entry 1; docstring restated.
+- **Decision.** Applied; ok with the opaque protocols (the review).
+
+### 6. The single-process chain over Go's table (kept)
+
+- **Spec.** `grpcGoSvc ics regs tys` (`InvGrpc.lean`: Go's configuration as a table, an entry per registered
+  unary method `tys` gives registered models), `grpcServes_go`, `grpc.start'` (takes `netAddrLeft addr`,
+  `tys` and its registry facts; sets the table in the ghost step that allocates the registry and the slot
+  map), `grpcServerAt addr ics regs tys γ` (adds the address's table), `grpc.serve` (adds `tys m.name = some
+  (m.Req, m.Rep)`); etcd's table `etcdTys` (`client/v3/GrpcTys.lean`, fifteen methods, `etcdTys_reg`), the
+  served lemmas with methods `ms` taking `etcdTys m.name = …` for them. `netAddrFree a := addrClaim a ∗
+  addrUnset a` (it had the listening token and validity only), `net.Listen`'s post gains `netAddrLeft addr`
+  (the pending set, the validity, the listening token in an invariant: the net extension's `Listen` takes the
+  token at its step and gives it back), `netListenerAt l a := addrClaim a ∗ netListenerOpen l a`;
+  `grpcUp`/`grpcUpM`/`grpcUpOn` carry `netAddrLeft`; `etcdstart.Serve.spec`'s caller step returns `∃ Svc,
+  grpcServeTok gs lis addr Svc`; `client.WEnv.none` (`client/v3/WEnvNone.lean`), the placeholder watch
+  environment for a client with no member's heap.
+- **Defect.** A table is fixed when its address is set, before the served lemmas choose their specs: hence
+  Go's table, whose entries quantify over the specs a handler's run contract meets.
+- **Decision.** Applied.
+
+### 7. Retired: the model `Serve`'s leaves
+
+- **Spec.** `grpc.model.acceptRun`, `acceptRunConns`, `respond`, `finishStream` (specs and axioms),
+  `grpc.model.Serve` (its theorem), `grpcAccepted`, `grpcReplyTo`, `grpcConnsLink` deleted;
+  `TrustedCode/google_golang_org/grpc.lean` keeps the model's code (no proof uses it).
+- **Decision.** Applied.
+## 2026-11-23: `json.Marshal` of a membership record names its bytes (#24 J2, batch 2)
+
+- **Spec.** `encoding.json.MarshalMember.spec` and `MarshalConfigChangeContext.spec`
+  (`Spec/encoding/json/`): the post was `∃ b, sl ↦* b` (some fresh bytes, the smallest form, an axiom);
+  now `sl ↦* membership.memberJson m ps cs` (resp. `membership.ccJson c ps cs`,
+  `Proof/.../membership/Json.lean`), and both are theorems.
+- **Defect.** None. The post is stronger (the callers, `EtcdServer.AddMember`/`UpdateMember`/`promoteMember`,
+  only drop the binder `b`). #34's bootstrap needs `ctxs = json.Marshal` of each member.
+- **Evidence.** Proved over the encoding/json model's `Marshal` (per-type dispatch, `marshalVia`) and
+  membership's generated `JSONModelMarshal`/`jenc_*` over jsoncodec's proved encoders. Over the model as it
+  was, the old axiom was **not provable**: `jsoncodec.AppendString` panicked on any string outside
+  0x20..0x7e minus `" \ < > &`, and a member's name or URL may hold such bytes (the model was less defined
+  than Go there, so no premise a caller could discharge would do). The model's `AppendString` now writes
+  every string as Go 1.27.3's encoding/json does (approved on #24 by coordinator-E,
+  issuecomment-7118306081; tested exhaustively on short strings, `TestAppendString`).
+- **Proposed change.** As above.
+- **Decision.** Applied (branch `prove-ps2-jsonj4/2026-11-23`).
+## 2026-11-24: v3alarm.AlarmStore.restore: two write-back tokens, the alarm bucket's claim token, a non-nil schema backend (prove-ps2-v3alarm, #43)
+
+- **Spec.** `v3alarm.AlarmStore.restore.spec` and `AlarmStore.Recover.spec` (`Spec/.../etcdserver/api/v3alarm/`), which
+  were proved over `restore`'s trust-boundary axiom; and `schema.NewAlarmBackend.spec`'s post.
+- **Defect.** Three resources the body needs that the statements did not hand in, found by proving `restore` over
+  its body: (1) one write-back token (`backend.wbTok`), where `CreateAlarmBucket`'s deferred `Unlock` and
+  `ForceCommit`'s commit each spend one; (2) no claim token of the alarm bucket, without which the idle part
+  (`rbOwnIn`) says nothing of what `GetAllAlarms`' read transaction sees (a claimed bucket's readers' contents may
+  lag the writer's: the claim invariant links them only for an unclaimed one); (3) nothing saying the schema
+  backend's pointer `abl` is not nil, which `ForceCommit`, a value method called through the pointer, dereferences
+  (Go panics on a nil `*alarmBackend`). Not a bug in Go: `NewAlarmBackend` allocates.
+- **Evidence.** The proof (`Proof/.../v3alarm/AlarmStore__restore.lean`, over `schema.alarmBackend`'s
+  `CreateAlarmBucket`, `GetAllAlarms`, `unsafeGetAllAlarms`, `ForceCommit` and the new backend law
+  `backend.rtHeld_rbOwnIn_idle`, `Proof/.../backend/IdleRead.lean`).
+- **Proposed change.** `restore.spec`/`Recover.spec` take a second `wbTok γB`, `rbClaimToks γB P (· = "alarm")`
+  (handed back in the post) and `⌜abl ≠ null⌝`; `NewAlarmBackend.spec`'s post adds `⌜l ≠ null⌝` (a fresh
+  allocation). The one caller of `Recover`, `SnapApplyWalk` (`applySnapshot`), takes the extra token from the new
+  backend's stock (one fewer for `srvWTStock`), the claim token from the new backend's tokens (split from the auth
+  buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
+  No top-level statement changes (the tokens come from the backend's constructor inside the proof).
+- **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.

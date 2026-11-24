@@ -22,11 +22,13 @@
 # --- rule 2: the one token mint ---
 entry Perennial.EtcdGrove.goose_adequacy_start 2:*:produced1/consumed0  the first thread's token, from `σ.threads = 1` at the start of the run (Proof/runtime/Start.lean); the adequacy theorem's own premise
 
-# --- the grpc pair (Scope r5 §2.2, "The pair"; InvGrpcRun.lean's header) ---
-pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
-pair Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof
-pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.Invoke.wp_proof
-pair Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof Perennial.EtcdGrove.grpc.ClientConn.NewStream.wp_proof
+# (phase 7 S2's interface, 2026-11-24: the grpc pair's `acceptRun`/`acceptRunConns` entries retired with
+# the model `Serve`'s leaves; `Server.Serve`'s axiom returns nothing)
+# Its walk truncates (`stuck projection: cd.4`: the run context's description in `grpcServes`'
+# `grpcRunOkMd`, a program-picked record), as `acceptRun`'s and `acceptRunConns`' did through the same
+# run contract; their two `trunc` lines retired with them, so the ratchet holds one line where it held two.
+trunc Perennial.EtcdGrove.grpc.Server.Serve.wp_proof
+entry Perennial.EtcdGrove.grpc.Server.Serve.wp_proof 2:*:handedtoacallback1/supplieddirectly0,3:Spec:produced1/consumed0  phase 7 S2's interface (notes/axiom-review/s2-interface.md): the thread token handed to a callback is the run contract's (`grpcServes`' `grpcRunOkMd #mh srv ics Spec`: each accepted call runs its handler on a goroutine of its own, given a token and returning it), not a mint; the `Spec` atom is produced by a client's deposit (`ClientConn.Invoke`'s `grpcDeposit` at the table's entry) and consumed by the handler's run across the two axioms, as the design has it, so neither axiom alone both produces and consumes it
 
 # --- B1a triage of B0's report-only run (2026-11-11; /shared/tmp/stageB/freeze-cp1a.md §1) ---
 # Checker artefacts: a callback the Go code never calls (the pre's handle carries a method contract
@@ -40,10 +42,6 @@ entry Perennial.EtcdGrove.EtcdServer.monitorStorageVersion.wp_proof 3:Ψ:produce
 entry Perennial.EtcdGrove.etcd_noRefusal 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF  as monitorStorageVersion (an atomic update's fixpoint witness inside the consumed server handle)
 entry Perennial.EtcdGrove.io.MultiReader.wp_proof 7:Src:Listw8→IPropGF  `∃ Src` is `streamHas`'s representation predicate, bound with the one reader contract (`streamReaderOk`) that uses it and its start `Src []`
 
-# --- CP1a: the stream content's transfer (freeze-cp1a.md §4, review m4/m1) ---
-entry Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof 7:Dn:Nat→Rep.M→IPropGF  Dn is the stream's content family, fixed by the client's `NewStream` (its post) and shared through the stream's names `γs` with the server end `srvRawStreamIs st γs … Dn` and the persistent `Spec md γs Dn` that `acceptRun` hands to the one run of that stream; the `srvRecvTok`/`srvSendTok`/`streamAuxTok` halves at `γs` are those `NewStream` allocated (the old `grpc.serveStream`'s pattern); rule 7's neutral case, not recognized through the defined handle (gate fix at CP3)
-entry Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof 7:Dn:Nat→Rep.M→IPropGF  as acceptRun's (the same stream arm, on an open connection after the listener failed)
-
 # --- CP3 (2026-11-11): the walks the scenario cap collapsed, now decided; the same reasons as above ---
 entry Perennial.EtcdGrove.EtcdServer.monitorClusterVersions.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as monitorStorageVersion (an atomic update's fixpoint witness inside the consumed server handle; post `True`); `∃ P` is a `*cancelCtx`'s Done proposition, held only by `isCancelCtxOf`'s mutex and invariant (neutral handles; the walk stops there at `--depth`)
 entry Perennial.EtcdGrove.EtcdServer.publishV3.wp_proof 3:Ψ:produced1/consumed0,7:Φ:Unit-n>IPropGF,7:P:IPropGF  as monitorClusterVersions (post `True`)
@@ -53,7 +51,6 @@ entry Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof 7:Φ:GoString×
 entry Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.storage.OpenBackend.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
-entry Perennial.EtcdGrove.v3alarm.AlarmStore.restore.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:Φ:GoString×GoString→IPropGF  `dlIs`'s, as backend.Snapshot's
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 3:Pre:produced2/consumed1  as v3alarm.NewAlarmStore's: Pre is bound in the produced `authApplyOk` → `isAuthStore`; the hook path and the no-lock path are exclusive, so the two productions are one `Pre` on one of them (reason rewritten 2026-11-12, stage B gate triage)
 entry Perennial.EtcdGrove.auth.NewAuthStore.wp_proof 7:RD:IPropGF  the auth store's reader permit: its copies are produced together with the handles that alone use it (`isReqAuth st RD`, `authApplyOk stl RD`, each call consuming a copy and returning it), the Scope's rule 7 first case (§5.1, "`NewAuthStore`'s `RD` inside `isReqAuth`"), which the walk does not recognize through the defined handles
@@ -82,8 +79,6 @@ trunc Perennial.EtcdGrove.context.WithValue.wp_proof
 trunc Perennial.EtcdGrove.corev1.Node.DeepCopyObject.wp_proof
 trunc Perennial.EtcdGrove.corev1.Pod.DeepCopyObject.wp_proof
 trunc Perennial.EtcdGrove.etcd_noRefusal
-trunc Perennial.EtcdGrove.grpc.model.acceptRun.wp_proof
-trunc Perennial.EtcdGrove.grpc.model.acceptRunConns.wp_proof
 trunc Perennial.EtcdGrove.grpc_prometheus.ServerMetrics.StreamServerInterceptor.wp_proof
 trunc Perennial.EtcdGrove.metadata.AppendToOutgoingContext.wp_proof
 trunc Perennial.EtcdGrove.proto.MarshalAppendPb.wp_proof
@@ -124,5 +119,4 @@ trunc Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof
 trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.membershipBackend.MustSaveMemberToBackend.wp_proof
-trunc Perennial.EtcdGrove.v3alarm.AlarmStore.restore.wp_proof
 trunc Perennial.EtcdGrove.v3alarm.NewAlarmStore.wp_proof

@@ -63,7 +63,7 @@ theorem EtcdServer.AddMember.wp_proof
     · iPkgInit
     iunfold memberSlices at Hsl
     icases Hsl with ⟨Hps, Hcs⟩
-    wp_apply (hMarshal memb dp dc ps cs) $$ [$Hps $Hcs] as %bsl %b ⟨Hps, Hcs, Hb⟩
+    wp_apply (hMarshal memb dp dc ps cs) $$ [$Hps $Hcs] as %bsl ⟨Hps, Hcs, Hb⟩
     (try wp_auto)
     wp_apply Hmay $$ [HPm Hps Hcs] as %errm ⟨Hqm, Hsl⟩
     · iframe HPm; iunfold memberSlices; iframe Hps Hcs

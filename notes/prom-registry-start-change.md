@@ -408,3 +408,8 @@ Re-merged onto `lean` `69adf61913` (2026-11-23): `putget_safe.spec` keeps `dist-
 field `names : ⊢ prometheus.namesFree initNames`: `member_boot` allocates the machine's rights itself
 (`regKeys_alloc` of `putget.regQs`, decided by `putget_regQsOk` over the 84 IDs as literals, `putgetRegKeys`),
 making their name the machine's `PromRegGS`. No other statement changed.
+
+Re-merged onto `lean` `2970851538` (2026-11-24; Perennial `47ec64a9d`, Upamanyu's putget edits, `topbinders`,
+`interface-removal`): putget taken from `lean`, then only this branch's change reapplied (`HNs`/`_HNs` and
+`MemberBootHyps.names` dropped, `member_boot` allocating its rights); `mvccfull_robust`/`mvccrand_robust` take
+`topbinders`' binders without `HNs`; the `interface/` changes dropped with the directory.
