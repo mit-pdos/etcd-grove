@@ -122,15 +122,19 @@ theorem EtcdServer.Start.wp_proof
     iframe
   -- `func() { s.publishV3(s.Cfg.ReqTimeout()) }`, with the right to close `readych` (and the `lgMu`
   -- pool and the goroutine's level 1)
-  wp_apply wp_GoAttach_tokT hGA s γg _ (srvReadyCloser s) $$ [Hgr Hrc] as Hgr
+  wp_apply wp_GoAttach_tokT hGA s γg _ (srvReadyCloser s E) $$ [Hgr Hrc] as Hgr
   · iframe Hgr Hrc
     iintro !> %Φ' ⟨Hrc, Hrun, Htf⟩ HΦ'
     icases (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).1 $$ Htf with ⟨G1, Gt2⟩
     (try wp_auto)
     wp_apply hReqT (structFieldRef EtcdServer go!"Cfg" s) vq.electionTicks vq.tickMs $$ [] as %d -
     · iframe #
-    wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } $$ [Hrc G1] as G1
-    · iframe #; iframe Hrc G1; iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
+    -- (prove-ps2-srvgoroutines, 2026-11-24) with the read view and the request names' credential
+    wp_apply hPub C.isOn s _ E { wait := γw, rd := ρ.rd } γr $$ [Hrc G1] as G1
+    · iframe #; iframe Hrc G1
+      isplitr
+      · ipureintro; rw [apply.AEnv.authOn_eq, hm]; cases C <;> rfl
+      iapply srvMonitorPermitM_of C.isOn s E { wait := γw, rd := ρ.rd } γn.id HmidcS; iframe Hreq HlgOk HmidS
     iapply HΦ'
     iframe Hrun
     iapply (threadTokFrom_succ (GF := GF) 1 (threadBound_gt (GF := GF))).2

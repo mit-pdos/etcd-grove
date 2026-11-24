@@ -241,6 +241,43 @@ theorem stop_chan_nonblocking_receive_open (ch : GoChan) (γ : ChanNames)
     cases Hbad
   all_goals (iexfalso; iexact Hs)
 
+/-- **A non-blocking receive's ready case, by anyone** (prove-ps2-srvgoroutines, 2026-11-24: `publishV3`'s
+`select` with a `default` on `stopping`, by a goroutine that holds only the receiver's view; the `default`
+is the conjunct `chan.wp_select_nonblocking` asks besides): once closed, it is ready with the zero value
+and `□ Q`. -/
+theorem stop_chan_nonblocking_receive_inner (ch : GoChan) (γ : ChanNames)
+    (γch : BroadcastInternalNames) (Q : IProp GF) (Φ : Unit → Bool → IProp GF) :
+    ⊢ isStopChanInternal ch γ γch Q -∗ (□ Q -∗ Φ () false) -∗ nonblockingRecvAuInner γ Unit Φ := by
+  iintro #Hint HΦ
+  ihave #Hint' := Hint
+  unfold isStopChanInternal
+  icases Hint' with ⟨#His_ch, #Hinv⟩
+  unfold nonblockingRecvAuInner
+  iapply ncfupd_of_fupd
+  iinv Hinv with Hi Hclose
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  unfold stopChanInv
+  icases Hi with ⟨%st, Hch, Hs⟩
+  iexists st
+  iframe Hch
+  rcases st with (_ | ⟨_, _⟩) | _ | _ | _ | _ | _ | (_ | ⟨_, _⟩)
+  all_goals dsimp only
+  case Closed.nil =>
+    icases Hs with ⟨#HQ, #Hs⟩
+    iintro Hch
+    imod Hmask with -
+    imod Hclose $$ [Hch] with -
+    · inext; iexists .Closed []; dsimp only; iframe Hch
+      isplitl []
+      · imodintro; iexact HQ
+      · iexact Hs
+    imodintro
+    iapply HΦ
+    imodintro; iexact HQ
+  all_goals first | itrivial | (iexfalso; iexact Hs)
+
 /-- **A non-blocking receive once closed** (the closer's flag discarded at `true`): it is ready,
 with the zero value. -/
 theorem stop_chan_nonblocking_receive_done (ch : GoChan) (γ : ChanNames)
