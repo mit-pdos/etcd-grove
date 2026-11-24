@@ -157,3 +157,63 @@ to: coordinator-E
 Until I hear, putgetK keeps building on its current base and doesn't merge `lean`.
 
 — upamanyus worker (handoff pickup, putgetK)
+
+## 8. For #8 (premise gate land request, written ~21:00Z)
+
+to: coordinator-E (for the land queue)
+
+land-queue: premise-witness/2026-11-24 b3ead60186
+
+The premise gate and witnesses: `Robustness/PremiseSat.lean`, `Robustness/FsStart.lean`, `etc/premise-witness.py` (wired into `gates.sh` and CI), and 24 `TopLevelWitness` files. Untrusted. `lean` `366ab8486d` is merged. The VM build of PremiseSat, FsStart and all 24 witnesses exits 0, with no fixes needed after the merge; `b3ead60186` adds only notes on top of the built commit. Source gates ok.
+
+— upamanyus worker (handoff pickup, pure premises)
+
+## 9. For coordinator-E, to forward to Upamanyu (five statement packets, rule 38, written ~21:00Z)
+
+to: coordinator-E, for Upamanyu. Each packet is a separate ask. All are built on `lean` `366ab8486d` (Perennial `2cadd30c2`) and pushed; none is queued.
+
+**P2: kvN range.** OK to drop `hk1 : 1 ≤ k` and `hk : k ≤ 1000` from the four kvN statements? Branch `premise-kvN-range/2026-11-24` @ `10319e40b3`.
+- Before: `(k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (σ) (g), Robust [] [(kvProgramN k, σ)] g …`. The same holds for kvreconfN, kvdurableN and RaftNoAx kvdurableN; the kvdurable ones keep `dir` and `Hfiles`.
+- After: `(k : Nat) (σ) (g), Robust …`.
+- Go: `MainN` now starts with `if k < 1 || k > 1000 { return }` (kv, kvreconf, kvdurable, kvdurablenoax).
+- Build: 13 targets, exit 0.
+- Non-vacuity (`TestMainNRange`): k = 0 and k = 1001 return at once, and kv/kvreconf pass. Separately, kvdurable passed sizes 1, 2, 3 and 2 (porcupine Ok), then a k = 3 run stalled for 78 min with clients waiting forever and no panic. noax passed 1, 2, 3 and 3, then a k = 4 run stalled for 55 min. The previous machine saw the same stall at k = 3, so it looks like a liveness problem in the kvdurable example, not the range check. This is for the raft lead; kvdurable is slated to retire.
+
+**P6: leaseexpiryN range.** OK for leaseexpiryN's statement change? Branch `premise-leaseexpiryN-range/2026-11-24` @ `ae3f0ce26d`.
+- Before: `(k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) … (Hlen : ids.length = k) … premises … k …`.
+- After: `(k : w64) … (Hlen : ids.length = uint.nat k) … premises … (uint.nat k) …`, with no range premises. Addresses and directories come from `cluster k`, which is empty out of range.
+- Why `k : w64`: a Nat k ≥ 2^64 would wrap in Go while the premises describe another cluster. The alternative is to keep `k : Nat` with a `k < 2^64` premise. Every program the old statement covered is still covered.
+- Go: `Main(k)` starts with `if k < 1 || k > 1000 { return }`.
+- Build exits 0, and `#print axioms` equals `etc/tcb-collections/leaseexpiryN-single-process.txt`.
+- Non-vacuity: `TestMainRange` and `TestMainRun` pass.
+
+**P1: `raft_tracecheck_robust`, a TRUSTED model change.** Please review. Branch `premise-tracecheck-nodes/2026-11-24` @ `285c4859a2`.
+1. **Trusted:** `ccDecodeV1` goes from opaque to `cc1DecodeRaw`, as stage S1 did for `ccDecodeV2`. It is checked against protobuf-go by `examples/pbschema/wirevectors_cc1_test.go`, which passes. No new axiom, but the existing `proto.{Marshal,Unmarshal}ConfChange` axioms now speak about a fixed decoder.
+2. **Statement:**
+   - Before: `(boot : List LogEntry) (Hbf : BootLogFacts boot) (Hprem : ∀ hG, ⊢ premises boot) … (bound := 2^61 - 3)`.
+   - After: `(Hprem : ∀ nv, 1 ≤ nv → nv ≤ maxNodes → ∀ hG, ⊢ premises nv (bootLog nv)) … (bound := 2^61 - 5)`.
+   - The boot log is now computed, so `boot` and `Hbf` are gone.
+   - **The step bound narrows by 2**, because `Main`'s random draw takes steps. That narrows the conclusion, so it needs his OK (rule 17).
+3. **Go:** `Main` sets `cfg.Nodes = 1 + below(5)` before `RunConcurrent(cfg)`, and the proof is generic in the voter count.
+- Full `lake build` exits 0. `tcb-report --check` matches `etc/tcb-baseline.txt` (331 axioms, 0 sorries).
+- Non-vacuity: `TestMainRandomNodes` (`-tags with_tla`) passes TLC for sizes 1..5, three times each.
+- It includes `tracecheck-nonvacuous/2026-11-24` (another agent's): the statement on `lean` was vacuous because `bootMarshal`'s `∀ c ∈ ctxs, c ≠ []` was taken at empty contexts.
+
+**P3: mvcc `MainAt`.** OK to drop `Hrfit : Fs.DirFits r` and `Habs` from `mvccrand_robust` and `mvccfull_robust`? Branch `premise-mvcc-mainat/2026-11-24` @ `3693cd70fa`.
+- Before: `(Hr : (r, j0) ∈ roots) (Habs : no entry at the run's file names in r) (Hrfit : Fs.DirFits r)`.
+- After: only `(Hr : (r, j0) ∈ roots)`, and the program is `MainAt r`.
+- Go: `MainAt(r)` returns at once unless `dirFits(r)` holds and `absent(p)` (`os.Lstat` + `errors.Is ErrNotExist`) holds for every file of the run.
+- Build exits 0. Both theorems' axioms are identical to `lean`'s (46 each), and the new helper lemmas use only Lean's three.
+- Non-vacuity: `TestMainAt` passes (mvccfull took 2,242 s).
+- mvccfull's `MainAt` proof takes about 9 minutes in the kernel and carries `maxHeartbeats 0`, with a comment. It's a candidate for a speed-up.
+
+**P4/P5: etcd/all and k8s/all params.** OK for these statement changes? Branch `premise-etcd-params/2026-11-24` @ `d9e4df44d2`.
+- Dropped:
+  - the workload sign, range and product premises (`Hc0`…`Hcmul` and the k8s equivalents);
+  - the member-count ranges `hk*`;
+  - `steps₁ steps₂` with their length premises.
+- The program becomes `MainChecked(…)`. It returns at once unless `ParamsOk` holds (products checked without overflow by `mulBelow`), and it draws its own fault schedules (`cluster3.RandomSchedule`). Addresses and directories are empty when the counts are out of range, as in P6.
+- Build exits 0, and `#print axioms` equals the etcd-all and k8s-all collections.
+- Non-vacuity: both `TestParamsOk` tests pass (200k draws checked against big.Int), and etcd's `TestMainCheckedRun` passes (32 s). k8s's end-to-end run fails locally with "failed to create WAL", and so does the unmodified `TestMain`.
+
+— upamanyus worker (handoff pickup, pure premises)
