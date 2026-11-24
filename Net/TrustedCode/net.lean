@@ -701,8 +701,11 @@ methods a program over UDP calls: `ListenUDP`, `WriteToUDP`, `ReadFromUDP`. Its 
 no model, so a program calling one is stuck (U12): `ReadFrom`, `WriteTo`, `ReadMsgUDP`, ...; and
 `conn`'s methods, promoted to `*UDPConn` (`Close`, `Read`, `Write`, the deadlines, `LocalAddr`,
 ...), which goose resolves through the embedded field `conn` (`UDPConn.TypeAssumptions.
-ptr_Close_unfold`) that this layout does not have. A program over UDP keeps its socket until its
-process ends (U7: the kernel closes it). Only the network `"udp4"` is modeled (an IPv4 socket, `AF_INET`: Go's
+ptr_Close_unfold`) that this layout does not have: the field's address is uninterpreted (not a
+plain type, outside the layout's typed points-to), so `conn`'s models' first load there has no proof
+and a call of one is an unprovable path, never TCP's model acting on a UDP socket
+(`notes/net-udp.md`). A program over UDP keeps its socket until its process ends (U7: the kernel
+closes it). Only the network `"udp4"` is modeled (an IPv4 socket, `AF_INET`: Go's
 `favoriteAddrFamily` for `"udp4"`); any other panics. Errors (U9) are Go's `*OpError`s, `Net` the
 socket's network, `Err` an `*os.SyscallError` with an arbitrary nonzero `Errno` for `sys` (`model.udpSysErr`, the extension's
 own `"AnyErrno"`, so that a program over UDP alone needs no TCP extension). -/

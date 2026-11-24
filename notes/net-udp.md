@@ -39,6 +39,19 @@ program over UDP keeps its socket for its process's life (the kernel closes it a
 U7). Modeling `Close` would need `conn.Close`'s TCP model to dispatch on the network: an edit of
 the TCP models, left for when a program needs it.
 
+**`Close` is an unprovable path, not a no-op and not TCP's `Close`.** Goose emits
+`UDPConn.TypeAssumptions.ptr_Close_unfold`: `(*UDPConn).Close` is `λ r. MethodResolve (*conn)
+"Close" (StructFieldRef UDPConn.ty "conn" r)` (Go's promotion through the embedded field). The
+`StructFieldRef` steps to the address `structFieldRef UDPConn "conn" c`, which the semantics leaves
+uninterpreted: `UDPConn` is not a plain type (it holds an interface and a string), so no offset
+axiom (`structFieldRef_plain`, `Perennial/Golang/Defn/Plain.lean`) applies, and the typed points-to
+of the trusted layout covers only its fields `uid`, `laddr`, `net`. TCP's `conn.Close.impl` then
+starts with a load of `id` at `structFieldRef conn "id"` of that address, for which no proof can own
+a points-to (the theorems hold for every interpretation of `structFieldRef`). So a WP of a `Close`
+call cannot be proved: a program over UDP that calls `Close` has no proof, whatever it relies on.
+The same holds for every other promoted `conn` method (`Read`, `Write`, the deadlines,
+`LocalAddr`, ...).
+
 **The network is the datagrams sent to each address, never consumed** (as Perennial's Grove
 extension, `GroveGlobalState.groveNet`, Perennial's model of a datagram network since the Rocq
 version): a send adds the datagram to its destination's set; a receive returns any datagram of its
