@@ -110,8 +110,8 @@ section handler
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- The trusted text of `peerHandlerOf` (opaque, no law). -/
 include hG in
+/-- The trusted text of `peerHandlerOf` (opaque, no law). -/
 opaque peerHandlerRaw (h : GoInterface) (s : Loc) : IProp GF := iprop(True)
 
 /-- **`h` is etcd's peer handler of the server `s`** (persistent, of one process): what
