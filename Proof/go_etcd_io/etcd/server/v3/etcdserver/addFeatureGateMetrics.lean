@@ -61,7 +61,7 @@ theorem addFeatureGateMetrics.wp_proof
   subst Hag
   iunfold isFeatureGate at Hgate
   icases Hgate with ⟨%fi, %K, %Hfi, ⟨%HKs, %HKl⟩, #HEn, #HGetAll⟩
-  ihave #Hppkg : isPkgInit (PROP := IProp GF)
+  ihave #Hppkg : isPkgInitSome (PROP := IProp GF)
       pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   cases Hfi

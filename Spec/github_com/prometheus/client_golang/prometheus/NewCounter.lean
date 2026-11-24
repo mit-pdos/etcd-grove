@@ -5,6 +5,7 @@ whose one descriptor is named `BuildFQName(opts.Namespace, opts.Subsystem, opts.
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.github_com.prometheus.client_golang.prometheus.RegInv
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 
 @[expose] public section
@@ -35,7 +36,7 @@ abbrev prometheus.NewCounter.spec : Prop :=
     (App (Val (@! github_com.prometheus.client_golang.prometheus.NewCounter)) (Val #o))
   {{ (c : GoInterfaceOk), RET #(GoInterface.ok c);
       prometheus.metric.counterSpec c ∗
-      ⌜prometheus.collectorName c (prometheus.fqName ns sub name)⌝ }}
+      prometheus.collectorName c (prometheus.fqName ns sub name) }}
 
 end spec
 

@@ -26,13 +26,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `net.Listen("tcp", addr)` with the right to listen at `addr` (`netAddrFree`, consumed) returns a
-listener open at `addr` (`netListenerAt`) and `nil`, or a non-nil error. -/
+listener open at `addr` (`netListenerAt`), what sets the address's protocols (`netAddrLeft`; phase 7
+S2's interface, 2026-11-24) and `nil`, or a non-nil error. -/
 abbrev net.Listen.spec : Prop :=
   ∀ (network addr : GoString),
   {{ ⌜network = go!"tcp"⌝ ∗ netAddrFree (GF := GF) addr }}
     (App (App (Val (@! net.Listen)) (Val #network)) (Val #addr))
   {{ (l err : GoInterface), RET (PairV #l #err);
-      (⌜err = GoInterface.nil⌝ ∗ netListenerAt l addr) ∨ ⌜err ≠ GoInterface.nil⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ netListenerAt l addr ∗ netAddrLeft addr) ∨
+        ⌜err ≠ GoInterface.nil⌝ }}
 
 end spec
 

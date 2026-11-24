@@ -679,9 +679,8 @@ noncomputable def DialHTTPPath.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.net.http.Response.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.net.Conn.ty _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "conn")))
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"CONNECT ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "path")))) (Val #(go!" HTTP/1.0\n\n"))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.io.WriteString []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"CONNECT ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "path")))) (Val #(go!" HTTP/1.0\n\n")))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "conn"))) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Client.ty)))) (Val UntypedNil))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
@@ -703,7 +702,7 @@ noncomputable def DialHTTPPath.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Dial connects to an RPC server at the specified network address.
 
-    go: client.go:244:6 -/
+    go: client.go:247:6 -/
 noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "network"
   (Lam "address"
@@ -757,7 +756,7 @@ noncomputable def Dial.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Close calls the underlying codec's Close method. If the connection is already
     shutting down, [ErrShutdown] is returned.
 
-    go: client.go:254:23 -/
+    go: client.go:257:23 -/
 noncomputable def Client.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam BAnon
@@ -800,7 +799,7 @@ noncomputable def Client.Close.impl [GooseExts] [GoGlobalContext] : val :=
     the same Call object. If done is nil, Go will allocate a new channel.
     If non-nil, done must be buffered or Go will deliberately crash.
 
-    go: client.go:269:23 -/
+    go: client.go:272:23 -/
 noncomputable def Client.Go.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam "serviceMethod"
@@ -862,7 +861,7 @@ noncomputable def Client.Go.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Call invokes the named function, waits for it to complete, and returns its error status.
 
-    go: client.go:291:23 -/
+    go: client.go:294:23 -/
 noncomputable def Client.Call.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "client"
   (Lam "serviceMethod"
@@ -3168,9 +3167,8 @@ noncomputable def Server.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.net.Conn.ty _root_.Perennial.io.ReadWriteCloser.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "conn")))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Server.ty) go!"ServeConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Server.ty)))) (Var "server"))) (Var "$a0"))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.net.Conn.ty _root_.Perennial.io.Writer.ty))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "conn")))
-  (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"HTTP/1.0 ")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr connected))) (Val #()))))) (Val #(go!"\n\n"))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.io.WriteString []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"HTTP/1.0 ")) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (GlobalVarAddr connected))) (Val #()))))) (Val #(go!"\n\n")))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Write"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (Var "conn"))) (Var "$a0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -3212,7 +3210,7 @@ noncomputable def Server.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
     and a debugging handler on debugPath.
     It is still necessary to invoke [http.Serve](), typically in a go statement.
 
-    go: server.go:606:23 -/
+    go: server.go:607:23 -/
 noncomputable def Server.HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "server"
   (Lam "rpcPath"
@@ -3237,7 +3235,7 @@ noncomputable def Server.HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
     on [DefaultRPCPath] and a debugging handler on [DefaultDebugPath].
     It is still necessary to invoke [http.Serve](), typically in a go statement.
 
-    go: server.go:614:6 -/
+    go: server.go:615:6 -/
 noncomputable def HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)

@@ -287,7 +287,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.raxos.examples.quepaxanet.cmd.
   have h43 : GetIsPkgInitProp pkg_id.strconv (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h42, h10, True.intro⟩
+    exact ⟨h0, h42, h10, h9, True.intro⟩
   have h44 : GetIsPkgInitProp pkg_id.raxos.configuration (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

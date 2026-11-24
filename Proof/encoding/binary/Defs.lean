@@ -41,7 +41,7 @@ theorem bigEndian_ne_null :
       ⌜globalAddr encoding.binary.BigEndian ≠ null⌝ := by
   iintro #Hpkg
   ihave #Hinit := encoding.binary.isInit_access $$ Hpkg
-  icases Hinit with ⟨-, #Hbe⟩
+  icases Hinit with ⟨-, #Hbe, -⟩
   iapply typedPointsto_not_null _ _ _ $$ Hbe
 
 end lemmas
