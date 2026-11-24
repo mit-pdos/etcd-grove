@@ -862,6 +862,16 @@ append's fact). Changes to the relation and the statements, each with its reason
   `Reach.mono`/`Quiet.mono` (`Mono.lean`): both are monotone in `net` (the harness holds only a
   lower bound of the messages sent when it takes a node's steps).
 
+For the remaining lemmas (`quiet`, `ready`, `send`, `apply`): each per-report proof is `antSim_gc`
+(to `S1`), then `S1.step ev = .ok (some S2)` by `unfold State.step; simp (config := { decide := true })
+only [<ev>, idx_name hc, State.bind, State.<action>, eok_bind, epure, ite_true, ite_false, need, …]`
+and the field facts (`Boot.lean`'s `andM_true`/`orM_true`: name `AntCheck.andM`, the root `andM`
+is ambiguous), then `Prefix.snoc hp hgc hstep (violated_nil …)` with `GlobalOk S2`. `ready` and
+`send` must keep the new C3 conjuncts (every grant and ack they add is between `nameOf (nodeId ·)`s,
+`msgOf`'s names). `GC` reads `undo` only through `EffTerm ≤ currentTerm`, so a `ready`'s
+`undo[n] = some p` costs `GC` nothing. Shared lemmas go in the new files: an edit to `GC.lean`
+re-opens every importer's check (~75 s each on this machine).
+
 ---
 
 ## 4. Where the refinement could be false, and the evidence
