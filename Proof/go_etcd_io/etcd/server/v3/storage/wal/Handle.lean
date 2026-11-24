@@ -112,6 +112,8 @@ structure WalHS where
   enti : w64
   snapi : w64
   pc : Nat
+  /-- `w.state` may be nil (only after `Create`, until `Save`'s nil check; P6). -/
+  stNil : Bool := false
 
 /-- The tail's records encoded so far (all but the last `rest`). -/
 def WalHS.encRecs (Mr : WalMarshal) (h : WalHS) : List WalRec :=
@@ -405,21 +407,57 @@ instance walStMarsh_persistent (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
     Persistent (walStMarsh (GF := GF) Mr sp hs) := by
   unfold walStMarsh; infer_instance
 
-/-- **`w.state`'s pointer**: it holds `hs` (`P.hsIn`) and, when not nil, marshals to its encoding. -/
-def walStIn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) : IProp GF :=
-  iprop(P.hsIn sp hs ∗ (⌜sp ≠ null⌝ -∗ walStMarsh Mr sp hs))
+/-- **`w.state`'s pointer**: it holds `hs` (`P.hsIn`), when not nil marshals to its encoding, and is
+not nil unless `nil` (the handle's `stNil`). -/
+def walStIn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool := false) :
+    IProp GF :=
+  iprop(P.hsIn sp hs ∗ (⌜sp ≠ null⌝ -∗ walStMarsh Mr sp hs) ∗ ⌜nil = false → sp ≠ null⌝)
 
-instance walStIn_persistent (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
-    Persistent (walStIn (GF := GF) P Mr sp hs) := by
+instance walStIn_persistent (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool) :
+    Persistent (walStIn (GF := GF) P Mr sp hs nil) := by
   unfold walStIn; infer_instance
 
 theorem walStIn_null (P : WalPbIn GF) (Mr : WalMarshal) (hs : HardStateM) :
-    P.hsIn null hs ⊢ walStIn P Mr null hs := by
+    P.hsIn null hs ⊢ walStIn P Mr null hs true := by
   iintro #H
   unfold walStIn
   isplitr
   · iexact H
+  isplitr
   · iintro %h; exact absurd rfl h
+  · ipureintro; intro h; cases h
+
+/-- A non-nil `w.state`, from its parts. -/
+theorem walStIn_intro (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (nil : Bool)
+    (hn : sp ≠ null) : P.hsIn sp hs ∗ walStMarsh Mr sp hs ⊢ walStIn P Mr sp hs nil := by
+  iintro ⟨#H, #M⟩
+  unfold walStIn
+  isplitr
+  · iexact H
+  isplitr
+  · iintro %_; iexact M
+  · ipureintro; intro _; exact hn
+
+/-- A non-nil `w.state` under any nil flag. -/
+theorem walStIn_set (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) (b b' : Bool)
+    (hn : sp ≠ null) : walStIn P Mr sp hs b ⊢ walStIn P Mr sp hs b' := by
+  iintro #H
+  unfold walStIn
+  icases H with ⟨#H1, #H2, -⟩
+  iframe H1 H2
+  ipureintro; intro _; exact hn
+
+/-- What a non-nil `w.state` gives. -/
+theorem walStIn_nn (P : WalPbIn GF) (Mr : WalMarshal) (sp : Loc) (hs : HardStateM) :
+    walStIn P Mr sp hs false ⊢ ⌜sp ≠ null⌝ ∗ P.hsIn sp hs ∗ walStMarsh Mr sp hs := by
+  iintro #H
+  unfold walStIn
+  icases H with ⟨#H1, #H2, %H3⟩
+  have hn := H3 rfl
+  isplitr
+  · ipureintro; exact hn
+  iframe H1
+  iapply H2; ipureintro; exact hn
 
 end st
 
@@ -607,7 +645,7 @@ def walHandleIn (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"metadata" w ↦ mds ∗
     recBytes mds (some h.md) ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗
-    walStIn P Mr sp h.st ∗
+    walStIn P Mr sp h.st h.stNil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"decoder" w ↦ GoInterface.nil ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"readClose" w ↦ rc ∗
     structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"unsafeNoSync" w ↦ false ∗

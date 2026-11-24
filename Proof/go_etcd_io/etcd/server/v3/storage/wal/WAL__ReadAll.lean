@@ -1068,7 +1068,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
               apply List.eq_nil_of_length_eq_zero
               rw [hmdvl.1]; rfl
             iapply (walOpenWF_iff P Mr w dir).2
-            iexists (WalHS.mk d0.H d0.metadata lay.cuts gl.ino lay.wr [] [] 0 st.hs γt sz' ix.1 ix.2 0)
+            iexists (WalHS.mk d0.H d0.metadata lay.cuts gl.ino lay.wr [] [] 0 st.hs γt sz' ix.1 ix.2 0 false)
             iframe Hr0
             isplitl
             · unfold walHandleIn

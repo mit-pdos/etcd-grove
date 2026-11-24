@@ -101,6 +101,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (wp_saveEntryNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveEntry.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_saveState : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.spec (W := W) P Mr)
     (wp_saveStateNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveState.specNoErr (Sio := Sio) (W := W) P Mr)
+    (wp_encodeState : go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.spec (W := W) P Mr)
+    (wp_encodeStateNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.encodeState.specNoErr (Sio := Sio) (W := W) P Mr)
+    (wp_marshal : WalPbIn.MarshalHsLaw P Mr)
     (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (Sio := Sio) (W := W) P Mr)
     (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (wp_empty : WalPbIn.IsEmptyLaw (GF := GF) (hG := hG) P)
@@ -132,7 +135,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       "i" ∷ i_ptr ↦ j ∗ "n" ∷ n_ptr ↦ nb ∗ "e" ∷ e_ptr ↦ ep ∗
       "%Hn" ∷ ⌜sint.Z nb = saveBatchBytes Mr (es.take (sint.nat j)) ∧
         saveBatchBytes Mr (es.take (sint.nat j)) ≤ maxSaveBatch⌝ ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ : IProp GF) $$ [i n e]
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ ∗ "%Hnil" ∷ ⌜hc.stNil = false⌝ : IProp GF) $$ [i n e]
   · iexists W64 0, W64 0, _
     iframe
     ipureintro
@@ -339,7 +342,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       · ipureintro; trivial
       iexists hp; iframe st Hhs; ipureintro; exact Hif
   -- `w.state == nil`: a fresh zero state
-  icases walHandleIn_state P Mr w dir h1 TailMetaW $$ Hh with ⟨%sp, Hsp, #Hst, Hback⟩
+  icases walHandleIn_stateNil P Mr w dir h1 TailMetaW $$ Hh with ⟨%sp, Hsp, #Hst, Hback⟩
   wp_join iprop(w_ptr ↦ w ∗ ∃ sp' : Loc,
       structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' ∗ walStIn P Mr sp' h1.st ∗
       ⌜sp' ≠ null⌝)
@@ -348,7 +351,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     (try wp_auto)
     wp_if_destruct
     · ihave #Hst0 : P.hsIn null h1.st $$ []
-      · iunfold walStIn at Hst; icases Hst with ⟨#H1, -⟩; iexact H1
+      · iunfold walStIn at Hst; icases Hst with ⟨#H1, -, -⟩; iexact H1
       ihave %hz0 := hzero.1 _ $$ Hst0
       icases typedPointsto_not_null_dup _ _ _ $$ «$r0» with ⟨Hr0, %hn⟩
       imod hzst _ ⊤ $$ Hr0 with ⟨#Hz, #Hzm⟩
@@ -357,14 +360,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       · ipureintro; trivial
       iframe w; iexists «$r0_ptr»; rw [hz0]; iframe Hsp
       isplitl
-      · iunfold walStIn; iframe Hz; iintro %_; iexact Hzm
+      · iapply walStIn_intro P Mr _ hsZero false hn; iframe Hz Hzm
       · ipureintro; exact hn
     · imodintro
       isplitr
       · ipureintro; trivial
-      iframe w; iexists sp; iframe Hsp Hst; ipureintro; exact Hif
+      iframe w; iexists sp; iframe Hsp
+      isplitl
+      · iapply walStIn_set P Mr sp h1.st h1.stNil false Hif; iexact Hst
+      · ipureintro; exact Hif
   ihave #Hst'h : P.hsIn sp' h1.st $$ []
-  · iunfold walStIn at Hst'; icases Hst' with ⟨#H1, -⟩; iexact H1
+  · iunfold walStIn at Hst'; icases Hst' with ⟨#H1, -, -⟩; iexact H1
   -- `MustSync`
   wp_apply (wp_mustSync hp' sp' hs h1.st sl.len) $$ [] as %ms %hms
   · iframe Hhs' Hst'h
@@ -381,10 +387,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
           ((Mr.encState (saveHS (walLastHS (h.H.map WalOpG.toM)) hs es)).length + 64)) ≤ maxBytes⌝ ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.nat j ≤ es.length⌝ : IProp GF)
     $$ [-HΦ Hr HQ Hheld «$res0» w defer ents st mustSync]
-  · iexists W64 0, _, h1
+  · iexists W64 0, _, { h1 with stNil := false }
     iframe
     ipureintro
-    refine ⟨hs0, ?_, by decide, Nat.zero_le _⟩
+    refine ⟨hs0, ?_, by decide, Nat.zero_le _, rfl⟩
     intro hc
     have := hk hc
     have := hroom1 hc
@@ -430,7 +436,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
       iframe
       have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
       ipureintro
-      refine ⟨?_, ?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, ?_, Hnil⟩
       · rw [hj1]; exact Hs.step e he out' pend' sz'
       · intro hc; have := Hroom hc; have := hlen' hc; rw [hj1]; simp only; omega
       · word
@@ -465,26 +471,124 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
   rw [hje] at Hs Hroom
   simp only [List.drop_length, List.map_nil, List.sum_nil, Nat.zero_add] at Hroom
   (try wp_auto)
-  -- the state's record
-  wp_apply (walCov_saveState P Mr wp_saveState wp_saveStateNE R jr r w dir hc hp' hs
-    (Hs.statePre hcut hix0 hix.2) Hroom) $$ [Hh] as %err Hres
-  · iframe Harea Hh Hhs'; ipureintro; exact hp'n
-  ihave Hres2 : (⌜err = GoInterface.nil⌝ ∗ ∃ hc2 : WalHS, walHandleIn P Mr w dir hc2 TailMetaW ∗
-      ⌜SaveFin h hs es hc2 ∧ (walCov Sio → hc2.o0 + hc2.out.length + hc2.pend.length ≤ maxBytes)⌝) ∨
-      ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ $$ [Hres]
-  · icases Hres with (⟨⟨%herr, %hse⟩, Hh⟩ | ⟨⟨%herr, %hse⟩, %out', %pend', %sz', Hh, %hlen'⟩ | %herr)
-    · ileft; iframe; ipureintro
-      exact ⟨herr, Hs.finEmpty hD hse, fun hc => by have := Hroom hc; omega⟩
-    · ileft; isplitr
-      · ipureintro; exact herr
-      iexists _; iframe Hh; ipureintro
-      exact ⟨Hs.finState hse out' pend' sz', fun hc => by have := Hroom hc; have := hlen' hc; simp only; omega⟩
-    · iright; ipureintro; exact herr
-  icases Hres2 with (⟨%herr, %hc2, Hh, %hf2⟩ | %herr)
+  -- the state's record (fork `2bd3048d7`): `if len(ents) > 0 { if IsEmptyHardState(st) { st = w.state };
+  -- encodeState(st) } else { saveState(st) }`, joined at the handle after it or the error's return
+  have hpre := Hs.statePre hcut hix0 hix.2 hne
+  wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ w_ptr ↦ w ∗ (∃ e0 : GoInterface, «$res0_ptr» ↦ e0) ∗
+      ∃ hc2 : WalHS, walHandleIn P Mr w dir hc2 TailMetaW ∗
+        ⌜SaveFin h hs es hc2 ∧ (walCov Sio → hc2.o0 + hc2.out.length + hc2.pend.length ≤ maxBytes)⌝) ∨
+      (⌜v = returnVal #()⌝ ∗ w_ptr ↦ w ∗ ∃ err : GoInterface, «$res0_ptr» ↦ err ∗
+        ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝))) at next
+    with [Hh st w ents «$res0»]
+  · (try wp_auto)
+    wp_if_destruct
+    · -- entries: the state record of `saveHS`, `w.state`'s when `st` is empty
+      have hes : es ≠ [] := by
+        intro h0
+        have h1 := (save_slen_zero sl esL hlen.1 hlen.2).2 (by
+          rw [← List.length_eq_zero_iff, hlen2, List.length_eq_zero_iff]; exact h0)
+        rw [h1] at Hif; simp at Hif
+      wp_join iprop(∃ hp2 : Loc, st_ptr ↦ hp2 ∗ w_ptr ↦ w ∗ walHandleIn P Mr w dir hc TailMetaW ∗
+          walStIn P Mr hp2 (saveHS (walLastHS (h.H.map WalOpG.toM)) hs es) ∗ ⌜hp2 ≠ null⌝)
+        at (if: _ then _ else _) with [st w Hh] as ⟨%hp2, st, w, Hh, #Hst2, %hp2n⟩
+      · iapply wp_fupd
+        (try wp_auto)
+        wp_apply (wp_empty hp' hs) $$ [] as %b2 %hb2
+        · iexact Hhs'
+        cases b2
+        · -- `st` not empty: itself
+          have hse : ¬ hsEmptyP hs := fun h0 => Bool.false_ne_true (hb2.2 h0)
+          have hsv : saveHS (walLastHS (h.H.map WalOpG.toM)) hs es = hs := by
+            unfold saveHS; simp [hse]
+          (try wp_auto)
+          ihave #Hst2 : walStIn P Mr hp' hs $$ []
+          · iapply walStIn_intro P Mr hp' hs false hp'n
+            iframe Hhs'
+            unfold walStMarsh
+            iintro !> %Φ' #Hpk HΦ'
+            wp_apply (wp_marshal hp' hs hse) $$ [] as %d ⟨Hd, %Hdn⟩
+            · iframe Hhs' Hpk
+            iapply HΦ' $$ Hd %Hdn
+          imodintro
+          isplitr
+          · ipureintro; trivial
+          iexists hp'; rw [hsv]; iframe st w Hh Hst2; ipureintro; exact hp'n
+        · -- `st` empty: `w.state`, the last state saved
+          have hse : hsEmptyP hs := hb2.1 rfl
+          have hst2 : hc.st = saveHS (walLastHS (h.H.map WalOpG.toM)) hs es := by
+            rw [Hs.st, hD.2]; unfold saveHS; simp [hes, hse]
+          icases walHandleIn_state P Mr w dir hc TailMetaW $$ Hh with ⟨%sp2, Hsp2, #Hst2, Hback2⟩
+          rw [Hnil] at Hst2
+          ihave ⟨%hn2, -, -⟩ := walStIn_nn P Mr sp2 hc.st $$ Hst2
+          (try wp_auto)
+          ihave Hh := Hback2 $$ Hsp2 [Hst2]
+          · rw [Hnil]; iexact Hst2
+          imodintro
+          isplitr
+          · ipureintro; trivial
+          iexists sp2; rw [← hst2]; iframe st w Hh Hst2; ipureintro; exact hn2
+      wp_apply (walCov_encodeState P Mr wp_encodeState wp_encodeStateNE R jr r w dir hc hp2 _
+          hpre.1 hpre.2.1 hpre.2.2 Hroom) $$ [Hh] as %err Hres
+      · iframe Harea Hh Hst2; ipureintro; exact hp2n
+      icases Hres with (⟨%herr, %out', %pend', %sz', Hh, %hlen'⟩ | %herr)
+      · subst herr
+        (try wp_auto)
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iframe w
+        isplitl [«$res0»]
+        · iexists _; iexact «$res0»
+        iexists _; iframe Hh; ipureintro
+        exact ⟨Hs.finState hne out' pend' sz', fun hc => by
+          have := Hroom hc; have := hlen' hc; simp only; omega⟩
+      · rcases err with ei | _
+        rotate_left
+        · exact absurd rfl herr.1
+        (try wp_auto)
+        iright
+        isplitr
+        · ipureintro; rfl
+        iframe w
+        iexists _; iframe «$res0»; ipureintro; exact herr
+    · -- no entries: `saveState(st)`, `st` not empty
+      have hes : es = [] := by
+        have h1 : sl.len = W64 0 := by word
+        have := (save_slen_zero sl esL hlen.1 hlen.2).1 h1
+        rw [← List.length_eq_zero_iff, ← hlen2, List.length_eq_zero_iff]; exact this
+      subst hes
+      have hse : ¬ hsEmptyP hs := fun h0 => hne ⟨rfl, h0⟩
+      have hsv : saveHS (walLastHS (h.H.map WalOpG.toM)) hs [] = hs := by unfold saveHS; simp
+      rw [hsv] at hpre Hroom
+      wp_apply (walCov_saveState P Mr wp_saveState wp_saveStateNE R jr r w dir hc hp' hs
+        (fun _ => hpre) Hroom) $$ [Hh] as %err Hres
+      · iframe Harea Hh Hhs'; ipureintro; exact hp'n
+      icases Hres with (⟨⟨%herr, %hse'⟩, Hh⟩ | ⟨⟨%herr, %-⟩, %out', %pend', %sz', Hh, %hlen'⟩ | %herr)
+      · exact absurd hse' hse
+      · subst herr
+        (try wp_auto)
+        ileft
+        isplitr
+        · ipureintro; rfl
+        iframe w
+        isplitl [«$res0»]
+        · iexists _; iexact «$res0»
+        iexists _; iframe Hh; ipureintro
+        have hf := Hs.finState hne out' pend' sz'
+        rw [hsv] at hf
+        exact ⟨hf, fun hc => by have := Hroom hc; have := hlen' hc; simp only; omega⟩
+      · rcases err with ei | _
+        rotate_left
+        · exact absurd rfl herr.1
+        (try wp_auto)
+        iright
+        isplitr
+        · ipureintro; rfl
+        iframe w
+        iexists _; iframe «$res0»; ipureintro; exact herr
+  iintro (⟨%Hv, w, ⟨%e0, «$res0»⟩, %hc2, Hh, %hf2⟩ | ⟨%Hv, w, %err, «$res0», %herr⟩)
   rotate_left
-  · rcases err with ei | _
-    rotate_left
-    · exact absurd rfl herr.1
+  · subst Hv
     have hq1 : q = 1 := hq.resolve_left (herr).2
     subst hq1
     iapply fupd_wp
@@ -498,11 +602,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.wp_proof [os.file.FieldAs
     iright
     ileft
     isplitr
-    · ipureintro; exact herr
+    · ipureintro; exact herr.1
     icases HQ with ⟨%d, HQ, -⟩
     iexists d; iexact HQ
+  subst Hv
   obtain ⟨hf, hroom2⟩ := hf2
-  subst herr
   (try wp_auto)
   -- the tail's offset
   icases walHandleIn_pure P Mr w dir hc2 TailMetaW $$ Hh with ⟨Hh, %hpu2⟩

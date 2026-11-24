@@ -81,9 +81,9 @@ theorem walHandleIn_pkgInit (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : 
 theorem walHandleIn_state (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
     ⊢ walHandleIn (W := W) P Mr w dir h tm -∗ ∃ sp : Loc,
-      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗ walStIn P Mr sp h.st ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗ walStIn P Mr sp h.st h.stNil ∗
       (∀ sp' : Loc, structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' -∗
-        walStIn P Mr sp' h.st -∗ walHandleIn (W := W) P Mr w dir h tm) := by
+        walStIn P Mr sp' h.st h.stNil -∗ walHandleIn (W := W) P Mr w dir h tm) := by
   iintro Hh
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
@@ -95,6 +95,30 @@ theorem walHandleIn_state (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
   iintro %sp' Hsp' #Hst'
   iunfold walHandleIn
   iexists lg, df, sp', e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+  iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp' Hst' Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
+    Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
+  ipureintro
+  exact ⟨Hen, Hlt, Hpure⟩
+
+/-- **The handle's `w.state`**, out and back with its nil flag set anew (`Save`'s nil check, P6). -/
+theorem walHandleIn_stateNil (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (h : WalHS) (tm : Fs.OsMeta → List Fs.ByteG → Prop := TailMeta) :
+    ⊢ walHandleIn (W := W) P Mr w dir h tm -∗ ∃ sp : Loc,
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp ∗ walStIn P Mr sp h.st h.stNil ∗
+      (∀ (sp' : Loc) (b : Bool), structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"state" w ↦ sp' -∗
+        walStIn P Mr sp' h.st b -∗ walHandleIn (W := W) P Mr w dir { h with stNil := b } tm) := by
+  iintro Hh
+  iunfold walHandleIn at Hh
+  icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
+    %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu, Henti, Hsnapi,
+    He, %Hen, Henc, Htw, Hdh, Hlocks, Hls, Hcap, %Hlt, Hlks, #Hltf, Hfp, Hpipe, #Henv, #Hcrc, #Hwpk,
+    Hopen, %Hpure⟩
+  iexists sp
+  iframe Hsp Hst
+  iintro %sp' %b Hsp' #Hst'
+  iunfold walHandleIn
+  iexists lg, df, sp', e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
+  simp only
   iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp' Hst' Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
     Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
   ipureintro
