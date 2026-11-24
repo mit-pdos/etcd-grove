@@ -584,3 +584,55 @@ obligation). Then the axioms are theorems with the same statements.
   axiom's `startRights` still hands it out, unchanged, and `memberStartRes_intro` drops it. So `MemberBootHyps` and
   `putget_safe_of_hyps` are gone: **`theorem putget_safe : putget_safe.spec`**, over the five interim axioms, no
   hypothesis. Full VM build passes; `putget-dist.txt` 158 axioms (no `dataDirFresh`).
+
+## 13. `putgetK_safe`: `k` members, each on a machine of its own, and one client (2026-11-24, branch `dist-putgetk/2026-11-24`)
+
+The k-member version of `putget_safe`: an etcd cluster of `k` members on `k` machines plus one client machine,
+no crash, over `goose_dist_adequacy` through `Net.robust_of_distBootIL`. Plan: coordinator-E's
+`putgetk-plan.md` (items 1-3 done here; the member boot's peer half waits for S5, phase 7, #24/#18).
+
+**The programs** (`examples/etcd/dist/putgetk`, project `putgetk-dist` of `etc/goose.py`, inside
+putget-dist's `dist` directory; `Init`/`InitLinked`/`PkgTable` by `etc/gen-init.py`, `Base.lean` by hand):
+- `Member(i, peers, clients)`: the initial cluster's map (member `j` named `Name(j) = "putgetk-j"`, its one
+  peer URL `http://peers[j]`, as `etcdstart.StartMembers` builds it), member `i` started by
+  `etcdstart.StartMember` (the in-process `putgetN`'s per-member step: `NewServer`, its raft handler served
+  by `http.Serve` on a listener at its own peer address, `Start`), `etcdstart.Serve` at `clients[i]`, then
+  `holdForever`. Token `putgetk`. **No Go change** to etcdstart: `NewMember` already listens on the member's
+  own peer address, which is on its own machine.
+- `Client(ep)`: `putget.Client(ep)` (putget-dist's package, imported), against member 0's client address,
+  so the client machine's proof is putget's (`Client.wp_proof`, `client_boot`).
+- `cmd/{member,client}`; `TestMemberIDs` (the ids' 16 low bits distinct and not 0 at the statement's
+  addresses, token `putgetk`); `TestPutGetK` (3 member machines, 1 client machine; `DIST_RUN=1`): run
+  2026-11-24 on namespaces (the rerun in a user namespace): round 0 (no fault) checked; faulty rounds 3 of 4
+  checked, one ended (3 partitions); no panic, no member exit.
+
+**The start, `etcd_dist.etcdClusterStart`** (`Proof/.../examples/etcd/dist/ClusterStart.lean`, proved, no
+axiom of its own, no `sorry`), over the global ghost state: from `regCtx` and each member's
+`addrUnset peer ∗ addrUnset client`, every peer address set (`S5Draft.http_addr_set`, the structure taken as
+a hypothesis `S5`), `clusterAllocN` once over the members' ids, then per member `envPub_start` at `Pub c id`
+(a function of the cluster's names `c : ClusterNames`) and `etcdAddr_set` (A2). Returns the names' pure facts
+(`ClusterOk`), a publication name per member, each member's `memberStartShare` (`clusterFacts`, every
+member's `httpAddrAt`, its `memberSlice`, its `memberSvcShare`), the clients' `clientStartShare` (persistent:
+`clusterFacts`, `clientSvcFacts`) and, in the lease mode `none`, the client's `etcdKV` apart (for the start
+or machine that allocates the putget invariant from it: below). No fact beyond the interim S2 axioms and
+`S5Draft`'s existing fields was needed.
+
+**The statement, `putgetK_safe.spec`** (`Spec/.../examples/etcd/dist/putgetk/TopLevelRobustness.lean`,
+DRAFT for review; defs `Proof/.../dist/putgetk/TopLevelDefs.lean`): `k = 3`, fixed addresses (member `i` on
+`10.77.(i+1).1`, peer port 2380, client port 2379: the namespace test's). Boot programs: member `i`'s
+`putgetk.initialize' ;; Member(i, []string{peers}, []string{clients})` (the slices as goose's composite
+literal, `strSliceLit`), the client's `putgetk.initialize' ;; Client("10.77.1.1:2379") ;; ()`. Premises: putget's
+per member: `etcd_putgetN.BootFacts ids ps ctxs boot` with `ids.length = 3`; `Hprem` at every heap over
+`premises` (putgetN's form: per member `bootPremise` at `cfgOk token name`, `urlsN members m`, `dirN`;
+`bootMarshal`; `commonPremises`); `Hctx`/`Hcec`; `authRecordsFit`, `backendUnderQuota`, `grpcRepliesFit`,
+`diskOk`; `σs.length = 3` with `MemberFiles i` per member and `ClientFiles`; `DistDeploy` over the six
+addresses; `HEnv`/`HEnvTok`. Bound `2 ^ 28 - 1`.
+
+**The skeleton** (`Proof/.../dist/putgetk/TopLevelRobustness.lean`): `putgetK_safe_of_boot (HS : PutgetKBoot)
+: putgetK_safe.spec`, proved by `robust_of_distBootIL`, as `putget_safe_of_boot`. No axiom, no `sorry`.
+
+**Next** (not done here): the start for the skeleton (`netProto_alloc`, `etcdClusterStart`, the putget
+invariant from `etcdKV` and member 0's `Pub`: putget's `putgetPub` needs a `putGetInv` that the start, not a
+member, allocates now that the KV state is the cluster's); member `i`'s boot up to the peer transport
+(`memberBoot_of_slice`, `StartMember.spec` from the share, `Serve_dist`, `holdForever`) with `S5Draft`'s
+member-side fields as named hypotheses once agreed; then the statement for any `k`.
