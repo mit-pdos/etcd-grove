@@ -10,7 +10,7 @@ machine of its own that may crash and restart (`servers`), and client machines t
 each running one workload against the members' client addresses (`clients`). Its premise is one
 decidable predicate, `Deployment.WellFormed` (addresses, names, ids, the server configuration in
 its supported set, the workloads' bounds and their compatibility), plus the machines' start
-states (`ServerStart`, `ClientStart`, `NetStart`) and the environment premises not yet
+states (`ServerStart`, `ClientStart`) and the environment premises not yet
 discharged (`EtcdEnv`, the plan's "what is still not decidable").
 
 The Go programs are `examples/etcd/dist/{server,client}` (sketches); their translations do not
@@ -212,10 +212,12 @@ machines, its address (in the workloads' order, then the index's). -/
 def Deployment.nodeList (d : Deployment) : List (Workload × Nat × GoString) :=
   (d.workloads.zip d.nodes).flatMap (fun p => p.2.zipIdx.map (fun q => (p.1, q.2, q.1)))
 
-/-- PLACEHOLDER (stage D0/D2, open question Q5): **etcd's member id**, as `membership.NewMember`
+/-- PLACEHOLDER (stage D2, open question Q5): **etcd's member id**, as `membership.NewMember`
 computes it: the first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs
-concatenated with the cluster token. To be a Lean definition (a SHA-1 in Lean, trusted and tested
-against Go, or Perennial's `crypto/sha1` proved), so that `WellFormed` is evaluated by `decide`. -/
+concatenated with the cluster token. Since 2026-11-24 not in any premise: `WellFormed` is checked by
+the programs (Go's `dist.WellFormed`, which computes the ids with `membership.ComputeMemberID` over
+Perennial's translated and proved `crypto/sha1`); this becomes that function's Lean model, used only
+inside the proof. -/
 opaque memberId (peerURL : GoString) (token : GoString) : w64
 
 /-- The members' ids, in the members' order. -/
@@ -264,7 +266,7 @@ def Deployment.WellFormed (d : Deployment) : Prop :=
 instance (d : Deployment) : Decidable d.WellFormed := by
   unfold Deployment.WellFormed leaseIdsApart; infer_instance
 
-/-! ## Bootstrap's results and the trust-boundary premises (PLACEHOLDER) -/
+/-! ## Bootstrap's results -/
 
 section boot
 variable [GooseExts]
@@ -278,49 +280,47 @@ structure BootFacts (d : Deployment) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) : Prop extends BootCore ps ctxs boot where
   perm : ps.Perm d.ids
 
-/-- PLACEHOLDER (stage D6): **the trust-boundary contracts today's statement takes as Iris
-premises** (`Hprem`: each member's `etcdstart.bootPremise`, with `bootstrapRestartContract` for its
-restarts, `bootMarshal`, `etcdstart.commonPremises`; `Hctx`/`Hcec`: `ContextReadErrs`,
-`ContextErrsClient`), at the proof's ghost state. A premise over the proof's ghost state has no
-place in a deployment statement: each becomes an axiom of the trust boundary (reviewed) or a
-theorem (bootstrap over the real code; context's facts in Perennial, item 8), and this goes. -/
-opaque TrustBoundary (d : Deployment) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) : Prop
-
 end boot
 
-/-! ## The programs (PLACEHOLDER: stage D2, the translations) -/
+/-! ## The programs (PLACEHOLDER: stage D2, the translations)
+
+Every machine's program takes the **whole deployment** as a Go value (`dist.Deployment`) and its
+own index, and first checks the deployment (Go's `dist.WellFormed`, Lean's `Deployment.WellFormed`),
+returning at once if it fails (rule: a premise the program can check is the program's, with a Go test
+that the check passes and the real path runs: `TestWellFormed`, `TestDist`). So `WellFormed` is not a
+premise of the statement: on a malformed deployment every machine stops at its first step. -/
 
 section programs
 variable [GooseExts] [GoGlobalContext]
 
-/-- PLACEHOLDER (stage D2): **a member machine's boot program**, `server`'s initialization then
-`server.Main(cfg)` with the member's `Config` as a Go value (`examples/etcd/dist/server`): the same
-expression at the first start and after every crash (etcd's `NewServer` restarts from the WAL). -/
-opaque serverProg (d : Deployment) (m : Member) : Expr
+/-- PLACEHOLDER (stage D2): **member `i`'s machine's boot program**, `server`'s initialization then
+`server.MainDeployment(d, i)` (`dist.WellFormed(d)`, then `server.Main(d.ServerConfig(i))`), the
+deployment as a Go value: the same expression at the first start and after every crash (etcd's
+`NewServer` restarts from the WAL). -/
+opaque serverProg (d : Deployment) (i : Nat) : Expr
 
-/-- PLACEHOLDER (stage D2): **a workload's orchestrator machine's boot program**, `client`'s
-initialization then `client.MainReady(w, eps, nodes, _)`, the members' client addresses `eps` in the
-members' order, the workload's client machines' addresses `nodes` (D8). -/
-opaque clientProg (w : Workload) (eps : List GoString) (nodes : List GoString) : Expr
+/-- PLACEHOLDER (stage D2): **workload `j`'s orchestrator machine's boot program**, `client`'s
+initialization then `client.MainDeployment(d, j)` (`dist.WellFormed(d)`, then `client.MainReady(w,
+eps, nodes, _)` with the members' client addresses `eps` in the members' order and the workload's
+client machines' addresses `nodes`, D8). -/
+opaque clientProg (d : Deployment) (j : Nat) : Expr
 
-/-- PLACEHOLDER (stage D2): **a workload's client machine's boot program**, `client`'s initialization
-then `client.NodeMain(w, c, addr, eps)`: client machine `c` of `w`, listening at `addr` (D8). -/
-opaque nodeProg (w : Workload) (c : Nat) (addr : GoString) (eps : List GoString) : Expr
+/-- PLACEHOLDER (stage D2): **the `n`-th client machine's boot program** (in `nodeList`'s order),
+`client`'s initialization then `client.NodeDeployment(d, n)` (`dist.WellFormed(d)`, then
+`client.NodeMain(w, c, addr, eps)`: client machine `c` of workload `w`, listening at `addr`, D8). -/
+opaque nodeProg (d : Deployment) (n : Nat) : Expr
 
 /-- The members' machines, with their start states `σs`, in the members' order. -/
 def servers (d : Deployment) (σs : List state) : List (Expr × state) :=
-  (d.members.zip σs).map (fun p => (serverProg d p.1, p.2))
+  σs.mapIdx (fun i σ => (serverProg d i, σ))
 
 /-- The workloads' orchestrator machines, with their start states `σc`, in the workloads' order. -/
 def clients (d : Deployment) (σc : List state) : List (Expr × state) :=
-  ((d.workloads.zip d.nodes).zip σc).map
-    (fun p => (clientProg p.1.1 (d.members.map Member.client) p.1.2, p.2))
+  σc.mapIdx (fun j σ => (clientProg d j, σ))
 
 /-- The workloads' client machines, with their start states `σn`, in `nodeList`'s order. -/
 def nodeMachines (d : Deployment) (σn : List state) : List (Expr × state) :=
-  (d.nodeList.zip σn).map
-    (fun p => (nodeProg p.1.1 p.1.2.1 p.1.2.2 (d.members.map Member.client), p.2))
+  σn.mapIdx (fun n σ => (nodeProg d n, σ))
 
 /-- **Every machine of the deployment**: the members', then the orchestrators', then the client
 machines'. -/
@@ -334,21 +334,19 @@ end programs
 section start
 variable [GooseExts] [ElemExt Net.netExt] [ElemExt Fs.fsExt]
 
-/-- The network at the start: no connection (`DistDeploy`'s, `kvnetRobust`'s `FreshNet`). -/
-def NetStart (g : GlobalState) : Prop := (extGlobal Net.netExt g.globalWorld).init
-
-/-- **A member's machine at the start** (`Robust` states the fresh Go process itself): no
-listener; its files as on disk; the member's data directory and WAL area roots of its file
+/-- **A member's machine at the start** (`Robust` states the fresh Go process itself, and the
+extensions' initial states: for the net extension no listener on any machine and no connection,
+`initLocal`/`initGlobal`): its files as on disk (`FsInit`: a premise until `fsSemWithS` gets the
+file extension's `initLocal`, D4a); the member's data directory and WAL area roots of its file
 system, empty of what a member creates (`etcdWalAreasInit`, one directory). -/
 def ServerStart (m : Member) (σ : state) : Prop :=
-  (extLocal Net.netExt σ.world).init ∧
   Fs.FsInit (extLocal Fs.fsExt σ.world) ∧
   etcdWalAreasInit (extLocal Fs.fsExt σ.world) [memberDataDir m.name]
 
-/-- A client's machine at the start: no listener; its files as on disk (review F11: the workloads'
-packages reach `fileutil`, whose initializer probes the file system). -/
+/-- A client's machine at the start: its files as on disk (review F11: the workloads' packages reach
+`fileutil`, whose initializer probes the file system; a premise until D4a, as `ServerStart`'s). -/
 def ClientStart (σ : state) : Prop :=
-  (extLocal Net.netExt σ.world).init ∧ Fs.FsInit (extLocal Fs.fsExt σ.world)
+  Fs.FsInit (extLocal Fs.fsExt σ.world)
 
 end start
 
