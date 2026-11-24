@@ -15,11 +15,13 @@ event resolves as one value, atomic by construction, with no prophecy-only mutex
   `v0.2.2-0.20261123232922-5d8e69df2f96` is pinned by Perennial's resolve-any and by the fork's `go.mod`; it
   is in this host's module cache (built locally from the commit, go.sum hash checked by reproducing the
   old pin's hash the same way), so goose runs here; elsewhere `go` needs the commit pushed.
-- **TEMPORARY pin override** (commit "TEMPORARY Perennial pin"): `lakefile.toml`/`lake-manifest.json` pin
-  Perennial `d79e187d83f2ce6abc0857d28931d4503d1fa213` (resolve-any). On fk-lean1,
-  `/home/ubuntu/eg/perennial-d79e187d8` is a symlink to `/home/ubuntu/eg/perennial-resolve-any` (a worktree of
-  fk-lean1's perennial.git at that branch, seeded from perennial-ccfeb3895), so remote-check.sh picks it.
-  When the Perennial PR lands and lean's pin moves, replace this commit by lean's pin.
+- **TEMPORARY pin override**: `lakefile.toml`/`lake-manifest.json` pin Perennial
+  `e5f3e2f37590d1a287b68ab3603408efa200bbc9` (since the 2026-11-24 ~03:00Z merge of lean c2118c0b56; before it,
+  `d79e187d8`): a merge commit of `resolve-any` (d79e187d8) with lean's pin `47ec64a9d` (clean merge, made with
+  `git commit-tree`). It is NOT on GitHub: it is the local branch `resolve-any-47ec` of /shared/perennial-ad74ee4's
+  repo (worktree /shared/perennial-e5f3e2f37) and the branch `resolve-any-47ec` of fk-lean1's perennial.git
+  (worktree /home/ubuntu/eg/perennial-e5f3e2f37, built). Landing needs: the resolve-any PR (updated with lean's
+  pin, or rebased) merged into Perennial, and this pin replaced by the Perennial commit lean then pins.
 
 ## Go side (done)
 - The fork (`examples/dsverify/swiftpaxos`) drops `client/ghost.go`, `swift/ghost.go` and the call lines (6 in
@@ -223,3 +225,35 @@ must be empty. Builds: `/shared/tmp/fklean1-check.sh /shared/etcd-grove-prophswi
   is `git show origin/lean:Dsverify/Proof/github_com/imdea_software/swiftpaxos/swift/GhostSteps2.lean`,
   `wp_ghostReport`). Then re-run the axioms scratch (re-add the file from 3944814521), drop it, and run the
   checks. Optional: `γ.pred` over `List val`.
+
+### 2026-11-24 ~03:10Z (third agent)
+- **Proved `swift.wp_resolveReport`** (GhostSteps2.lean; commit da91414c8c): the entries' loop (invariant
+  `s_ptr ↦ S0 ++ strW ((entries.take n).flatMap repEntryW)` and `∀ e ∈ take, EntryWf e`), each entry's fields read
+  through `ownSlice_elem_acc` + `iStructNamed` (ids, phases, cmds, deps), the value bytes' loop (prefix `S1`) and
+  the dependencies' loop (prefix `S2`). Gotcha: after an inner loop's exit, `wp_pure; wp_pure; wp_auto` (the
+  `executeVal ;;;` continuation), and `wp_auto` BEFORE any `simp only [bounds]` there (a simp first rewrites
+  inside the continuation's `glv` and wp_auto then makes no progress). Probing was fast with
+  `lake env lean` on a scratch copy in fk-lean1's `wt/proph-swiftpaxos` (about 4 s a run).
+- **Axioms before the merge** (scratch commit 524d64353a, dropped by af5abf711f; built on fk-lean1, exit 0,
+  4826 jobs): all six landed top-level theorems (rabia, quepaxa, epaxos, paxos, swiftpaxos, remote counter):
+  `[propext, Classical.choice, Quot.sound]`. No `sorryAx` anywhere.
+- **Merged origin/lean c2118c0b56** (8a9e67e3f3): conflicts only in lakefile/manifest (pin, see above) and the 13
+  generated swiftnet `cmd/*/PkgTable.lean` (took lean's, regenerated with
+  `PERENNIAL_DIR=/shared/perennial-e5f3e2f37 etc/gen-init.py`). swiftnet's `BootTable.lean`/`BootCmdsLinked.lean`
+  now come from `etc/dsv/kitgen.py` (KITGEN `boot`; `_swiftpaxos_boot.py` is gone); the auto-merged files equal
+  kitgen's output (`--check` ok).
+- Checks after the merge (PERENNIAL_DIR=/shared/perennial-e5f3e2f37): tier-check ok (227 known, unchanged);
+  goose --check ok; gen-init --check ok (273 files); kitgen --check ok (3 kits, 33 files); copy-part --check ok;
+  proph_patch.py ok (all projects; dsv-swiftpaxos 1 patch); prophcheck `go test -count=1` ok;
+  `proof_roots.namespace()` = `Perennial.EtcdGrove.` (= lean's); dups.py (Perennial e5f3e2f37): 4 dups, the same
+  4 parse artifacts as on lean (47ec64a9d), none new. `etc/goose.py`/`etc/gen-init.py` equal lean's.
+- Statement: no `TopLevelRobustness.lean` under Spec/ differs from origin/lean; only swiftnet's Proof
+  `TopLevelRobustness.lean` (the `bootRes_client`/`bootRes_server` proofs: `bootRes` gained `client.prophFresh swift.nodeProph`).
+- **Axioms after the merge** (scratch commit b8f72aeb38, then dropped; fk-lean1 on pin e5f3e2f37, exit 0, 4970
+  jobs, 1052 s): all six landed top-level theorems `[propext, Classical.choice, Quot.sound]`; no `sorryAx`.
+- **What blocks landing**: (1) goose-lang/primitive commit `5d8e69df2f96` (`ProphId.Resolve(any)`) is not pushed
+  (the push was refused here; patch in the coordinator's scratchpad); Perennial's resolve-any and the fork's
+  go.mod pin its pseudo-version, so `go` elsewhere needs it. (2) The Perennial `resolve-any` PR (d79e187d8; PR
+  body `pr-resolve-any.md` in the coordinator's scratchpad) must land, updated for lean's pin 47ec64a9d (the merge
+  e5f3e2f37 is clean, local only). (3) Then replace the TEMPORARY pin e5f3e2f37 by the Perennial commit lean pins,
+  rerun gen-init/kitgen and the build. Optional follow-up: `γ.pred` over `List val` (design (II)).
