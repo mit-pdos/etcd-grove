@@ -105,15 +105,17 @@ theorem nestRun_body (d m : w64) (s rest : List w8) (h : ∀ c ∈ s, JsonScan.p
     obtain ⟨h1, h2, h3, h4, -⟩ := h c (by simp)
     have h92 : c ≠ 92#8 := by intro e; subst e; simp_all
     have h34 : c ≠ 34#8 := by intro e; subst e; simp_all
-    simp only [List.cons_append, nestRun, h92, h34, ↓reduceIte]
+    rw [List.cons_append, nestRun.eq_def]
+    simp only [h92, h34, ↓reduceIte]
     exact ih (fun c hc => h c (by simp [hc]))
 
 /-- A plain string, in quotes, leaves `Nesting`'s state as it was. -/
 theorem nestRun_str (d m : w64) (s rest : List w8) (h : ∀ c ∈ s, JsonScan.plainEnc c) :
     nestRun d m false (34#8 :: (s ++ 34#8 :: rest)) = nestRun d m false rest := by
-  simp only [nestRun, ↓reduceIte]
-  rw [nestRun_body d m s _ h]
-  simp [nestRun]
+  rw [nestRun.eq_def]
+  simp only [↓reduceIte]
+  rw [nestRun_body d m s _ h, nestRun.eq_def]
+  simp only [show (34#8 : w8) ≠ 92#8 by decide, ↓reduceIte]
 
 /-- Bytes that are not `"`, brackets or braces leave `Nesting`'s state as it was. -/
 theorem nestRun_plain (d m : w64) (s rest : List w8)
@@ -123,7 +125,8 @@ theorem nestRun_plain (d m : w64) (s rest : List w8)
   | nil => rfl
   | cons c r ih =>
     obtain ⟨h1, h2, h3, h4, h5⟩ := h c (by simp)
-    simp only [List.cons_append, nestRun, h1, h2, h3, h4, h5, or_self, ↓reduceIte]
+    rw [List.cons_append, nestRun.eq_def]
+    simp only [h1, h2, h3, h4, h5, or_self, ↓reduceIte]
     exact ih (fun c hc => h c (by simp [hc]))
 
 end models_lab.jsoncodec

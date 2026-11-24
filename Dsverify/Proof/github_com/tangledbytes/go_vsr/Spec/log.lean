@@ -171,8 +171,8 @@ abbrev log.Logs.Merge.spec : Prop :=
 
 variable [encoding.json.Assumptions] [models_lab.jsoncodec.JsonCodec GF]
 
-/-- A `[]log.Log` goes to the registered codec (no `JSONModelMarshal*`). -/
 omit [models_lab.jsoncodec.JsonCodec GF] in
+/-- A `[]log.Log` goes to the registered codec (no `JSONModelMarshal*`). -/
 theorem log.logs_marshalsByCodec (sl : GoSlice) :
     encoding.json.marshalsByCodec
       (interface.mkOk (go.GoType.SliceType log.Log.ty) #sl) := by
@@ -197,16 +197,16 @@ abbrev log.Logs.MarshalJSON.spec : Prop :=
   {{ (b : GoSlice), RET (PairV #b #(interface.nil : GoInterface)); log.ownLogs sl dq es ∗
       b ↦* log.encLogs es ∗ ownSliceCap w8 b (DFrac.own 1) }}
 
-/-- A `*[]log.Log` goes to the registered codec (no `JSONModelUnmarshal`). -/
 omit [models_lab.jsoncodec.JsonCodec GF] in
+/-- A `*[]log.Log` goes to the registered codec (no `JSONModelUnmarshal`). -/
 theorem log.logs_unmarshalsByCodec (p : Loc) :
     encoding.json.unmarshalsByCodec
       (interface.mkOk (go.GoType.PointerType (go.GoType.SliceType log.Log.ty)) #p) := by
   simp only [encoding.json.unmarshalsByCodec, interface.mkOk]
   go_type_set
 
-/-- The registered codec's route is persistent (registered for good). -/
 omit [models_lab.jsoncodec.JsonCodec GF] in
+/-- The registered codec's route is persistent (registered for good). -/
 instance log.codecRoute_persistent (J : models_lab.jsoncodec.JsonCodec GF)
     (F : List w8 → Bool → w64 × w64) : Persistent (encoding.json.codecRoute (GF := GF) J F) := by
   unfold encoding.json.codecRoute; infer_instance
