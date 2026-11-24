@@ -69,7 +69,7 @@ state), record it **as soon as it is found**, one file per finding:
   with the reason.
 
 Each says whether it blocks the proof (`blocks-proof: yes/no`). A **fix** is separate from its bug:
-one commit changing the system's code (never the orchestrator, the model, the codec or the
+one commit changing the system's code (never the driver, the driver's model, the codec or the
 environment: `CHALLENGE.md`), with the finding's test passing after it and the translation
 regenerated; record it under its own heading in the finding's file and in the report. When the
 challenge's `CLAUDE.md` forbids code changes, a blocking bug is reported, and the proof stops at it.

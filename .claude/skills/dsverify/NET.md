@@ -11,7 +11,7 @@ A challenge's statement is an instance of the generic robustness statement
 of fewer than `bound` steps, with fewer than `threads` live threads per machine, **no thread of any
 machine is stuck and none has an unrecovered panic**. A property such as linearizability is not
 stated over traces in Lean: it is checked by a program of the deployment that panics otherwise (the
-orchestrator's porcupine check, `TESTING.md`), so "no panic" means "porcupine accepts every
+driver's porcupine check, `TESTING.md`), so "no panic" means "porcupine accepts every
 history".
 
 ```
@@ -60,7 +60,7 @@ Clients run on machines of their own: no client shares a process with another, s
 on one observer of several clients' steps. The library (Go: `examples/lib/remote/remote.go`; specs:
 `Net/Spec/.../examples/lib/remote/`) has:
 
-- `Check` / `Run` (the orchestrator, node 0): lintest's driver with one client per client address,
+- `Check` / `Run` (the driver, node 0): lintest's driver with one client per client address,
   each operation a `Do` at that address; the history checked by porcupine against the model, a panic
   unless porcupine answers `Ok`. Its spec's premises are the kit's obligations: the model refines a
   Lean model spec (`isModel S m`, `TESTING.md`), the codec is correct (`codecOk`), the far side's

@@ -6,7 +6,7 @@ description: Prove a dsverify challenge exported from etcd-grove - a Go distribu
 # Proving a dsverify challenge with Perennial (Lean), spec-first
 
 A **challenge** is a self-contained tree exported from etcd-grove (`CHALLENGE.md`): a Go
-distributed system and the program that tests it (an orchestrator machine, client machines,
+distributed system and the program that tests it (a driver machine, client machines,
 server machines, over TCP), Goose's translation of it, the Lean environment it runs in (the net
 extension and its specs, the remote-call library, the generic robustness statement), and one
 **goal**: a top-level statement, given, with its declared premises. You prove it. The proof of the

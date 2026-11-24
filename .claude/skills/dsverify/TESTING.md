@@ -13,7 +13,7 @@ own (`cmd/<machine>/main.go`) on a machine of its own, over TCP (`NET.md`):
 2. **Client machines**, one per client, each run their own client of the target through its real
    client API (`remote.ServeClient`): a few operations per client is enough for the proof (the
    theorem quantifies over all schedules).
-3. **The orchestrator** chooses the configuration (at random: below), drives the clients' operations
+3. **The driver** chooses the configuration (at random: below), drives the clients' operations
    through `remote.Do`, **records the history** (lintest, with a logical clock: a counter under a
    lock, what the proof can model, and sound for porcupine since only real-time order matters),
    and **checks it with porcupine** against a sequential model of the service (`remote.Check`),
@@ -40,7 +40,7 @@ expect of its proof.
   leader change). Not a narrow first test with the rest left for later.
 - **Choose the configuration at random, through the model of randomness.** Every parameter whose
   values the protocol supports (the number of replicas, modes, pipeline depth, batch or epoch sizes,
-  timeouts) is chosen by the orchestrator with `rand.Intn` (or the like) over its supported range. Proved over a
+  timeouts) is chosen by the driver with `rand.Intn` (or the like) over its supported range. Proved over a
   model in which `Intn(n)` returns *any* value in `[0, n)`, one theorem then covers every choice. The
   node list stays fixed: deploy the largest configuration's nodes, and let the nodes a smaller choice
   does not use idle. When nodes are separate programs, they learn the choice over the network (one
@@ -90,7 +90,7 @@ and before the interface, as the first linked result:
 - Prove, per function, a **pure spec**: `Step`'s WP returns the Go encoding of `stepL s i`, for every
   state and input encoded as the Go values (`Partition` and `Equal` likewise; `DescribeOperation` needs
   no spec). Write the encoding (Lean value → Go value) once and use it in the codec's spec too.
-- From these, `isModel S m` for the model value the orchestrator passes, and the codec's
+- From these, `isModel S m` for the model value the driver passes, and the codec's
   correctness (`codecOk`: each encoding decodes back; the generated codecs come with their specs).
 
 It is cheap (pure functions, a few dozen lines of Go) and it runs the whole toolchain end to end —
@@ -109,14 +109,14 @@ reach paths the given workload reaches rarely, never a replacement of the goal:
 - **the target's harder features**: transactions, watches/subscriptions, leases, compaction;
 - **two clients of different kinds**: a reader and a writer path that the target serves differently.
 
-The same recorder and model, a different orchestrator.
+The same recorder and model, a different driver.
 
 ## Running the examples as tests
 
 - Run the deployment as Go: the kit's own test (its `_test.go`, or the challenge's `CLAUDE.md`) runs
   every machine, as processes or in one process over loopback. Then under `go test` with a larger
   workload, **many times** (`-count=100`), with the race detector, randomized delays in the transport,
-  and short timeouts. A panic is a bug in the target (the given orchestrator, model and remote library
+  and short timeouts. A panic is a bug in the target (the given driver, the driver's model and remote library
   are proved); record it per `TRUST.md`.
 - Your tests go in the kit's Go module beside the given ones, in files of their own; none of them is
   translated (keep them out of the Goose project's packages, or in `_test.go` files).
@@ -141,7 +141,7 @@ protocol does not promise turns a correct schedule into a "bug"): state each one
 own paper or documentation does, and when a check fires, first ask whether the check is right.
 
 Show once that the history check can fail: plant a bug that breaks consistency (a read that returns a
-stale reply, an overwrite that ignores versions) in a scratch copy and see the orchestrator panic. A check that
+stale reply, an overwrite that ignores versions) in a scratch copy and see the driver panic. A check that
 cannot fail makes the theorem say nothing; a model whose Go `Step` accepts everything is such a
 check, and a finding about the challenge.
 
