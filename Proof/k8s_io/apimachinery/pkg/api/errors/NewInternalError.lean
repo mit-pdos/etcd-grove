@@ -7,6 +7,7 @@ module
 
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewInternalError
 public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -50,29 +51,16 @@ theorem NewInternalError.wp_proof : NewInternalError.spec (GF := GF) (hG := hG) 
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
-  have hds : _root_.Perennial.fmt.fmtDirectives go!"Internal error occurred: %v" =
-      some [⟨W8 118, false⟩] := by
-    decide
-  ihave Hargs : _root_.Perennial.fmt.argsOkAt (GF := GF) _root_.Perennial.fmt.methodVerbs
-      [⟨W8 118, false⟩] [GoInterface.ok ei] $$ []
-  · simp only [_root_.Perennial.fmt.argsOkAt]
-    isplitl []
-    · unfold _root_.Perennial.fmt.argOkAt
-      iright; iright; ileft
-      isplitr
-      · ipureintro
-        refine ⟨by decide, rfl, fun h => ?_⟩
-        exact absurd h (by decide)
-      · unfold _root_.Perennial.fmt.argOk
-        iright; ileft
-        iframe Hstr
-        ipureintro; exact Hms
-    · itrivial
-  ihave Hok := _root_.Perennial.fmt.argsOk_intro (GF := GF) (mv := _root_.Perennial.fmt.methodVerbs) hds $$ Hargs
   iapply wp_fupd
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf go!"Internal error occurred: %v" _
-      [GoInterface.ok ei] (DFrac.own 1))
-    $$ [$Pf $Hasl $Hok] as %s -
+  wp_apply (_root_.Perennial.fmt.wp_Sprintf go!"Internal error occurred: %v"
+      [.lit go!"Internal error occurred: ", .dir none _root_.Perennial.fmt.verb_v] _
+      [GoInterface.ok ei] [.method fun _ => True] (DFrac.own 1) (by fmt_encode) (by fmt_fits))
+    $$ [$Pf $Hasl] as %s -
+  · iapply BigSepL2.bigSepL2_cons.2
+    isplitl
+    · iapply (EtcdGrove.fmt.isArg_error ei Hms.1 Hms.2)
+      iexact Hstr
+    · iapply BigSepL2.bigSepL2_nil.2; itrivial
   ipersist «$v3»
   ipersist Hcsl
   imodintro

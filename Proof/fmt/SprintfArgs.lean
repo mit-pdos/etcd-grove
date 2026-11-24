@@ -1,7 +1,7 @@
 /-
-`fmt.Sprintf` for arguments whose `Error()`/`String()` Go calls: from Perennial's `fmt.wp_Sprintf`
-(fmtmodel, 2026-11-20: Perennial's model formats and calls the arguments' methods as Go does; until
-then an axiom here).
+`fmt.Sprintf` for arguments whose `Error()`/`String()` Go calls: Perennial's `fmt.wp_Sprintf`, of the
+real `Sprintf` (real `fmt` stage 1, 2026-11-24; from 2026-11-20 its model's; until then an axiom
+here).
 -/
 module
 
@@ -24,13 +24,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
-theorem fmt.SprintfArgs.wp_proof : fmt.SprintfArgs.spec (GF := GF) (hG := hG) := by
-  intro format args_sl xs dq
-  iintro %Φ ⟨#Hpkg, Hsl, Hok⟩ HΦ
-  wp_apply (_root_.Perennial.fmt.wp_Sprintf format args_sl xs dq) $$ [$Hpkg $Hsl $Hok]
-    as %s ⟨Hsl, -⟩
-  iapply HΦ
-  iframe
+theorem fmt.SprintfArgs.wp_proof : fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.fmt.wp_Sprintf
 
 end proof
 

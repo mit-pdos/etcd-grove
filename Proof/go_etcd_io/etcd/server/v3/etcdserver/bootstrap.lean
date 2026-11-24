@@ -181,9 +181,9 @@ theorem bootstrap.wp_proof
   subst Heq
   wp_auto
   iunfold bootFs.memberDir at Hmd
-  icases Hmd with ⟨Hwp, Hdf, Hsdo⟩
+  icases Hmd with ⟨Hwp, Hdf⟩
   -- `bootstrapSnapshot(cfg)`
-  wp_apply (hSnap cfg Hfits) $$ [Hdf] as %ss ⟨#Hss, Hsfree, Hff⟩
+  wp_apply (hSnap cfg Hfits) $$ [Hdf] as %ss ⟨#Hss, Hsfree, Hff, Hsdo⟩
   · iframe Hdf; iframe #
   -- `rafthttp.NewRoundTripper(cfg.PeerTLSInfo, cfg.PeerDialTimeout())`
   wp_apply (hPDT cfg_ptr cfg.ElectionTicks' cfg.TickMs') as %dt -

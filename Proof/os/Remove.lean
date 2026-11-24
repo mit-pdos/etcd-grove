@@ -10,6 +10,7 @@ loop after a failed unlink (`rmdir_loop`) fails on a name holding no directory
 module
 
 public import Spec.os.Remove
+public import Proof.os.PkgInit
 public import Proof.os.ErrorOk
 public import Proof.os.ErrnoPathErr
 public import Proof.os.SharedExt
@@ -59,7 +60,7 @@ local macro "rmdir_loop" hnd:term " => " post:tacticSeq : tactic => `(tactic| (
     ihave %hne := os.errnoPathErr_ne err _ $$ Herr
     iapply HΦ
     isplitr
-    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
+    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
     ($post)
   · rw [decide_eq_false h20]
     wp_auto
@@ -67,7 +68,7 @@ local macro "rmdir_loop" hnd:term " => " post:tacticSeq : tactic => `(tactic| (
     ihave %hne := os.errnoPathErr_ne err _ $$ Herr
     iapply HΦ
     isplitr
-    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Herr
+    · iapply os.errnoPathErr_fmtErrorOkOrNil err _ (by assumption) $$ Hsys Herr
     ($post)))
 
 theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) := by
@@ -78,6 +79,9 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
     intro x s; simp only [NamesH.log]
     rw [restrictN_lookup _ _ _ hbN]; exact GMap.lookup_delete _ _
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (rmFileOut j b i h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
@@ -190,9 +194,9 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
 /-- `specFileS` from `specFileSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.Remove.wp_proofFileS : os.Remove.specFileS (GF := GF) (hG := hG) := by
   intro d b j i R dq h q r qc Q hb hi hq
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpk, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
   iapply os.Remove.wp_proofFileSnc d b j i R dq h q r qc Q hb hi hq $$ [Hp Hperm Hn Hau] HΦ
-  iframe Hos Hsi Hp Hperm Hn
+  iframe Hpk Hos Hsi Hp Hperm Hn
   iapply osAU_osAUnc $$ Hau
 
 end proof

@@ -177,12 +177,13 @@ theorem wp_residentExecute (bm : Loc) (st : pure.Store) (cs : GoSlice)
         (rw [ite_cond_eq_true _ _ (eq_true (by word))]))
       wp_func_call
       wp_call
-      by_cases hclen : c.length < 2 ^ 63
+      by_cases hclen : ((c).length : Int) ≤ maxAddr
       case neg =>
         simp only [hclen, ↓reduceIte]
         wp_bind (AngelicExit _)
         iapply wp_AngelicExit
       simp only [hclen, ↓reduceIte]
+      have hclen_lt : (c).length < 2 ^ 63 := by unfold maxAddr at hclen; omega
       repeat' (first | wp_auto | simp only [Hb, Hb2, Hb3, Hb4, _root_.and_self, ↓reduceIte] |
         (rw [ite_cond_eq_true _ _ (eq_true (by word))]))
       -- iStructNamedPrefix Hq "q"

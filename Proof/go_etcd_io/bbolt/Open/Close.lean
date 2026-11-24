@@ -154,6 +154,9 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
     DB.close.spec_owned (GF := GF) (hG := hG) := by
   intro db lg dqr fli wa s ms p f hdb
   wp_start as ⟨#Hos, #Hlg, #Hlgok, Hro, Hop, Hfl, Hwa, Hpath, Hmf, Hdsz, Hmr, Hfile, Hf⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   wp_auto
   ihave Herrs : (∃ (sl : GoSlice) (es : List GoInterface), errs_ptr ↦ sl ∗ sl ↦* es ∗
       ownSliceCap GoInterface sl (DFrac.own 1) : IProp GF) $$ [errs]
@@ -229,7 +232,7 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         ⟨⟨syscall.Errno.ty, #e⟩, by simp only [errnoErr, he, ↓reduceIte, interface.mkOk]⟩
       have hS := hErr e he
       rw [hii] at hS ⊢
-      ihave #HeS := hS
+      ihave #HeS := hS $$ Hsys
       try wp_auto
       wp_apply wp_slice_literal
       isplitr

@@ -14,12 +14,12 @@ The states:
   an existing root, so `TouchDirAll` stats it, syncs its parent and probes `DataDir/.touch`
   (`IsDirWriteable`: written and removed), and the directory is empty again;
 - after `TouchDirAll(MemberDir())`: `bootFs.memberDir cfg` (`bootFs.touchMember.law`): the member
-  directory `DataDir/member` new, empty and wholly the caller's (`bootFs.dirFresh`), the snapshot
-  directory's right (`snap.snapDirOwn`, which `bootOk`'s `Hsdo` hands on), and the WAL's part
+  directory `DataDir/member` new, empty and wholly the caller's (`bootFs.dirFresh`), and the WAL's part
   (`bootFs.walPart`);
-- `bootstrapSnapshot` takes the member directory and gives the snapshotter, the snapshot names' claims
-  and the backend file's free name (`backend.fileFree (config.backendPathOf DataDir)`), which
-  `bootstrapBackend` takes;
+- `bootstrapSnapshot` takes the member directory and gives the snapshotter, the snapshot names' claims,
+  the backend file's free name (`backend.fileFree (config.backendPathOf DataDir)`), which
+  `bootstrapBackend` takes, and (2026-11-23) the snapshot directory's right, the claim on its other
+  names (`snap.snapDirOwn`, `bootOk`'s `Hsdo`);
 - `wal.Exist(WALDir())` answers `false` on the WAL's part (`bootFs.walExist.law`), which
   `bootstrapStorage` takes.
 
@@ -31,11 +31,11 @@ The states:
   `dataAreaFresh`, which since then holds `Fs.osAboveInv` (the root's parent is synced above the roots) and
   the bound `d.length < 4096`;
 - `bootFs.touchMember.law`: `TouchDirAll.spec` covers it (`member` is absent in the data directory),
-  but `wal.bootRes` is sealed, and two things are missing from its body today: (1) **the snapshot
-  directory's right `snap.snapDirOwn`** (opaque: only `bootOk` gives it, plan §1's "Check": the
-  slot's body must grow by it), and (2) `dataAreaFresh` quantifies the file extension's instances
+  but `wal.bootRes` is sealed, and its `dataAreaFresh` quantifies the file extension's instances
   existentially, where the file claims `bootOk` gives (`backend.fileFree`, `backend.bPath`) are at the
-  program's (`backend.onFs`): its body must say they are the program's;
+  program's (`backend.onFs`): its body must say they are the program's. (Until 2026-11-23 the snapshot
+  directory's right `snap.snapDirOwn` was missing from it too; it is now `bootstrapSnapshot`'s, carved
+  from the snapshot directory that function makes.)
 - `bootFs.walExist.law`: **proved** (2026-11-23), `bootFs.walExist_law_holds` (`BootFsLaws.lean`), from
   `wal.Exist.spec` (whose post since then answers `false` with no WAL when the file system does not fail
   on the directory, `FsNoErrAt`): `ReadDir`'s `open` of the absent directory fails with `ENOENT`
@@ -44,7 +44,7 @@ The states:
 
 **The rows.** `bootOk`'s rows by the callee that makes them:
 
-- `bootstrapSnapshot`: `Hss`, `Hsfree` (`Hsdo` from the member state, framed);
+- `bootstrapSnapshot`: `Hss`, `Hsfree`, `Hsdo`;
 - `bootstrapBackend`: `bootBackendRows` (`Hci HisCI Hcons Hbh Hthr Happ Hown Hmeta HmetaSnap Hbe HhkAt
   Hlate Hpath Hbfile`), `Hnew` at the data `D` after `CreateMetaBucket` (`bootBackendData`: `Hm0`,
   `HD`, the rest buckets empty, `HmEmpty`), and one write-back token for `Finalize`;
@@ -139,12 +139,10 @@ def bootFs.dirFresh (d : GoString) : IProp GF :=
 
 /-- **The state after `TouchDirAll(cfg.MemberDir())`** (`bootstrap.go:68`; see the file header): the
 WAL's part, the member directory `DataDir/member` fresh (`MemberDir()` is
-`filepath.Join(DataDir, "member")`, `config.go:300`), and the snapshot directory's right
-(`snap.snapDirOwn` at the configuration's snapshot paths: the environment's, which `bootOk`'s `Hsdo`
-hands on; **not in `wal.bootRes`'s body today**, see the file header). -/
+`filepath.Join(DataDir, "member")`, `config.go:300`). (Until 2026-11-23 also the snapshot directory's
+right `snap.snapDirOwn`, now `bootstrapSnapshot`'s.) -/
 def bootFs.memberDir (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop(bootFs.walPart cfg ∗ bootFs.dirFresh (path.joinModel [cfg.DataDir', go!"member"]) ∗
-    snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')))
+  iprop(bootFs.walPart cfg ∗ bootFs.dirFresh (path.joinModel [cfg.DataDir', go!"member"]))
 
 /-- **`TouchDirAll(lg, cfg.DataDir)` on the start** (`bootstrap.go:64`; a law, see the file header):
 an error, or the start again. True of Go: the data directory exists (a root), so `TouchDirAll`
@@ -372,7 +370,7 @@ theorem bootBackendData_withMemBkts (γA : ApplyNames) (d : mvcc.KBReal) (D : ba
 /-- **The callees' posts join into `bootOk`** (see the file header): the records `bootstrap` holds
 (its own literal `b`, `bootstrapStorage`'s `sto` and `bw`, `bootstrapBackend`'s `bk`,
 `bootstrapCluster`'s `bc`, `bootstrapRaft`'s `bv`), the round tripper a `*http.Transport`, the WAL
-(`bootstrapStorage`), the snapshot rows (`bootstrapSnapshot`, and the member state's `snapDirOwn`),
+(`bootstrapStorage`), the snapshot rows (`bootstrapSnapshot`'s, `snapDirOwn` among them),
 `bootRaftBuilt`, `bootClusterDone`, `bootBackendRows` and `Hnew` after `Finalize`'s buckets give
 `bootOk` at Go's values, given `bootstrap.spec`'s pure preconditions on `γ` and the facts the callees'
 posts state (`membersOk`, this node's id, no remotes, `bootBackendData`). Framing, but for the

@@ -811,7 +811,8 @@ theorem wp_calculateSequence (wp_getLeaderSequence : getLeaderSequence_spec (GF 
   wp_auto
   have Hlen : (mabAcc ps).length = 2 * c.n := by
     rw [mabAcc_length ps (fun q hq => ⟨(Hrps q hq).1, by have := (Hrps q hq).2; omega⟩), Hpl]
-  have Hl63 : (mabAcc ps).length < 2 ^ 63 := by omega
+  have Hl63 : ((mabAcc ps).length : Int) ≤ maxAddr := by
+    unfold maxAddr; rcases Hn35 with h | h <;> rw [h] at Hlen <;> omega
   simp only [Hl63, ↓reduceIte]
   rw [Hlen]
   have Hb : sint.Z (W64 1) ≤ sint.Z (W64 ((2 * c.n : Nat) : Int)) ∧

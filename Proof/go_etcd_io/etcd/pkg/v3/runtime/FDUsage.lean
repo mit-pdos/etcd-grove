@@ -27,6 +27,9 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.runtime.Assumptions]
 
 theorem runtime.FDUsage.wp_proof : runtime.FDUsage.spec (GF := GF) (hG := hG) := by
   wp_start
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   (try wp_auto)
   wp_apply wp_ArbitraryInt as %e -
   by_cases he : e = W64 0
@@ -47,7 +50,7 @@ theorem runtime.FDUsage.wp_proof : runtime.FDUsage.spec (GF := GF) (hG := hG) :=
     · subst hk
       rw [decide_eq_true (rfl : W64 0 = W64 0)]
       (try wp_auto)
-      wp_apply os.wp_pathError_ok _ _ e he as %pe #Hpe
+      wp_apply os.wp_pathError_ok _ _ e he $$ Hsys as %pe #Hpe
       (try wp_auto)
       iapply HΦ
       isplitr
@@ -56,7 +59,7 @@ theorem runtime.FDUsage.wp_proof : runtime.FDUsage.spec (GF := GF) (hG := hG) :=
       iexact Hpe
     · rw [decide_eq_false hk]
       (try wp_auto)
-      wp_apply os.wp_pathError_ok _ _ e he as %pe #Hpe
+      wp_apply os.wp_pathError_ok _ _ e he $$ Hsys as %pe #Hpe
       (try wp_auto)
       iapply HΦ
       isplitr
