@@ -91,7 +91,7 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan), RET #rd;
       -- (#33 S4) at a named state `s`, which reads as `ps`, with the scope kept
       "Hrn" ∷ (∃ s : NState, ownRawNodeReadyS γ rn id rs rd ce es ms false L s ∗
-        rnScopeAt sc rs s ∗
+        rnScopeAt γ id sc rs s ∗
         ⌜toPState s = ps ∧ uint.nat s.logst.inprogress = ip + 1 ∧
           ms.filterMap (fun q => absMsgOf q.st) ≡ₚ s.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
           (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧

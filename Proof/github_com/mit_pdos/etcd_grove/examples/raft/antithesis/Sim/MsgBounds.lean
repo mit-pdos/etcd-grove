@@ -262,7 +262,7 @@ theorem outNums_tick {K : Int} {c : CfgM} {id : w64} {s s' : PState}
         exact ⟨this.2, this.1⟩
       · exact ⟨hK, hK⟩
   · intro q hq _
-    obtain ⟨hh, hi, hlt, he⟩ := hms q (mem_psend hX hq)
+    obtain ⟨hh, hi, hlt, he, -⟩ := hms q (mem_psend hX hq)
     obtain ⟨-, -, -, -, hc, -⟩ := hh
     refine ⟨by rw [hi, h0]; exact hK, by rw [hlt, h0]; exact hK, ?_, by rw [he]; simp⟩
     have := hs.2.2.2.1

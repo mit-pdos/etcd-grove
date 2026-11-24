@@ -119,12 +119,13 @@ theorem lentPend_pendAt (γ : RaftNames) (id : w64) (W : DurMaps) (o : Option Sn
     iexact H
 
 /-- The scope outside the harness: nothing. -/
-theorem rnScopeAt_false (rs : RNState) (s : NState) : ⊢ rnScopeAt (GF := GF) false rs s := by
+theorem rnScopeAt_false {γ : RaftNames} {id : w64} (rs : RNState) (s : NState) :
+    ⊢ rnScopeAt (GF := GF) γ id false rs s := by
   unfold rnScopeAt; simp only [Bool.false_eq_true, ite_false]; iempintro
 
 /-- The scope's pure part, read out. -/
-theorem rnScopeAt_scope (sc : Bool) (rs : RNState) (s : NState) :
-    rnScopeAt (GF := GF) sc rs s ⊢ ⌜sc = true → RnScope rs s⌝ ∗ rnScopeAt sc rs s := by
+theorem rnScopeAt_scope {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState) :
+    rnScopeAt (GF := GF) γ id sc rs s ⊢ ⌜sc = true → RnScope rs s⌝ ∗ rnScopeAt γ id sc rs s := by
   cases sc with
   | false =>
     iintro H; iframe H; ipureintro; intro h; cases h
@@ -133,7 +134,21 @@ theorem rnScopeAt_scope (sc : Bool) (rs : RNState) (s : NState) :
     iintro ⟨%H, #Hc⟩
     iframe Hc
     isplitr
-    · ipureintro; intro _; exact H
+    · ipureintro; intro _; exact H.1
+    · ipureintro; exact H
+
+/-- The node in the harness's configuration (`RnCfgIn`), read out. -/
+theorem rnScopeAt_cfgIn {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState) :
+    rnScopeAt (GF := GF) γ id sc rs s ⊢ ⌜sc = true → RnCfgIn γ id rs⌝ ∗ rnScopeAt γ id sc rs s := by
+  cases sc with
+  | false =>
+    iintro H; iframe H; ipureintro; intro h; cases h
+  | true =>
+    unfold rnScopeAt; simp only [ite_true]
+    iintro ⟨%H, #Hc⟩
+    iframe Hc
+    isplitr
+    · ipureintro; intro _; exact H.2
     · ipureintro; exact H
 
 /-- Closing `ownRawNodeAt`: `ownRawNode_intro_tr`'s premises and resources, the queue as `pendAt`, and
@@ -169,7 +184,7 @@ theorem ownRawNodeAt_intro (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
       restoreLedger γ id rs.sn s -∗
       durTie γ rs s -∗
       rnTrace γ rnv.raft' id c rs.delivered s -∗
-      rnScopeAt sc rs s -∗
+      rnScopeAt γ id sc rs s -∗
       ownRawNodeAt γ rn id rs ps qs ip sc := by
   iintro Hrn Hphys Hghost #Hsdrf #Hsoft #Hhard Hsteps Hcap Hpend #Hdeliv #Hstrecs #Hloanc #Hsloc #Hhist
     Hledger #Hdur Hrntr Hsc
@@ -215,7 +230,7 @@ theorem ownRawNode_at : ownRawNode_at.law (GF := GF) := by
   iNamed H
   icases ownRaftPhysC_inprogress_pos cf rnv.raft' id s $$ Hphys with ⟨%Hip1, Hphys⟩
   icases lentPend_pendAt γ id rs.bw rs.slent steps rs.steps $$ Hpend with ⟨%qs, Hpend⟩
-  ihave Hsc := rnScopeAt_false (GF := GF) rs s
+  ihave Hsc := rnScopeAt_false (GF := GF) (γ := γ) (id := id) rs s
   iexists toPState s, qs, uint.nat s.logst.inprogress - 1
   iapply ownRawNodeAt_intro γ rn id rs (toPState s) qs (uint.nat s.logst.inprogress - 1) false s cf fp
     rnv sv hprev steps Hwf Hin Hasync Hdlen Hunp Hsnap Hstok

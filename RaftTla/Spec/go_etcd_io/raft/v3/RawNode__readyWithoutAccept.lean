@@ -92,7 +92,7 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       (sts : List ReadStateM) (h : HardStateM) (L : Option SnapLoan), RET #rd;
       -- (#33 S4) at a named state `s`, which reads as `ps`, with the scope kept
       "Hrn" ∷ (∃ s : NState, ownRawNodeReadyS γ rn id rs rd ce es ms false L s ∗
-        rnScopeAt sc rs s ∗
+        rnScopeAt γ id sc rs s ∗
         ⌜toPState s = ps ∧ uint.nat s.logst.inprogress = ip + 1 ∧
           ms.filterMap (fun q => absMsgOf q.st) ≡ₚ s.outbox.filter (fun m => decide (m.dst ≠ id)) ∧
           (∀ q ∈ ms, q.st.msg.To' ≠ id) ∧
@@ -134,6 +134,9 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
       -- (2026-10-16, stage R5) the hard state: `nil` when unchanged, else `hardState()`'s fresh
       -- read-only one
       "#Hhard" ∷ hsOptC rd.HardState' h ∗
+      -- (#33 S4) a non-empty one differs from `prevHardSt`'s record (raft hands it out only when
+      -- `!isHardStateEqual(hardSt, prevHardSt)`)
+      "%Hhnew" ∷ ⌜¬ (h.Term' = W64 0 ∧ h.Vote' = W64 0 ∧ h.Commit' = W64 0) → h ≠ rs.phs⌝ ∗
       -- (D22 S-b) a non-`nil` one is the node's hard state: its witness (`hsWit`), bounding the
       -- committed log handed out; (D22l) of `prevHardSt` after the `Ready` (`phsNext`): a `nil`
       -- or empty one leaves the witness `prevHardSt`'s (`rs.phs`), the node's hard state then

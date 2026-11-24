@@ -55,7 +55,7 @@ theorem tickElEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope id
 check-quorum off: no quorum check): `TickEnd`, the log's state kept; the transfer abort is invisible
 to `toPState`. -/
 theorem tickHbEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope id s)
-    (h : TickHbEnd c id s s') :
+    (hro : (toPState s).rd.ro.pending = []) (h : TickHbEnd c id s s') :
     TickEnd c id (toPState s) (toPState s') ∧ s'.logst = s.logst := by
   have hcq := hsc.2.1
   rcases h with ⟨s1, h1, h2⟩ | ⟨s1, s2, h1, -, -, h3, he⟩
@@ -70,7 +70,7 @@ theorem tickHbEnd_lift {c : CfgM} {id : w64} {s s' : NState} (hsc : LiftScope id
       · exact ⟨rfl, rfl, hsc⟩
     obtain ⟨hp, hl, hsc2⟩ := hs2
     refine ⟨?_, (logst_of_stepEnd_beat hsc2 rfl rfl he.1).trans hl⟩
-    rw [← hp]; exact tickEnd_of_stepEnd_beat hsc2 rfl rfl he.1
+    rw [← hp]; exact tickEnd_of_stepEnd_beat hsc2 rfl rfl (by rw [hp]; exact hro) he.1
 
 /-- A message a traced node may hand out is no `MsgSnap`. -/
 theorem TrOutMsg.not_snap {m : Msg} (h : TrOutMsg m) : m.ty ≠ .snap := by
@@ -104,14 +104,15 @@ theorem RawNode.Tick.wp_absProof
   icases ownRaftPhysC_trkDoms cf rnv.raft' id s $$ Hphys with ⟨%Hdom, Hphys⟩
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
-  icases ownStepGhost_cfgStatic γ _ cf id s $$ Hghost with ⟨%Hcfs, Hghost⟩
+  icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
+  icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
   -- in the scope: the lifting lemmas' scope, the configuration's voters the harness's, the
   -- in-progress boundary within the log
   have Hlift : sc = true → LiftScope id s ∧ cf.voters = (rnCfg γ).voters := fun h => by
     have Hs := Hscope h
-    have HC : CfgStatic γ cf := Hcfs (by rw [Hs.1]; rfl)
+    obtain ⟨HC, Hid⟩ := cfgScope_of Hs (Hcin h) Hcfm
     have Hv : cf.voters = γ.reCfg := HC.voters
-    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hin Hs.1),
+    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom.1 Hdom.2 (by rw [Hv]; exact Hid),
       by rw [Hv, rnCfg_voters]⟩
   have Hipl : sc = true → ip ≤ ps.log.length := fun h => by
     rw [← Hps]
@@ -153,11 +154,13 @@ theorem RawNode.Tick.wp_absProof
         obtain ⟨hl, hv⟩ := Hlift h
         first
           | exact ⟨(tickElEnd_lift hl Hend).1.of_voters hv, (tickElEnd_lift hl Hend).2⟩
-          | exact ⟨(tickHbEnd_lift hl Hend).1.of_voters hv, (tickHbEnd_lift hl Hend).2⟩
+          | exact ⟨(tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2) Hend).1.of_voters hv,
+              (tickHbEnd_lift hl ((roEmpty_iff s).1 (Hscope h).2.2.2.2.2.2.2.2) Hend).2⟩
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
         (fun h Hs => by
           have hro := tickEnd_rd_out (Hlifted h).1
-          exact RnScope.keep Hs rfl rfl Hpre Hcq' hro.1 Hpv Hsn hro.2) Hsg $$ Hsc
+          exact RnScope.keep Hs rfl rfl Hpre Hcq' hro.1 Hpv Hsn hro.2
+            (tickEnd_ro (Hlifted h).1)) Hsg $$ Hsc
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgh]; exact Hgtr.trans HtrG)
       iapply HΦ $$ %s'.term %(toPState s') %(uint.nat s'.logst.inprogress - 1)
@@ -236,8 +239,8 @@ theorem RawNode.Tick.wp_absProof
       icombine Hcq0 Hcq1 gives %Hcqe
       have Hcq' : s'.cq = s.cq := by first | exact Hcqe.symm | exact Hcqe
       ihave Hsc := rnScopeAt_keepIf sc rs { rs with term := s'.term } s s'
-        (fun _ Hs => RnScope.keep Hs rfl rfl Hpre Hcq' (Hpure'.1.2.2.trans Hs.2.2.2.1.symm) Hpv Hsn
-          (fun m hm => .inr (Hpure'.2.1 m hm).not_snap)) Hsg $$ Hsc
+        -- (2026-11-24) the scope's cluster is untraced (`RnCfgIn`): this branch is outside it
+        (fun h _ => by have := (Hcin h).2.2; rw [HtrG] at this; cases this) Hsg $$ Hsc
       ihave Hrntr : rnTrace γ rnv.raft' id cf rs.delivered s' $$ [Hcap]
       · iapply (rnTrace_some γ rnv.raft' id cf rs.delivered s' γd Htr').2
         isplitr

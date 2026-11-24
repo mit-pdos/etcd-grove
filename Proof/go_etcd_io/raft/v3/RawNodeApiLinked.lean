@@ -101,7 +101,7 @@ theorem rawNode_noSnap : rawNode_noSnap.law (GF := GF) := by
   refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
   iintro -
   ipureintro
-  obtain ⟨-, -, -, -, Hsl, Hprev, -, Hout⟩ := Hsc
+  obtain ⟨-, -, -, -, Hsl, Hprev, -, Hout, -⟩ := Hsc
   subst Hps
   exact ⟨Hprev, Hsl, Hout⟩
 
@@ -119,9 +119,15 @@ theorem rawNode_logTerms : rawNode_logTerms.law (GF := GF) := by
 
 theorem rawNode_scope : rawNode_scope.law (GF := GF) := by
   intro γ rn id rs ps qs ip
-  refine entails_wand (rawNode_ghost γ rn id rs ps qs ip _ fun s md Hps Hsc _ _ => ?_)
-  iintro -
-  ipureintro; exact Hsc.1
+  refine entails_wand (persistent_entails_right ?_)
+  unfold rawNode ownRawNodeAt
+  iintro H
+  iNamed H
+  icases rnScopeAt_scope true rs s $$ Hsc with ⟨%Hscope, Hsc⟩
+  icases rnScopeAt_cfgIn true rs s $$ Hsc with ⟨%Hcin, -⟩
+  ipureintro
+  obtain ⟨H1, H2, H3⟩ := Hcin rfl
+  exact ⟨H1, H3, fun h => ⟨H2 h, (Hscope rfl).1 h⟩⟩
 
 theorem rawNode_logRecs : rawNode_logRecs.law (GF := GF) := by
   intro γ rn id rs ps qs ip
