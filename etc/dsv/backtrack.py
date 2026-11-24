@@ -4,9 +4,11 @@
 # (runs/RUN/snapshots.git, written by snapshot.sh). Times are minutes from the run's first transcript
 # line, pauses left out (tokens.clock). -v: the late rewrites, cascades and regressions one by one.
 #
-# Files: every X/Spec/....lean and X/Proof/....lean under the work tree. The same file in several copies
-# (the project and the agent's worktrees) is one file: its path below the copy's root (the directory
-# holding X/). A version is new content (comments, whitespace and imports dropped) not seen before in
+# Files: every X/Spec/....lean and X/Proof/....lean under the work tree, and under each of the agent's
+# other checkouts (its worktrees: snapshot.sh records them under .lab-worktrees/NAME/, and a snapshot of
+# an older run, without them, is read as before). The same file in several copies (the project and the
+# agent's worktrees) is one file: its path below the copy's root (the directory holding X/, below the
+# checkout's). A version is new content (comments, whitespace and imports dropped) not seen before in
 # any copy, so a merge that brings a worktree's file into the project is not a rewrite.
 #   spec rewrites     versions of a spec after its first; "late" when some proof that imports it
 #                     (directly or through other specs) was already finished (no `sorry`) somewhere
@@ -30,6 +32,17 @@ WINDOW = 45   # minutes between linked rewrites of a cascade
 GRACE = 5     # a proof finished less than GRACE minutes before a spec rewrite is setup, not done work
 IMPORT = re.compile(r'\s*(?:(?:public|private|meta)\s+)*import\s+(?:all\s+)?(\S+)')
 PATH = re.compile(r'^(?:(.*)/)?([^/]+)/(Spec|Proof)/(.+\.lean)$')
+CHECKOUT = re.compile(r'^(\.lab-worktrees/[^/]+)/(.*)$')   # snapshot.sh's copy of a checkout other than the work tree
+
+
+def split(p):
+    """(root, logical) of a snapshot path that is a Spec or Proof file, else None: the root is the
+    checkout's prefix (none for the work tree) and the copy's directory below it."""
+    c = CHECKOUT.match(p)
+    top, rest = c.groups() if c else ('', p)
+    m = PATH.match(rest)
+    if not m: return None
+    return '/'.join(x for x in (top, m.group(1)) if x), '%s/%s/%s' % m.group(2, 3, 4)
 
 
 def strip(src):
@@ -96,11 +109,11 @@ def analyze(run):
     parent = None
     for c, stamp in cs:
         t = mins(stamp)
-        ch = [(s, p) for s, p in S.changes(c, parent) if PATH.match(p)]
+        ch = [(s, p) for s, p in S.changes(c, parent) if split(p)]
         parent = c
         body = S.blobs(c, [p for s, p in ch if s != 'D'])
         for s, p in ch:
-            m = PATH.match(p); root, logical = m.group(1) or '', '%s/%s/%s' % m.group(2, 3, 4)
+            root, logical = split(p)
             if s == 'D':
                 copies.pop((root, logical), None); continue
             raw = body.get(p)

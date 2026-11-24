@@ -1101,7 +1101,7 @@ EXPERIMENT = ('etc/dsv/sandbox.sh', 'etc/dsv/run.sh', 'etc/dsv/experiment.sh', '
               'etc/dsv/verify.sh', 'etc/dsv/proxy.py', 'etc/dsv/inside.sh', 'etc/dsv/ask-hook.sh',
               'etc/dsv/model-hook.sh', 'etc/dsv/managed-settings.json', 'etc/dsv/loadlog.sh',
               'etc/dsv/snapshot.sh', 'etc/dsv/tokens.py', 'etc/dsv/backtrack.py', 'etc/dsv/parallel.py',
-              'etc/dsv/compare.py')
+              'etc/dsv/compare.py', 'etc/dsv/rundone.py')
 
 
 def excluded(f, kit, allow, others, roots, other_roots):
