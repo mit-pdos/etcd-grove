@@ -10,7 +10,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putget-dist, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
-               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvnet, raft-tla, tracecheck, antithesis, k8s-apiserver,
                k8s-daemonset, k8s-compactor, k8s-all, etcd-all, k8s-authz, k8s-authz-driver, bbolt-bank, bbolttest or remote; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -71,12 +71,8 @@ GO_TOOLCHAIN = "go1.27.3"
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
 
 # The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
-# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md), and project kvdurable-noax's
-# source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
-# renames the copied kvdurable proofs' package accordingly).
+# pin (the fork's branch raft37-goose-lean-noax-wire-core, notes/raft-noax.md).
 RAFT_NOAX_REV = "e98d795867e6d626df1cc4e71faa00c1c1f42764"
-KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
-KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
 
 
 @dataclass
@@ -751,18 +747,9 @@ PROJECTS = [
         packages=[".", "github.com/mit-pdos/gokv/trusted_proph"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf"),
                os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
-        # the store alone into the part RaftNoAx too, over its raft (notes/raft-noax-part.md): the
-        # kvdurable proofs the part copies use kvreconf's shared proofs, which name its translation
+        # the store alone into the part KvNet (notes/kvnet-part.md): kvnet's store proofs (once
+        # kvdurablenoax's) stand on kvreconf's shared proofs, which name its translation
         parts=[Part(
-            root="RaftNoAx",
-            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=RaftNoAx",
-                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
-                        "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-            packages=["."],
-            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf")]),
-            # and into the part KvNet (notes/kvnet-part.md), for the same reason: kvnet's store proofs
-            # reuse kvdurablenoax's, which stand on kvreconf's shared proofs
-            Part(
             root="KvNet",
             lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=KvNet",
                         "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=KvNet", "google.golang.org=",
@@ -1978,8 +1965,8 @@ PROJECTS = [
         name="raft-noax",
         # Raft without hand-written axioms (notes/raft-noax-part.md): raft whose `proto` calls are
         # replaced by hand-written raftpb functions, `fmt.Errorf` by `errors.New`, and stepLeader's
-        # `DescribeConfChange` dropped, for a closed theorem of kvdurable whose trust base has no
-        # axiom of this repository. Translated into the parallel tree RaftNoAx (modules
+        # `DescribeConfChange` dropped, for closed theorems (kvnet's; kvdurable's until 2026-11-24)
+        # whose trust base has no axiom of this repository. Translated into the parallel tree RaftNoAx (modules
         # RaftNoAx.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports; the same packages
         # as project raft, configured by RaftNoAx/Code/**.toml. At the fork's branch
         # raft37-goose-lean-noax (`RAFT_NOAX_REV`, notes/raft-noax.md).
@@ -2004,23 +1991,6 @@ PROJECTS = [
             packages=[".", "go.etcd.io/raft/v3/confchange", "go.etcd.io/raft/v3/quorum",
                       "go.etcd.io/raft/v3/raftpb", "go.etcd.io/raft/v3/tracker"],
             owned=[os.path.join("go_etcd_io", "raft")])],
-    ),
-    Project(
-        name="kvdurable-noax",
-        # The durable key-value store (project kvdurable) on raft-noax's raft, for its closed theorem
-        # without hand-written axioms (notes/raft-noax-part.md): `KVDURABLE_NOAX_DIR`, the Go package
-        # `KVDURABLE_NOAX_PKG`, translated into RaftNoAx, its raft the raft-noax project's, lintest,
-        # porcupine, durable and trusted_proph the main tree's (examples/raft/kvdurablenoax, a Go
-        # module of its own whose go.mod replaces raft by `RAFT_NOAX_REV`, GO_MOD_PINS).
-        repo=None,
-        rev=None,
-        local=KVDURABLE_NOAX_DIR,
-        root="RaftNoAx",
-        lean_roots=[f"{KVDURABLE_NOAX_PKG}=RaftNoAx",
-                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
-                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
-        packages=["."],
-        owned=[os.path.join(*KVDURABLE_NOAX_PKG.replace(".", "_").replace("-", "_").split("/"))],
     ),
     Project(
         name="kvnet",
@@ -2194,7 +2164,6 @@ GO_MOD_PINS = {
     os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
                                          "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
-    os.path.join("examples", "raft", "kvdurablenoax", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "kvnet", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "raft", "antithesis", "go.mod"): {"go.etcd.io/raft/v3": "raft"},

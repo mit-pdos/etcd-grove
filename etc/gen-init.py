@@ -5301,18 +5301,14 @@ def part_paths(inits):
 
 # Every such part: its packages, and the module prefixes (besides its copies of these files) whose
 # imports are the part's. The part `RaftNoAx/` (raft without hand-written axioms,
-# notes/raft-noax-part.md) imports kvdurable's initializer too, so durable's and trusted_proph's;
-# its other copies (etc/copy-part.py) are raft's proofs, kvdurable's and kvreconf's, and the
-# translations of kvdurable, kvreconf and walpb (etc/goose.py).
+# notes/raft-noax-part.md): its other copies (etc/copy-part.py) are raft's proofs, and the
+# translations raft's and walpb's (etc/goose.py). (Until 2026-11-24 also kvdurable's, kvreconf's and
+# their initializers, durable's and trusted_proph's: retired.)
 PARTS = {
     PART_ROOT: (PART_INITS, ['Code.go_etcd_io.raft']),
-    'RaftNoAx': (PART_INITS + ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
-                               'github_com.mit_pdos.gokv.trusted_proph'],
+    'RaftNoAx': (PART_INITS,
                  ['Code.go_etcd_io.raft', 'GeneratedProof.go_etcd_io.raft', 'Spec.go_etcd_io.raft',
-                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']
-                 + [f'{d}.github_com.mit_pdos.etcd_grove.examples.raft.{p}'
-                    for d in ('Code', 'GeneratedProof', 'Spec', 'Proof')
-                    for p in ('kvdurable', 'kvdurablenoax', 'kvreconf')]),
+                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']),
 }
 PART_PATHS = part_paths(PART_INITS)
 
@@ -5597,45 +5593,8 @@ def wt_inits():
     return [(f'{WT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
-# The part `RaftNoAx/` (raft without hand-written axioms, notes/raft-noax-part.md): its kvdurable is
-# the Go package `goose.KVDURABLE_NOAX_PKG` (examples/raft/kvdurablenoax) over the part's raft, whose
-# packages import other packages than the main raft's (no `proto`), so its `Init.lean` and
-# `PkgTable.lean` are generated as the main tree's kvdurable's, from the part's translation and
-# instances (over the main tree's), with the imports of the part's modules prefixed. (Raft's own
-# `Init.lean` is hand-written, the part's own copy.) etc/copy-part.py does not copy these
-# (`NOAX_MAIN_PATHS`, the main tree's files they stand for).
-NOAX_ROOT = 'RaftNoAx'
 sys.path.insert(0, os.path.join(ROOT, 'etc'))
 import goose as _goose  # noqa: E402
-NOAX_PKG = _goose.KVDURABLE_NOAX_PKG.replace('.', '_').replace('-', '_').replace('/', '.')
-NOAX_MAIN_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable'
-NOAX_MAIN_PATHS = [f'Proof/{dirof(NOAX_MAIN_PKG)}/Init.lean', f'Proof/{dirof(NOAX_MAIN_PKG)}/PkgTable.lean']
-
-
-def noax_inits():
-    """The part's kvdurable's `Init.lean` and `PkgTable.lean`."""
-    global inv, inst, CFG_OVERRIDE
-    saved = inv, inst, CFG_OVERRIDE
-    try:
-        inv = dict(inv)
-        for q, d in inventory(f'{NOAX_ROOT}/Code').items():
-            if not d['perennial']:
-                inv[q] = d
-        inst = {**inst, **instances(f'{NOAX_ROOT}/Proof/')}
-        CFG_OVERRIDE = {NOAX_PKG: SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))}
-        raw = gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))) + [
-               gen_table(NOAX_PKG, f'Proof/{dirof(NOAX_PKG)}/PkgTable.lean')]
-    finally:
-        inv, inst, CFG_OVERRIDE = saved
-    made = {path for path, _ in raw}
-
-    def imp(m):
-        x = m.group(2)
-        f = x.replace('.', '/') + '.lean'
-        if os.path.exists(f'{NOAX_ROOT}/{f}') or f in made or x == 'Proof.runtime.PkgInitExt':
-            x = f'{NOAX_ROOT}.{x}'
-        return m.group(1) + x
-    return [(f'{NOAX_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
 # The part `Net/` (the net extension's `net` and the programs over it, `examples/net/`; project
@@ -5991,7 +5950,6 @@ def main(argv):
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
         outs += wt_inits()
-        outs += noax_inits()
         outs += net_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
         outs += kvnet_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
         outs += dsv_inits()

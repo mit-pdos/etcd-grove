@@ -20,11 +20,11 @@ part has (`seeds`: the modules of the packages the part's goose pieces translate
 etc/gen-init.py writes for the part -- is in the part, `<Part>/X.lean`, module `<Part>.X`; every
 other module is the main tree's, imported as it is.
 
-- `RaftNoAx/` (notes/raft-noax-part.md): raft's and kvdurable's proofs over a raft of its own
-  (project raft-noax of etc/goose.py) and kvdurable's own translation (project kvdurable-noax). Its
-  source is the main tree; its roots raft's (its `Link` and the modules etc/api/raft.txt lists as
-  importable: KvNet's raft is the part's) and the main tree's kvdurable `Results`/`TopLevelRobustness`
-  (read in the main tree: the part's own files are not followed).
+- `RaftNoAx/` (notes/raft-noax-part.md): raft's proofs over a raft of its own (project raft-noax of
+  etc/goose.py). Its source is the main tree; its roots raft's (its `Link` and the modules
+  etc/api/raft.txt lists as importable: KvNet's raft is the part's), read in the main tree (the
+  part's own files are not followed). (Until 2026-11-24 also kvdurable's, over its own translation,
+  project kvdurable-noax: retired, raft_kvnet_robust subsumes it.)
 - `KvNet/` (notes/kvnet-part.md): kvnet's proof, over raft-noax's raft, the net extension's `net`
   (the part `Net/`) and the bodied `durable` over fsExt (the part `WalTester/`). Its sources are
   `RaftNoAx/`, `Net/`, `WalTester/` and the main tree; its roots its own modules under `KvNet/Spec`
@@ -34,7 +34,7 @@ other module is the main tree's, imported as it is.
 
 The copies, by kind:
 - `Code/`, `GeneratedProof/`: none; etc/goose.py translates them into the part (RaftNoAx: projects
-  raft-noax and kvdurable-noax, the parts of projects kvreconf and etcd; KvNet: project kvnet, the
+  raft-noax, the part of project etcd; KvNet: project kvnet, the
   parts of projects raft-noax, net, durable and etcd).
 - the package initializers etc/gen-init.py writes for the part (`PARTS[part]`, `KVNET_INITS`), and
   the part's own and the main tree's `Link.lean` files (etc/gen-link.py): none, those scripts write
@@ -76,10 +76,9 @@ def lean_pkg(go_path):
     return go_path.replace(".", "_").replace("-", "_").replace("/", ".")
 
 
-KVD_MAIN = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurable"
-# Main package (Lean, dotted) -> RaftNoAx's: kvdurable's proofs follow the part's translation's Go
-# path (goose.KVDURABLE_NOAX_PKG); empty while that is kvdurable's own. (Read by etc/gen-link.py.)
-RENAME = {k: v for k, v in [(lean_pkg(KVD_MAIN), lean_pkg(goose.KVDURABLE_NOAX_PKG))] if k != v}
+# Main package (Lean, dotted) -> the part's: a part's proofs of a package translated under another Go
+# path. None now (until 2026-11-24 RaftNoAx's kvdurable, kvdurablenoax). (Read by etc/gen-link.py.)
+RENAME = {}
 
 NOTE = "(etc/copy-part.py; rerun it, do not edit)"
 
@@ -257,10 +256,8 @@ def raft_api_roots():
 
 
 def raftnoax_roots(part):
-    """RaftNoAx's roots: raft's (`raft_api_roots`, KvNet takes its raft from the part), and, until
-    they retire, the main tree's kvdurable `Results`/`TopLevelRobustness` (kvdurablenoax's)."""
-    return raft_api_roots() + [f"Proof.{lean_pkg(KVD_MAIN)}.Results",
-                               f"Proof.{lean_pkg(KVD_MAIN)}.TopLevelRobustness"]
+    """RaftNoAx's roots: raft's (`raft_api_roots`; KvNet takes its raft from the part)."""
+    return raft_api_roots()
 
 
 def own_roots(part):
@@ -292,7 +289,7 @@ def gen_init():
 
 def raftnoax_gen_init_paths():
     gi = gen_init()
-    return sorted(gi.part_paths(gi.PARTS["RaftNoAx"][0])) + gi.NOAX_MAIN_PATHS
+    return sorted(gi.part_paths(gi.PARTS["RaftNoAx"][0]))
 
 
 def kvnet_gen_init_paths():
@@ -300,7 +297,7 @@ def kvnet_gen_init_paths():
 
 
 PARTS = {
-    "RaftNoAx": Part("RaftNoAx", [""], raftnoax_roots, False, RENAME, raftnoax_gen_init_paths),
+    "RaftNoAx": Part("RaftNoAx", [""], raftnoax_roots, False, {}, raftnoax_gen_init_paths),
     "KvNet": Part("KvNet", ["Net", "WalTester", "RaftNoAx", ""], own_roots, True, {},
                   kvnet_gen_init_paths),
 }

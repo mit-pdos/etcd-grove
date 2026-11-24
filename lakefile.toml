@@ -50,12 +50,12 @@ globs = ["RaftTla.+"]
 name = "RaftWitness"
 globs = ["RaftWitness.+"]
 
-# Raft without hand-written axioms (notes/raft-noax-part.md): the raft proof and kvdurable's closed
-# theorem over a raft of its own (etc/goose.py's projects raft-noax and kvdurable-noax), in a
-# parallel tree with the same layout (RaftNoAx/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,
-# Proof}/; the copies of the main tree's modules written by etc/copy-part.py). It imports the main
-# tree, but not its raft or kvdurable, and nothing outside it imports it: its modules declare the
-# main raft's names.
+# Raft without hand-written axioms (notes/raft-noax-part.md): the raft proof over a raft of its own
+# (etc/goose.py's project raft-noax; kvnet's raft, KvNet/ takes it from here), in a parallel tree with
+# the same layout (RaftNoAx/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/; the copies of
+# the main tree's modules written by etc/copy-part.py). It imports the main tree, but not its raft,
+# and nothing outside it imports it: its modules declare the main raft's names. (Until 2026-11-24
+# also kvdurable's closed theorem, project kvdurable-noax: retired.)
 [[lean_lib]]
 name = "RaftNoAx"
 globs = ["RaftNoAx.+"]

@@ -30,7 +30,6 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --raft-tla > RaftTla/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/Link.lean
        etc/gen-link.py --raft-noax > RaftNoAx/Proof/go_etcd_io/raft/v3/Link.lean
-       etc/gen-link.py --kvdurable-noax > RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
@@ -203,9 +202,8 @@ callee is in the package.
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
 `RaftWitness/`, the part's spec of a function taking the place of the main tree's.
-`--raft-noax` and `--kvdurable-noax` link the same in the part `RaftNoAx/` (raft without hand-written
-axioms, `notes/raft-noax-part.md`), as `--raft` and `--kvdurable` (`PART_ALIASES`), from
-etc/link-lean-first-raft-noax.txt and etc/link-lean-first-kvdurable-noax.txt.
+`--raft-noax` links the same in the part `RaftNoAx/` (raft without hand-written axioms,
+`notes/raft-noax-part.md`), as `--raft` (`PART_ALIASES`), from etc/link-lean-first-raft-noax.txt.
 """
 import os
 import re
@@ -220,9 +218,6 @@ import textwrap
 PART_ALIASES = {
     "--raft-noax": ("--raft", "link-lean-first-raft-noax.txt", "RaftNoAx",
                     "The Raft proof without hand-written axioms (`RaftNoAx/`)"),
-    "--kvdurable-noax": ("--kvdurable", "link-lean-first-kvdurable-noax.txt", "RaftNoAx",
-                         "The durable key-value store example's proofs without hand-written axioms "
-                         "(`RaftNoAx/`)"),
 }
 ALIAS = None
 if len(sys.argv) > 1 and sys.argv[1] in PART_ALIASES:
