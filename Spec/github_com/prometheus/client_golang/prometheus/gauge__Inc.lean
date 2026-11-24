@@ -26,7 +26,7 @@ variable [package_sem : github_com.prometheus.client_golang.prometheus.Assumptio
 /-- `g.Inc()` is `g.Add(1)`: it returns. -/
 abbrev prometheus.gauge.Inc.spec : Prop :=
   ∀ (l : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
+  {{ isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus ∗
       prometheus.metric.gaugeCell l }}
     (App (Val (l @!! go.GoType.PointerType github_com.prometheus.client_golang.prometheus.gauge.ty @!!
       go!"Inc")) (Val #()))

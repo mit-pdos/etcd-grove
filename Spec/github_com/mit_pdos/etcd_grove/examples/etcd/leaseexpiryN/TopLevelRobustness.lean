@@ -65,7 +65,6 @@ def etcd_leaseexpiryN_robust_single_process.spec : Prop :=
     (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
     (Hap : leaseIdsApart ids) (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota)
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk) (Hlp : leasePeersOk)
-    (HNs : prometheus.namesUnclaimed (leaseexpiryNProgram k) leaseexpiryNNames)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
     (HEnv : verifyEnvOff (leaseexpiryNProgram k))

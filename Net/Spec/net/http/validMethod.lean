@@ -1,0 +1,35 @@
+/-
+`validMethod(method)` (`request.go`): `isToken(method)`: whether `method` is RFC 7230's `token` (not empty, every byte a `fieldByte`), read from
+httpguts' `isTokenTable` (`tokenTable`). Proved in `Net/Proof/net/http/validMethod.lean`.
+-/
+module
+
+public import Net.Proof.vendor.golang_org.x.net.http.httpguts.Defs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI
+
+namespace net.http
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : net.http.Assumptions]
+
+/-- See the file header. -/
+abbrev validMethod.spec : Prop :=
+  ∀ (method : GoString),
+  {{ (vendor.golang_org.x.net.http.httpguts.tokenTable : IProp GF) }}
+    (App (Val (@! net.http.validMethod)) (Val #method))
+  {{ RET #(!method.isEmpty && method.all fieldByte); True }}
+
+end spec
+
+end net.http
+end Perennial

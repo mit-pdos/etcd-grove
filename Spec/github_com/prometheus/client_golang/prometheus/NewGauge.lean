@@ -5,6 +5,7 @@ prometheus's `NewGauge(opts)` (names only): a gauge whose one descriptor is name
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.github_com.prometheus.client_golang.prometheus.RegInv
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 public import Proof.github_com.prometheus.client_golang.prometheus.MetricRep
 
@@ -39,7 +40,7 @@ abbrev prometheus.NewGauge.spec : Prop :=
     (App (Val (@! github_com.prometheus.client_golang.prometheus.NewGauge)) (Val #o))
   {{ (g : GoInterfaceOk), RET #(GoInterface.ok g);
       prometheus.metric.isGauge g ∗
-      ⌜prometheus.collectorName g (prometheus.fqName ns sub name)⌝ }}
+      prometheus.collectorName g (prometheus.fqName ns sub name) }}
 
 end spec
 

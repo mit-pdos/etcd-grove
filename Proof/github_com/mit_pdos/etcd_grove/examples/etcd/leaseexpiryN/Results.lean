@@ -78,7 +78,6 @@ theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.
     (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk)
-    (HNs : prometheus.namesUnclaimed (leaseexpiryNProgram k) leaseexpiryNNames)
     (HAs : addrsUnclaimed (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNAddrs k))
     (HDs : dataDirsAbsent (leaseexpiryNProgram k) (etcd_leaseexpiryN.leaseexpiryNDirs k))
     (HEnv : verifyEnvOff (leaseexpiryNProgram k))
@@ -97,7 +96,7 @@ theorem etcd_leaseexpiryN_safe_single_process [lctx : GoLocalContext] [sem : go.
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_leaseexpiryN_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Hap Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs
+  etcd_leaseexpiryN_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Hap Haf Hbuq Hrf Hdbo Hlp HAs HDs
     HEnv n Hprem σ g Hg Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
