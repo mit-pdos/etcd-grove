@@ -5815,3 +5815,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
   No top-level statement changes (the tokens come from the backend's constructor inside the proof).
 - **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+## 2026-11-24: json.Unmarshal into a *ConfigChangeContext: a zero target, ccContextOf/ccMemberOf defined (prove-ps2-jsonj5, #24 J2 batch 2b)
+
+- **Spec.** `EtcdGrove.encoding.json.Unmarshal.spec` (`Spec/encoding/json/Unmarshal.lean`), a trust-boundary axiom
+  (D43 M4), and its vocabulary `membership.ccContextOf`/`membership.ccMemberOf` (opaque, `SrvRaftLog.lean`).
+- **Defect.** (1) The premise asked only that `*p`'s URL slices be nil, but the post's id, `IsPromote`, learner flag
+  and name are the bytes' only if the object names them: encoding/json (and the model) leave a field the JSON omits
+  as it was, and the JSON etcd writes into a context (bootstrap's `json.Marshal(*Member)`) has no `isPromote`, and
+  omits `isLearner` when false and `name` when empty. With `ccContextOf` `some` on such bytes (what any useful
+  definition must be), the statement is false for a non-zero `*p`; with it opaque, nothing could use it. (2) `ccContextOf`/`ccMemberOf` were opaque: no caller could discharge `ccContextOf ctx = some _`.
+- **Evidence.** The proof over the model (`Proof/encoding/json/Unmarshal.lean`, membership's generated
+  `JSONModelUnmarshal`/`jdec_ConfigChangeContext`/`jdecMember_ConfigChangeContext`/`jdec_S_string`), which needs
+  the zero start for the omitted fields. Both callers (`ValidateConfigurationChange`, `applyConfChange`) decode into
+  `new(ConfigChangeContext)`.
+- **Proposed change.** The premise: `*p` is the zero `ConfigChangeContext` (all six fields). `ccContextOf`/
+  `ccMemberOf` are definitions over `membership.ccDecode` (`api/membership/JsonDec.lean`): `some` on the subset whose
+  decoding is proved (a compact object of distinct exact keys, values of their fields' kinds, plain strings, the
+  scanner's one value), `none` elsewhere. The callers discharge the zero premise by `rfl`; no other statement changes.
+- **Decision.** Applied (branch `prove-ps2-jsonj5/2026-11-24`); the axiom retired.
