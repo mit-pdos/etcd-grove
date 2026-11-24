@@ -246,8 +246,6 @@ theorem carveFree (R : Roots) (d : GoString) (j : Ino) (E : CoPset) (hE : ↑osS
 
 /-- **The new snapshot directory's claims** (see the file header): the backend file's free name and
 every index's snapshot file's, from the whole of the empty directory `config.snapDirOf dd`. -/
--- (the kernel's check exceeded the default heartbeats on the VM's build, 2026-11-24)
-set_option maxHeartbeats 0 in
 theorem snapDir_carve (R : Roots) (dd : GoString) (J : Ino) (q qc : Qp) (h : NamesH)
     (hd : DirFits dd) (hcur : ∀ b, h.cur !! b = none) :
     ⊢ osInv (GF := GF) -∗ osSharedInv R -∗ osPathS R (config.snapDirOf dd) (DFrac.own q) J -∗
