@@ -280,6 +280,19 @@ config line. Tracked by mit-pdos/etcd-grove#44.
 **Re-run (2026-11-23), forwarding off:** S2's `TestRuns`, 5 variants x 100 runs, and the three stress
 variants of §6 x 100 runs: 500 of 500 and 300 of 300 ACCEPTED by the Go checker (no `-race`).
 
+**Revised (2026-11-24, S4 session 2): forwarding on in raft, forwarded proposals dropped by the network.**
+`DisableProposalForwarding: true` contradicts raft's own proof: `ownRaftPhys` has the scope conjunct
+`"%HpropForward" ∷ ⌜rv.disableProposalForwarding' = false⌝` (`InvRaftPhys.lean:1218`), `newRaft.spec` and
+`NewRawNode.emptyStartForm` take `cv.DisableProposalForwarding' = false` as a premise, and `InputEnd.ProposeEnd`'s
+follower arm is the forward. So the harness's `NewRawNode` call would be outside every proved spec, and
+lifting it means recording the flag in the step cone's invariant (as `preVote` is) and a drop arm in
+`stepFollower` and `ProposeEnd`: a full raft rebuild. Instead the harness keeps raft's default (forwarding on)
+and `Cluster.send` drops every `MsgProp` (never delivered, so no leader steps a network proposal and no
+proposal is forwarded twice). The stream gains `send` reports of `prop` messages, which the binding does not
+check (B 524, 586) and `antSim_send` already covers; otherwise the runs are those of forwarding off. No raft
+change; #44's fix (option (a)) then also removes the drop in `send`. Re-run: S2's `TestRuns`, 5 variants x
+20 runs, 100 of 100 ACCEPTED (a default run has 9-20 `prop` sends).
+
 ## 8. Resume here (end of session 1, 2026-11-24)
 
 Done: §1 approved and stated (`TopLevelDefs`, `Spec/.../TopLevelRobustness`); S-raft and S-sim statements

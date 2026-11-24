@@ -1222,9 +1222,8 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral bootStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ms")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"voters")) (ElementExpression (go.GoType.SliceType go.uint64) (Var "$v1")))])))))
   (Let "$v4" (Val #(W64 1048576))
   (Let "$v5" (Val #(W64 256))
-  (Let "$v6" (Val #true)
-  (Let "$v7" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType bootStorage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"DisableProposalForwarding")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v7")))])))))))))))
+  (Let "$v6" (App (Val (GoInstruction (CompositeLiteral quietLogger.ty))) (LiteralValue []))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.raft.v3.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ID")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"ElectionTick")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"HeartbeatTick")) (ElementExpression go.int (Var "$v2"))), (KeyedElement (some (KeyField go!"Storage")) (ElementExpression (go.GoType.PointerType bootStorage.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"MaxSizePerMsg")) (ElementExpression go.uint64 (Var "$v4"))), (KeyedElement (some (KeyField go!"MaxInflightMsgs")) (ElementExpression go.int (Var "$v5"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression quietLogger.ty (Var "$v6")))]))))))))))
   (Let "rc" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)))) (Var "rc"))
@@ -1297,7 +1296,7 @@ noncomputable def RunCluster.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- deliver hands inp to n, unless the run stops first.
 
-    go: harness.go:397:19 -/
+    go: harness.go:393:19 -/
 noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1318,7 +1317,7 @@ noncomputable def Cluster.deliver.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- run is node n's goroutine: one input at a time, each followed by its Readies.
 
-    go: harness.go:405:19 -/
+    go: harness.go:401:19 -/
 noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1400,7 +1399,7 @@ noncomputable def Cluster.run.impl [GooseExts] [GoGlobalContext] : val :=
 /-- reportCause is rawnode's: the message being handled is reported once, before the first report
     that follows from it.
 
-    go: harness.go:435:19 -/
+    go: harness.go:431:19 -/
 noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1426,7 +1425,7 @@ noncomputable def Cluster.reportCause.impl [GooseExts] [GoGlobalContext] : val :
 /-- drain is rawnode's drain in its default mode: for each Ready, the write (announced, then made),
     the messages, the committed entries, Advance.
 
-    go: harness.go:444:19 -/
+    go: harness.go:440:19 -/
 noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "n"
@@ -1650,15 +1649,18 @@ noncomputable def Cluster.drain.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))))
   (Val #())))))
 
-/-- send delivers m after a random delay, or drops it, from a goroutine of its own.
+/-- send delivers m after a random delay, or drops it, from a goroutine of its own. A forwarded
+    proposal (MsgProp) is always dropped: raft's proved Step takes a local proposal only (From 0 or
+    the node itself), notes/antithesis-s4-design.md §7; delivering them is #44.
 
-    go: harness.go:501:19 -/
+    go: harness.go:499:19 -/
 noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "m"
   (Seq (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Cluster.ty)))) (Var "c"))
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.uint64 _root_.Perennial.time.Duration.ty))) (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (Convert _root_.Perennial.time.Duration.ty go.uint64))) (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (StructFieldRef Config.ty go!"MaxDelay"))) (App (Val (GoInstruction (StructFieldRef Cluster.ty go!"cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Cluster.ty)))) (Var "c")))))) (Val #(W64 1))))
   (App (App (Val (GoInstruction (FuncResolve below []))) (Val #())) (Var "$a0"))))
   (Let "delay" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Duration.ty))) (Val #())))
@@ -1714,7 +1716,12 @@ noncomputable def Cluster.send.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "drop") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "delay") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "delay") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val #(W32 2)))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #())))))))
   (Val #()))))
 
 /-- Main is the closed program (notes/antithesis-check-design.md §1): it runs a cluster of
