@@ -59,6 +59,30 @@ theorem io.cpG_cpS (bf f ind ins : Loc) (i : Ino) (o : Nat) (bs : List ByteG) (j
   · iexists ins; iframe; iexact Hf
   iexact Hdst
 
+/-- `wrapSyscallError(name, errnoErr e)` (Go's, `os/error.go`): `nil` for `e = 0`, else a fresh
+`*SyscallError` (`NewSyscallError`). -/
+theorem os.wp_wrapSyscallError_errno (name : GoString) (e : w64) :
+    {{ (True : IProp GF) }}
+      (App (App (Val (@! os.wrapSyscallError)) (Val #name)) (Val #(errnoErr e)))
+    {{ (err : GoInterface), RET #err; ⌜(e = 0 → err = interface.nil) ∧
+        (e ≠ 0 → ∃ l : Loc, err = interface.mkOk (go.GoType.PointerType os.SyscallError.ty) #l)⌝ }} := by
+  wp_start as -
+  by_cases he : e = 0
+  · subst he
+    simp only [errnoErr, ↓reduceIte]
+    try wp_auto
+    iapply HΦ
+    ipureintro; exact ⟨fun _ => rfl, fun h => absurd rfl h⟩
+  · rw [show errnoErr e = interface.mkOk syscall.Errno.ty #e from by unfold errnoErr; rw [if_neg he]]
+    try wp_auto
+    wp_func_call
+    wp_call
+    try wp_auto
+    (try wp_alloc l as Hl)
+    try wp_auto
+    iapply HΦ
+    ipureintro; exact ⟨fun h => absurd h he, fun _ => ⟨_, rfl⟩⟩
+
 /-- **`bf.ReadFrom(fileWithoutWriteTo{f})`** (see the file header). -/
 theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
     (bf f : Loc) (fdd fds : w64) (nd ns : GoString) (dd ds : OsFd) (m : OsMeta) (qm qb : DFrac)
@@ -90,12 +114,18 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
   wp_method_call
   wp_call
   try wp_auto
+  -- `readFrom`: `appendMode` false
+  ihave #Hbf3 := Hbfp
+  iStructNamed Hbf3
+  try wp_auto
   wp_method_call
   wp_call
   try wp_auto
   have hfwt : go.GoType.Named go!"os.fileWithoutWriteTo" [] = os.fileWithoutWriteTo.ty := by
     unfold os.fileWithoutWriteTo.ty; rfl
-  rw [show (go!"os.tryLimitedReader" : GoString) = os.tryLimitedReader from rfl, os.File_ty_eq, hfwt]
+  (try rw [show (go!"os.tryLimitedReader" : GoString) = os.tryLimitedReader from rfl])
+  (try rw [os.File_ty_eq])
+  (try rw [hfwt])
   wp_func_call
   wp_call
   try wp_auto
@@ -117,17 +147,20 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
   · iframe; iframe #
   ihave HS := io.cpG_cpS bf f ind ins dd.ino o bs j' $$ [HG]
   · iframe; iframe #
+  obtain ⟨hend, e0, rfl⟩ := hpost
   cases h
   · -- not handled: `spliceToFile`, then `genericReadFrom`
+    try wp_auto
+    wp_apply os.wp_wrapSyscallError_errno as %err0 %-
     try wp_auto
     wp_method_call
     wp_call
     try wp_auto
-    rw [show (go!"os.tryLimitedReader" : GoString) = os.tryLimitedReader from rfl]
+    (try rw [show (go!"os.tryLimitedReader" : GoString) = os.tryLimitedReader from rfl])
     wp_func_call
     wp_call
     try wp_auto
-    rw [show (go!"os.getPollFDAndNetwork" : GoString) = os.getPollFDAndNetwork from rfl]
+    (try rw [show (go!"os.getPollFDAndNetwork" : GoString) = os.getPollFDAndNetwork from rfl])
     wp_func_call
     wp_call
     try wp_auto
@@ -158,6 +191,8 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
       go_type_set
     simp only [hpfd]
     try wp_auto
+    (try simp only [show (!(zero_val Bool) : Bool) = true from rfl])
+    try wp_auto
     wp_func_call
     wp_call
     try wp_auto
@@ -169,20 +204,27 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
       iframe; iframe #
     iapply HΦ
     iframe
-  · -- handled: `wrapErr`
+  · -- handled: `wrapSyscallError`, then `wrapErr`
     try wp_auto
-    wp_method_call
-    wp_call
-    try wp_auto
-    obtain ⟨hend, he | ⟨l, rfl⟩⟩ := hpost
+    wp_apply os.wp_wrapSyscallError_errno as %err0 %hw
+    by_cases he0 : e0 = 0
     · -- `nil`: the copy reached the source's end
-      subst he
+      rw [hw.1 he0]
+      try wp_auto
+      wp_method_call
+      wp_call
       try wp_auto
       iapply HΦ
       iunfold os.ownFile
       iframe; iframe #
-      iapply (io.cpS_fin_end bf f dd.ino o bs j' _ (hend rfl rfl)) $$ HS
+      iapply (io.cpS_fin_end bf f dd.ino o bs j' _
+        (hend rfl (by subst he0; simp [errnoErr]))) $$ HS
     · -- a `*SyscallError`: wrapped in a `*PathError`
+      obtain ⟨l, rfl⟩ := hw.2 he0
+      try wp_auto
+      wp_method_call
+      wp_call
+      try wp_auto
       ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
       · iPkgInit
       ihave #Hpoll : isPkgInit (PROP := IProp GF) pkg_id.internal.poll $$ []
@@ -193,6 +235,8 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
       ihave ⟨%xfc, #Hefc⟩ := internal.poll.errFileClosing_of_pkgInit $$ Hpoll
       ihave ⟨%ecl, -, #Hecl⟩ := os.errClosed_of_pkgInit $$ Hos
       ihave #Hcwe := os.checkWrapErr_of_pkgInit $$ Hos
+      ihave #Hdn' := Hdn
+      icases Hdn' with ⟨#Hnm, #Hnb⟩
       simp only [interface.mkOk]
       try wp_auto
       wp_alloc pe as Hpe
