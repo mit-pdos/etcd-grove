@@ -790,6 +790,14 @@ the RLIMIT_NOFILE raise, unobservable to what Perennial models).''',
         '  | wp_auto)',
         'wp_apply wp_map_make1 (K := Loc) (V := GoSlice) as %mref Hm',
         'try wp_auto']},
+    heavy=True,
+    finish=['ipersist Herrors', 'iframe Hown', 'imodintro', 'isplitr',
+            '· ipureintro', '  exact isPanic_intoVal _', 'is_pkg_init_finish',
+            # the error table's fact (`errorsOk`): each entry, a literal, within `errnoMsgMax`
+            'try imodintro', 'unfold syscall.errorsOk', 'iexists _', 'iframe Herrors', 'ipureintro',
+            'dsimp only',
+            'repeat (refine syscall.forall_mem_set_of _ _ (by simp [syscall.errnoMsgMax]) ?_)',
+            'intro s hs', 'rw [List.eq_of_mem_replicate hs]', 'decide'],
 )
 
 SPECIAL['io.fs'] = dict(

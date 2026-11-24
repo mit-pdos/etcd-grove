@@ -30,6 +30,7 @@ public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.internal.bytealg
 public import Perennial.Code.internal.oserror
+public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.stringslite
 public import Perennial.Code.internal.testlog
 public import Perennial.Code.io
@@ -77,6 +78,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | google_golang_org_protobuf_proto : ExternalInit pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
   | internal_bytealg : ExternalInit pkg_id.internal.bytealg _root_.Perennial.internal.bytealg.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
+  | internal_strconv : ExternalInit pkg_id.internal.strconv _root_.Perennial.internal.strconv.initialize'
   | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
   | internal_testlog : ExternalInit pkg_id.internal.testlog _root_.Perennial.internal.testlog.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
