@@ -1,0 +1,464 @@
+diff --git a/src/gryff/epaxosrmwhandler.go b/src/gryff/epaxosrmwhandler.go
+--- a/src/gryff/epaxosrmwhandler.go
++++ b/src/gryff/epaxosrmwhandler.go
+@@ -1,6 +1,7 @@
+ package gryff
+ 
+ import (
++  "github.com/goose-lang/primitive" // verification only: the trace prophecy (below)
+   "gryff/src/bloomfilter"
+   "gryff/src/dlog"
+   "encoding/binary"
+@@ -324,6 +325,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case readS := <-e.R.readChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       read := readS.Obj.(*gryffproto.Read)
++      e.R.resolveRead(read) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       // got Read message
+       e.R.handleRead(read)
+       e.R.mtx.Unlock()
+@@ -331,6 +333,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case writeS := <-e.R.writeChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       write := writeS.Obj.(*gryffproto.Write)
++      e.R.resolveWrite(write) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       // got Write message
+       e.R.handleWrite(write)
+       e.R.mtx.Unlock()
+@@ -338,12 +341,14 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case rmwS := <-e.R.rmwChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       rmw := rmwS.Obj.(*gryffproto.RMW)
++      e.R.resolveRMW(rmw) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       e.HandleRMW(rmw)
+       e.R.mtx.Unlock()
+       break
+     case write1ProxiedS := <-e.R.write1ChanProxied:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       write1Proxied := write1ProxiedS.(*gryffproto.Write1Proxied)
++      e.R.resolveWrite1(write1Proxied) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Write  message
+       e.R.handleWrite1Proxied(write1Proxied)
+       e.R.mtx.Unlock()
+@@ -351,6 +356,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case write2ProxiedS := <-e.R.write2ChanProxied:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       write2Proxied := write2ProxiedS.(*gryffproto.Write2Proxied)
++      e.R.resolveWrite2(write2Proxied) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Write  message
+       e.R.handleWrite2Proxied(write2Proxied)
+       e.R.mtx.Unlock()
+@@ -358,6 +364,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case read1ProxiedS := <-e.R.read1ChanProxied:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       read1Proxied := read1ProxiedS.(*gryffproto.Read1Proxied)
++      e.R.resolveRead1(read1Proxied) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Read  message
+       e.R.handleRead1Proxied(read1Proxied)
+       e.R.mtx.Unlock()
+@@ -365,6 +372,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case read2ProxiedS := <-e.R.read2ChanProxied:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       read2Proxied := read2ProxiedS.(*gryffproto.Read2Proxied)
++      e.R.resolveRead2(read2Proxied) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Read  message
+       e.R.handleRead2Proxied(read2Proxied)
+       e.R.mtx.Unlock()
+@@ -372,6 +380,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case write1ReplyS := <-e.R.write1ReplyChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       write1Reply := write1ReplyS.(*gryffproto.Write1Reply)
++      e.R.resolveWrite1Reply(write1Reply) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Write  message
+       e.R.handleWrite1Reply(write1Reply)
+       e.R.mtx.Unlock()
+@@ -393,6 +402,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case write2ReplyS := <-e.R.write2ReplyChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       write2Reply := write2ReplyS.(*gryffproto.Write2Reply)
++      e.R.resolveWrite2Reply(write2Reply) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Write  message
+       e.R.handleWrite2Reply(write2Reply)
+       e.R.mtx.Unlock()
+@@ -400,6 +410,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case read1ReplyS := <-e.R.read1ReplyChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       read1Reply := read1ReplyS.(*gryffproto.Read1Reply)
++      e.R.resolveRead1Reply(read1Reply) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Read  message
+       e.R.handleRead1Reply(read1Reply)
+       e.R.mtx.Unlock()
+@@ -407,18 +418,21 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case read2ReplyS := <-e.R.read2ReplyChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       read2Reply := read2ReplyS.(*gryffproto.Read2Reply)
++      e.R.resolveRead2Reply(read2Reply) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Read  message
+       e.R.handleRead2Reply(read2Reply)
+       e.R.mtx.Unlock()
+       break
+     case <-e.R.forceWriteChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
++      e.R.resolveForceWrite() // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       e.R.handleForceWrite()
+       e.R.mtx.Unlock()
+       break
+     case prepareS := <-e.prepareChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       prepare := prepareS.(*epaxosproto.Prepare)
++      e.R.resolvePrepare(prepare) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Prepare message
+       dlog.Printf("Received Prepare for instance %d.%d\n", prepare.Replica, prepare.Instance)
+       e.handlePrepare(prepare)
+@@ -427,6 +441,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case preAcceptS := <-e.preAcceptChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       preAccept := preAcceptS.(*gryffproto.PreAccept)
++      e.R.resolvePreAccept(preAccept) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a PreAccept message
+       dlog.Printf("Received PreAccept for instance %d.%d\n", preAccept.LeaderId, preAccept.Instance)
+       e.handlePreAccept(preAccept)
+@@ -435,6 +450,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case acceptS := <-e.acceptChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       accept := acceptS.(*gryffproto.EAccept)
++      e.R.resolveAccept(accept) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got an Accept message
+       dlog.Printf("Received Accept for instance %d.%d\n", accept.LeaderId, accept.Instance)
+       e.handleAccept(accept)
+@@ -443,6 +459,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case commitS := <-e.commitChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       commit := commitS.(*gryffproto.ECommit)
++      e.R.resolveCommit(commit) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Commit message
+       dlog.Printf("Received Commit for instance %d.%d\n", commit.LeaderId, commit.Instance)
+       e.handleCommit(commit)
+@@ -459,6 +476,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case prepareReplyS := <-e.prepareReplyChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       prepareReply := prepareReplyS.(*gryffproto.PrepareReply)
++      e.R.resolvePrepareReply(prepareReply) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a Prepare reply
+       dlog.Printf("Received PrepareReply for instance %d.%d\n", prepareReply.Replica, prepareReply.Instance)
+       e.handlePrepareReply(prepareReply)
+@@ -467,6 +485,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case preAcceptReplyS := <-e.preAcceptReplyChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       preAcceptReply := preAcceptReplyS.(*gryffproto.PreAcceptReply)
++      e.R.resolvePreAcceptReply(preAcceptReply) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a PreAccept reply
+       dlog.Printf("Received PreAcceptReply for instance %d.%d\n", preAcceptReply.Replica, preAcceptReply.Instance)
+       e.handlePreAcceptReply(preAcceptReply)
+@@ -475,6 +494,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case preAcceptOKS := <-e.preAcceptOKChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       preAcceptOK := preAcceptOKS.(*epaxosproto.PreAcceptOK)
++      e.R.resolvePreAcceptOK(preAcceptOK) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got a PreAccept reply
+       dlog.Printf("Received PreAcceptOK for instance %d.%d\n", e.R.Id, preAcceptOK.Instance)
+       e.handlePreAcceptOK(preAcceptOK)
+@@ -483,6 +503,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case acceptReplyS := <-e.acceptReplyChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       acceptReply := acceptReplyS.(*epaxosproto.AcceptReply)
++      e.R.resolveAcceptReply(acceptReply) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       //got an Accept reply
+       dlog.Printf("Received AcceptReply for instance %d.%d\n", acceptReply.Replica, acceptReply.Instance)
+       e.handleAcceptReply(acceptReply)
+@@ -505,6 +526,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+     case executedS := <-e.executedChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
+       executed := executedS.(*gryffproto.Executed)
++      e.R.resolveExecuted(executed) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       dlog.Printf("Received Executed for instance %d.%d\n", executed.Replica,
+           executed.Instance)
+       e.handleExecuted(executed)
+@@ -528,6 +550,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+       break
+     case executeOverwrite := <-e.executeOverwriteChan:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
++      e.R.resolveExecuteOverwrite(executeOverwrite) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       e.executeOverwrite(executeOverwrite)
+       e.R.mtx.Unlock()
+       break
+@@ -539,6 +562,7 @@ func (e *EPaxosRMWHandler) Loop(slowClockChan chan bool) {
+       break
+     case iid := <-e.instancesToRecover:
+       e.R.mtx.Lock() // fix (G2): the run loop handles each message under the replica's lock
++      e.R.resolveRecover(iid.replica, iid.instance) // verification workaround (prophecy-only code, D9): the event, as the trace prophecy's words
+       e.startRecoveryForInstance(iid.replica, iid.instance)
+       e.R.mtx.Unlock()
+       break
+@@ -2400,3 +2424,260 @@ func (e *EPaxosRMWHandler) incrementNumReplicasExecuted(w *Instance) {
+       w.lb.clientProposals[0].Reply, w.lb.clientProposals[0].Command.OldValue)
+   }
+ }
++
++// Verification only (a prophecy patch, etc/proph-patches/dsv-gryff/; prophecy-only code, the lab's D9,
++// D13): the node's trace prophecy, created by the package's initialization (every node that
++// imports gryff creates one; a replica node holds its prediction before it registers with the
++// master), and its resolutions: under r.mtx, each event the run loop handles
++// (EPaxosRMWHandler.Loop) and each instance the executor executes (Exec.strongconnect), as
++// words: the event's kind (the comment names it), then the fields of the model's projection of
++// the event, in order (Dsverify/Proof/gryff/Model/Codec.lean, evCodec). A Go int32 or int8 is
++// resolved as uint64(x) (sign-extended), a uint8 as uint64(x), a list (a []state.Command, a
++// [DS]int32) as 1 before each element, then 0. primitive.NewProph and ProphId.ResolveU64 do
++// nothing in Go. The proofs: Dsverify/Proof/gryff/B/Resolve.lean (the helpers),
++// Replica2/Specs.lean.
++var traceProph primitive.ProphId
++
++func init() {
++	p := primitive.NewProph() // through a local (Goose's copy rule)
++	traceProph = p
++}
++
++func (r *Replica) resolveTag(t *gryffproto.Tag) {
++	traceProph.ResolveU64(uint64(t.Ts))
++	traceProph.ResolveU64(uint64(t.Cid))
++	traceProph.ResolveU64(uint64(t.Rmwc))
++}
++
++func (r *Replica) resolveValTag(vt *gryffproto.ValTag) {
++	traceProph.ResolveU64(uint64(vt.V))
++	r.resolveTag(&vt.T)
++}
++
++func (r *Replica) resolveDep(d *gryffproto.Dep) {
++	traceProph.ResolveU64(uint64(d.Key))
++	r.resolveValTag(&d.Vt)
++}
++
++func (r *Replica) resolveCmds(cmds []state.Command) {
++	for i := 0; i < len(cmds); i++ {
++		traceProph.ResolveU64(1)
++		traceProph.ResolveU64(uint64(cmds[i].Op))
++		traceProph.ResolveU64(uint64(cmds[i].K))
++		traceProph.ResolveU64(uint64(cmds[i].V))
++		traceProph.ResolveU64(uint64(cmds[i].OldValue))
++	}
++	traceProph.ResolveU64(0)
++}
++
++func (r *Replica) resolveDeps(deps [DS]int32) {
++	for i := 0; i < DS; i++ {
++		traceProph.ResolveU64(1)
++		traceProph.ResolveU64(uint64(deps[i]))
++	}
++	traceProph.ResolveU64(0)
++}
++
++func (r *Replica) resolveRead1(m *gryffproto.Read1Proxied) {
++	traceProph.ResolveU64(1) // evRead1
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.K))
++	r.resolveDep(&m.D)
++	traceProph.ResolveU64(uint64(m.ReplicaId))
++	r.resolveValTag(&m.Vt)
++}
++
++func (r *Replica) resolveRead2(m *gryffproto.Read2Proxied) {
++	traceProph.ResolveU64(2) // evRead2
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.K))
++	r.resolveValTag(&m.Vt)
++	traceProph.ResolveU64(uint64(m.ReplicaId))
++}
++
++func (r *Replica) resolveRead1Reply(m *gryffproto.Read1Reply) {
++	traceProph.ResolveU64(3) // evRead1Reply
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.ReplicaId))
++	r.resolveValTag(&m.Vt)
++}
++
++func (r *Replica) resolveRead2Reply(m *gryffproto.Read2Reply) {
++	traceProph.ResolveU64(4) // evRead2Reply
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++}
++
++func (r *Replica) resolveWrite1(m *gryffproto.Write1Proxied) {
++	traceProph.ResolveU64(5) // evWrite1
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.ForceWrite))
++	traceProph.ResolveU64(uint64(m.K))
++	r.resolveDep(&m.D)
++	traceProph.ResolveU64(uint64(m.ReplicaId))
++}
++
++func (r *Replica) resolveWrite2(m *gryffproto.Write2Proxied) {
++	traceProph.ResolveU64(6) // evWrite2
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.K))
++	r.resolveValTag(&m.Vt)
++	traceProph.ResolveU64(uint64(m.ReplicaId))
++}
++
++func (r *Replica) resolveWrite1Reply(m *gryffproto.Write1Reply) {
++	traceProph.ResolveU64(7) // evWrite1Reply
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	r.resolveValTag(&m.Vt)
++}
++
++func (r *Replica) resolveWrite2Reply(m *gryffproto.Write2Reply) {
++	traceProph.ResolveU64(8) // evWrite2Reply
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.Applied))
++}
++
++func (r *Replica) resolvePreAccept(m *gryffproto.PreAccept) {
++	traceProph.ResolveU64(9) // evPreAccept
++	traceProph.ResolveU64(uint64(m.LeaderId))
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++	traceProph.ResolveU64(uint64(m.Ballot))
++	r.resolveCmds(m.Command)
++	traceProph.ResolveU64(uint64(m.Seq))
++	r.resolveDeps(m.Deps)
++	r.resolveValTag(&m.Base)
++}
++
++func (r *Replica) resolvePreAcceptReply(m *gryffproto.PreAcceptReply) {
++	traceProph.ResolveU64(10) // evPreAcceptReply
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++	traceProph.ResolveU64(uint64(m.OK))
++	traceProph.ResolveU64(uint64(m.Ballot))
++	traceProph.ResolveU64(uint64(m.Seq))
++	r.resolveDeps(m.Deps)
++	r.resolveValTag(&m.Base)
++}
++
++func (r *Replica) resolvePreAcceptOK(m *epaxosproto.PreAcceptOK) {
++	traceProph.ResolveU64(11) // evPreAcceptOK
++	traceProph.ResolveU64(uint64(m.Instance))
++}
++
++func (r *Replica) resolveAccept(m *gryffproto.EAccept) {
++	traceProph.ResolveU64(12) // evAccept
++	traceProph.ResolveU64(uint64(m.LeaderId))
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++	traceProph.ResolveU64(uint64(m.Ballot))
++	traceProph.ResolveU64(uint64(m.Seq))
++	r.resolveDeps(m.Deps)
++	r.resolveCmds(m.Command)
++	r.resolveValTag(&m.Base)
++}
++
++func (r *Replica) resolveAcceptReply(m *epaxosproto.AcceptReply) {
++	traceProph.ResolveU64(13) // evAcceptReply
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++	traceProph.ResolveU64(uint64(m.OK))
++	traceProph.ResolveU64(uint64(m.Ballot))
++}
++
++func (r *Replica) resolveCommit(m *gryffproto.ECommit) {
++	traceProph.ResolveU64(14) // evCommit
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++	r.resolveCmds(m.Command)
++	traceProph.ResolveU64(uint64(m.Seq))
++	r.resolveDeps(m.Deps)
++	r.resolveValTag(&m.Base)
++}
++
++func (r *Replica) resolvePrepare(m *epaxosproto.Prepare) {
++	traceProph.ResolveU64(15) // evPrepare
++	traceProph.ResolveU64(uint64(m.LeaderId))
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++	traceProph.ResolveU64(uint64(m.Ballot))
++}
++
++func (r *Replica) resolvePrepareReply(m *gryffproto.PrepareReply) {
++	traceProph.ResolveU64(16) // evPrepareReply
++	traceProph.ResolveU64(uint64(m.AcceptorId))
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++	traceProph.ResolveU64(uint64(m.OK))
++	traceProph.ResolveU64(uint64(m.Ballot))
++	traceProph.ResolveU64(uint64(m.VBallot))
++	traceProph.ResolveU64(uint64(m.Status))
++	r.resolveCmds(m.Command)
++	traceProph.ResolveU64(uint64(m.Seq))
++	r.resolveDeps(m.Deps)
++	r.resolveValTag(&m.Base)
++}
++
++func (r *Replica) resolveExecuted(m *gryffproto.Executed) {
++	traceProph.ResolveU64(17) // evExecuted
++	traceProph.ResolveU64(uint64(m.Replica))
++	traceProph.ResolveU64(uint64(m.Instance))
++}
++
++func (r *Replica) resolveExecuteOverwrite(m *ExecuteOverwrite) {
++	traceProph.ResolveU64(18) // evExecuteOverwrite
++	traceProph.ResolveU64(uint64(m.V))
++	r.resolveTag(m.T)
++	traceProph.ResolveU64(uint64(m.Leader))
++	traceProph.ResolveU64(uint64(m.Slot))
++}
++
++func (r *Replica) resolveRead(m *gryffproto.Read) {
++	traceProph.ResolveU64(19) // evRead
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.K))
++	r.resolveDep(&m.D)
++}
++
++func (r *Replica) resolveWrite(m *gryffproto.Write) {
++	traceProph.ResolveU64(20) // evWrite
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.K))
++	traceProph.ResolveU64(uint64(m.V))
++	r.resolveDep(&m.D)
++}
++
++func (r *Replica) resolveRMW(m *gryffproto.RMW) {
++	traceProph.ResolveU64(21) // evRMW
++	traceProph.ResolveU64(uint64(m.RequestId))
++	traceProph.ResolveU64(uint64(m.ClientId))
++	traceProph.ResolveU64(uint64(m.K))
++	r.resolveDep(&m.D)
++	traceProph.ResolveU64(uint64(m.OldValue))
++	traceProph.ResolveU64(uint64(m.NewValue))
++}
++
++func (r *Replica) resolveForceWrite() {
++	traceProph.ResolveU64(22) // evForceWrite
++}
++
++func (r *Replica) resolveRecover(q int32, i int32) {
++	traceProph.ResolveU64(23) // evRecover
++	traceProph.ResolveU64(uint64(q))
++	traceProph.ResolveU64(uint64(i))
++}
++
++func (r *Replica) resolveExec(q int32, i int32) {
++	traceProph.ResolveU64(24) // evExec
++	traceProph.ResolveU64(uint64(q))
++	traceProph.ResolveU64(uint64(i))
++}
+diff --git a/src/gryff/epaxos-exec.go b/src/gryff/epaxos-exec.go
+--- a/src/gryff/epaxos-exec.go
++++ b/src/gryff/epaxos-exec.go
+@@ -141,6 +141,7 @@ func (e *Exec) strongconnect(v *Instance, index *int) bool {
+         dlog.Printf("[%d.%d] Execute delay: %d (blocked %d).\n", e.r.R.Id, w.Slot, w.lb.executedTime.Sub(w.lb.committedTime), blocked)
+       }
+ 
++      e.r.R.resolveExec(w.Leader, w.Slot) // verification workaround (prophecy-only code, D9): the execution event exec (Leader, Slot), resolved before its effects (PrevValTag, the overwrite's send, the status)
+       // fix (G44): a committed no-op (no command) executes nothing (EPaxos's executor executes
+       // each of an instance's commands; Gryff's RMW executor reads the first)
+       if len(w.Cmds) > 0 {

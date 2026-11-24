@@ -77,9 +77,7 @@ axiom errors.IsStatusErr.wp_proof
 axiom etcdResolver_grpc
 axiom etcdStreamInterceptor
 axiom etcd_noRefusal
-axiom fmt.ErrorfSlice.wp_proof
 axiom fmt.ErrorfStrs.wp_proof
-axiom fmt.SprintfSlice.wp_proof
 axiom fmt.Sscanf.wp_proof
 axiom fmt.SscanfWalName.wp_proof
 axiom go_humanize.Bytes.wp_proof
@@ -257,6 +255,7 @@ axiom proto.UnmarshalConfChangeV2.wp_proof
 axiom proto.UnmarshalPb.wp_proof
 axiom proto.UnmarshalRole.wp_proof
 axiom proto.UnmarshalUser.wp_proof
+axiom proto.UnmarshalWalRecordE.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof

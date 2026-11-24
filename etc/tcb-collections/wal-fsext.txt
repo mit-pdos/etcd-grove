@@ -21,5 +21,6 @@ axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalPb.wp_proof
 axiom proto.SizePb.wp_proof
 axiom proto.UnmarshalPb.wp_proof
+axiom proto.UnmarshalWalRecordE.wp_proof
 axiom snapEncC_ok
 axiom time.Time.Format.wp_proofBroken

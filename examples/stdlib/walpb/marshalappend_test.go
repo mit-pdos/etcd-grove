@@ -1,7 +1,7 @@
 package walpb
 
 // The ownership clause of proto.MarshalAppendCachedRecord.spec
-// (LinuxFs/Spec/google_golang_org/protobuf/proto/MarshalAppendCachedRecord.lean): the result b' of
+// (Spec/google_golang_org/protobuf/proto/MarshalAppendCachedRecord.lean): the result b' of
 // MarshalOptions{UseCachedSize: true}.MarshalAppend(b, rec) either reuses b's array (same pointer,
 // same capacity) or is a fresh array that does not share b's, so b's array comes back to the caller
 // (with its contents past len(b) possibly overwritten).

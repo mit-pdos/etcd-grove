@@ -68,7 +68,7 @@ theorem connReader.backgroundRead.wp_proof (wp_Read : net.Conn.Read.spec (GF := 
   intro cr γ t cn a la ra P hs Z arr
   wp_start as ⟨#Hcr, #Hlaw, #Henv, #Hrwc, #Hca, Htok, Hbuf, Hrecv⟩
   iunfold readEnv at Henv
-  icases Henv with ⟨#HEOF, %ed, #Hed⟩
+  icases Henv with ⟨#HEOF, ⟨%ed, #Hed⟩, -⟩
   unfold errors.newVar
   icases HEOF with ⟨%xe, #Hxe, -⟩
   obtain ⟨xs⟩ := arr

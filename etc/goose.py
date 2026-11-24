@@ -385,7 +385,7 @@ PROJECTS = [
         # three log lines format the member's attributes field by field,
         # `fmt.Sprintf("{Name:%s ClientURLs:[%s]}", Name, strings.Join(ClientURLs, " "))`, the same bytes
         # as `fmt.Sprintf("%+v", s.attributes)`, which reaches fmt's reflection-based `printValue`.
-        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved by Upamanyu via
+        # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved via
         # coordinator-E) 6b942d23f (branch `goose-lean-slicessort-on-fmtattrs`, on bc2b5f4d0; first
         # a336e97f9 on edc800c6f, branch `goose-lean-slicessort`): mvcc's `hashStorage.Store` sorts with
         # `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead of `sort.Slice` (whose reflection
@@ -1933,15 +1933,20 @@ PROJECTS = [
         # Kubernetes' conditional authorization (KEP-5681): k8s.io/apiserver's authorizer package
         # (conditions, conditions maps, the union decision builder, partial evaluation) and union
         # authorizer, with bodies, from the fork github.com/luxas/kubernetes, branch
-        # impl-conditional-authz-review (not merged upstream), resolved in the repository's go.work
+        # impl-conditional-authz-review (not merged upstream; c67a81026c8b), plus one commit of ours
+        # (upamanyus/kubernetes branch goose-lean-authz-fmt2, 2026-11-24, mit-pdos/etcd-grove#9):
+        # the three `%v` of a slice (UnconditionalPartsOrFailClosed, ConditionsAwareDecisionUnion.Add,
+        # unionAuthzHandler.EvaluateConditions) spelled out, byte-identical output (its Go tests
+        # compare with the original calls'), since Perennial's fmt does not follow reflection into a
+        # slice; resolved in the repository's go.work
         # (its staging modules: apimachinery at the fork's commit too, ~2026-11-03, while project
         # k8s-apiserver's apimachinery names are of examples/k8s/etcd3's pin, 2026-10-21). Names only:
         # k8s.io/apiserver/pkg/authentication/user (Code/k8s_io/apiserver/pkg/authentication/user.toml).
         # The rest it names (apimachinery's sets, errors, validation, field, fields, labels, runtime,
         # schema; net/http) is project k8s-apiserver's translation (the empty root). Its driver is
         # project k8s-authz-driver.
-        repo="https://github.com/luxas/kubernetes",
-        rev="c67a81026c8b193849a47fdc05398baeafdf55e4",
+        repo="https://github.com/upamanyus/kubernetes",
+        rev="5b30dab1b14146d5b5469a8def6aca963736a8bf",
         lean_roots=["k8s.io=", "net/http=", "net/url=", "net/textproto=", "net/http/httptrace=", "net=Net"],
         packages=[
             # with bodies
@@ -2201,8 +2206,9 @@ def dsv_kits():
     d = os.path.join(ROOT, "etc", "dsv")
     out = []
     for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        # (the generator, and the experiment scripts' proxy: etc/dsv/README.md)
-        if not f.endswith(".py") or f.startswith("_") or f in ("kitgen.py", "proxy.py"):
+        # (the generator, the experiment scripts' proxy and the run-analysis scripts: etc/dsv/README.md)
+        if not f.endswith(".py") or f.startswith("_") or f in ("kitgen.py", "proxy.py", "tokens.py",
+                                                                "backtrack.py", "parallel.py", "compare.py"):
             continue
         spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
         m = importlib.util.module_from_spec(spec)

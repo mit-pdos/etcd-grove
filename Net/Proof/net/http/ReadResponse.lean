@@ -17,8 +17,8 @@ module
 public import Net.Spec.net.http.ReadResponse
 public import Net.Spec.net.http.modelReadLine
 public import Net.Spec.net.http.modelReadMIMEHeader
-public import Spec.strings.Cut
-public import Spec.strings.TrimLeft
+public import Perennial.Spec.strings.Cut
+public import Perennial.Spec.strings.TrimLeft
 public import Net.Spec.net.http.ParseHTTPVersion
 public import Net.Spec.net.http.badStringError
 public import Net.Spec.net.http.fixPragmaCacheControl
@@ -97,8 +97,8 @@ variable [package_sem' : net.http.Assumptions]
 theorem ReadResponse.wp_proof
     (wp_ReadLine : modelReadLine.spec (GF := GF) (hG := hG))
     (wp_MIME : modelReadMIMEHeader.spec (GF := GF) (hG := hG))
-    (wp_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
-    (wp_Trim : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
+    (wp_Cut : strings.Cut.spec (GF := GF) (hG := hG))
+    (wp_Trim : strings.TrimLeft.spec (GF := GF) (hG := hG))
     (wp_Version : ParseHTTPVersion.spec (GF := GF) (hG := hG))
     (wp_bad : badStringError.spec (GF := GF) (hG := hG))
     (wp_pragma : fixPragmaCacheControl.spec (GF := GF) (hG := hG))
@@ -318,8 +318,8 @@ theorem ReadResponse.wp_proof
     have := proto_of_prefix2 Hline (by rw [hc])
     rw [hc] at this; exact this
   try wp_auto
-  wp_apply wp_Trim st _ $$ [$Hstr]
-  · ipureintro; decide
+  wp_apply wp_Trim st _
+  · ipureintro; intro b hb; simp at hb; subst hb; decide
   rw [trimLeft_single]; try rw [show (32#8 : w8) = W8 32 from rfl]
   try wp_auto
   wp_apply wp_Cut _ _ $$ [$Hstr]
