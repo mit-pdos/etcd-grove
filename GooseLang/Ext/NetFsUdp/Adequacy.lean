@@ -108,6 +108,14 @@ theorem kvudp_udp_globalStart [G : GooseGlobalGS .hasLC GF] (g : ExtsGlobalState
       Udp.udpStart (extGlobalGS Udp.udpExt) (extGlobal Udp.udpExt g) :=
   sep_elim_right.trans (sep_elim_right.trans sep_elim_left)
 
+/-- The global start resources of `[netExt, fsExt, udpExt]`: the network's and every valid address's
+datagrams, together. -/
+theorem kvudp_netUdp_globalStart [G : GooseGlobalGS .hasLC GF] (g : ExtsGlobalState exts) :
+    extsGlobalStart (GF := GF) g ⊢
+      Net.netStart (extGlobalGS Net.netExt) (extGlobal Net.netExt g) ∗
+        Udp.udpStart (extGlobalGS Udp.udpExt) (extGlobal Udp.udpExt g) :=
+  sep_mono_right (sep_elim_right.trans sep_elim_left)
+
 /-- The local start resources of `[netExt, fsExt, udpExt]` for a node: its listeners. -/
 theorem kvudp_net_localStart [L : GooseLocalGS GF] (σ : ExtsLocalState exts) :
     extsLocalStart (GF := GF) σ ⊢
@@ -135,8 +143,7 @@ variable [GoGlobalContext]
 /-- **Distributed crash adequacy for `[netExt, fsExt, udpExt]`**: Perennial's
 `goose_dist_crash_adequacy` at `kvudpGF`, as `NetFs.kvnet_dist_crash_adequacy`, its initial-state
 conditions discharged from the network's having no connection, no datagram sent, and every node's
-files being as on disk. (Phase 2: the instantiation, `kvnet_dist_crash_adequacy`'s with the UDP
-extension's conditions.) -/
+files being as on disk (a node's sockets need nothing: the UDP extension's `initP` is `True`). -/
 theorem kvudp_dist_crash_adequacy (N T : Nat)
     (es : List (Expr × state)) (g : GlobalState) (φ : Nat → val → Prop)
     (hφ : ∀ i p, ¬ φ i (PanicV p))
@@ -165,8 +172,19 @@ theorem kvudp_dist_crash_adequacy (N T : Nat)
     ∀ i tp σ, c.nodes[i]? = some (tp, σ) →
       (∀ v tp', tp = Val v :: tp' → φ i v) ∧
       (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧
-      (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) := by
-  sorry
+      (∀ e, e ∈ tp → ¬ UnrecoveredPanic e) :=
+  goose_dist_crash_adequacy (GF := kvudpGF) N T es g φ hφ ⟨Hconns, trivial, Hudp, trivial⟩
+    (fun m hm => ⟨trivial, Hfs m hm, trivial, trivial⟩) P Hstart
+    (by
+      -- the crash obligation's later credit is not needed
+      intro hG HN HT i e σ Hes Hlctx
+      iintro HP Htok
+      imod Hwp HN HT i e σ Hes Hlctx $$ HP Htok with ⟨Hwp, Hcrash⟩
+      imodintro
+      iframe Hwp
+      iintro %L' Hcr Hcs Hgs _
+      iapply Hcrash $$ %L' Hcr Hcs Hgs)
+    n κs c Hsteps Hbound Hthreads Hlive
 
 end adequacy
 
