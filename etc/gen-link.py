@@ -763,7 +763,16 @@ EXTRA_IMPORTS["--antcheck"] = ["Proof.github_com.mit_pdos.etcd_grove.examples.ra
                                for m in ["Combined", "GC", "ActionCfg", "Init0"]]
 # the Antithesis harness: Perennial's `sync`, `time` and `strconv` results (`=` callees)
 EXTRA_IMPORTS["--antithesis"] = ["Perennial.Proof.sync.Link", "Perennial.Proof.time.Link",
-                                 "Perennial.Proof.strconv.Link"]
+                                 "Perennial.Proof.strconv.Link",
+                                 # (2026-11-24) raft's `RawNode` API (its `wp_apiProof`s and laws)
+                                 # and its start, `proto.Clone` at the message type
+                                 "Proof.go_etcd_io.raft.v3.RawNodeApiLinked",
+                                 "Proof.go_etcd_io.raft.v3.RawNodeStartSpec",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.CloneMsgLaw",
+                                 # the drain's phases and the simulation's statements, proved
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainAdvWp",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MsgShape",
+                                 "Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReadyAll"]
 EXTRA_IMPORTS["--authkv"] += ["Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn",
                               "Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked"]
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
@@ -972,11 +981,34 @@ def proof_module(fn):
     return f"{prefix[fn]}Proof.{where[fn]}"
 
 fns, callees, external, pending = [], {}, set(), set()
+# (2026-11-24, the Antithesis harness) a pending law: a line `?(<name> : <type>)` declares a hypothesis
+# (a statement not proved yet, not a function's spec) of every result whose `=` callees name it
+pending_laws = {}
+
+
+def split_callees(cs):
+    """The callees of a line: whitespace-separated, except inside parentheses (an `=(<term>)`
+    callee is a term applied to arguments)."""
+    out, cur, depth = [], "", 0
+    for ch in cs:
+        if ch.isspace() and depth == 0:
+            if cur:
+                out.append(cur)
+            cur = ""
+            continue
+        depth += (ch == "(") - (ch == ")")
+        cur += ch
+    if cur:
+        out.append(cur)
+    return out
 # the mode's functions and their callees (`etc/link-lean-first-<mode>.txt`)
 with open(os.path.join(here, mode[0])) as f:
     for line in f:
         line = line.split("#")[0].strip()
         if not line:
+            continue
+        if line.startswith("?("):
+            pending_laws[line[2:].partition(":")[0].strip()] = line[1:]
             continue
         fn, _, cs = line.partition(":")
         fn = fn.strip()
@@ -998,7 +1030,7 @@ with open(os.path.join(here, mode[0])) as f:
             # reach it (`section links_pending`)
             pending.add(fn)
             cs = ""
-        callees[fn] = cs.split()
+        callees[fn] = split_callees(cs)
 fns.sort()
 
 
@@ -1163,12 +1195,27 @@ if cache:
 order, seen = [], set()
 
 
+def term_names(c):
+    return set(re.findall(r"[\w.«»'_]+", c[1:]))
+
+
+def eq_refs(c):
+    """The functions of this mode whose results an `=` term names."""
+    if "(" not in c:
+        return []
+    names = term_names(c)
+    return [f for f in fns if f in spec and result(f) in names]
+
+
 def visit(fn):
     if fn in seen:
         return
     seen.add(fn)
     for c in callees[fn]:
         if c.startswith("="):
+            # a term naming results of this Link (`=(drainSend AntHarness.Recorder.wp_record …)`)
+            for f in eq_refs(c):
+                visit(f)
             continue
         visit(c)
     order.append(fn)
@@ -1263,7 +1310,8 @@ variable [sem : go.Semantics]
         if c in blocked:
             # a result of `links_pending`: applied to the pending hypotheses (section variables
             # are not applied automatically)
-            return "(" + result(c) + " " + " ".join(hyp(p) for p in sorted(reach[c])) + ")"
+            return "(" + result(c) + " " + " ".join(
+                [hyp(p) for p in sorted(reach[c])] + sorted(pending_laws)) + ")"
         # a callee's result named like the theorem's last component (`leaseCache.wp_evalCmp`
         # calling `wp_evalCmp`; `bootstrappedRaft.wp_newRaftNode` calling `wp_newRaftNode`,
         # 2026-10-16) would resolve to the theorem itself: qualify it
@@ -1305,12 +1353,29 @@ variable [sem : go.Semantics]
         sm_memo[fn] = r
         return r
 
+    # (2026-11-24) the theorems an imported Link states over the ghost state (`[AllG GF]`: raft's
+    # `RawNode` results): an `=` term naming one, or a result of this mode that does, needs it too
+    allg_thms = set()
+    for mod, _, _ in links:
+        allg_thms |= set(re.findall(r"^theorem (\S+) \[AllG GF\]", open(link_file(mod)).read(), re.M))
+    allg_memo = {}
+
+    def eq_allg(fn):
+        if fn not in allg_memo:
+            allg_memo[fn] = False
+            allg_memo[fn] = any(
+                c.startswith("=") and (term_names(c) & allg_thms or any(eq_allg(f) for f in eq_refs(c)))
+                or (not c.startswith("=") and c in callees and eq_allg(c))
+                for c in callees.get(fn, []))
+        return allg_memo[fn]
+
     def emit_cache(fn):
         args = " ".join(arg(fn, c) for c in callees[fn])
         body = f"{specref(fn)}.wp_proof{sfx(fn)}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
-        allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
+        allg = (" [AllG GF]" if ("[AllG GF]" in src or eq_allg(fn)) and fn not in blocked
+                else "")
         # the key-value store's specs take its storage registry
         allg += "".join(" " + r for r in STOR_REGS if r in src)
         # mvcc's index specs use the btree through the cache's interface (its assumptions), and
@@ -1424,7 +1489,10 @@ variable [sem : go.Semantics]
     # last, with the pending specs as hypotheses
     blocked = set(pending)
     for fn in order:
-        if any(c in blocked for c in callees[fn]):
+        if any(c in blocked for c in callees[fn]) or any(
+                c.startswith("=") and (term_names(c) & set(pending_laws)
+                                       or any(f in blocked for f in eq_refs(c)))
+                for c in callees[fn]):
             blocked.add(fn)
     # the pending functions each blocked result reaches (k8s 7e-2, 2026-11-10): a result takes
     # only those as hypotheses, so that adding a pending function does not change the statements of
@@ -1461,13 +1529,15 @@ variable [sem : go.Semantics]
         # GF], …`), as the store's results are stated at any
         def pend_src(fn):
             return open(spec_file(fn)).read()
-        pend_allg = any("[AllG GF]" in pend_src(fn) for fn in pending)
+        pend_allg = (any("[AllG GF]" in pend_src(fn) for fn in pending)
+                     or any(eq_allg(fn) for fn in later))
         hyps = ("variable [AllG GF]\n" if pend_allg else "") + "\n".join(
-            f"variable ({hyp(fn)} : "
-            + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
-            + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
-            for fn in sorted(pending))
-        names = " ".join(hyp(fn) for fn in sorted(pending))
+            [f"variable ({hyp(fn)} : "
+             + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
+             + f"{specref(fn)}.spec{sfx(fn)} (GF := GF) (hG := hG))"
+             for fn in sorted(pending)]
+            + [f"variable {pending_laws[n]}" for n in sorted(pending_laws)])
+        names = " ".join([hyp(fn) for fn in sorted(pending)] + sorted(pending_laws))
         # one `include` of every pending hypothesis for the section; in a `PER_FN_PENDING` mode,
         # each result includes the hypotheses it reaches
         per_fn = (sys.argv[1] in PER_FN_PENDING
