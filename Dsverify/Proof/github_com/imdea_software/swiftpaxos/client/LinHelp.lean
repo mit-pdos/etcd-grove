@@ -272,7 +272,7 @@ continuation gets `c`'s result on `ps`'s state. At the updates' outer mask. -/
 theorem commit_one (γl : GName) (c : Cmd) (Ψ : List w8 → IProp netDistGF)
     (ps : List (GoString × GoString)) :
     cmdAU γl c Ψ ∗ ghostVar γl (1 : Qp).half ps ⊢
-      |={⊤ \ ↑spN}=> ghostVar γl (1 : Qp).half (ps ++ putOf c) ∗
+      |={auM}=> ghostVar γl (1 : Qp).half (ps ++ putOf c) ∗
         Ψ (lin.apply c (lin.stateOf ps)).2 := by
   unfold cmdAU
   iintro ⟨HAU, Hps⟩
@@ -325,7 +325,7 @@ theorem slots_commit1 (γl : GName) (P : GMap CmdId (Cmd × GName)) (G : Seq) (d
     (γΨ : GName) (hP : P.lookup d.1 = some (d.2, γΨ)) (hd : d.1 ∉ G.map Prod.fst)
     (hc : d.2.isPut ∨ d.2.isGet) :
     ([∗map] x ↦ cg ∈ P, slotL γl G x cg) ∗ ghostVar γl (1 : Qp).half (linPuts G) ⊢
-      |={⊤ \ ↑spN}=> ([∗map] x ↦ cg ∈ P, slotL γl (G ++ [d]) x cg) ∗
+      |={auM}=> ([∗map] x ↦ cg ∈ P, slotL γl (G ++ [d]) x cg) ∗
         ghostVar γl (1 : Qp).half (linPuts (G ++ [d])) := by
   iintro ⟨Hm, Hps⟩
   ihave ⟨Hd, Hback⟩ := BigSepM.bigSepM_lookup_acc_impl
@@ -361,7 +361,7 @@ theorem slots_commit (γl : GName) (P : GMap CmdId (Cmd × GName)) :
     (∀ p ∈ D, p.1 ∉ G.map Prod.fst) → (D.map Prod.fst).Nodup →
     (∀ p ∈ D, p.2.isPut ∨ p.2.isGet) →
     ([∗map] x ↦ cg ∈ P, slotL γl G x cg) ∗ ghostVar γl (1 : Qp).half (linPuts G) ⊢
-      |={⊤ \ ↑spN}=> ([∗map] x ↦ cg ∈ P, slotL γl (G ++ D) x cg) ∗
+      |={auM}=> ([∗map] x ↦ cg ∈ P, slotL γl (G ++ D) x cg) ∗
         ghostVar γl (1 : Qp).half (linPuts (G ++ D))
   | [], G, _, _, _, _ => by
     simp only [List.append_nil]

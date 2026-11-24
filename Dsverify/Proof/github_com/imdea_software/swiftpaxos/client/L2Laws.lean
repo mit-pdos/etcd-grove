@@ -551,8 +551,8 @@ theorem l2_invoke (E : CoPset) (hE : ↑spN ⊆ E) (x : CmdId) (c : Cmd)
   iexists c, γΨ
   iframe Hx HΨ
 
-/-- **A client's acceptance** (L2; `Ghost.Accept`'s last resolution; mask `⊤`: the commits run
-other clients' updates): client `x.cl`, whose node's future words start with the acceptance's,
+/-- **A client's acceptance** (L2; `resolveAccept`'s resolution, inside the node prophecy's
+invariant; the commits run other clients' updates, whose mask `auM` is inside both invariants): client `x.cl`, whose node's future words start with the acceptance's,
 accepts `x` with its decided result `v` (`doneRes`); the strategy commits the linearization up
 to `x` (`StratOk.resp`, each commit from its slot), and the client's ticket gives its
 continuation applied to `v`. -/
@@ -560,7 +560,8 @@ theorem l2_accept (x : CmdId) (v : List w8) (Ψ : List w8 → IProp netDistGF) (
     (hv : v.length < 2 ^ 64) :
     inv γ γc γm γl ∗ doneRes γ x v ∗ pend γ x Ψ ∗ £ 1 ∗
     ghostMapElem γ.pred (PNode.cl (clOf x)) (DFrac.own (1 : Qp).half) (encP (.resp x v) ++ W') ⊢
-    |={⊤}=> ▷ Ψ v ∗ ghostMapElem γ.pred (PNode.cl (clOf x)) (DFrac.own (1 : Qp).half) W' := by
+    |={⊤ \ ↑client.nodeProphN}=> ▷ Ψ v ∗
+      ghostMapElem γ.pred (PNode.cl (clOf x)) (DFrac.own (1 : Qp).half) W' := by
   unfold inv doneRes pend
   iintro ⟨#Hinv, #Hd, ⟨%c, %γΨ, Hx, #HΨ⟩, Hlc, Hw⟩
   iinv Hinv with Hi Hclose
@@ -623,7 +624,7 @@ theorem l2_accept (x : CmdId) (v : List w8) (Ψ : List w8 → IProp netDistGF) (
     rcases hH.pg p.1 p.2 S' hm with h | h
     · exact Or.inl h
     · exact Or.inr h
-  imod lc_fupd_elim_later (E := ⊤ \ ↑spN) $$ Hlc HSls with HSls
+  imod lc_fupd_elim_later (E := auM) $$ Hlc HSls with HSls
   imod slots_commit γl mSl D G hDslot hCm.fresh hCm.nodup hDcmd $$ [HSls Hlin] with ⟨HSls, Hlin⟩
   · iframe
   ihave ⟨Hxs, HSls⟩ := (BigSepM.bigSepM_delete (Φ := fun y cg => slotL γl (G ++ D) y cg)

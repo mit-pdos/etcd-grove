@@ -36,7 +36,7 @@ abbrev client.BufferClient.Read.spec : Prop :=
     client.ready b γ γc γm γl cid s -∗ ⌜s < 2 ^ 10⌝ -∗
     <<{ ∀∀ σ, linOwn γl σ }>>
       (App (Val (b @!! go.GoType.PointerType client.BufferClient.ty @!! go!"Read")) (Val #key))
-      @ ↑sp.spN
+      @ sp.auE
     <<{ linOwn γl σ | (sl : GoSlice), RET #sl;
         sl ↦*□ (σ (lin.keyName key)).getD [] ∗ client.ready b γ γc γm γl cid (s + 1) }>>
 

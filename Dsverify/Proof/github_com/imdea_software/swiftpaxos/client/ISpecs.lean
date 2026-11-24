@@ -73,7 +73,7 @@ abbrev client.BufferClient.Write.specI : Prop :=
     client.ready b γ γc γm γl cid s -∗ vsl ↦*□ v -∗ ⌜v.length < 2 ^ 16 ∧ s < 2 ^ 10⌝ -∗
     <<{ ∀∀ σ, linOwn γl σ }>>
       (App (App (Val (b @!! go.GoType.PointerType client.BufferClient.ty @!! go!"Write"))
-        (Val #key)) (Val #vsl)) @ ↑sp.spN
+        (Val #key)) (Val #vsl)) @ sp.auE
     <<{ linOwn γl (sp.lin.apply (sp.Cmd.put key v) σ).1 | RET #();
         client.ready b γ γc γm γl cid (s + 1) }>>
 
@@ -84,7 +84,7 @@ abbrev client.BufferClient.Read.specI : Prop :=
     client.ready b γ γc γm γl cid s -∗ ⌜s < 2 ^ 10⌝ -∗
     <<{ ∀∀ σ, linOwn γl σ }>>
       (App (Val (b @!! go.GoType.PointerType client.BufferClient.ty @!! go!"Read")) (Val #key))
-      @ ↑sp.spN
+      @ sp.auE
     <<{ linOwn γl σ | (sl : GoSlice), RET #sl;
         sl ↦*□ (σ (lin.keyName key)).getD [] ∗ client.ready b γ γc γm γl cid (s + 1) }>>
 

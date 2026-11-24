@@ -8,7 +8,8 @@ variable `γk` of the kit's two keys' values (half `sysK γk σ`, remote's; half
 keys `0` and `1` (`lin.keyName`). `BufferClient.Write`'s and `Read`'s logically atomic specs need
 an atomic update, which can abort; remote's base update `lin` cannot: so the update opens
 `linkInv` (abortable: it gives `linOwn` back) and fires `lin` only at the commit, at the mask
-`(⊤ \ ↑sp.spN) \ ↑linkN` (`⊤ \ Eop`).
+`sp.auM \ ↑linkN` (`⊤ \ Eop`; `sp.auM`, the clients' updates' mask, is inside `sp.inv` and the
+node prophecies' invariants).
 
 Unlike the lab's `ownState`, the state does not require non-empty values: the kit's `op` returns a
 get's value as it is (the lab's `Op` read `""` as "not found"), and the model's initial value is `""`.
@@ -38,9 +39,9 @@ def linkN : Namespace := ndot nroot "swiftnet.link"
 
 /-- The kit store's operations' mask: the slot's and the link invariant's namespaces (as a
 complement, so that `⊤ \ swEop` is the mask inside both, `swEop_diff`). -/
-def swEop : CoPset := ⊤ \ ((⊤ \ ↑sp.spN) \ ↑linkN)
+def swEop : CoPset := ⊤ \ (sp.auM \ ↑linkN)
 
-theorem swEop_diff : (⊤ \ swEop : CoPset) = (⊤ \ ↑sp.spN) \ ↑linkN :=
+theorem swEop_diff : (⊤ \ swEop : CoPset) = sp.auM \ ↑linkN :=
   Iris.Std.LawfulSet.diff_self_diff_of_subset CoPset.subseteq_top
 
 /-- The kit's two keys' values (a ghost variable's value). -/
@@ -112,8 +113,9 @@ section au
 variable [GoGlobalContext] [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 variable [π : NetProtoGS] [ρ : RemoteGS]
 
-theorem linkN_spN : (↑linkN : CoPset) ⊆ ⊤ \ ↑sp.spN := by
-  unfold linkN sp.spN
+theorem linkN_spN : (↑linkN : CoPset) ⊆ ⊤ \ sp.auE := by
+  rw [sp.auE_diff]
+  unfold linkN sp.auM sp.spN client.nodeProphN
   solve_ndisj
 
 /-- A put through `Write`'s atomic triple (any expression `e` with `Write`'s spec shape, its
@@ -121,7 +123,7 @@ private postcondition `P`): remote's update committed at the triple's commit, wi
 output (`""`). -/
 theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i.put = true)
     (Φ : BStr → IProp netDistGF) (e : Expr) (P : IProp netDistGF) :
-    (<<{ ∀∀ σ, linOwn γ.lin σ }>> e @ ↑sp.spN
+    (<<{ ∀∀ σ, linOwn γ.lin σ }>> e @ sp.auE
       <<{ linOwn γ.lin (sp.lin.apply (sp.Cmd.put (W64 (i.key : Int)) i.val) σ).1 |
           RET #(); P }>>) ⊢
     linkInv (G := hG.goose_globalGS) γ γk -∗ lin (Gg := hG.goose_globalGS) (swRK γk) i Φ -∗
@@ -162,7 +164,7 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
   · iintro Hσ'
     imod Hmask with -
     iunfold lin at Hlin
-    rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
+    rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff, ← sp.auE_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
     ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]
     · simp only [swRK, swR, sysK]; iexact Hst
@@ -190,7 +192,7 @@ theorem put_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hput : i
 returned slice holding the key's value. -/
 theorem get_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hget : i.put = false)
     (Φ : BStr → IProp netDistGF) (e : Expr) (P : IProp netDistGF) :
-    (<<{ ∀∀ σ, linOwn γ.lin σ }>> e @ ↑sp.spN
+    (<<{ ∀∀ σ, linOwn γ.lin σ }>> e @ sp.auE
       <<{ linOwn γ.lin σ | (sl : GoSlice), RET #sl;
         sl ↦*□ (σ (lin.keyName (W64 (i.key : Int)))).getD [] ∗ P }>>) ⊢
     linkInv (G := hG.goose_globalGS) γ γk -∗ lin (Gg := hG.goose_globalGS) (swRK γk) i Φ -∗
@@ -231,7 +233,7 @@ theorem get_of_lin (γ : SwiftNames netDistGF) (γk : GName) (i : KIn) (hget : i
   · iintro Hσ'
     imod Hmask with -
     iunfold lin at Hlin
-    rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff]
+    rw [show ((swRK (G := hG.goose_globalGS) γk).Eop) = swEop from rfl, swEop_diff, ← sp.auE_diff]
     imod Hlin with ⟨%st, Hst, Hc⟩
     ihave Hst : ghostVar γk (1 : Qp).half (kpair st) $$ [Hst]
     · simp only [swRK, swR, sysK]; iexact Hst

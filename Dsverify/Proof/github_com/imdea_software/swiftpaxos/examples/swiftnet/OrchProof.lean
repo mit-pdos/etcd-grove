@@ -29,12 +29,12 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp netSh
 
 namespace cnode
 
-theorem lintestN_spN : (↑EtcdGrove.lintest.lintestN : CoPset) ⊆ (⊤ \ ↑sp.spN) \ ↑linkN := by
-  unfold EtcdGrove.lintest.lintestN sp.spN linkN
+theorem lintestN_spN : (↑EtcdGrove.lintest.lintestN : CoPset) ⊆ sp.auM \ ↑linkN := by
+  unfold EtcdGrove.lintest.lintestN sp.auM sp.spN client.nodeProphN linkN
   solve_ndisj
 
-theorem pendN_spN : (↑pendN : CoPset) ⊆ (⊤ \ ↑sp.spN) \ ↑linkN := by
-  unfold pendN remoteN sp.spN linkN
+theorem pendN_spN : (↑pendN : CoPset) ⊆ sp.auM \ ↑linkN := by
+  unfold pendN remoteN sp.auM sp.spN client.nodeProphN linkN
   solve_ndisj
 
 theorem pendN_sw : (↑pendN : CoPset) ⊆ ⊤ \ swEop := by

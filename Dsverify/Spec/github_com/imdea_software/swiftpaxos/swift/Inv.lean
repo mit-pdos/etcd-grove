@@ -81,6 +81,26 @@ namespace sp
 /-- The protocol's invariant namespace (disjoint from `clientN`). -/
 def spN : Namespace := ndot nroot "swiftpaxos.sp"
 
+/-- The node prophecies' invariants' namespace (Spec/client/Ghost.lean's `client.nodeLockR`): an
+event's resolution opens its node's prophecy invariant, then `sp.inv` (`spN`). -/
+def _root_.Perennial.github_com.imdea_software.swiftpaxos.client.nodeProphN : Namespace :=
+  ndot nroot "swiftpaxos.client.nodeProph"
+
+/-- The clients' atomic updates' outer mask: inside a node prophecy's invariant and `sp.inv` (a
+client's acceptance commits the updates there, `sp.l2_accept`). -/
+abbrev auM : CoPset := (⊤ \ ↑client.nodeProphN) \ ↑spN
+
+/-- The clients' logically atomic specs' mask (a complement, so that `⊤ \ auE` is `auM`,
+`auE_diff`). -/
+def auE : CoPset := ⊤ \ auM
+
+theorem auE_diff : (⊤ \ auE : CoPset) = auM :=
+  Iris.Std.LawfulSet.diff_self_diff_of_subset CoPset.subseteq_top
+
+theorem spN_prophN : (↑spN : CoPset) ⊆ ⊤ \ ↑client.nodeProphN := by
+  unfold spN client.nodeProphN
+  solve_ndisj
+
 /-- What a connection to a replica's port carries, fixed by its dialer. -/
 inductive ConnKind where
   | peer
@@ -445,10 +465,11 @@ and `Ping`, with no precondition; another method is not called. -/
 
 /-! ## The invariant -/
 
-/-- A command's client's atomic update, at `sp.inv`'s outer mask: the abstract state changes as
-the command does (`lin.apply`), the continuation gets its result. -/
+/-- A command's client's atomic update, at the mask inside a node prophecy's invariant and
+`sp.inv` (`auM`): the abstract state changes as the command does (`lin.apply`), the continuation
+gets its result. -/
 def cmdAU (γl : GName) (c : Cmd) (Ψ : List w8 → IProp netDistGF) : IProp netDistGF :=
-  iprop(AU <{ ∃∃ σ, linOwn γl σ }> @ ⊤ \ ↑spN, ∅
+  iprop(AU <{ ∃∃ σ, linOwn γl σ }> @ auM, ∅
     <{ linOwn γl (lin.apply c σ).1, COMM Ψ (lin.apply c σ).2 }>)
 
 /-- An operation's slot (L2; stage 1's, Spec/client/Ghost.lean): `cg` is its command and the

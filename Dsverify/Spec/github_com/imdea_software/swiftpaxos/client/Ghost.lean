@@ -75,9 +75,6 @@ def nodeVar : sp.PNode → GoString
   | .cl _ => client.nodeProph
   | .rep _ => swift.nodeProph
 
-/-- The node prophecies' invariants' namespace. -/
-def nodeProphN : Namespace := ndot nroot "swiftpaxos.client.nodeProph"
-
 /-- **The node prophecy's invariant's resource** once claimed for the predicted node `n`: the
 prophecy `p`'s values, as words, are the node's half of its future words in `sp.inv`. -/
 def nodeLockR (γ : sp.Names) (n : sp.PNode) (p : proph_id) : IProp netDistGF :=
