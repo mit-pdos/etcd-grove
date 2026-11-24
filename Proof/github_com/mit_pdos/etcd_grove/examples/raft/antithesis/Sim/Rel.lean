@@ -152,7 +152,7 @@ def CandPart (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
 /-- What raft says of a message of a `Ready` that the harness has not reported yet, at the view's
 state (the `Ready`'s; `InputEnd` queues only at the state after the preamble, and the outbox was
 empty at the input, C1). Each is what the binding's `Send` (B 510-593) checks: a vote request is the
-campaign's (its fact recorded by the campaign's `ready`), a grant answers at the vote's term, an
+campaign's (its fact recorded by the campaign's `ready`), a vote response is at the node's term (a grant for its vote), an
 append or heartbeat is the leader's (`AppSendOk`, `HeartbeatOk`), an acknowledgement answers the
 handled `MsgApp` (accepting: its last index, the log after the write matching it, B 571-575; stale:
 the commit index, B 577-580), a heartbeat response is at the node's term; a forwarded proposal is
@@ -164,7 +164,7 @@ def PendOk (id : w64) (v : NodeView) (q : Msg) : Prop :=
   match q.ty with
   | .vote => q.src = id ∧ v.ps.role = .candidate ∧ q.term = v.ps.term ∧ v.ps.vote = id ∧
       q.index = (plogLast base0 v.ps.log).index' ∧ q.logterm = (plogLast base0 v.ps.log).term'
-  | .voteResp => q.src = id ∧ (q.reject = false → q.term = v.ps.term ∧ v.ps.vote = q.dst)
+  | .voteResp => q.src = id ∧ q.term = v.ps.term ∧ (q.reject = false → v.ps.vote = q.dst)
   | .app => v.ps.role = .leader ∧ AppSendOk id v.ps q
   | .heartbeat => v.ps.role = .leader ∧ HeartbeatOk id v.ps q ∧
       q.index = W64 0 ∧ q.logterm = W64 0 ∧ q.entries = []
@@ -192,12 +192,12 @@ def QsOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) (q : Msg) : Prop :=
 
 /-- C1, C2 and the drain's facts for node `n`: its pending messages (`PendOk`), its queued
 self-messages (`QsOk`), once its drain's `recv` is reported, `pending[n]` (B 201), and the message
-its drain handles was sent (an acknowledgement's `send` reads its `Sendable`, kept by C4). -/
+its drain handles was sent to it (an acknowledgement's `send` reads its `Sendable`, kept by C4). -/
 def NodeOk (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) : Prop :=
   DurableIs S n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
   (∀ q ∈ v.pend, PendOk (nodeId n) v q) ∧ (∀ q ∈ v.qs, QsOk S n v q) ∧
   (v.told = true → ∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∧
-  (∀ m, v.cause = some m → m ∈ net)
+  (∀ m, v.cause = some m → m ∈ net ∧ m.dst = nodeId n)
 
 /-! ## C3: the binding's own invariants -/
 
