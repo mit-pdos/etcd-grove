@@ -101,7 +101,9 @@ theorem PutStatus.wp_proof
     ipureintro; constructor <;> word
   wp_for IH2
   wp_if_destruct
-  · have Hlt : sint.nat k < s.Stats'.arr.length := by rw [HSt]; word
+  · have Hlt : sint.nat k < s.Stats'.arr.length := by
+      have h2 : sint.Z k < numStats := by word
+      rw [HSt]; exact (Int.toNat_lt_toNat (by decide)).2 h2
     obtain ⟨v, Hv⟩ : ∃ v, s.Stats'.arr[sint.nat k]? = some v := ⟨_, List.getElem?_eq_getElem Hlt⟩
     rw [if_pos Hk.1, Hv]
     (try wp_auto)
