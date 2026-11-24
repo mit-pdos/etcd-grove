@@ -358,12 +358,17 @@ def netAdder (c : Loc) (γ : AntNames) (q : Qp) : IProp GF :=
 
 /-- **Node `j`'s raft ghost state the harness's calls take** (`RawNode.Ready`'s and its *enter*'s
 frame): its generation view and free batch slot, its durable state's ghost (`ownDurGhost`, at
-`rs.dur`), its term ceiling within the budget, and the budget. -/
+`rs.dur`), its term ceiling within the budget, and the budget; and the cluster's ghost names'
+static facts (`RunCluster` allocates them so): untraced (the inputs' and `Advance`'s exact effects
+are guarded by it), the configuration the three voters (`rnCfg` is `AntSim.cfgM3`), no bound on
+proposed data (`Step`'s message-size premise void). -/
 def nodeRaft (γ : AntNames) (j : Fin 3) (rs : RNState) : IProp GF :=
   iprop(∃ (x : CrashNames) (g : Nat),
     genView γ.raft.raftNames (AntSim.nodeId j) x 1 g ∗ slotFree γ.raft.raftNames (AntSim.nodeId j) g ∗
     ownDurGhost γ.raft.raftNames (AntSim.nodeId j) rs.dur ∗ rnTermLB γ.raft rs.tc ∗
-    rnBudget γ.raft)
+    rnBudget γ.raft ∗
+    ⌜γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = AntSim.voters3 ∧
+      γ.raft.raftNames.maxData = none⌝)
 
 /-- **The cause cell** (`n.cause` at `cl`): while the drain's `recv` is not reported (`by = recv`,
 `told = false`), the report of the handled message `m` (`msgOf(inp.msg, n.id)`, made before
