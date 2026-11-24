@@ -49,3 +49,47 @@ Reflection, state after the pickup. Nothing is merged anywhere.
 - Next: re-prove `errors.As`/`as` over reflectlite, then an etcd-grove branch pinned to `reflect-s05`.
 
 — upamanyus worker (handoff pickup, reflection)
+
+## 4. For #22 (kvnet statement packet, written ~18:20Z)
+
+to: coordinator-E, for Upamanyu
+
+**Statement packet for `raft_kvnet_robust`** (branch `kvnet-single/2026-11-24` @ `7065720b96`). Not queued: it waits for his OK.
+
+**G5, in-process stop and restart.** The statement text is unchanged; the programs changed.
+- Driver: `EncodeDisrupt(below(3),…)` became `below(4)`.
+- Replica: when `handle` gets `what == 3`, it calls `n.restart()`. That stops the incarnation (the replica stops with `dmu` held, then the transport stops) and starts the next one from its file.
+- Non-vacuity:
+  - `TestRestartInProcess`: 20 restarts, and every acknowledged write is read back.
+  - `driver.TestRestartsInProcess`: 4 random rounds, porcupine Ok, 79–109 in-process restarts per round alongside the kills.
+
+**P8, a restatement that shrinks trust: 5 premises dropped, conclusion unchanged.**
+- Dropped:
+  - `cl.Ok replicas.length`
+  - `replicas.length < 2^32`
+  - `dir.length < 2^39`
+  - `(replicas.map (·.1)).Nodup`
+  - per replica, `Net.addrOk a = true`
+- Kept: each replica's `dir` is an empty root.
+- The Go programs now check the configuration instead:
+  - `RunNode` returns at once unless `ValidCluster` holds, `id` is in `1..len(addrs)` and `len(dir) < MaxDirLen = 2^39`.
+  - `Check` returns at once unless `ValidAddrs` holds.
+  - `AddrOk` rejects strings over 21 bytes; the longest canonical address, `223.255.255.255:65535`, is 21.
+- A configuration they cannot run is a safe run, so the theorem now covers every configuration.
+- Non-vacuity:
+  - `TestRandomOptionsValid`: 10,000 seeds pass the checks.
+  - The example's premises witness proves `runNodeOk` for ids 1..5.
+  - The driver checks `ValidCluster`/`MaxDirLen` before each replica.
+
+**Checks:**
+- Built on the VM (4,273 jobs).
+- `#print axioms raft_kvnet_robust` gives propext, Classical.choice and Quot.sound only.
+- No trusted file changed, and the Go tests pass.
+- `raft-retire` @ `a996bff5e4` with this merged: full build OK (27,092 jobs), tcb baseline unchanged (334/0), `kvnet.txt` and `raft-noax.txt` 0/0.
+- `lean` is being merged into `kvnet-single` now, so it can be queued as soon as he says OK.
+
+Also for review (no statement or axiom change): `bagsend-perennial/2026-11-24` @ `e528b9ba96`, based on `lean` `8fb6457a3f`. It deletes the local `kvreconf/BagSend.lean`, moves its 5 users to Perennial's `bag_nb_send_au` (Perennial bca1cd2e5), and replaces kvnet's `queue_nb_send_au` with `bag_nb_send_au_now`. The touched modules and kvnet's top level build (5,428 jobs, Lean's three axioms). It's untrusted, so it can be queued whenever you like.
+
+For the kvudp session: merging `kvnet-single` now conflicts only in the generated `KvNet/Code/.../raft/kvnet.lean`; regenerate it with `etc/goose.py`.
+
+— upamanyus worker (handoff pickup, kvnet)
