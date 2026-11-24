@@ -30,7 +30,7 @@ variable [π : NetProtoGS]
 theorem Client.Go.wp_proof (wp_send : Client.send.spec (GF := GF) (hG := hG)) :
     Client.Go.spec (GF := GF) (hG := hG) := by
   intro c W a γ sm svc M S args reply done γt γf K Φm Rargs D Θ C
-  wp_start as ⟨#Hcl, %Hsv, ⟨%Hdn, %Hcap⟩, #Hset, Henc, HD, #Hdec, Hγt, Hdone⟩
+  wp_start as ⟨#Hcl, %Hsv, ⟨%Hdn, %Hcap⟩, %Hsm, #Hset, Henc, HD, #Hdec, Hγt, Hdone⟩
   wp_auto
   rename_i pc
   ihave %Hpc := typedPointsto_not_null $$ «$r0»
@@ -57,6 +57,8 @@ theorem Client.Go.wp_proof (wp_send : Client.send.spec (GF := GF) (hG := hG)) :
       $$ [$Hcl $Hset $Henc $HD $Hdec $Hγt $Hf $Error Hfut Hful HK] as ⟨%o, #Ho, Hres⟩
   · isplitr
     · ipureintro; exact ⟨Hsv.1, Hsv.2.1, Hsv.2.2, Hpc⟩
+    isplitr
+    · ipureintro; exact Hsm
     iunfold callDone
     iframe Hfut Hful HK
   iapply HΦ
