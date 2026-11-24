@@ -31,8 +31,8 @@ server from the started member (`v3rpc.Server`), listens at `a` (`net.Listen`), 
 `gs.Serve(l)` on its own goroutine and returns, and no thread it starts gets stuck or panics on
 the connections to `a`, each of which carries the calls of `Client_Put_dist`/`Client_Get_dist`
 (review F4; since the S2 interface switch `etcdAddrAt` is `grpcAddrAt a (etcdSvc γE mid)`, whose
-`addrProto` lets another program dial, listen and accept at `a`, serve an empty grpc server there, or
-bridge it, review 4; no proof establishes the opaque `grpcCliPI`/`grpcSrvPI` of any bytes, and this
+`addrProto` lets another program dial, listen and accept at `a`, or serve an empty grpc server there
+(not bridge it: `bridge.New` also consumes `netAddrLeft a` since review 4's fix); no proof establishes the opaque `grpcCliPI`/`grpcSrvPI` of any bytes, and this
 axiom's post is `True`; nothing is claimed of other bytes). Every call that reaches a handler is one a client deposited under `a`'s
 protocol (the interpretation of `etcdAddrAt`): a unary call of etcd's KV table at `(γE, mid)`,
 whose spec is at the view published at `γE`. The member's view is that view
