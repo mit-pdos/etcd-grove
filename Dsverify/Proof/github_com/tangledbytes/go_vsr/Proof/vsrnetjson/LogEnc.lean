@@ -73,7 +73,7 @@ theorem vsrnet.wp_jenc_Log (b : GoSlice) (bs : List w8) (x : pkg.log.Log) (d : w
   wp_start as ⟨Hb, Hcap⟩
   wp_auto
   wp_if_destruct
-  · exfalso; simp only [models_lab.jsoncodec.MaxDepth] at *; word
+  · exfalso; (try simp only [models_lab.jsoncodec.MaxDepth] at *); word
   try wp_auto
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.byte))))
     (Val (LiteralValueV _)))
@@ -121,7 +121,7 @@ theorem vsrnet.wp_jenc_S_log_Log (b : GoSlice) (bs : List w8) (sl : GoSlice) (dq
   rw [decide_eq_false hnn]
   wp_auto
   wp_if_destruct
-  · exfalso; simp only [vsrnet.jsonCycleDepth] at *; word
+  · exfalso; (try simp only [vsrnet.jsonCycleDepth] at *); word
   try wp_auto
   wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.byte))))
     (Val (LiteralValueV _)))
@@ -151,7 +151,8 @@ theorem vsrnet.wp_jenc_S_log_Log (b : GoSlice) (bs : List w8) (sl : GoSlice) (dq
     ipureintro; omega
   wp_for IH
   wp_if_destruct
-  · have Hlt : uint.nat k < ls.length := by word
+  · have Hlt : uint.nat k < ls.length := by
+      have h := go.intoVal_inj Hif; simp at h; word
     obtain ⟨xl, Hx⟩ : ∃ xl, ls[uint.nat k]? = some xl := ⟨_, List.getElem?_eq_getElem Hlt⟩
     have hb : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len := by word
     have hnz : (sint.Z k).toNat = uint.nat k := by word
@@ -211,10 +212,13 @@ theorem vsrnet.wp_jenc_S_log_Log (b : GoSlice) (bs : List w8) (sl : GoSlice) (dq
       simp only [List.append_assoc, List.cons_append, List.nil_append]
       iframe
       ipureintro; word
-  · have hk : uint.nat k = ls.length := by word
+  · have Hnlt : ¬ sint.Z k < sint.Z sl.len := by intro h; apply Hif; simp [h]
+    have hk : uint.nat k = ls.length := by word
     have hes2 : es.take (uint.nat k) = es := by
       rw [hk, ← hls]; exact List.take_of_length_le (by simp)
     rw [hes2]
+    try (rw [if_pos (by simp [Hnlt])])
+    try wp_auto
     wp_bind (App (Val (GoInstruction (CompositeLiteral (go.SliceType go.byte))))
       (Val (LiteralValueV _)))
     iapply wp_slice_literal (V := w8) (t := go.byte) [W8 93]
