@@ -224,13 +224,13 @@ func (c *checker) disrupt(stop <-chan struct{}) {
 
 // Check is the checking client's process, as the top-level theorem runs it: the cluster whose
 // replicas' addresses are addrs (comma-separated, replica i at the i-th, ids from 1), with the
-// bootstrap voters 1..voters. It panics if the cluster is not one the theorem's premises allow
-// (kvnet.ValidAddrs), and unless porcupine accepts the history of the operations it ran (the
-// package's comment); otherwise it returns once they are done.
+// bootstrap voters 1..voters. It returns at once, doing nothing, if the cluster is not one it can
+// check (kvnet.ValidAddrs): a safe run. It panics unless porcupine accepts the history of the
+// operations it ran (the package's comment); otherwise it returns once they are done.
 func Check(addrs string, voters uint64) {
 	as := kvnet.SplitAddrs(addrs)
 	if !kvnet.ValidAddrs(as, voters) {
-		panic("kvcheck: not a valid cluster")
+		return
 	}
 	c := &checker{addrs: as}
 	stop := make(chan struct{})

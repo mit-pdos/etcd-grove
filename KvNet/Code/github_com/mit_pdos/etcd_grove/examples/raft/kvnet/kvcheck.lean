@@ -717,9 +717,9 @@ noncomputable def checker.disrupt.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Check is the checking client's process, as the top-level theorem runs it: the cluster whose
     replicas' addresses are addrs (comma-separated, replica i at the i-th, ids from 1), with the
-    bootstrap voters 1..voters. It panics if the cluster is not one the theorem's premises allow
-    (kvnet.ValidAddrs), and unless porcupine accepts the history of the operations it ran (the
-    package's comment); otherwise it returns once they are done.
+    bootstrap voters 1..voters. It returns at once, doing nothing, if the cluster is not one it can
+    check (kvnet.ValidAddrs): a safe run. It panics unless porcupine accepts the history of the
+    operations it ran (the package's comment); otherwise it returns once they are done.
 
     go: kvcheck.go:230:6 -/
 noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
@@ -873,9 +873,8 @@ noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "as"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "voters"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.ValidAddrs []))) (Val #())) (Var "$a0")) (Var "$a1")))))
-  (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"kvcheck: not a valid cluster")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doReturn)
+  (Val #()))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)

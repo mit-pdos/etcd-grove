@@ -92,6 +92,10 @@ func ValidAddrs(addrs []string, voters uint64) bool {
 	return uint64(len(addrs)) < 1<<32 && 1 <= voters && voters <= uint64(len(addrs))
 }
 
+// MaxDirLen bounds the length of a replica's directory name: its files' names (the durable
+// package's, under the directory) must fit the file system's bounds.
+const MaxDirLen = 1 << 39
+
 // ValidCluster says whether the cluster is one the top-level theorem's premises allow: valid
 // addresses and voters (ValidAddrs), raft's size limits not both 0, and MaxInflightMsgs a
 // positive Go int below 2^62 (raft's RestartNode needs it).
