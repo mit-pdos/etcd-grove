@@ -82,6 +82,7 @@ type Config struct {
 	NetPause   time.Duration // between two network faults, on average (0: none; needs Netns)
 	NetHold    time.Duration // how long a network fault lasts, on average
 	Deadline   time.Duration // the run fails if the client is not done by then (0: none)
+	Transport  string        // the replicas' raft messages': TransportTCP (or "") or TransportUDP
 }
 
 // RandomConfig is a run of random options (kvnet.RandomOptions), crashes in the given mode,
@@ -366,6 +367,9 @@ func (c *Cluster) start(r *replica) error {
 	}
 	fmt.Fprintf(lf, "=== incarnation %d\n", count)
 	args := append(append([]string(nil), c.cmd.Args...), NodeArgs(r.id, c.addrs, r.dir, c.cfg.Options)...)
+	if c.cfg.Transport != "" {
+		args = append(args, "-transport", c.cfg.Transport)
+	}
 	p, err := r.m.Start(c.cmd.Path, args, c.cmd.Env, lf, func(err error) {
 		c.fail(fmt.Errorf("replica %d (incarnation %d) exited on its own (%v); its log %s:\n%s",
 			r.id, count, err, logPath, tail(logPath, 40)))
