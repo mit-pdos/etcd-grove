@@ -160,7 +160,7 @@ theorem wp_RemoveNode (cfg : Cfg GF) (c : Loc) (a : GoString) :
       ihave ⟨HPc, HPr⟩ := connRole_mid cfg rs (rs.length - 2) rP (by omega) $$ HP
       have hTin : rI.addr ≠ go!"" := by
         intro h
-        apply Hctxp.2.2.2
+        apply Hctxp.2.2.2.1
         rw [← h]; exact Hwf.2 rI (List.mem_of_getElem? hrI)
       have hch' : ∀ r ∈ rs.take (rs.length - 1), r.addr ∈ cfg.chain :=
         fun r hr => Hwf.2 r (List.mem_of_mem_take hr)

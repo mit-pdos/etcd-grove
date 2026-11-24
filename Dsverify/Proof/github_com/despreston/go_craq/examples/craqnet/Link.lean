@@ -66,7 +66,7 @@ variable [bvi : go.BasicIntoValInj] [NaInvG GF]
 translates both as names only (Perennial ed1955557 proves them). Not a premise of the statement:
 `TopLevelRobustness.lean`'s `craq_remote_robust_of_strings` takes them until the pin includes
 ed1955557, when `craq_remote_robust` follows from Perennial's proofs. -/
-class StringsPending (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] : Prop where
+class StringsPending (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF] [go.Semantics] : Prop where
   cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG)
   trimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG)
 

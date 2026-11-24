@@ -83,7 +83,7 @@ theorem wp_sendCommitToPrev (cfg : Cfg GF) (n : Loc) (lg : Loc) (hlg : lg ≠ nu
     subst He
     icases Hspec with ⟨-, -, HC, -⟩
     wp_auto
-    wp_apply HC $$ %hk Hcv
+    wp_apply HC $$ %_ %_ %_ %hk Hcv
     iintro %err Herr
     icases Herr with (%Herr | #Herr)
     · subst Herr

@@ -119,7 +119,7 @@ theorem wp_Read (HL : Laws (GF := GF)) (cfg : Cfg GF) (n : Loc) (a : GoString)
       subst Hec
       icases Hcs with ⟨-, -, -, HLV, -⟩
       wp_auto
-      wp_apply HLV $$ %hk Hau
+      wp_apply HLV $$ %_ %_ %_ %hk Hau
       iintro %k' %v %err Hres
       icases Hres with (⟨%Herr, %σ, HQ, #Hrf⟩ | #Hea)
       · subst Herr

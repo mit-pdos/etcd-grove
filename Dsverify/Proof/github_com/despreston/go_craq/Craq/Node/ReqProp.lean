@@ -555,7 +555,7 @@ theorem wp_requestFwdPropagation (HL : Laws (GF := GF)) :
   iintro %ptr %req Hreq Hsl %Hreq %Hreqd
   wp_auto
   icases Hcs with ⟨-, -, -, -, -, -, Hfwd, -, -⟩
-  wp_apply Hfwd $$ %(reqKeysOk_of S es req HSk (fun e he => (Hes.2 e he).1) Hreqd) Hreq
+  wp_apply Hfwd $$ %_ %_ %_ %_ %(reqKeysOk_of S es req HSk (fun e he => (Hes.2 e he).1) Hreqd) Hreq
   iintro %rp %err Hres
   icases Hres with (⟨%Herr, Hreq, %resp, Hresp, #Hitems⟩ | #Herr)
   · subst Herr
@@ -608,7 +608,7 @@ theorem wp_requestBackPropagation (HL : Laws (GF := GF)) :
   iintro %ptr %req Hreq Hsl %Hreq %Hreqd
   wp_auto
   icases Hcs with ⟨-, -, -, -, -, -, -, Hbck, -⟩
-  wp_apply Hbck $$ %(reqKeysOk_of S es req HSk (fun e he => (Hes.2 e he).1) Hreqd) Hreq Hcov
+  wp_apply Hbck $$ %_ %_ %_ %_ %_ %(reqKeysOk_of S es req HSk (fun e he => (Hes.2 e he).1) Hreqd) Hreq Hcov
   iintro %rp %err Hres
   icases Hres with (⟨%Herr, Hreq, %resp, Hresp, #Hitems, #Hcomm, %Hcovers⟩ | #Herr)
   · subst Herr

@@ -390,7 +390,7 @@ theorem wp_addNode (cfg : Cfg GF) (c : Loc) (a : GoString) (ha : a ∈ cfg.chain
           rcases List.mem_append.mp hr with h | h
           · exact Hwf.2 r h
           · simp at h; subst h; exact ha
-        have hLne : rL.addr ≠ go!"" := by intro h; apply Hctxp.2.2.2; rw [← h]; exact hrLa
+        have hLne : rL.addr ≠ go!"" := by intro h; apply Hctxp.2.2.2.1; rw [← h]; exact hrLa
         ihave #HnfsN : [∗list] r ∈ pre ++ [rL] ++ [N], nodeFacts cfg r.loc r.addr $$ []
         · iapply BigSepL.bigSepL_snoc.2; iframe Hnfs; iexact HnfN
         wp_apply wp_updateNode cfg c sl' (pre ++ [rL] ++ [N]) (DFrac.own 1) (sl'.len - W64 1) N true

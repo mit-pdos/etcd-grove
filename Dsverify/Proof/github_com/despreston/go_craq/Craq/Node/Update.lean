@@ -465,7 +465,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
             icases HcP' with ⟨%eP, ⟨%HeP, %HaP⟩, -⟩
             simp only at HeP HaP
             subst HeP
-            have hne : addrP ≠ go!"" := fun h => Hcc.2.2.2 (h ▸ HaP)
+            have hne : addrP ≠ go!"" := fun h => Hcc.2.2.2.1 (h ▸ HaP)
             simp only [hne, ↓reduceIte]
             irename Hsrc => Hcov
             wp_auto
@@ -476,7 +476,7 @@ theorem wp_update (HL : Laws (GF := GF)) (Hsend : sendCommitToPrev.spec (GF := G
           icases HcN' with ⟨%eN, ⟨%HeN, %HaN⟩, -⟩
           simp only at HeN HaN
           subst HeN
-          have hne : addrN ≠ go!"" := fun h => Hcc.2.2.2 (h ▸ HaN)
+          have hne : addrN ≠ go!"" := fun h => Hcc.2.2.2.1 (h ▸ HaN)
           rw [← hN]
           unfold srcOk
           simp only [hne, ↓reduceIte]

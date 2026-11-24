@@ -154,6 +154,9 @@ theorem wp_Call_tag [rcs : RpcClientSpecs GF] (T : List w8 → Prop) (c : Loc) (
       iframe Henc
       iintro %bs ⟨HSM, HR⟩
       ihave HSM := HS2 bs $$ HSM
+      icases HSM with ⟨%Hl, HSM⟩
+      isplitr
+      · ipureintro; exact Hl
       iframe
     isplitl [HD]
     · iexact HD

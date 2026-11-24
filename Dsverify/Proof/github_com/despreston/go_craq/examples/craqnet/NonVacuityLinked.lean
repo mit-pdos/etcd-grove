@@ -271,17 +271,17 @@ theorem nonvacuous_premises :
   refine ⟨fun G L => rpcInitHyp_holds (hG := heapAt G L), fun G L => httpInitHyp_holds (hG := heapAt G L),
     fun G L => logHyp_holds (hG := heapAt G L),
     fun G L π => local_rpcHttpServe (hG := heapAt G L) (π := π),
-    fun G L π => local_boot_client0 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_client1 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_client2 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_client3 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_client4 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_server1 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_server2 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_server3 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_server4 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_server5 (hG := heapAt G L) (rs := local_rpcHttpServe),
-      fun G L π => local_boot_server6 (hG := heapAt G L) (rs := local_rpcHttpServe)⟩
+    fun G L π => local_boot_client0 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_client1 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_client2 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_client3 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_client4 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_server1 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_server2 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_server3 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_server4 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_server5 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π)),
+      fun G L π => local_boot_server6 (hG := heapAt G L) (rs := local_rpcHttpServe (hG := heapAt G L) (π := π))⟩
 
 end statement
 
