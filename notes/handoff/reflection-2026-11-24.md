@@ -403,3 +403,45 @@ Round 3 progress (Perennial reflect-s05 worktree p-refl05, uncommitted until it 
 - F1 lean branch: Perennial `goose-localtype-varinit` a751ac526 (off origin/lean fce59af75); go test
   ./goose/... passes with go1.26.11 copied outside GOMODCACHE; regeneration: no translated-code diff
   (only the known strconv IsPrint drift, identical on plain lean; not committed).
+
+### Exact state at round-3 checkpoint (context nearly full)
+
+Coordinator-E confirmed option (A) on #40. The S0+S0.5 packet goes to Upamanyu ONLY once errors.As is
+re-proved, as one complete packet, trimmed to trusted items (what/why sound/evidence, 3–5 lines each),
+including the goose F1 fix for Perennial lean (branch `goose-localtype-varinit` a751ac526).
+
+Perennial `reflect-s05` @ 722b4c490 (WIP, pushed; NOT building yet). Iteration loop:
+`bash ~/.claude-D/jobs/43217da4/tmp/reflection/bin/bld.sh <tag> Perennial.Proof.errors.as_ Perennial.Proof.errors.As`
+(builds all new reflectlite modules + errors; log `reflection/<tag>.log`; `bin/errs.py <log> 26` prints errors).
+Generators (stale vs hand edits except mk_b4.py = Spec/Proof errors/as_.lean, mk_b5.py = Proof/errors/As.lean):
+`reflection/bin/mk_b{1,2,3,3b,4,5}.py`. Edit the .lean files directly from now on (mk_b4 is current).
+
+Built OK at b8: reflectlite Base, isZeroSize, isDirectIface, isModelRType, TypeOf, unpackEface, ValueOf,
+packEface, valueInterface, flag.kind, Value.{Kind,Type,IsNil,Elem}, isDefined, implements,
+rtype.{Implements,AssignableTo}; reflectcore Load/Store/load/store; errors Base, initialize; reflect Base.
+Failing at b8 (fixes applied in 722b4c490, being tested by b9):
+- Value__Set: method-call unfolding counts (`iterate 3 (try wp_meth1)` per ptr-receiver call; simp with
+  flag_bits between); `Nat.cast_ofNat` unknown (no Mathlib).
+- directlyAssignable: `rw [if_neg hneq]` after TypeUnderlying; indentation of 2nd branch.
+- Value__assignTo: flag bit goal → `assign_flag_bits` (Base).
+- errors/As: `swap` unknown → rotate_left; wp_As_ok uses `wp_func_call; wp_call` then wp_auto.
+- errors/as_: MATCH block (`fin` indentation), `htyped := Htyped`, `wp_meth1` before `Value.Elem`
+  (ptr receiver), `rw [if_pos (by simp)]` after `wp_for HI`, conj-3 wrapper `injection h; subst h`.
+Tactic lessons: `wp_start` strips isPkgInit (don't bind it); kind compares show up as
+`decide (W8 ↑k = W8 20)` (use `kne_20` etc. literal lemmas); ptr-receiver method = 2 `wp_meth1`
+(+1 for promoted flag methods); avoid `by_contra`/`swap`/`Nat.cast_ofNat` (no Mathlib);
+`underlying` is ambiguous inside `rtype.`/`Value.` namespaces → `GoSemanticsFunctions.underlying`.
+
+etcd-grove `reflect-s05/2026-11-24` (ho-refl05): UNCOMMITTED edits for the new premises (commit them
+with the pin bump once Perennial builds): Spec/errors/{AsNoMatch,AsLeafTy,AsLeaf}.lean (asModelled,
+IsPointerError for interface T, T-kind premises), Proof/errors/{AsNoMatch,AsLeafTy,AsLeaf}.lean,
+k8s View.lean (plainLeaf & .plain wrapper carry IsPointerError), Checks.lean, ErrViews.lean,
+ErrOk.lean (kErrOk_intro gets `hmod : asModelled e.ty`; lemmas asModelled_etcdError,
+asModelled_deadlineExceeded), rafthttp pipeline/snapshotHandler ServeHTTP (T-kind args). No top-level
+statement changes. Then: bump lake-manifest Perennial rev to the built reflect-s05 head, regen (see
+regen-vm.sh), build affected modules, rerun gates (VM key 44b7416aff694723) expecting the tcb delta to
+lose errors.As's sorry.
+
+Next after Perennial builds: gen-link (`python3 etc/gen-link.py internal/reflectlite internal/reflectcore errors`),
+`#print axioms Perennial.errors.wp_As` (AxCheckRefl05.lean), commit; full Perennial build (bin/pfull.sh);
+etcd-grove as above; then the packet.
