@@ -25,6 +25,89 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,
+  `rafthttp.NewRoundTripper.spec` (plan: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`).
+- **Defect.** Too weak for a user: on success the post gives only `http.roundTripperOk H rt`, not the
+  round tripper's dynamic type, so `bootstrap`'s proof cannot establish `bootOk`'s
+  `"%Hprt" ∷ ⌜∃ t : Loc, bs.prt' = GoInterface.ok ⟨PointerType http.Transport.ty, #t⟩⌝`
+  (`Proof/go_etcd_io/etcd/server/v3/etcdserver/InvBoot.lean`), which `NewServer`/`LeaseRenew` use.
+- **Evidence.** `server/etcdserver/api/rafthttp/util.go:47-51` (pin `edc800c6f`):
+  `func NewRoundTripper(...) (http.RoundTripper, error) { return transport.NewTimeoutTransport(tlsInfo, dialTimeout, 0, 0) }`;
+  `client/pkg/transport/timeout_transport.go:27`: `func NewTimeoutTransport(...) (*http.Transport, error)`.
+  `bootstrap.go:72` sets `prt` from it. `transport.NewTimeoutTransport.spec` already returns `tr : Loc`
+  with `roundTripperOk H (interface.mkOk (PointerType http.Transport.ty) #tr)`, so no callee spec moves.
+- **Proposed change.** The success disjunct becomes `⌜err = GoInterface.nil⌝ ∗ http.roundTripperOk H rt ∗
+  ⌜∃ t : Loc, rt = GoInterface.ok ⟨go.GoType.PointerType http.Transport.ty, #t⟩⌝` (everything it gave
+  kept). Re-proved in `Proof/.../rafthttp/NewRoundTripper.lean` over `NewTimeoutTransport`'s unchanged
+  spec (no new axiom, no trusted file). Consumer updated: `Proof/.../rafthttp/TransportStart.lean`
+  (drops the new conjunct); `TransportState`, `TransportSpecs`, `Transport__Start`, `Link` pass the spec
+  through unchanged.
+- **Decision.** Approved for claim #34 by the coordinator (2026-11-23); applied on branch
+  `bootstrap-proof/2026-11-23`.
+## 2026-11-24: `NewStream` fixes the stream's metadata when it returns; a transparent retry recomputes it (phase 7 S3, R2)
+
+- **Spec.** `Spec/google_golang_org/grpc/ClientConn__NewStream.lean`, `grpc.ClientConn.NewStream.spec` (the
+  axiom `grpc.ClientConn.NewStream.wp_proof`): its post's `md` with `⌜clientAttemptMd conn om md⌝` and
+  `Spec a md γ Dn`. SpecPlan: `SpecPlan/Spec/google_golang_org/grpc/Api.lean`, `streamerOk_call.spec`
+  (`:657-667`: `md` fixed in the post, and `cliSend`/`cliRecv` indexed by it).
+- **Defect.** Too strong (false of grpc-go v1.84 and of the model): the metadata the handler sees is the
+  dispatched attempt's, which is not known when `NewStream` returns. The client holds `Spec md γ Dn` while
+  the server may run at another attempt's `md'` with the same `Dn`; for the watch's token-indexed spec that
+  equates `watchDn tok` and `watchDn tok'`.
+- **Evidence.** A transparent retry of an unprocessed first attempt recomputes the head
+  (`createHeaderFields` per attempt, the per-RPC credentials called again: `models/grpc/model_transport.go:239-245`,
+  from `stream.go:482-505`, kept verbatim from grpc-go v1.84); etcd's token can be refreshed between the
+  attempts. The spec's docstring rests on "grpc sends the headers once", true of one attempt only.
+- **Proposed change.** `notes/phase7-endstate.md` §1.2 and §2: the post gives no `md`;
+  `cliStreamIs` takes the attempts' metadata family `Md` (`clientAttemptMdI conn om`) and an `md`-indexed
+  `Dn`; the post gives `□ ∀ md, clientAttemptMdI conn om md -∗ Spec a md γ (Dn md)`; each received message
+  gives `Md md ∗ streamMdIs γ md` with `Dn md j m` (`streamMdIs_agree`: one `md` per stream). SpecPlan:
+  `streamerOk_call` returns no `md`, `cliSend`/`cliRecv` lose the index, and `cliRecv_recv`'s message arm
+  gives the dispatched `md` (`mdIs g md ∗ ⌜mdSeen (mdc ++ md0) md⌝`) beside `S.dn g md n c`. Users: the
+  two generated stubs (`watchClient__Watch`, `leaseClient__LeaseKeepAlive`, mechanical), the lease client
+  (drops it), the watch client (its epoch's token learned from the first response: `watchGRPCStream__run`,
+  `WatchRun`, `serveWatchClient`, `WatchEpoch`; not mechanical). Branch `phase7-switch` (SW1).
+- **Decision.** Pending (a trust-boundary spec: the user's review; taken overnight as
+  `notes/phase7-endstate.md` §3, decision C).
+
+## 2026-11-24: a client stream's clean end (`io.EOF`) need not follow a handler run (phase 7 S3, R1)
+
+- **Spec.** `Proof/google_golang_org/grpc/InvGrpcStream.lean`, `cliStreamIs`'s `RecvMsg` (`:638-639`) and
+  `cliBidiStreamIs`'s `Recv` (`:679-680`), as `grpc.ClientConn.NewStream.spec`'s post gives them (the axiom
+  `grpc.ClientConn.NewStream.wp_proof`). SpecPlan: `SpecPlan/Spec/google_golang_org/grpc/Api.lean`,
+  `cliRecv_recv.spec` (`:691-699`: `io.EOF` with `S.fin g md n none`).
+- **Defect.** Too strong (false of grpc-go v1.84 and of the model): at `io.EOF` the spec gives
+  `downClosed γ L` (the handler returned after `L`), but `io.EOF` also comes, before any message, after a
+  transparent retry whose replay failed, with no handler run.
+- **Evidence.** `nonissues/grpc-transparent-retry-spurious-eof.md` (found by `models/internal/grpcdifftest`'s
+  `TestAtMostOnce` with random choices; grpc/grpc-go#9443, #9447): `retryLocked` returns the replay's bare
+  `io.EOF` through `shouldRetry`. A retry happens only before the stream is committed, and receiving a
+  message commits it.
+- **Proposed change.** The `io.EOF` arms give `downClosed γ L ∨ ⌜L = []⌝`; SpecPlan's,
+  `S.fin g md n none ∨ ⌜n = 0⌝`. No user changes: `serveWatchClient` and `recvKeepAliveLoop` drop
+  `downClosed`. Branch `phase7-switch` (SW1).
+- **Decision.** Pending (a trust-boundary spec: the user's review).
+
+## 2026-11-24: `etcd_wal_crash_safety_bounded` -- its program `bootWal` ran raft's initializer, not the tester's; `Hinit_wp` unprovable
+
+- **Spec.** `WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/etcd/wal/Adequacy.lean`: `bootWal` (the
+  program the theorem is about) and the hypothesis `Hinit_wp` of `etcd_wal_crash_safety_bounded`.
+- **Defect.** `bootWal` was `initialize' #() ;; Main(area, orDir)` with a bare `initialize'`, which, under the
+  file's `open go_etcd_io.raft.v3`, is raft's package initializer: the program never initialized the tester's
+  package. `Hinit_wp` asked raft's initializer for the tester's `isPkgInit`, which nothing can prove (it is the
+  ghost fact of another package), so the theorem was a statement about the wrong program under a hypothesis no
+  proof could discharge.
+- **Evidence.** Discharging `Hinit_wp` (branch `wal-open`): `wp_apply` of the tester's generated
+  `wp_initialize'` failed on the goal `Seq (initialize' #()) ...`, whose `initialize'` is
+  `go_etcd_io.raft.v3.initialize'`.
+- **Proposed change.** `bootWal` calls `github_com.mit_pdos.etcd_grove.examples.etcd.wal.initialize'` (the
+  tester's, which initializes raft among its imports); `Hinit_wp` removed (proved: per-generation registration
+  rights, `tRegQsOk`, and the generated `wp_initialize'`); the theorem gains the instance premise
+  `[log.NewModel]` (raft's `log.New`, a semantics assumption the etcd examples' closed theorems take too).
+- **Decision.** Applied on branch `wal-open` (not landed), for the coordinator's (#15) and the user's review:
+  it changes the program of the statement (a fix) and adds the `log.NewModel` premise.
 ## 2026-11-23: zap's `nopLogger` holds its `name` and `clock`, `zapEntry` owns its slices; zap's `pool.New` returns its pool (zap Z2, #40)
 
 - **Spec.** `Spec/go_uber_org/zap/Defs.lean`: `zap.nopLogger` (what `zapLoggerOk` holds), `zapcore.zapEntry` and
@@ -49,6 +132,24 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   `T = *E` (each of zap's pools holds pointers; the conversion of a generic `T` to `any` steps only once its
   underlying type is known).
 - **Decision.** Applied (branch `zap-z2`), within #40's Z2 (the coordinator's go-ahead, 2026-11-23).
+## 2026-11-24: `bootMarshal`/`peersCtx` (raft's `Bootstrap` vocabulary) -- empty contexts excluded, which made the trace check's premise false
+
+- **Spec.** `Proof/go_etcd_io/raft/v3/ApiVocab.lean` (`bootMarshal`, `bootConfChange`, `peersCtx`), the
+  vocabulary of `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` (`Spec/go_etcd_io/raft/v3/`)
+  and of the closed theorems' premise `bootMarshal`; no counterpart in `SpecPlan/`.
+- **Defect.** Vacuous at a real caller: `bootMarshal` required `⌜∀ c ∈ ctxs, c ≠ []⌝`, and the trace
+  check's peers have no context (`Peer{ID: i}`), so its premise `bootMarshal _ [[], [], []] _` was false and
+  `raft_tracecheck_safe`/`_robust` held vacuously (since `bcfa65fe6d`, 2026-11-12).
+- **Evidence.** `examples/raft/tracecheck/sim.go:163`, `concurrent.go:155`; `tracecheck.premises`
+  (`RaftTla/Proof/.../tracecheck/Defs.lean:52`). The conjunct's reason (`00e0cbcf74`): `Context` is a proto2
+  `bytes` field, so an empty context's bytes depend on whether the slice is `nil`.
+- **Proposed change.** State presence instead of excluding it: `peersCtx` says an empty context's slice is
+  `nil`, `bootConfChange` likewise, `bootMarshal` loses the conjunct. Callers: `Bootstrap`'s proof (the `nil`
+  fact from `peersCtx`), the trace check (`tcPeers_ctx`); the etcd side's `peersCtx` (in `bootOk`) only
+  passes through. Weaker premises for every etcd example (non-empty contexts), a true one for the trace check.
+- **Decision.** Applied (branch `tracecheck-nonvacuous/2026-11-24`, `notes/trace-check-design.md`,
+  "Non-vacuity").
+
 ## 2026-11-24: `roundTripperOk` (`SpecPlan/Spec/net/http/Api.lean`) -- a length-framed body's completion fact comes too late
 
 - **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (the body premise
@@ -5823,6 +5924,23 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
 
+## 2026-11-24: `mvcc.hashStorageOk` carries `hashMu`'s guard over the stored hashes (sortslice, claim #18)
+
+- **Spec.** `mvcc.hashStorageOk h` (`Proof/.../storage/mvcc/HashDefs.lean`), the persistent premise of
+  `hashStorage.Store.spec` and post of `NewHashStorage.spec`: besides the logger, now
+  `sync.isRWMutexGuard h.hashMu (mvcc.hashesR h)`, where `hashesR h q` is the `hashes` field at `q`, the
+  slice's elements and capacity at `q`, and at most `hashStorageMaxSize` (10) elements.
+- **Defect.** `Store`'s spec (an axiom until now) stated no ownership of `hashes`: it could not be proved
+  (it appends and sorts in place under `hashMu`), only assumed.
+- **Evidence.** `NewHashStorage` (the one producer; `NewStore` passes its result on, `InvStore` keeps it
+  persistently, `CommitApi` uses it abstractly) is re-proved: it allocates the struct, makes the lock over
+  the empty slice (`sync.init_RWMutex`, the reader slots dropped: nothing verified reads `hashes` under the
+  read lock), and returns the guard. `Store` is proved over it (fork `a336e97f9`'s `slices.SortFunc`).
+  No caller re-proved: the predicate is used only through its name.
+- **Proposed change.** As above (the approved exception: a persistent ownership premise every caller
+  discharges). `Hashes`/`HashByRev`, when verified, will need the reader slots `NewHashStorage` drops
+  (`SpecPlan`'s `hashStorageFresh`).
+- **Decision.** Applied (branch `prove-ps2-sortslice/2026-11-23`).
 ## 2026-11-24: phase 7 S2's interface switch (branch `s2-switch`; option (A); seven entries)
 
 The switch the user asked for ("do S2's interface switch now, with the unproved parts as axioms, so
@@ -5984,3 +6102,41 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
   buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
   No top-level statement changes (the tokens come from the backend's constructor inside the proof).
 - **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.
+
+## 2026-11-24: net/rpc model's `rerr` removed, a request frame over `maxFrame` the stuck point; `Client.Call.spec`'s request bound, the frame reads' `F`, the server codec's read specs, `hijackOk`'s read-deadline token (net-rpc part 2, `notes/net-sticky-read.md`)
+
+- **Spec.** Changed: `Client.Call.spec`, `Client.Go.spec`, `Client.send.spec` (premise `⌜sm.length + 16 ≤ maxFrameN⌝`,
+  and the arguments' encoding continuation `⌜bs.length ≤ maxFrameN⌝ ∗ S M bs Φ ∗ Rargs`, returned as it was on an
+  unsent call); `clientCodec.WriteRequest.spec` (the same premise on `rv.ServiceMethod'`, the encoding's continuation
+  `⌜eb.length ≤ maxFrameN⌝ ∗ Ψ0 eb`; `reqUpd`'s pure premise `≤ maxFrameN` for `< 2 ^ 63`); `reqOk` (`Proto.lean`: a
+  request's payloads at most `maxFrameN`); `readFull.spec`, `readFrame.spec` (a parameter `F`: the accessor returns
+  `P (got ++ r.got) ∗ (⌜∀ bs, r ≠ .bytes bs⌝ -∗ F)` and a `readErr` comes with `F`; `readFrame`'s `errFrame` after a
+  length beyond `maxFrame` gives those 8 bytes); `serverCodec.ReadRequestHeader.spec`, `ReadRequestBody.spec` (no `rerr`
+  resource, the `r0 ≠ nil` case gone, `F` as `readFrame`'s; the body's `errFrame` with its 8 bytes);
+  `newServerCodec.spec` (no `rerr`); `Server.readRequestHeader.spec` (no `rerr` in its post); the server's vocabulary
+  (`ServerDefs.lean`: `rdrOwn W a cn`, no codec argument, the live reader with `rdlTok cn true false` or a dead one with
+  `readDead cn true`; `rdrMid` with `rdlTok`; `rpcAccepted` with `rdlTok cn true false ∨ readDead cn true`;
+  `srvCodecOwn` without `rerr`); `net.http.hijackOk` (the continuation also gets `∃ b, rdlTok cn true b ∗ (⌜b = false⌝ ∨
+  readDead cn true)`), `hjDone` (without the token), `conn.hijackLocked.spec` (its post's token likewise). New:
+  `deadline_dead_au` (`GooseLang/Ext/Net/Proto.lean`: `deadline_au`, and `readDead` when the setting fails on a closed
+  end), `readAcc_true` (`Net/Proof/net/rpc/ReadAcc.lean`), `rd_acc_dead`, `rd_acc_after`, `req_len_fit`,
+  `framesOf_next_len`, `reqPlsFrom_fit`, `rdErr_readF`, `rdErr_readE` (`ServerGhost.lean`); `rd_acc_srv` removed.
+  Kits: swiftpaxos's `client.Client.call.specI` gains `Call`'s two bounds (its callers prove them of their concrete
+  arguments: `Client__callMaster.lean`, `examples/swiftnet/Register.lean`'s `reg_args_fit`, `master/RunLoop.lean`);
+  epaxos's `wp_Call_simple` likewise (`NetRpc/Calls.lean`, `regArgs_fit`). No top-level statement changes.
+- **Defect.** The model's `serverCodec.rerr` made every frame read error sticky, timeouts included, where Go reads on:
+  the model was narrower than Go for a server with a read deadline (its claim excluded those programs). Removing it
+  (the net extension's semantics now makes non-timeout read errors sticky, D1 v3.5) exposed two things the proofs need:
+  (1) the failed read's `readDead` through the frame readers (the old specs forgot the read's result); (2) Go's gob
+  reads on after a too-long message (`errBadCount`) and `ServeCodec` reads on after a body's error, parsing a payload as
+  frames, so a frame over `maxFrame` must not reach the server. Over HTTP, (3) the hijacked connection's read deadline
+  was unknown (`∃ b`), so no read could be shown not to time out.
+- **Evidence.** `models/net/rpc/codec.go` (Go 1.27.3 `net/rpc/server.go` `ServeCodec`/`readRequest`,
+  `encoding/gob/decoder.go` `recvMessage`, `encoder.go` `writeMessage`'s `tooBig`); the model's `hijackLocked`
+  clears both deadlines (`SetDeadline(time.Time{})`), which fails only on a closed end (`DeadlineOutcome`).
+- **Proposed change.** As above. A frame over `maxFrame` in `clientCodec.WriteRequest` calls the model's stuck point
+  `stuck` (trusted: `Net/TrustedCode/net/rpc.lean`, Perennial's `internal.gomodel.Stuck.impl`), not a silent refusal
+  (gob leaves the header buffered for the next flush, which a refusal would not model): so the bound is `Call`'s
+  caller's, proved from its own encoding (the user's choice, option (B) on #24; the bound on `Call`, coordinator,
+  2026-11-24).
+- **Decision.** Applied (branch `net-rpc-rerr`).

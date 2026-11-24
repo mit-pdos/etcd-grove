@@ -50,7 +50,7 @@ theorem monitorFileDescriptor.wp_proof
   · iPkgInit
   ihave Hsi : (srvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hsi with ⟨-, -, ⟨-, -, -, -, -, -, ⟨%gu, #Hgu, #Hgus⟩, ⟨%gl, #Hgl, #Hgls⟩⟩⟩
+  icases Hsi with ⟨-, -, ⟨-, -, -, -, -, -, ⟨%gu, #Hgu, #Hgus⟩, ⟨%gl, #Hgl, #Hgls⟩, -⟩⟩
   iunfold gaugeSetSpec at Hgus Hgls
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

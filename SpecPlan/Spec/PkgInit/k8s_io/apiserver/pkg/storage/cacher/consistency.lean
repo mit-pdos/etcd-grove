@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.k8s_io.apiserver.pkg.storage.cacher.consistency
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.os
+public import Perennial.Proof.strconv.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage.cacher.metrics
 
 @[expose] public section
