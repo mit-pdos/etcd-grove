@@ -143,3 +143,18 @@ must be empty. Builds: `/shared/tmp/fklean1-check.sh /shared/etcd-grove-prophswi
   `nodeProph` + `init.0`, `bootRes` gains `client.prophFresh swift.nodeProph`; ServeDefs/ServeProof: replicas
   claim `freshOf (rep _)`; ClientMachine/ClientNodeDefs: `freshOf (cl _)` is `ghostFresh` by `rfl`;
   TopLevelRobustness.lean's `bootRes_client`/`bootRes_server` proofs).
+
+### 2026-11-24 ~00:30Z
+- Built on fk-lean1 (this branch, Perennial resolve-any via the pin override): the five other Dsverify kits'
+  TopLevelRobustness (paxos, rabia, quepaxa, epaxos) and Net's remote counter: exit 0 (4117 jobs).
+- `client/LinHelp.lean` and `client/Claim.lean` build: `strW1_inj`, `strW_inj`, `encE_inj`, `valWs_encE`,
+  `flatMap_valWs_cons`, `runeString_small` (`decide` over `Fin 128`), `chunk_eq`, `chunk_eq0`,
+  `strW1_eval`, and the claim with `inv_alloc`.
+- `Dsverify/Scratch/ProphProbe.lean` (SCRATCH, drop before the final head) shows `resolveAccept` after
+  `wp_start; wp_auto; simp only [sp.strW1_eval]`: the four word statements are
+  `s_ptr ↦ [] ++ sp.strW1 (W64 3) ++ sp.strW1 (W64 (uint.Z cl)) ++ sp.strW1 (W64 (uint.Z seq)) ++ sp.strW1 vsl.len`,
+  and the goal stops at the `for` over `val` (body: `w := uint64(val[i])`, `s += ...`). Builds of this probe
+  take ~15 s now (dependencies are built in `/home/ubuntu/eg/wt/proph-swiftpaxos`).
+- Next: the loop (invariant `s = [] ++ strW1 ... ++ strW ((v.take k).map sp.w8w)`), then the resolve under
+  the invariant, `client.resolveAccept`/`resolveInvoke` proofs in `client/Ghost.lean`; then items (3)-(5)
+  above.
