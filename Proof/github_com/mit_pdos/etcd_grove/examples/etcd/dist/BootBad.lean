@@ -91,7 +91,7 @@ theorem serverBootBad [srv_sem : server.Assumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (k : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) (serverProg d k) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -134,7 +134,7 @@ theorem clientBootBad [cl_sem : client.Assumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (j : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) (clientProg d j) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -176,7 +176,7 @@ theorem nodeBootBad [cl_sem : client.Assumptions]
     (Hctx : ∀ hG : HeapGS .hasLC etcdDistGF, CtxErrsAt hG)
     (d : Deployment) (Hd : ¬ d.WellFormed) (Hfips : crypto.fips140.GodebugFips140Off) (n : Nat)
     (σ : state) [G : GooseGlobalGS .hasLC etcdDistGF] :
-    Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
+    Net.DistBootWpSLT etcdThreads 0 (2 ^ 48) (nodeProg d n) σ (iprop(True) : IProp etcdDistGF) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -218,7 +218,7 @@ theorem etcdBootNCBad_holds
     (Hctx : ∀ [GoGlobalContext] [lctx : GoLocalContext] [go.Semantics]
       (hG : HeapGS .hasLC etcdDistGF), CtxErrsAt hG) :
     EtcdBootNCBad := by
-  intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hlo hb i m hm
+  intro _ lctx _ _ _ _ _ _ _ _ _ _ d Hd σs σc σn Hfips _ hb i m hm
   rcases machines_prog hm with ⟨k, σ, rfl⟩ | ⟨j, σ, rfl⟩ | ⟨n, σ, rfl⟩
   · exact serverBootBad (fun hG => Hctx hG) d Hd Hfips k σ
   · exact clientBootBad (fun hG => Hctx hG) d Hd Hfips j σ

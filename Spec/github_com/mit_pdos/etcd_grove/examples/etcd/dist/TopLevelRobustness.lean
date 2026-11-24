@@ -17,8 +17,15 @@ crash** (`examples/etcd/dist/client`: KV with porcupine, watch, watch cache, com
 lease rows, lease reads, lease catch-up, lease expiry, durability) against the members' client
 addresses -- **in every execution** of Perennial's distributed semantics (any interleaving, any crash of
 any member, every fault the net extension allows: bytes delayed, a direction cut at any read or write, a
-dial refused; a partition is such an execution) of fewer than `bound` steps along which every machine
-keeps fewer than `threads` threads, **no thread of any machine is stuck or has an unrecovered panic**.
+dial refused; a partition is such an execution) of fewer than `2 ^ 48` steps along which every machine
+keeps fewer than `etcdThreads` (`2 ^ 28`) live threads, **no thread of any machine is stuck or has an
+unrecovered panic**.
+
+**The two bounds** (`Robust`'s, `notes/etcd-dist-plan.md` §14): the thread bound `etcdThreads` is a
+premise about the execution (one with a machine reaching `2 ^ 28` live threads is covered up to the
+configuration before); the step bound `2 ^ 48` is the proofs' time receipts' cap, the highest they allow
+(etcd's request-id generator, `idutil`, issues distinct ids for fewer than `2 ^ 48` calls, and the
+server's and store's specs are written over that cap).
 Each client panics if its check fails, so no check fails.
 
 **The deployment is not a premise.** Every machine's program receives the whole deployment and checks
@@ -103,8 +110,8 @@ crash and restart, and of its checking clients on machines that never crash (eac
 orchestrator machine and its client machines, D8), is robust: no thread of any machine is stuck or has
 an unrecovered panic.
 
-The bound is
-`etcd_safe_nocrash`'s until the crash proof fixes its own (kvnet's crash theorem has `2 ^ 61`). -/
+The bounds
+are `etcd_safe_nocrash`'s until the crash proof fixes its own (kvnet's crash theorem has `2 ^ 61` steps). -/
 def etcd_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -128,13 +135,13 @@ def etcd_robust.spec : Prop :=
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),
-    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := 2 ^ 28)
-      (bound := 2 ^ 28 - 1)
+    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := etcdThreads)
+      (bound := 2 ^ 48)
 
 /-- **`etcd_safe_nocrash`** (the interim milestone, open question Q7): `etcd_safe`'s deployment with no
 machine crashing (`Robust []` over every machine: members, orchestrators, client machines). The crash
 theorem `etcd_safe` implies it; the weaker variant takes the longer name. Over Perennial's
-`goose_dist_adequacy` through the bridge `Net.robust_of_distBootIL`. The bound is `putget_safe`'s. -/
+`goose_dist_adequacy_below` through the bridge `Net.robust_of_distBootILT`. -/
 def etcd_robust_nocrash.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
@@ -153,7 +160,7 @@ def etcd_robust_nocrash.spec : Prop :=
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),
-    Robust [] (machines d σs σc σn) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
+    Robust [] (machines d σs σc σn) g (threads := etcdThreads) (bound := 2 ^ 48)
 
 end etcd_dist
 end EtcdGrove

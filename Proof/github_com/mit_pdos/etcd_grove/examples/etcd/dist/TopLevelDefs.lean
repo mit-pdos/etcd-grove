@@ -265,6 +265,15 @@ structure EtcdEnv (d : Deployment) : Prop where
 
 end env
 
+/-! ## The thread bound -/
+
+/-- **The statements' thread bound** (`Robust`'s `threads`): the executions covered are those along which
+every machine keeps fewer than `etcdThreads` live threads. It is the logic's thread bound on every machine
+(`Net.robust_of_distBootILT`): at least the levels of a thread token a serving member uses (`srvLevelK =
+5`), at most the `2 ^ 28` the server's and the clients' specs cap it by (their reader-slot pools and
+`RWMutex` readers; `notes/etcd-dist-plan.md` §14). -/
+def etcdThreads : Nat := 2 ^ 28
+
 /-! ## The ghost state the statements' Iris premise is stated at -/
 
 attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp
