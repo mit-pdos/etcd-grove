@@ -150,12 +150,13 @@ theorem kvRep_gen
     · iapply Hpeer; ipureintro; exact hM
     ipureintro; exact ⟨hopts, hvs⟩
   · iintro %L' %V' Hlc #Hcr #Hos' Hrest
-    -- (the rest of the file's directory, `kvDirRest`, is dropped: kvnet has no other file)
-    imod kvGen_crash γ vs id fl L' V' $$ Hcl Hk Hlc Hcr Hrest Hos' with ⟨%V'', Hg', -⟩
+    -- (the rest of the file's directory, `kvDirRest`, and of the crash's file system are dropped:
+    -- kvnet has no other file)
+    imod kvGen_crash γ vs id fl L' V' $$ Hcl Hk Hlc Hcr Hrest Hos' with ⟨Hg', -, -⟩
     rw [hfl1, hfl2]
     imodintro
     unfold kvGen
-    iexists V''
+    iexists V'
     iexact Hg'
 
 end replica
