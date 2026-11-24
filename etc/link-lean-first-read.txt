@@ -36,14 +36,23 @@ read_Read__requestCurrentIndex: read_Read__sendReadIndex zap_Uint64 zap_Duration
 read_Read__LinearizableReadNotify: context_ErrDone
 read_NewRead: read_newNotifier read_Read__LinearizableReadNotify
 read_Read__LinearizableReadLoop: traceutil_EnsureTrace read_newNotifier read_Read__requestCurrentIndex read_isStopped read_notifier__notify traceutil_Trace__Step traceutil_Trace__AddField strconv_FormatUint traceutil_Trace__LogAllStepsIfLong
-# traceutil, proved (unit P1b): the callees of the functions above; `LogWithStepThreshold` and
-# `context.WithValue` are axioms.
+# traceutil, proved (unit P1b): the callees of the functions above; `context.WithValue` is an axiom
+# (`LogWithStepThreshold` proved since traceutil-log, 2026-11-23, over the axiom `rand.Int31`).
 traceutil_Get: traceutil_TODO
 traceutil_TODO:
 traceutil_Trace__updateFieldIfExist:
 traceutil_Trace__IsEmpty:
 traceutil_newTrace:
-traceutil_Trace__LogWithStepThreshold:
+traceutil_Field__format:
+traceutil_writeFields: traceutil_Field__format
+zap_Int32:
+zap_String:
+zap_Time:
+zap_Strings:
+zap_Int:
+rand_Int31:
+traceutil_Trace__logInfo: traceutil_writeFields rand_Int31 zap_Int32 zap_String zap_Duration zap_Time zap_Strings zap_Int
+traceutil_Trace__LogWithStepThreshold: traceutil_Trace__logInfo zap_Logger__Info
 context_WithValue:
 # (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
 # `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)

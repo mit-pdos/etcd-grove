@@ -84,6 +84,7 @@ axiom proto.MarshalIRR.wp_proof
 axiom proto.Size.wp_proof
 axiom proto.Unmarshal.wp_proof
 axiom rand.Float64.wp_proof
+axiom rand.Int31.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom sort.SliceIsSorted.wp_proof
@@ -94,7 +95,6 @@ axiom storage.NewBackendQuota.wp_proof
 axiom streamKeyFromCtx.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
-axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg

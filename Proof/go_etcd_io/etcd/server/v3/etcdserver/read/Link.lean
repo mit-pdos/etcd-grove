@@ -14,6 +14,7 @@ public import Proof.context.WithTimeoutBackground
 public import Proof.context.WithValue
 public import Proof.errors.Is
 public import Proof.go_uber_org.zap.internal.pool.Pool__Put
+public import Proof.math.rand.Int31
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.NewRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Read__LinearizableReadLoop
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.Read__LinearizableReadNotify
@@ -25,6 +26,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.notifier__notify
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.read.uint64ToBigEndianBytes
 public import Proof.strconv.FormatUint
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.EnsureTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Field__format
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Get
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__AddField
@@ -32,13 +34,20 @@ public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__IsEmpty
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogAllStepsIfLong
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogWithStepThreshold
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__Step
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__logInfo
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Trace__updateFieldIfExist
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.newTrace
+public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.writeFields
 public import Proof.go_uber_org.zap.Duration
 public import Proof.go_uber_org.zap.Error
+public import Proof.go_uber_org.zap.Int
+public import Proof.go_uber_org.zap.Int32
 public import Proof.go_uber_org.zap.Logger__Info
 public import Proof.go_uber_org.zap.Logger__Warn
 public import Proof.go_uber_org.zap.Logger__check
+public import Proof.go_uber_org.zap.String
+public import Proof.go_uber_org.zap.Strings
+public import Proof.go_uber_org.zap.Time
 public import Proof.go_uber_org.zap.Uint64
 public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 
@@ -66,6 +75,10 @@ theorem errors.wp_Is :
 theorem zap.internal.pool.Pool.wp_Put :
     EtcdGrove.zap.internal.pool.Pool.Put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.zap.internal.pool.Pool.Put.wp_proof
+
+theorem rand.wp_Int31 :
+    EtcdGrove.rand.Int31.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rand.Int31.wp_proof
 
 theorem traceutil.wp_TODO :
     EtcdGrove.traceutil.TODO.spec (GF := GF) (hG := hG) :=
@@ -127,9 +140,41 @@ theorem strconv.wp_FormatUint :
     EtcdGrove.strconv.FormatUint.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strconv.FormatUint.wp_proof
 
+theorem traceutil.Field.wp_format :
+    EtcdGrove.traceutil.Field.format.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Field.format.wp_proof
+
+theorem traceutil.wp_writeFields :
+    EtcdGrove.traceutil.writeFields.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.writeFields.wp_proof traceutil.Field.wp_format
+
+theorem zap.wp_Int32 :
+    EtcdGrove.zap.Int32.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int32.wp_proof
+
+theorem zap.wp_String :
+    EtcdGrove.zap.String.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.String.wp_proof
+
+theorem zap.wp_Time :
+    EtcdGrove.zap.Time.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Time.wp_proof
+
+theorem zap.wp_Strings :
+    EtcdGrove.zap.Strings.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Strings.wp_proof
+
+theorem zap.wp_Int' :
+    EtcdGrove.zap.Int'.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.zap.Int'.wp_proof
+
+theorem traceutil.Trace.wp_logInfo :
+    EtcdGrove.traceutil.Trace.logInfo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.traceutil.Trace.logInfo.wp_proof traceutil.wp_writeFields rand.wp_Int31 zap.wp_Int32 zap.wp_String zap.wp_Duration zap.wp_Time zap.wp_Strings zap.wp_Int'
+
 theorem traceutil.Trace.wp_LogWithStepThreshold :
     EtcdGrove.traceutil.Trace.LogWithStepThreshold.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.traceutil.Trace.LogWithStepThreshold.wp_proof
+  EtcdGrove.traceutil.Trace.LogWithStepThreshold.wp_proof traceutil.Trace.wp_logInfo zap.Logger.wp_Info
 
 theorem traceutil.Trace.wp_LogAllStepsIfLong :
     EtcdGrove.traceutil.Trace.LogAllStepsIfLong.spec (GF := GF) (hG := hG) :=
