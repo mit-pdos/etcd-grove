@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `NeedsAuth(k)` is `kindAlone k`. -/
-abbrev deployment.NeedsAuth.spec : Prop :=
+abbrev NeedsAuth.spec : Prop :=
   ∀ (k : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.NeedsAuth)) (Val #k))

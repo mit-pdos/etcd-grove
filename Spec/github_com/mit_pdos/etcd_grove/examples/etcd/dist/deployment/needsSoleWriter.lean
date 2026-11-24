@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `needsSoleWriter(k)` is `kindNeedsSoleWriter k`. -/
-abbrev deployment.needsSoleWriter.spec : Prop :=
+abbrev needsSoleWriter.spec : Prop :=
   ∀ (k : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
     (App (Val (@! deployment.needsSoleWriter)) (Val #k))

@@ -240,29 +240,51 @@ func nameOk(n string) bool {
 	return true
 }
 
-// AddrOk is the net extension's addrOk (Lean: Net.addrOk; kvnet.AddrOk's, copied: kvnet is a
-// module of its own): a canonical a.b.c.d:p, the first octet 1-223, the port 1-65535 outside
-// Linux's ephemeral range.
+// AddrOk is the net extension's addrOk (Lean: Net.addrOk): a canonical a.b.c.d:p, the first octet
+// 1-223, the port 1-65535 outside Linux's ephemeral range. kvnet.AddrOk's code, copied (kvnet is a
+// module of its own), with its decimal helper, so that its proof is reused.
 func AddrOk(a string) bool {
-	host, port, ok := strings.Cut(a, ":")
-	if !ok {
-		return false
+	var parts [5]string
+	n := 0
+	start := 0
+	for i := 0; i <= len(a); i++ {
+		end := i == len(a)
+		if end || a[i] == '.' || a[i] == ':' {
+			// three dots, then one colon, in that order
+			if n >= 5 || (!end && a[i] == '.' && n >= 3) || (!end && a[i] == ':' && n != 3) || (end && n != 4) {
+				return false
+			}
+			parts[n] = a[start:i]
+			n++
+			start = i + 1
+		}
 	}
-	octs := strings.Split(host, ".")
-	if len(octs) != 4 {
-		return false
-	}
-	var v [5]int
-	for i, s := range append(octs, port) {
-		n, err := strconv.Atoi(s)
-		// n < 0: Atoi takes a sign, and "-1" is Itoa's own spelling of -1
-		if err != nil || n < 0 || strconv.Itoa(n) != s {
+	var v [5]uint64
+	for i := 0; i < 5; i++ {
+		x, ok := decimal(parts[i], 65535)
+		if !ok {
 			return false
 		}
-		v[i] = n
+		v[i] = x
 	}
 	return 1 <= v[0] && v[0] < 224 && v[1] <= 255 && v[2] <= 255 && v[3] <= 255 &&
-		1 <= v[4] && v[4] <= 65535 && (v[4] < 32768 || 60999 < v[4])
+		1 <= v[4] && (v[4] < 32768 || 60999 < v[4])
+}
+
+// decimal is the value of s as a canonical decimal numeral (digits, at least one, no leading
+// zero), at most max; false otherwise.
+func decimal(s string, max uint64) (uint64, bool) {
+	if len(s) == 0 || len(s) > 5 || (len(s) > 1 && s[0] == '0') {
+		return 0, false
+	}
+	n := uint64(0)
+	for i := 0; i < len(s); i++ {
+		if s[i] < '0' || s[i] > '9' {
+			return 0, false
+		}
+		n = n*10 + uint64(s[i]-'0')
+	}
+	return n, n <= max
 }
 
 // memberIDs are the member ids etcd computes for d's cluster (Lean: Deployment.ids, memberId):
@@ -299,8 +321,8 @@ func IdsOk(d Deployment) bool {
 // WellFormed is Lean's Deployment.WellFormed (clause by clause, numbered as there), with the
 // bounds of the workloads (Workload.BoundsOk) and of the server configuration (ServerCfg.Supported):
 // nil if d is well formed, otherwise the first clause it fails. (Its messages format a kind as
-// w.Kind.String() under %s, or int(w.Kind) under %d: fmt calls no method of a basic-typed argument,
-// which the proof's model of fmt needs.)
+// int(w.Kind) under %d: fmt calls no method of a basic-typed argument, which the proof's model of fmt
+// needs.)
 func WellFormed(d Deployment) error {
 	// 1. a member, at most MaxMembers; the names valid, distinct, of at most MaxLen bytes
 	if len(d.Members) == 0 || len(d.Members) > MaxMembers {
@@ -319,7 +341,7 @@ func WellFormed(d Deployment) error {
 			return fmt.Errorf("unknown workload kind %d", int(w.Kind))
 		}
 		if !boundsOk(w) {
-			return fmt.Errorf("%s: bounds", w.Kind.String())
+			return fmt.Errorf("workload kind %d: bounds", int(w.Kind))
 		}
 	}
 	// 2. every address valid (Deployment.addrs: the members' peer and client addresses, then the
@@ -329,7 +351,7 @@ func WellFormed(d Deployment) error {
 	}
 	addrs := map[string]bool{}
 	addr := func(a string) error {
-		if !AddrOk(a) || len(a) > MaxLen || addrs[a] {
+		if len(a) > MaxLen || !AddrOk(a) || addrs[a] {
 			return fmt.Errorf("address %q", a)
 		}
 		addrs[a] = true
@@ -345,7 +367,7 @@ func WellFormed(d Deployment) error {
 	}
 	for j, w := range d.Workloads {
 		if len(d.Nodes[j]) != NodeCount(w) {
-			return fmt.Errorf("%s: %d client machines, not %d", w.Kind.String(), len(d.Nodes[j]), NodeCount(w))
+			return fmt.Errorf("workload kind %d: %d client machines, not %d", int(w.Kind), len(d.Nodes[j]), NodeCount(w))
 		}
 		for _, a := range d.Nodes[j] {
 			if err := addr(a); err != nil {
@@ -376,7 +398,7 @@ func WellFormed(d Deployment) error {
 	}
 	for _, w := range d.Workloads {
 		if NeedsAuth(w.Kind) && !c.Auth {
-			return fmt.Errorf("%s needs the token provider", w.Kind.String())
+			return fmt.Errorf("workload kind %d needs the token provider", int(w.Kind))
 		}
 		if w.Kind == Compact && c.Retention != 0 && c.CompactorMode == CompactorPeriodic {
 			return fmt.Errorf("compact under the periodic compactor")

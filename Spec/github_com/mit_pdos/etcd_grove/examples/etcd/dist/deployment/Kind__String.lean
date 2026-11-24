@@ -28,10 +28,10 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 /-- `k.String()` is `kindName k`. -/
-abbrev deployment.Kind.String.spec : Prop :=
+abbrev Kind.String.spec : Prop :=
   ∀ (k : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.deployment }}
-    (App (Val (#k @!! deployment.Kind.ty @!! go!"String")) (Val #()))
+    (App (Val (k @!! deployment.Kind.ty @!! go!"String")) (Val #()))
   {{ RET #(kindName k); True }}
 
 end spec
