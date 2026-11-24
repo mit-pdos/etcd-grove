@@ -60,7 +60,7 @@ theorem newServerMode.wp_proof
   iunfold commonPremises at Hcom
   icases Hcom with ⟨#Hzap, #Htd, #Hns⟩
   iunfold memberBoot at Hmb
-  icases Hmb with ⟨%Hρ, %Hnsn, Hnboot, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
+  icases Hmb with ⟨%Hρ, %Hnsn, Hnboot, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx,
     Hids, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv, Hreg, %γd, %Hsloc, Hsdir⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
   -- the imports' package facts
@@ -195,7 +195,7 @@ theorem newServerMode.wp_proofRestart
   -- the restarted incarnation's names, from the cluster's facts at the stopped ones
   imod (memberRestartFacts_alloc hne γ ρ id) $$ Hrfs with ⟨%ρ', %E₀, %Φs, %Hρ', Hmb⟩
   iunfold memberRestartBoot at Hmb
-  icases Hmb with ⟨%Hρ, %Hnsn, #Hsrl, #Hidc, #Hidk, #HNZ0, #Hpmint, #Hrdctx, Hids, Hwtok, Hidx, Hcok, Hrev,
+  icases Hmb with ⟨%Hρ, %Hnsn, #Hsrl, #Hidc, #Hpfxi, #Hidk, #HNZ0, #Hpmint, #Hrdctx, Hids, Hwtok, Hidx, Hcok, Hrev,
     Hnk, #Hkvinv⟩
   obtain ⟨hraft, hc0, hch, hlog, hpfx, hΦs, hcmp0, hkcmp, hNx, hslg⟩ := Hρ
   -- the stopped member's image, at its witnesses

@@ -118,6 +118,38 @@ end lit
 
 /-! ## The closed theorem -/
 
+/-- The IDs the program's packages register (their metric names' label-free descriptor IDs and
+`v3rpc`'s server metrics' IDs, in `regQs`' order; computed with xxhash64, and checked by the kernel in
+`etcd_regQsOk`; prom-registry, route (b), 2026-11-23). -/
+def etcdRegKeys : List w64 :=
+  [0x12ecdedc778f3f77, 0x6ac118629bed5903, 0x4aa04489ac2b734b, 0x4ab58b8498228b63,
+   0x31b044d75943f6dd, 0x5a080044ea5fdf1a, 0x958bb1c4f0e3d61, 0xd537c2a29197bfe6,
+   0x38df0bda13eced78, 0xc5eca1b74fabe814, 0x714bc8e301bc1919, 0x7c09ff7fdc8bd9e2,
+   0xca706d4e58b535eb, 0x7eaca73262315545, 0xcfa3e07e6efd0dda, 0x94a3ca5582a08ac8,
+   0xf4dff1e237623d2, 0x9a0496b0ef986279, 0x6c3eea8e7dbd9701, 0x1c4edd07e42b3902,
+   0xa41ef058a0a6b2e, 0x1ac7b57ed76461ba, 0xe6d60bdb6ca2ca2f, 0xe233596477e3f822,
+   0xf4109d5f6085f482, 0x8d957e41d1d11d17, 0x1f7b18004d0507ca, 0x9e66b7f695a88383,
+   0x606eb6c3266940a1, 0xccb7c98c879ff20c, 0xdca4bc9464724b6, 0xce41c40aa2166e13,
+   0xe7cd4a7e1ce001f2, 0x6c80ca5a0a06a60f, 0xc415d620f8a840b3, 0xc174f386755af284,
+   0x8e2ca5829b1415ca, 0xf76aa9ea6954a561, 0x79460c68f240b0ab, 0x50db1f551c79b595,
+   0x84b7397632eb946f, 0x2b3902ff335816f9, 0x6a15a11de7b828c4, 0x342d1ac3e8fccf46,
+   0x8652a92ef6ff21a5, 0x79b607416929bc6b, 0xb617c6d2d636f8d3, 0x8cdefdfd7fbe0f89,
+   0x4d5dbff2abdff296, 0x2f589e3e7676603c, 0x7d293418f489e89, 0x1cf0310f1f3cbc4d,
+   0xaf13cf18762e0410, 0xab20cb33e635a4d3, 0x4ea7aecf35604fe8, 0xdfccb0d5dbf98fee,
+   0x1329a594e50076ed, 0xe21d9196734675f, 0x4f14727af435217b, 0x93f9374046090575,
+   0x1f18f72ac56b959b, 0xb99f16de319e8327, 0x6f040a217f98b36f, 0x6e59011109180671,
+   0x11c28b1620be2404, 0x7454d00abfa5eebd, 0x3990ae2951922721, 0xc6dbc11e1f9070ed,
+   0xee70855f50c035a7, 0xe022592a562465ef, 0xc59e341e500edbf0, 0x4ff1a721c3c867d0,
+   0xddb5f8a18722005e, 0x37b32b97f7de5f, 0x9c06bb0ca40cbda8, 0x23dbdcaf102f1686,
+   0x1de4f1c3b13fe482, 0xe4ccc50c7daf4c9c, 0x9b8a677c6e6c1ef8, 0x7133d22463246355,
+   0xaa607cdd4f5c0a9a, 0xb0bfadd1258d120e, 0xe5bc0e939f7dd45d, 0x35c8acd42298ce6b]
+
+/-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): pairwise
+distinct, none a built-in's, no name a built-in's. Decided by the kernel once, over the IDs as literals
+(`etcdRegKeys`; `mvccfull_regQsOk`). -/
+theorem etcd_regQsOk : prometheus.regQsOk github_com.mit_pdos.etcd_grove.examples.etcd.all.regQs :=
+  prometheus.regQsOk_of_keys _ etcdRegKeys (by decide +kernel) (by decide +kernel) (by decide +kernel)
+
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
@@ -183,9 +215,7 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     -- cache's workload
     (cnw cnops : w64) (Hcnw0 : 0 ≤ sint.Z cnw) (Hcnw31 : sint.Z cnw < 2 ^ 31)
     (Hcnops : 0 ≤ sint.Z cnops) (Hcmul : sint.Z cnw * sint.Z cnops < 2 ^ 62)
-    -- the program's metric names, addresses, data directories and environment
-    (HNs : prometheus.namesUnclaimed
-      (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅) etcdNames)
+    -- the program's addresses, data directories and environment
     (HAs : addrsUnclaimed (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
       (etcdAddrs k₁ k₂ k₃ k₄ k₅))
     (HDs : dataDirsAbsent (etcdProgram k₁ clients ops steps₁ nw nops steps₂ cnw cnops k₂ k₃ k₄ k₅)
@@ -246,8 +276,9 @@ theorem etcd_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_all.etcdDirs_nodup k₁ k₂ k₃ k₄ k₅ hk₁ (by omega) (by omega) (by omega) (by omega))
     (etcd_all.etcdStarts k₁ k₂ k₃ k₄ k₅) (etcd_all.etcdBridges k₁)
     (etcd_all.etcdAddrs_perm k₁ k₂ k₃ k₄ k₅) (etcd_all.etcdDirs_perm k₁ k₂ k₃ k₄ k₅)
-    σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, Hg.2.2.1, trivial⟩ ⟨trivial, Hfs, trivial, trivial⟩ Hlctx Hinit Hthreads github_com.mit_pdos.etcd_grove.examples.etcd.all.regQs etcd_regQsOk HAs HDs
     (2 ^ 28) n κs t2 σ2 Hsteps' fun hG HN HT => ?_
+  intro _
   letI : HeapGS .hasLC etcdGF := etcdHeapAt hG lctx
   haveI := Hctx hG
   haveI := Hcec hG

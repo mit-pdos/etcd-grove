@@ -857,10 +857,30 @@ variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 
+end regs
+
+section regsG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- The registry at its allocation: no snapshot made. -/
 theorem srvSnapsReg_nil (cl : Cluster) : ownSnapsMade cl [] ⊢ srvSnapsReg (GF := GF) cl := by
   unfold srvSnapsReg
   iintro H; iexists []; iframe H; ipureintro; simp
+
+end regsG1
+
+section regs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 /-- The registry opened: the snapshots made, every one of `nil` data. -/
 theorem srvSnapsReg_elim (cl : Cluster) :
@@ -2457,6 +2477,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
+end alloc
+
+section allocG1
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [Gg : GooseGlobalGS HasLC.hasLC GF] [GoLocalContext]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
 /-- **The server's log invariant, allocated** (2026-10-27) over the node API's cluster `cl`, from
 the requested entries committed so far (the bootstrap log's `Lf0`: consecutive from index `1`, no
 filler, no normal entry), the server's start at index `0`: the server's names (the cluster's kind
@@ -2476,7 +2506,6 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
         srvRLogLb (⟨γr, [], W64 0⟩ : ServerRaftNames) [] ∗
         ghostMapAuth γr.fresh 1 (∅ : GMap (List w8) Unit) ∗
         ghostMapAuth γr.rdFresh 1 (∅ : GMap (List w8) Unit) := by
-  letI := srvAnyStor (GF := GF)
   iintro Hown
   imod mono_list_own_alloc (GF := GF) Lf0 with ⟨%γlog, Hlog, -⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfresh, Hfresh⟩
@@ -2529,6 +2558,16 @@ theorem srvLogInv_alloc (cl : Cluster) (vs : List w64)
   rw [Hn]
   iframe Hnil
   ipureintro; intro n m hm; simp at hm
+
+end allocG1
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
 
 end alloc
 

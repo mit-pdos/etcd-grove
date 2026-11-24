@@ -14,8 +14,9 @@ history: the boot program removes whatever is at `seg.log` and makes a new segme
 nothing of what a crash left.
 
 **What is assumed**, as for `segdir` (`Results.lean`): the package initializer (`Hinit_wp`), the
-hand-written `os.file` field facts, and the Goose-generated package facts of `os` and
-`golang.org/x/sys/unix` (`[os.Assumptions]`, `[golang_org.x.sys.unix.Assumptions]`).
+hand-written `os.file` field facts, and the program's Goose-generated package facts (`package_sem`,
+which gives those of `os` and `golang.org/x/sys/unix`, `os.Assumptions` and
+`golang_org.x.sys.unix.Assumptions`).
 -/
 module
 
@@ -140,7 +141,7 @@ call of the segment's life is one the trusted models cover, however many times t
 It assumes that the package's initializer runs (`Hinit_wp`). (`seglog_crash_safety_bounded` with
 the ghost state `fsGF`.) -/
 theorem seglog_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.Assumptions] [os.file.FieldAssumptions] [golang_org.x.sys.unix.Assumptions]
+    [os.file.FieldAssumptions]
     (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
       {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
         (App (Val initialize') (Val #()))

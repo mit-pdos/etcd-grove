@@ -1136,7 +1136,8 @@ func readRequestLimit(b *bufio.Reader, maxHeaders int64) (req *Request, err erro
 		rawurl = "http://" + rawurl
 	}
 
-	if req.URL, err = url.ParseRequestURI(rawurl); err != nil {
+	// MODEL: url.ParseRequestURI is the model's modelParseRequestURI (textproto_model.go).
+	if req.URL, err = modelParseRequestURI(rawurl); err != nil {
 		return nil, err
 	}
 

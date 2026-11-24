@@ -37,7 +37,7 @@ theorem idutil_suffix_lt (x : BitVec 64) : (x &&& 0xffffffffff#64) <<< 8#64 < 0x
 theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := hG)) :
     idutil.NewGenerator.spec (GF := GF) (hG := hG) := by
   intro γi memberID now X hX Φs x Hpfx
-  wp_start as ⟨Hshare, #Hkf, #Hcl⟩
+  wp_start as ⟨Hshare, #Hkf, #Hcl, #Hpi⟩
   iunfold idShare at Hshare
   icases Hshare with ⟨Hcnt, HS, HP⟩
   ihave #Ptime : isPkgInit (PROP := IProp GF) pkg_id.time $$ []
@@ -57,28 +57,67 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
     simp [uint.Z]; simp at h'; omega
   have Hpl : γi.pfx &&& W64 (2 ^ 48 - 1) = W64 0 := by
     rw [Hpfx]; exact idutil_prefix_low _
-  -- (R2c stage 2) the generator registered as the key's: no key has it yet (it is new: its
-  -- `prefix` field owned whole, every registered generator's readable), then its prefix persisted
+  -- (R2c stage 2) the generator registered as the key's: no key of its prefix has it yet (it is new:
+  -- its `prefix` field owned whole, every registered generator's readable in the prefix's facts,
+  -- etcd-dist D7), then its prefix persisted
+  iunfold idPfxInv at Hpi
+  icases Hpi with ⟨%γip, %γgp, #Hpn, #Hpinv⟩
   iunfold idClusterInv at Hcl
   iinv Hcl with Hi Hclose
   icases Hi with ⟨%I, %C, %R, %Fm, >HI, >HC, >HR, >HF, >%Hok, #HFs, >#HG⟩
+  iinv Hpinv with Hpb Hpclose
+  iunfold idPfxBody at Hpb
+  icases Hpb with ⟨%Ip, %Gp, >HIp, >HGp, >#HIps, >#HGps⟩
   icombine HC Hcnt gives %Hlk
   have Hlk' : C !! γi.key = some (([], none) : IdKeyEntry) := Hlk
-  ihave %Hnew : ⌜∀ k e, C !! k = some e → e.2 ≠ some gp⌝ $$ [prefix']
-  · iintro %k %e %hke %he
+  ihave %HGpn : ⌜Gp !! gp = none⌝ $$ [prefix']
+  · cases hg : Gp !! gp with
+    | none => ipureintro; rfl
+    | some k0 =>
+      icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := Gp)
+        (Φ := fun g k => iprop(structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ k.1 ∗
+          g ↪[γgp]□ k)) hg).1 $$ HGps with ⟨⟨#Hpf, -⟩, -⟩
+      iexfalso
+      iapply w64_pointsto_excl _ _ _ $$ prefix' Hpf
+  ihave ⟨%Hnew, HGp⟩ : iprop(⌜∀ k e, C !! k = some e → k.1 = γi.key.1 → e.2 ≠ some gp⌝ ∧
+      ghostMapAuth γgp 1 Gp) $$ [HGp]
+  · isplit
+    rotate_left
+    · iexact HGp
+    iintro %k %e %hke %hk1 %he
     rcases e with ⟨L', og⟩
     simp only at he
     subst he
     icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF) (m := C)
-      (Φ := fun k e => idKeyGenFacts (GF := GF) k e) hke).1 $$ HG with ⟨Hk, -⟩
+      (Φ := fun k e => idKeyGenFacts (GF := GF) γi.gen k e) hke).1 $$ HG with ⟨Hk, -⟩
     iunfold idKeyGenFacts at Hk
-    icases Hk with ⟨#Hpf, -⟩
-    iexfalso
-    iapply w64_pointsto_excl _ _ _ $$ prefix' Hpf
+    icases Hk with ⟨%γip', %γgp', #Hpn', #Hgk, -⟩
+    have hk1' : k.1 = γi.pfx := hk1
+    ihave #Hpn2 : k.1 ↪[γi.gen]□ (γip, γgp) $$ []
+    · rw [hk1']; iexact Hpn
+    ihave %Hag := ghostMapElem_agree k.1 γi.gen DFrac.discard DFrac.discard _ _ $$ Hpn2 Hpn'
+    simp only [Prod.mk.injEq] at Hag
+    obtain ⟨-, rfl⟩ := Hag
+    icombine HGp Hgk gives %Hl
+    have Hl' : Gp !! gp = some k := Hl
+    rw [HGpn] at Hl'
+    cases Hl'
   imod ghost_map_update ((([] : List w64), some gp) : IdKeyEntry) $$ HC Hcnt with ⟨HC, Hcnt⟩
   ipersist prefix'
   ihave #Hpfk : structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" gp ↦□ γi.pfx $$ []
   · iExactEq prefix'; rw [Hpfx]; rfl
+  imod (ghost_map_insert_persist gp γi.key HGpn) $$ HGp with ⟨HGp, #Hgk⟩
+  imod Hpclose $$ [HIp HGp] with -
+  · inext
+    iunfold idPfxBody
+    iexists Ip, (Gp.insert gp γi.key)
+    iframe HIp HGp HIps
+    have HGpn' : Gp.lookup gp = none := HGpn
+    iapply (BigSepM.bigSepM_insert (PROP := IProp GF) (m := Gp)
+      (Φ := fun g k => iprop(structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" g ↦□ k.1 ∗
+        g ↪[γgp]□ k)) HGpn').2
+    iframe HGps Hgk
+    iexact Hpfk
   imod Hclose $$ [HI HC HR HF] with -
   · inext
     iexists I, (C.insert γi.key (([] : List w64), some gp)), R, Fm
@@ -91,7 +130,7 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
       · rw [GMap.lookup_insert_ne _ _ hk]
     isplitr
     · ipureintro
-      refine ⟨fun id => ?_, fun k e hke => ?_, fun k k' e e' g hke hke' he he' => ?_,
+      refine ⟨fun id => ?_, fun k e hke => ?_, fun k k' e e' g hke hke' he he' hkk => ?_,
         fun k e hke hne => ?_, fun k => by rw [hsome]; exact h5 k, fun k => by rw [hsome]; exact h6 k⟩
       · rw [h1 id]
         apply or_congr Iff.rfl
@@ -113,25 +152,25 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
         · subst hk; rw [GMap.lookup_insert] at hke; cases hke
           rw [GMap.lookup_insert_ne _ _ hk'] at hke'
           cases he
-          exact absurd he' (Hnew k' e' hke')
+          exact absurd he' (Hnew k' e' hke' hkk.symm)
         · subst hk'; rw [GMap.lookup_insert] at hke'; cases hke'
           rw [GMap.lookup_insert_ne _ _ hk] at hke
           cases he'
-          exact absurd he (Hnew k e hke)
+          exact absurd he (Hnew k e hke hkk)
         · rw [GMap.lookup_insert_ne _ _ hk] at hke
           rw [GMap.lookup_insert_ne _ _ hk'] at hke'
-          exact h3 k k' e e' g hke hke' he he'
+          exact h3 k k' e e' g hke hke' he he' hkk
       · by_cases hk : γi.key = k
         · subst hk; rw [GMap.lookup_insert] at hke; cases hke; exact absurd rfl hne
         · rw [GMap.lookup_insert_ne _ _ hk] at hke; exact h4 k e hke hne
     ihave ⟨-, Hk⟩ := (BigSepM.bigSepM_insert_acc (PROP := IProp GF) (m := C)
-      (Φ := fun k e => idKeyGenFacts (GF := GF) k e) Hlk') $$ HG
+      (Φ := fun k e => idKeyGenFacts (GF := GF) γi.gen k e) Hlk') $$ HG
     iapply Hk
     iunfold idKeyGenFacts
     simp only
-    isplitl
-    · iexact Hpfk
-    · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
+    iexists γip, γgp
+    iframe Hpn Hgk
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   imod receipt_zero (GF := GF) with HCa
   imod inv_alloc idN ⊤ iprop(∃ (k : Nat) (L : List w64) (S P : GMap w64 Unit),
       structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" gp ↦
@@ -166,8 +205,11 @@ theorem idutil.NewGenerator.wp_proof (hL : idutil.lowbit.spec (GF := GF) (hG := 
   iframe Hkf
   isplitr
   · ipureintro; rfl
+  iunfold idPfxInv
   iunfold idClusterInv
-  iexact Hcl
+  iframe Hcl
+  iexists γip, γgp
+  iframe Hpn Hpinv
 
 end proof
 

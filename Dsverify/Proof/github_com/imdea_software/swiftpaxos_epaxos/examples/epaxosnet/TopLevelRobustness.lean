@@ -16,6 +16,7 @@ public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.example
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Mains
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.Bridge
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.wire.State.KeyComparator
+public import Dsverify.Proof.github_com.emirpasic.gods.maps.treemap.Results
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.orch.PkgTable
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.orch.Init
 public import Dsverify.Proof.github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.cmd.client0.PkgTable
@@ -129,7 +130,7 @@ theorem clientAddrs_eq : clientAddrs = epClientAddrs := rfl
 
 /-- **The EPaxos kit, closed** (see the statement's file). -/
 theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
-  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 fsem bvi hri hhi htm ra rh hb1 hb2 hb3 hb4 hb5 hb6 σ g threads
+  intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 s11 s12 s13 s14 s15 s16 fsem bvi hri hhi ra rh hb1 hb2 hb3 hb4 hb5 hb6 σ g threads
   refine robust_of_distProtoLisRBT (GF := remoteGF) epAddrs epLas (system σ) g threads (2 ^ 31 - 1)
     epLas_pairwise epLas_disj ?_
   intro G π hrb
@@ -205,7 +206,7 @@ theorem epaxos_remote_robust : epaxos_remote_robust.spec := by
     letI : net.rpc.InitHyp remoteGF := hri G' hG.goose_localGS
     letI : net.http.InitHyp remoteGF := hhi G' hG.goose_localGS
     letI : StateTreemap remoteGF :=
-      StateTreemap.ofGods (htm G' hG.goose_localGS)
+      StateTreemap.ofGods github_com.emirpasic.gods.maps.treemap.hyps_true
         github_com.imdea_software.swiftpaxos_epaxos.state.keyComparator_cmpOk
     letI : RpcHttpHyp remoteGF := rh G' hG.goose_localGS π
     have hrb' : receiptBound remoteGF ≤ 2 ^ 63 := by omega
