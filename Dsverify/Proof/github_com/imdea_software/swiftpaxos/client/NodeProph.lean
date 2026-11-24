@@ -26,7 +26,7 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 
 section wpinv
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 
 /-- The resolution under the invariant, the invariant at the WP's `invGS`. -/
 theorem client.wp_resolveNode' (γ : sp.Names) (n : sp.PNode) (p : proph_id) (e : sp.PEv)
@@ -57,7 +57,7 @@ end wpinv
 section specinv
 attribute [local instance] GooseGlobalGS.gooseInvGS
 variable [go_gctx : GoGlobalContext]
-variable [hG : HeapGS HasLC.hasLC netDistGF]
+variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics]
 
 /-- **An event's resolution** (`ResolveProph p (sp.encE e)`, `p` the node's prophecy): opens the
 node's prophecy invariant and runs the caller's update of the node's half of its future words
