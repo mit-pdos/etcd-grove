@@ -46,8 +46,9 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- The members' registrations, the one at `i`. -/
 set_option maxRecDepth 8192 in
+set_option maxHeartbeats 1000000 in
+/-- The members' registrations, the one at `i`. -/
 theorem regs_lookup (svs : List (EtcdGrove.client.SrvAt GF)) (ws : List (Loc × v3rpc.WSrv GF))
     (i : Nat) (sv : EtcdGrove.client.SrvAt GF) (w : Loc × v3rpc.WSrv GF)
     (h1 : svs[i]? = some sv) (h2 : ws[i]? = some w) :
