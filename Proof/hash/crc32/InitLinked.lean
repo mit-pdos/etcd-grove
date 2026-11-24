@@ -64,7 +64,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := Loc) ieeeTable8 _ as HieeeTable8
   wp_apply wp_GlobalAlloc (V := Loc) IEEETable _ as HIEEETable
   wp_apply wp_GlobalAlloc (V := GoFunc) castagnoliInitOnce _ as HcastagnoliInitOnce
-  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Bool') haveCastagnoli _ as HhaveCastagnoli
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.atomic.Bool'') haveCastagnoli _ as HhaveCastagnoli
   wp_apply wp_GlobalAlloc (V := GoFunc) updateCastagnoli _ as HupdateCastagnoli
   wp_apply wp_GlobalAlloc (V := Loc) castagnoliTable8 _ as HcastagnoliTable8
   wp_apply wp_GlobalAlloc (V := Loc) castagnoliTable _ as HcastagnoliTable
@@ -104,9 +104,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ihave Hhc : _root_.Perennial.sync.atomic.ownBool (GF := GF) (globalAddr haveCastagnoli) (DFrac.own 1) false $$ [HhaveCastagnoli]
   · rw [_root_.Perennial.sync.atomic.ownBool_unseal]
     unfold _root_.Perennial.sync.atomic.ownBoolDef
-    have e : (zero_val _root_.Perennial.sync.atomic.Bool') =
+    have e : (zero_val _root_.Perennial.sync.atomic.Bool'') =
         ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :
-          _root_.Perennial.sync.atomic.Bool') := rfl
+          _root_.Perennial.sync.atomic.Bool'') := rfl
     rw [← e]; iexact HhaveCastagnoli
   imod inv_alloc hash.crc32.crc32N ⊤ hash.crc32.haveInv $$ [Hhc] with #Hinv
   · inext; iunfold hash.crc32.haveInv; iexists false; iframe

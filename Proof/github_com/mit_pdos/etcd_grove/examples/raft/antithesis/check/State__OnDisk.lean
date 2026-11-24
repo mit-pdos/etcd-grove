@@ -105,7 +105,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.
 /-- `x.<m>()` on the `*onDisk` variable: unfold the pointer method to the value one. -/
 macro "odm" m:ident : tactic => do
   let base := Lean.Name.mkStr `github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.onDisk.TypeAssumptions
-    ("ptr_" ++ m.getId.toString ++ "_unfold")
+    ("ptr_unfold'" ++ m.getId.toString)
   let n := Lean.Name.mkStr base "method_unfold"
   `(tactic| (rw [$(Lean.mkIdent n):ident]; try wp_auto))
 
@@ -113,7 +113,7 @@ macro "odm" m:ident : tactic => do
 macro "smu" t:ident m:ident : tactic => do
   let base := Lean.Name.mkStr (Lean.Name.mkStr `github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check t.getId.toString)
     "TypeAssumptions"
-  let base := Lean.Name.mkStr base ("ptr_" ++ m.getId.toString ++ "_unfold")
+  let base := Lean.Name.mkStr base ("ptr_unfold'" ++ m.getId.toString)
   let n := Lean.Name.mkStr base "method_unfold"
   `(tactic| (rw [$(Lean.mkIdent n):ident]; try wp_auto))
 

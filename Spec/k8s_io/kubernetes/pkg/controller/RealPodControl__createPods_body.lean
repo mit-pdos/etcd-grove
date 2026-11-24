@@ -7,7 +7,7 @@ output of the pinned translator with the substitution loop of `goose/goose.go:29
 on ``k8s.io/kubernetes/pkg/controller`` at the pin, 2026-10-28; byte for byte its `RealPodControl.createPods.impl`; nothing else in the
 translation differs). So the hypothesis states what the Go code does, all of it, error paths
 included, and the Perennial fix (`notes/perennial-changes.md`, "Goose: imports of packages whose
-types a body names, and same-named packages") turns it into the generated `RealPodControl.TypeAssumptions.createPods_unfold` instance.
+types a body names, and same-named packages") turns it into the generated `RealPodControl.TypeAssumptions.unfold'createPods` instance.
 `?` in `etc/link-lean-first-k8sdaemon.txt`: a hypothesis of every result that reaches it.
 -/
 module
