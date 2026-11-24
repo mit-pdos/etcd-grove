@@ -78,7 +78,7 @@ theorem Client.send.wp_proof_closed (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (
       isplitr
       · iapply errAny_newVar $$ HesV Hxs
       ileft; iexact HD
-    wp_apply wp_Unlock _ _ $$ [$Hsync $Hsmu $Hsown $Hsinv]
+    wp_apply wp_Unlock _ (sendInv γ c cc cn W a) $$ [$Hsync $Hsmu $Hsown $Hsinv]
     iapply HΦ
     iexact Htk)
 

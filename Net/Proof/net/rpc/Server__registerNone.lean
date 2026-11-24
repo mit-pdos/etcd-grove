@@ -88,7 +88,7 @@ theorem Server.register.wp_proof_none (wp_getCodec : getCodec.spec (GF := GF) (h
     isplitr
     · imodintro
       iintro %i %key %mm ⟨%Hik, %Hmm⟩ -
-      simp at Hmm
+      simp [GMap.lookup_empty] at Hmm
     iintro ⟨HM2, Hsp, Hr0, -, -⟩ -
     wp_auto
     wp_apply (wp_map_len_lt (K := GoString) (V := Loc) mp2 ∅ (DFrac.own 1)) $$ HM2 as ⟨HM2, -⟩
