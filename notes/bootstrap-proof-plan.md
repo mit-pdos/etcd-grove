@@ -370,3 +370,16 @@ The disjunct in `batchLockInv` is cheap, but it helps only once 2 exists, so it 
   the exclusive fs claim on the snapshot directory's names except `snapNames`, held in `snapDirInv`;
   `snapshotterRO` is defined (the `fsyncDir` field). **`onFs`:** perennial#692 (`TrustedAssumptions`);
   no FieldAssumptions binders. **J8a-4:** set aside (§7.6).
+
+### 7.8 SHA-1's trust and premise, decided 2026-11-23 (owner, via the coordinator)
+- `crypto/sha1` is translated with `-tags purego` (Perennial branch `crypto-sha1`) over three trusted
+  leaves (`boring/sig.StandardCrypto`, `fips140.isBypassed`, `fips140.enabled.init`) and a trusted
+  no-op `crypto/sha1` `init.0`, following `crypto/sha256`'s precedent: the hash registration is unobservable,
+  since nothing verified reads `crypto`'s table. The token alternative was costed and rejected: tens of
+  init specs. etcd must then be built with `-tags purego`.
+- The premise is `Hfips : crypto.fips140.GodebugFips140Off`, i.e. `godebugFips140 = "" ∨ = "off"`.
+  "Not `only`" is not enough: with purego, `on`/`only`/`debug` panic at start. It is a plain Prop
+  hypothesis on each closed theorem whose program starts a member, next to `HEnv : verifyEnvOff`. It is
+  added in the final stage, when the member id goes through the translated `crypto/sha1.Sum`.
+- Proved on `crypto-sha1-proofs`: `crypto.sha1.wp_Sum` returns `bootGo.sha1`'s FIPS 180-4 text.
+  `bootGo.sha1` is to be identified with Perennial's `crypto.sha1.sha1` after the pin bump.

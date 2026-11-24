@@ -35,7 +35,7 @@ local macro "escapedPath_tail" : tactic => `(tactic| (
     iapply typedPointsto_combine _ _ _ Hnn
     simp only [TypedPointsto.typedPointstoDef]
     iframe
-  · wp_apply wp_escape v.Path' mPath (by decide) hlen
+  · wp_apply wp_escape v.Path' mPath (by decide)
     rw [ite_eq_right (show ¬ v.Path' = [42#8] from Hif)]
     iapply HΦ
     iapply typedPointsto_combine _ _ _ Hnn
@@ -46,7 +46,7 @@ theorem URL.EscapedPath.wp_proof (wp_unescape : unescape.spec (GF := GF) (hG := 
     (wp_escape : escape.spec (GF := GF) (hG := hG))
     (wp_validEncoded : validEncoded.spec (GF := GF) (hG := hG)) :
     URL.EscapedPath.spec (GF := GF) (hG := hG) := by
-  intro u dq v hlen hrlen
+  intro u dq v
   wp_start as Hu
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Hu
   iStructNamed Hu
@@ -66,7 +66,7 @@ theorem URL.EscapedPath.wp_proof (wp_unescape : unescape.spec (GF := GF) (hG := 
       wp_auto
       escapedPath_tail
     · wp_auto
-      wp_apply wp_unescape v.RawPath' mPath (by decide) hrlen
+      wp_apply wp_unescape v.RawPath' mPath (by decide)
       cases hu : unescapeF v.RawPath' mPath with
       | error e =>
         have hE : escapedPathF v.RawPath' v.Path' =

@@ -6343,3 +6343,72 @@ origin/lean -- '*TopLevelRobustness.lean' '*TopLevelDefs.lean' 'Net/Statement/*'
 - **Proposed change.** As above, the same rule as that entry: a path spec that promises `fmtErrorOk` takes
   `isPkgInit os`. No top-level statement changes. Every caller already has its package's `isPkgInit`.
 - **Decision.** Applied (zeldovich-coordinator, #9 7129495598).
+
+## 2026-11-24: net/url's length premises dropped (`escape`, `unescape`, `PathUnescape`, `URL.EscapedPath`), phase 7 S5 batch 7 (prove-ps2-s5srv)
+
+- **Spec.** `Spec/net/url/{escape,unescape,PathUnescape,URL__EscapedPath}.lean`: `escape`'s `3 * len(s) < 2^63`,
+  `unescape`'s and `PathUnescape`'s `len(s) + 1 < 2^63`, `EscapedPath`'s both (on `Path` and `RawPath`).
+- **Defect.** None in Go. The premises were there because Perennial's `len` spec gave only `len(s) < 2^63`.
+- **Evidence.** Perennial `52d62e83c` (pin bump `af4fd74b00`): `wp_string_len_maxAddr`, a string is no longer than
+  the address space (`maxAddr = 2^47`). The proofs take that bound at their first `len(s)`.
+- **Proposed change.** Drop the premises. This only strengthens the specs. Their only callers are the Links
+  (`Net/Proof/net/http/Results.lean`) and `PathUnescape`/`EscapedPath`'s proofs.
+- **Decision.** Applied (zeldovich proving session 2, s5).
+
+## 2026-11-24: `readRequestLimit`'s error post names its errors (`reqErr`); `crHeadErr` names the error (`crErrId`), phase 7 S5 batch 8 (prove-ps2-s5srv)
+
+- **Spec.** `Net/Spec/net/http/readRequestLimit.lean`: the error disjunct `⌜err ≠ nil⌝` becomes
+  `⌜err ≠ nil⌝ ∗ reqErr E err` (`RequestDefs.lean`: the header reader's `mimeErr E err`, `io.ErrUnexpectedEOF`'s
+  global, or an `*errors.errorString` whose message starts with `"malformed HTTP "`); its premise
+  `□ ∀ r e, E r e -∗ errMsgOk e` keeps its text, but `errMsgOk e` now says `Error()` returns a message other than
+  `"message too large"`. `crHeadErr γe r e` (`ConnReaderHead.lean`) adds `crErrId e` (`io.EOF`'s `*errorString`, or an
+  `*OpError` of a read). `mimeErr`'s `ProtocolError` disjunct adds `"malformed MIME header" <+: msg`;
+  `badStringError.spec`'s post adds the `*errorString` with `what` a prefix of its message.
+- **Defect.** None in Go. `conn.serve` answers `errTooLarge` with `431`, an `*unsupportedTEError` with `501` and a
+  `statusError` with its code, none of which net/rpc's `respProto` allows. With only `err ≠ nil`, `conn.readRequest`'s
+  proof could not exclude them. `readRequestLimit` returns `errTooLarge` exactly when the header reader's error's
+  `Error()` is `"message too large"`, so excluding it needs that message excluded from the stream's errors (the new
+  `errMsgOk`) and from the `ProtocolError`s (all of the model's start with `"malformed MIME header"`). Our draft
+  (#24 7127923593) missed the `badStringError` returns: a request line cut by the stream's error is returned whole
+  with a `nil` error (bufio's `ReadLine` at `io.EOF`), and its parse or its version fails.
+- **Evidence.** `models/net/http/request.go` `readRequestLimit` and `badStringError`; `textproto_model.go`
+  `modelReadMIMEHeader` (its three `ProtocolError`s, `errMessageTooLarge` only past `maxHeaders`);
+  `server.go` `conn.serve`'s error switch; Go's `bufio.Reader.ReadLine`.
+- **Proposed change.** As above. The posts only get stronger. `errMsgOk` is stronger as a premise, but
+  `readRequestLimit.spec` has no caller yet besides its Link (`conn.readRequest` is next), and `crHeadErr` gives it
+  (`crHeadErr_msg`). dsverify-net agreed to the change in their files (#24 7137212490, coordinator-E 7137201940).
+- **Decision.** Applied (zeldovich proving session 2, s5).
+## 2026-11-24: `fmt.SprintfSlice`/`fmt.ErrorfSlice` deleted; three k8s authorizer proofs take `fmt.Sprintf.spec`/`fmt.ErrorfLeaf.spec` instead (prove-ps2-sprintfslice, #9 7135546785)
+
+- **Spec.** Deleted: `fmt.SprintfSlice.spec`, `fmt.ErrorfSlice.spec` (both axioms) and the slice vocabulary
+  `fmt.sliceArgOk`/`fmt.argOkAtSl`/`fmt.argsOkAtSl`/`fmt.argsOkSl` (`Spec/fmt/Errorf.lean`), along with
+  `authorizer.Decision.sliceArgOkAt`. Callee hypotheses changed:
+  - `ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof` takes `_root_.Perennial.fmt.Sprintf.spec`
+    in place of `SprintfSlice`;
+  - `unionAuthzHandler.EvaluateConditions.wp_proof` takes `fmt.ErrorfLeaf.spec` in place of `ErrorfSlice`;
+  - `ConditionsAwareDecisionUnion.Add.wp_proof` drops `ErrorfSlice`, since it already takes `ErrorfLeaf`.
+
+  The three functions' own specs are unchanged.
+- **Defect.** The two axioms were false of the semantics: a `%v` of a slice reaches the real `fmt`'s
+  `printValue`, which is stuck in the translation (`notes/axiom-review/fmt-slice.md`).
+- **Evidence.** The real `fmt`'s translation (Perennial `52d62e83c`), `printArg` → `printValue`.
+- **Proposed change.** Rewrite the three call sites in the k8s-authz fork (`upamanyus/kubernetes`
+  `goose-lean-authz-fmt2`, luxas `c67a81026c8b` plus one commit). Each spells out what `%v` prints of the
+  slice with a loop and `+=`, then formats it under `[%s]`. The output is byte-identical (Go tests in the
+  fork). Then prove the three sites over the specs above.
+- **Decision.** Applied (coordinator-E, #9 7135546785; the fork commit was described on #9 7136404436).
+
+## 2026-11-24: `modelReadMIMEHeader`'s and `readRequestLimit`'s error posts give the buffered reader back, phase 7 S5 batch 9 (prove-ps2-s5srv-b9)
+
+- **Spec.** `Net/Spec/net/http/modelReadMIMEHeader.lean` and `Net/Spec/net/http/readRequestLimit.lean`: the error
+  disjunct also returns `∃ rr, bufio.ownReader b ri S E rr`, the reader at what it read (before: the reader was
+  lost on an error).
+- **Defect.** None in Go. `conn.serve` answers a read error with Go's `400` written to the connection, and
+  `sendTok` (the right to write) lives in the reader's stream state (`crHead`); without the reader back the
+  proof of `conn.serve` cannot write the answer, nor put the reader back in its pool.
+- **Evidence.** `models/net/http/server.go` `conn.serve` (the error switch after `c.readRequest`,
+  `putBufioReader`), `conn.readRequest` (returns `err` from `readRequestLimit` as it is).
+- **Proposed change.** As above; the posts only get stronger. Both are re-proved; `ReadResponse` (the other
+  caller of `modelReadMIMEHeader`) drops the reader in its error case as before. dsverify-net told on #24
+  (7138521711).
+- **Decision.** Applied (zeldovich proving session 2, s5).

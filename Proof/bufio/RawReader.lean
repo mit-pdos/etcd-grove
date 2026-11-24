@@ -3,7 +3,8 @@
 `newBufioReader`): `bufio.rawReader b` is the reader's struct with a buffer of `1` to `4096` bytes,
 its other fields any; `bufio.freshReader b rd` is the same after `Reset(rd)`: reading from `rd`,
 nothing buffered, no pending error. `bufio.freshReader_own`: a fresh reader over a stream reader in
-the state `S r` is `bufio.ownReader` (`Proof/bufio/Defs.lean`) at `r`. Lean-first.
+the state `S r` is `bufio.ownReader` (`Proof/bufio/Defs.lean`) at `r`; `bufio.ownReader_raw`: a
+reader done with, back to a raw one and its stream's state (at `r` and what it buffered). Lean-first.
 -/
 module
 
@@ -66,6 +67,19 @@ theorem bufio.freshReader_own (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IP
   isplitl
   · ileft; ipureintro; rfl
   · ipureintro; exact _root_.Perennial.io.ptrTyped_nil
+
+/-- See the file header. -/
+theorem bufio.ownReader_raw (b : Loc) (ri : GoInterfaceOk) (S : List w8 → IProp GF)
+    (E : List w8 → GoInterface → IProp GF) (r : List w8) :
+    bufio.ownReader b ri S E r ⊢ bufio.rawReader b ∗ ∃ q : List w8, S (r ++ q) := by
+  unfold bufio.ownReader bufio.rawReader
+  iintro ⟨-, %v, %bs, Hb, Hbuf, %Hwf, HS, -⟩
+  isplitl [Hb Hbuf]
+  · iexists v, bs
+    iframe Hb Hbuf
+    ipureintro; exact ⟨Hwf.2.2.2.2.1, Hwf.2.2.2.2.2⟩
+  iexists _
+  iexact HS
 
 end defs
 
