@@ -52,10 +52,11 @@ CODEC_GEN = {'rpc': 'models/net/rpc/rpcgen.py', 'json': 'models/json/jsongen.py'
 
 def load_kits():
     """The kit files `etc/dsv/*.py` with a `KITGEN` section, by name (as goose.dsv_kits loads
-    them: name order, files starting with `_` and this script skipped)."""
+    them: name order, files starting with `_`, this script and the experiment scripts' proxy.py
+    skipped)."""
     out = {}
     for f in sorted(os.listdir(DSV)):
-        if not f.endswith('.py') or f.startswith('_') or f == 'kitgen.py':
+        if not f.endswith('.py') or f.startswith('_') or f in ('kitgen.py', 'proxy.py'):
             continue
         spec = importlib.util.spec_from_file_location('kitgen_kit_' + f[:-3], os.path.join(DSV, f))
         m = importlib.util.module_from_spec(spec)
@@ -1090,6 +1091,12 @@ def tracked():
 
 # the coordination tooling and its data: the session registry, the GitHub inbox and its tests
 COORDINATION = ('etc/sessions.txt', 'etc/gh-inbox.py', 'notes/coordination.md', 'etc/dsv/leak-names.txt')
+# the experiment scripts (etc/dsv/README.md, "Running an experiment on a challenge"): the lab's side
+# of a run, never in its view (the checks name what they look for)
+EXPERIMENT = ('etc/dsv/sandbox.sh', 'etc/dsv/run.sh', 'etc/dsv/experiment.sh', 'etc/dsv/check-env.sh',
+              'etc/dsv/verify.sh', 'etc/dsv/proxy.py', 'etc/dsv/inside.sh', 'etc/dsv/ask-hook.sh',
+              'etc/dsv/model-hook.sh', 'etc/dsv/managed-settings.json', 'etc/dsv/loadlog.sh',
+              'etc/dsv/snapshot.sh')
 
 
 def excluded(f, kit, allow, others, roots, other_roots):
@@ -1107,6 +1114,8 @@ def excluded(f, kit, allow, others, roots, other_roots):
         return 'the findings tracker (it names people, sessions and forks\' branches)'
     if f in COORDINATION or f.startswith('etc/gh-inbox-test/'):
         return 'coordination (sessions, people)'
+    if f in EXPERIMENT or f.startswith('etc/dsv/statement/'):
+        return 'the experiment scripts (the lab\'s side of a run)'
     mt = re.match(r'etc/tcb-collections/dsv-(\w+)\.txt$', f)
     if mt and mt.group(1) != kit:
         return 'another kit\'s trust-base baseline'
@@ -1278,7 +1287,7 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
                if x['name'] == 'perennial')
     gomod = re.search(r'(?m)^module (\S+)', open(os.path.join(ROOT, kg['go_module_dir'], 'go.mod')).read()).group(1)
     open(os.path.join(c, 'challenge.conf'), 'w').write(
-        f'# the comparator\'s check of the goal (the lab\'s statement/comparator-check.sh conventions),\n'
+        f'# the comparator\'s check of the goal (etc/dsv/statement/comparator-check.sh\'s conventions),\n'
         f'# written by {ME} --export-challenge {kit} from etcd-grove {head}\n'
         f'theorem=Perennial.{pkg}.{thm}\nsolution={proof_module(kg)}\nlayout=Dsverify\n'
         f'gomodule={gomod}\ntest=./{kg["go_pkg_dir"]}\nperennial={pin}\n'
