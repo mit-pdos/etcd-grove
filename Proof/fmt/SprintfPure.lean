@@ -102,6 +102,24 @@ theorem fmt.length_hexPad_zero_le (z : Int) (h : z.natAbs < 2 ^ 64) :
   unfold _root_.Perennial.fmt.hexPad
   split <;> simp_all [_root_.Perennial.fmt.padZeros]
 
+/-- `%d` of an integer of magnitude below `2^64` (any value of Go's integer types) writes at most
+21 bytes (20 digits and a sign). -/
+theorem fmt.length_decimalPad_zero_le (z : Int) (h : z.natAbs < 2 ^ 64) :
+    (_root_.Perennial.fmt.decimalPad 0 z).length ≤ 21 := by
+  have := _root_.Perennial.fmt.length_decimalNat_le z.natAbs 20 (by omega) (by omega)
+  unfold _root_.Perennial.fmt.decimalPad
+  split <;> simp_all [_root_.Perennial.fmt.padZeros] <;> omega
+
+/-- `lit%d` of a Go integer writes at most 21 bytes past the literal. -/
+theorem fmt.length_render_lit_d_le (L : GoString) (n : w64) :
+    (_root_.Perennial.fmt.render [.lit L, .dir none _root_.Perennial.fmt.verb_d]
+      [.int (sint.Z n)]).length ≤ L.length + 21 := by
+  have h := fmt.length_decimalPad_zero_le (sint.Z n) (by word)
+  have hdx : _root_.Perennial.fmt.verb_d ≠ _root_.Perennial.fmt.verb_x := by decide
+  simp only [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, if_neg hdx,
+    List.append_nil, List.length_append, Option.getD_none]
+  omega
+
 end defs
 
 section wps

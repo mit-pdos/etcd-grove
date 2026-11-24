@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.NewLoggableTxnRequest
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse__GetKvs
 public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.strings.Results
 public import Proof.fmt.SprintfPure
 
 @[expose] public section
@@ -71,12 +72,13 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
     ihave IH : iprop(∃ (n : w64) (rv : Loc) (rsl : GoSlice) (ss : List GoString),
         "i" ∷ i_ptr ↦ n ∗ "rv" ∷ r_ptr ↦ rv ∗ "resps" ∷ resps_ptr ↦ rsl ∗
         "Hss" ∷ rsl ↦* ss ∗ "Hcap" ∷ ownSliceCap GoString rsl (DFrac.own 1) ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n⌝) $$ [i r resps]
+        "%Hn" ∷ ⌜0 ≤ sint.Z n⌝ ∗ "%Hsb" ∷ ⌜∀ s ∈ ss, s.length ≤ 42⌝) $$ [i r resps]
     · iexists W64 0, _, slice.nil, []
       iframe
       isplitl []; · iapply ownSlice_nil
       isplitl []; · iapply ownSliceCap_nil
-      ipureintro; decide
+      isplitl []; · ipureintro; decide
+      ipureintro; simp
     wp_for IH
     wp_if_destruct
     · have Hbnd : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len := ⟨Hn, by simpa using Hif⟩
@@ -107,7 +109,13 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
           iframe
           iexists n + W64 1, p, rsl', _
           iframe
-          ipureintro; word
+          isplitl []; · ipureintro; word
+          ipureintro
+          intro s hs
+          simp only [List.mem_append, List.mem_singleton] at hs
+          rcases hs with hs | rfl
+          · exact Hsb s hs
+          · decide
         · icases Hrr with (%Hn0 | ⟨%sl', #Hk⟩)
           · exact absurd Hn0 hrr
           rw [decide_eq_false hrr]
@@ -121,7 +129,10 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
           iintro %asl ⟨Hasl, -⟩
           wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"range_response_count:%d"
             [.lit go!"range_response_count:", .dir none _root_.Perennial.fmt.verb_d] _ _ _ _
-            (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int _) .nil) $$ [$Hasl] as %s0 ⟨-, -⟩
+            (by fmt_encode) (by fmt_fits) (.int _ _ _ _ (.int _) .nil) $$ [$Hasl] as %s0 ⟨-, %Hs0⟩
+          have Hs0len : s0.length ≤ 42 := by
+            subst Hs0
+            exact Nat.le_trans (fmt.length_render_lit_d_le _ _) (by decide)
           (try wp_auto)
           wp_apply wp_slice_literal
           isplitr
@@ -135,7 +146,13 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
           iframe
           iexists n + W64 1, p, rsl', _
           iframe
-          ipureintro; word
+          isplitl []; · ipureintro; word
+          ipureintro
+          intro s hs
+          simp only [List.mem_append, List.mem_singleton] at hs
+          rcases hs with hs | rfl
+          · exact Hsb s hs
+          · exact Hs0len
       · rcases u with ii | _
         rotate_left
         · (try wp_auto)
@@ -143,7 +160,7 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
           iframe
           iexists n + W64 1, p, rsl, ss
           iframe
-          ipureintro; word
+          ipureintro; exact ⟨by word, Hsb⟩
         have hty := Hnot ii rfl
         (try wp_auto)
         simp only [hty, ↓reduceIte]
@@ -152,9 +169,10 @@ theorem txn.WarnOfExpensiveReadOnlyTxnRequest.wp_proof
         iframe
         iexists n + W64 1, p, rsl, ss
         iframe
-        ipureintro; word
+        ipureintro; exact ⟨by word, Hsb⟩
     · (try wp_auto)
-      wp_apply _root_.Perennial.strings.wp_Join _ _ _ _ $$ [$Hss] as Hss
+      wp_apply _root_.Perennial.strings.wp_Join_owned_bounded _ _ go!" " 42 Hsb
+        (by unfold maxAddr _root_.Perennial.strings.joinMax; simp) $$ [$Hss] as Hss
       (try wp_auto)
       iunfold txn.sizeOk at Hsz
       wp_apply Hsz $$ [$HP $Hpp] as %sz HP
