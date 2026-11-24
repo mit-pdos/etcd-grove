@@ -289,7 +289,9 @@ func IdsOk(d Deployment) bool {
 
 // WellFormed is Lean's Deployment.WellFormed (clause by clause, numbered as there), with the
 // bounds of the workloads (Workload.BoundsOk) and of the server configuration (ServerCfg.Supported):
-// nil if d is well formed, otherwise the first clause it fails.
+// nil if d is well formed, otherwise the first clause it fails. (Its messages format a kind as
+// w.Kind.String() under %s, or int(w.Kind) under %d: fmt calls no method of a basic-typed argument,
+// which the proof's model of fmt needs.)
 func WellFormed(d Deployment) error {
 	// 1. a member; the names valid and distinct
 	if len(d.Members) == 0 {
@@ -305,10 +307,10 @@ func WellFormed(d Deployment) error {
 	// 5 (first): every workload of a kind Lean has (Workload's constructors), within its bounds
 	for _, w := range d.Workloads {
 		if w.Kind < 0 || int(w.Kind) >= len(kindNames()) {
-			return fmt.Errorf("unknown workload kind %d", w.Kind)
+			return fmt.Errorf("unknown workload kind %d", int(w.Kind))
 		}
 		if !boundsOk(w) {
-			return fmt.Errorf("%v: bounds", w.Kind)
+			return fmt.Errorf("%s: bounds", w.Kind.String())
 		}
 	}
 	// 2. every address valid (Deployment.addrs: the members' peer and client addresses, then the
@@ -334,7 +336,7 @@ func WellFormed(d Deployment) error {
 	}
 	for j, w := range d.Workloads {
 		if len(d.Nodes[j]) != NodeCount(w) {
-			return fmt.Errorf("%v: %d client machines, not %d", w.Kind, len(d.Nodes[j]), NodeCount(w))
+			return fmt.Errorf("%s: %d client machines, not %d", w.Kind.String(), len(d.Nodes[j]), NodeCount(w))
 		}
 		for _, a := range d.Nodes[j] {
 			if err := addr(a); err != nil {
@@ -365,7 +367,7 @@ func WellFormed(d Deployment) error {
 	}
 	for _, w := range d.Workloads {
 		if NeedsAuth(w.Kind) && !c.Auth {
-			return fmt.Errorf("%v needs the token provider", w.Kind)
+			return fmt.Errorf("%s needs the token provider", w.Kind.String())
 		}
 		if w.Kind == Compact && c.Retention != 0 && c.CompactorMode == CompactorPeriodic {
 			return fmt.Errorf("compact under the periodic compactor")
