@@ -215,7 +215,8 @@ nothing; a campaign (`hup`, `campaign(campaignElection)`: a non-leader voter bec
 at the next term voting for itself, queues its own vote and a request to every other voter, with
 its last entry id: `StepC.campaign`); or a leader's heartbeats (`bcastHeartbeat`,
 `HeartbeatOk`: `Commit: min(Match, committed)`; `sendHeartbeat` sets only `To`, `Type`, `Commit`,
-`Context`, so no index, log term or entries). -/
+`Context`, so no index, log term or entries; #33 S4, msgShape: no context either, the context being
+`hbCtx` of the read-only queue, empty in the harness's scope). -/
 def TickEnd (c : CfgM) (id : w64) (s s' : PState) : Prop :=
   s' = s ∨
   (s.role ≠ .leader ∧ id ∈ c.voters ∧
@@ -223,7 +224,8 @@ def TickEnd (c : CfgM) (id : w64) (s s' : PState) : Prop :=
       s' = psendMsgs (pbecomeCandidate id s)
         ([Msg.plain .voteResp id id (s.term + W64 1) false] ++
          peers.map (fun d => pvoteReq id d (s.term + W64 1) (plogLast s.base s.log) cl))) ∨
-  (s.role = .leader ∧ ∃ ms : List Msg, (∀ x ∈ ms, HeartbeatOk id s x ∧ x.index = W64 0 ∧ x.logterm = W64 0 ∧ x.entries = []) ∧ s' = psendMsgs s ms)
+  (s.role = .leader ∧ ∃ ms : List Msg, (∀ x ∈ ms, HeartbeatOk id s x ∧ x.index = W64 0 ∧ x.logterm = W64 0 ∧ x.entries = [] ∧
+      x.ctx = []) ∧ s' = psendMsgs s ms)
 
 /-- **`Advance`** (`rawnode.go:480-500`): the queued self-addressed messages `qs` (a leader's
 self-acknowledgement, a candidate's self-vote) stepped in order (`RecvEnd`); the storage

@@ -50,19 +50,100 @@ theorem liftScope_of {c : CfgM} {id : w64} {rs : RNState} {s : NState} (H : RnSc
   rw [Hd1, Hd2]
   exact GMap.elem_of_union_l c.learners Hid
 
+/-- (#33 S4, msgShape) `RnScope`'s read-only conjunct at the protocol reading: a non-leader's
+read-only object reads as the fresh one (`rdNL`). -/
+theorem roEmpty_iff (s : NState) :
+    (s.role = .leader → s.rd.ro.pending = []) ↔ (toPState s).rd.ro.pending = [] := by
+  unfold toPState
+  by_cases hr : s.role = .leader
+  · simp only [hr, ite_true, true_implies]
+  · simp only [hr, ite_false, false_implies, true_iff]; rfl
+
 /-- **The scope at the end state of an input** that keeps the log's state (`hl`), pre-vote and
-check-quorum (`hpv`, `hcq`), the read-index requests (`hrd`), and queues no `MsgSnap` (`ho`). -/
+check-quorum (`hpv`, `hcq`), the read-index requests (`hrd`), an empty read-only queue (`hro`), and
+queues no `MsgSnap` (`ho`). -/
 theorem RnScope.keep {rs rs' : RNState} {s s' : NState} (H : RnScope rs s)
     (hm : rs'.mode = rs.mode) (hsl : rs'.slent = rs.slent)
     (hpv : s'.prevote = s.prevote) (hcq : s'.cq = s.cq) (hrd : s'.rd.pend = s.rd.pend)
     (hprev : s'.logst.prev = s.logst.prev) (hsn : s'.logst.snap = s.logst.snap)
-    (ho : ∀ m ∈ s'.outbox, m ∈ s.outbox ∨ m.ty ≠ .snap) : RnScope rs' s' := by
-  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8⟩ := H
-  refine ⟨hm.trans H1, hpv.trans H2, hcq.trans H3, hrd.trans H4, hsl.trans H5, hprev.trans H6,
-    hsn.trans H7, fun m hm' => ?_⟩
+    (ho : ∀ m ∈ s'.outbox, m ∈ s.outbox ∨ m.ty ≠ .snap)
+    (hro : (toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = [])
+    (hcf : rs'.cfg = rs.cfg := by rfl) : RnScope rs' s' := by
+  obtain ⟨H1, H2, H3, H4, H5, H6, H7, H8, H9⟩ := H
+  refine ⟨by rw [hm, hcf]; exact H1, hpv.trans H2, hcq.trans H3, hrd.trans H4, hsl.trans H5,
+    hprev.trans H6, hsn.trans H7, fun m hm' => ?_, (roEmpty_iff s').2 (hro ((roEmpty_iff s).1 H9))⟩
   rcases ho m hm' with h | h
   · exact H8 m h
   · exact h
+
+/-- (#33 S4, msgShape) A tick keeps the read-only queue empty: a campaign is no leader, a leader's
+heartbeats touch no read state. -/
+theorem tickEnd_ro {c : CfgM} {id : w64} {s s' : PState} (hT : TickEnd c id s s')
+    (h : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
+  rcases hT with rfl | ⟨-, -, peers, cl, -, rfl⟩ | ⟨-, ms, -, rfl⟩
+  · exact h
+  · rfl
+  · exact h
+
+/-- (#33 S4, msgShape) A message of the harness's types keeps the read-only queue empty (no read
+index; a new leader's `reset` installs a fresh one, `rdNL`). -/
+theorem handleEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp)
+    (h : HandleEnd c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
+  unfold HandleEnd at h
+  rcases hty with e | e | e | e | e | e <;> rw [e] at h <;> simp only at h
+  · split at h
+    · subst h; exact hp
+    · unfold AppEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, rfl⟩ | ⟨-, -, _, _, -, -, rfl⟩ <;> exact hp
+  · split at h
+    · unfold AppRespEnd SendsEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, -, _, -, rfl⟩ | ⟨-, _, _, -, -, _, -, rfl⟩ <;> exact hp
+    · subst h; exact hp
+  · rcases h with ⟨-, -, rfl⟩ | ⟨-, rfl⟩ <;> exact hp
+  · split at h
+    · unfold WinEnd at h
+      rcases h with ⟨-, rfl⟩ | ⟨-, _, _, -, -, rfl⟩ | ⟨-, rfl⟩
+      · exact hp
+      · rfl
+      · rfl
+    · subst h; exact hp
+  · split at h <;> (subst h; first | exact hp | rfl)
+  · split at h
+    · unfold SendsEnd at h
+      obtain ⟨_, -, rfl⟩ := h; exact hp
+    · subst h; exact hp
+
+theorem recvEnd_ro {c : CfgM} {id : w64} {s : PState} {m : Msg} {s' : PState}
+    (hty : m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .heartbeat ∨
+      m.ty = .heartbeatResp)
+    (h : RecvEnd c id s m s') (hp : s.rd.ro.pending = []) : s'.rd.ro.pending = [] := by
+  rcases h with ⟨-, h⟩ | ⟨-, -, rfl⟩ | ⟨-, s1, hpre, h⟩
+  · exact handleEnd_ro hty h hp
+  · exact hp
+  · refine handleEnd_ro hty h ?_
+    rcases hpre with ⟨-, rfl⟩ | ⟨-, rfl⟩
+    · rfl
+    · exact hp
+
+/-- (2026-11-24) **The harness's configuration at a node in the scope**: the incoming voters the
+names', no outgoing half (`CfgStatic`'s first two conjuncts, in either mode). -/
+def CfgScope (γ : RaftNames) (c : CfgM) : Prop :=
+  c.incoming = γ.reCfg ∧ c.outgoing = ∅ ∧ True
+
+theorem CfgScope.voters {γ : RaftNames} {c : CfgM} (HC : CfgScope γ c) : c.voters = γ.reCfg := by
+  rw [CfgM.voters_of_out HC.2.1, HC.1]
+
+/-- `CfgScope` from the mode's configuration facts (`ownStepGhost_cfgScope`) and the scope's. -/
+theorem cfgScope_of {γ : RaftNames} {id : w64} {rs : RNState} {s : NState} {c : CfgM}
+    (Hs : RnScope rs s) (Hc : RnCfgIn γ id rs)
+    (Hm : (rs.mode.isDyn = false → CfgStatic γ c) ∧ (rs.mode.isDyn = true → rs.cfg.cfg = c)) :
+    CfgScope γ c ∧ id ∈ γ.reCfg := by
+  refine ⟨?_, Hc.1⟩
+  cases hd : rs.mode.isDyn
+  · have H := Hm.1 hd; exact ⟨H.1, H.2.1, trivial⟩
+  · rw [← Hm.2 hd]; exact ⟨Hc.2.1 hd, Hs.1 hd, trivial⟩
 
 /-- A tick's end relation keeps the read-index requests and queues no `MsgSnap`: a campaign's votes,
 a leader's heartbeats. -/
@@ -139,6 +220,38 @@ theorem ownStepGhost_cfgStatic (γ : RaftNames) (md : GMode) (c : CfgM) (id : w6
     iframe H
     ipureintro; intro h; cases h
 
+/-- (2026-11-24) **The configuration, by mode**: statically `CfgStatic`; dynamically the ghost
+state's (`ghostRestM`'s `g.cfg.cfg = c`, `g.cfg` the node's `rs.cfg`). -/
+theorem ownStepGhost_cfgScope (γ : RaftNames) (rs : RNState) (fp : List EntryM) (ds : DecMap)
+    (c : CfgM) (id : w64) (s : NState) :
+    ownStepGhost (GF := GF) γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s ⊢
+      ⌜(rs.mode.isDyn = false → CfgStatic γ c) ∧ (rs.mode.isDyn = true → rs.cfg.cfg = c)⌝ ∗
+      ownStepGhost γ (rs.mode.toG ⟨rs.capplied, rs.cfg, fp, ds⟩) c id s := by
+  cases hm : rs.mode with
+  | static =>
+    iintro H
+    icases ownStepGhost_cfgStatic γ _ c id s $$ H with ⟨%Hcfs, H⟩
+    iframe H
+    ipureintro
+    exact ⟨fun _ => Hcfs rfl, fun h => by cases h⟩
+  | dyn dec c0 h0 h1 =>
+    iintro H
+    iunfold ownStepGhost at H
+    icases H with ⟨Hg, Hr⟩
+    iunfold ghostRest at Hr
+    icases Hr with ⟨Hn, Hm, Hr⟩
+    simp only [RNMode.toG, ghostRestM]
+    icases Hm with ⟨%HC, Hm⟩
+    isplitr
+    · ipureintro; exact ⟨fun h => (by cases h), fun _ => HC.2.1⟩
+    iunfold ownStepGhost
+    iframe Hg
+    iunfold ghostRest
+    iframe Hn Hr
+    simp only [ghostRestM]
+    iframe Hm
+    ipureintro; exact HC
+
 /-- The progress map's halves agree, and track the configuration's ids. -/
 theorem ownRaftPhysC_trkDoms (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s : NState) :
     ⊢ ownRaftPhysCV (GF := GF) c V r id s -∗
@@ -153,9 +266,10 @@ theorem ownRaftPhysC_trkDoms (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s :
   iapply Hback $$ %tv %s.votes Hf Htrk
 
 /-- **The scope's owned part at the end state**: the scope's facts carried (`H`), the storage the same. -/
-theorem rnScopeAt_keepIf (sc : Bool) (rs rs' : RNState) (s s' : NState)
-    (H : sc = true → RnScope rs s → RnScope rs' s') (hst : s'.logst.storage = s.logst.storage) :
-    rnScopeAt (GF := GF) sc rs s ⊢ rnScopeAt sc rs' s' := by
+theorem rnScopeAt_keepIf {γ : RaftNames} {id : w64} (sc : Bool) (rs rs' : RNState) (s s' : NState)
+    (H : sc = true → RnScope rs s → RnScope rs' s') (hst : s'.logst.storage = s.logst.storage)
+    (hcf : rs'.mode = rs.mode ∧ rs'.cfg = rs.cfg := by exact ⟨rfl, rfl⟩) :
+    rnScopeAt (GF := GF) γ id sc rs s ⊢ rnScopeAt γ id sc rs' s' := by
   cases sc with
   | false => iintro -; iapply rnScopeAt_false
   | true =>
@@ -163,7 +277,9 @@ theorem rnScopeAt_keepIf (sc : Bool) (rs rs' : RNState) (s s' : NState)
     iintro ⟨%Hs, #Hc⟩
     rw [hst]
     iframe Hc
-    ipureintro; exact H rfl Hs
+    ipureintro
+    refine ⟨H rfl Hs.1, Hs.2.1, ?_, Hs.2.2.2⟩
+    rw [hcf.1, hcf.2]; exact Hs.2.2.1
 
 end ghost
 

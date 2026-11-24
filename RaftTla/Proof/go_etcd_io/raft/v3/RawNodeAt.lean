@@ -72,13 +72,16 @@ def PendAbs (sts : List MsgSt) (ps : List Pending) (qs : List Msg) : Prop :=
     | _ => none
 
 /-- **The Antithesis harness's scope** (design §2.1's scope conjunct, F6, and §2.5's no-snapshot
-conjunct, option (b) stated directly): the static mode, pre-vote and check-quorum off (the
-`Config`'s, copied by `newRaft`, never written), no read-index request pending; the log's boundary at
-`base0` (never compacted), no snapshot pending or lent, no `MsgSnap` queued. -/
+conjunct, option (b) stated directly): a simple configuration (statically, `CfgStatic`; in the
+dynamic mode, 2026-11-24, no outgoing half: the harness's cluster is `isCluster`'s, dynamic, and never
+changes its configuration), pre-vote and check-quorum off (the `Config`'s, copied by `newRaft`, never
+written), no read-index request pending; the log's boundary at `base0` (never compacted), no snapshot
+pending or lent, no `MsgSnap` queued; (#33 S4, msgShape) a leader's read-only queue empty (the
+harness never sends `MsgReadIndex`: its heartbeats carry no context, `hbCtx`). -/
 def RnScope (rs : RNState) (s : NState) : Prop :=
-  rs.mode = .static ∧ s.prevote = false ∧ s.cq = false ∧ s.rd.pend = [] ∧
-  rs.slent = none ∧ s.logst.prev = base0 ∧ s.logst.snap = none ∧
-  ∀ m ∈ s.outbox, m.ty ≠ .snap
+  (rs.mode.isDyn = true → rs.cfg.cfg.outgoing = ∅) ∧ s.prevote = false ∧ s.cq = false ∧
+  s.rd.pend = [] ∧ rs.slent = none ∧ s.logst.prev = base0 ∧ s.logst.snap = none ∧
+  (∀ m ∈ s.outbox, m.ty ≠ .snap) ∧ (s.role = .leader → s.rd.ro.pending = [])
 
 open Classical in
 /-- **The length of the longest common prefix of two logs.** An input that truncates the log from
@@ -109,10 +112,18 @@ def pendAt (γ : RaftNames) (id : w64) (W : DurMaps) :
       [∗list] l;x ∈ steps;sts.zip ps, msgIn l DFrac.discard x.1 ∗ pendingRel γ id W x.1 x.2)
   | some lo, steps, ps, _ => lentPend (some lo) (pendList γ id W steps ps)
 
-/-- **The harness's scope, owned part**: at `sc = true` `RnScope` and the storage never compacted past
-`0` (`storCapF`, persistent); nothing at `sc = false`. -/
-def rnScopeAt (sc : Bool) (rs : RNState) (s : NState) : IProp GF :=
-  if sc then iprop(⌜RnScope rs s⌝ ∗ storCapF s.logst.storage 0) else iprop(emp)
+/-- **The node in the harness's configuration** (2026-11-24): among the names' voters, in the
+dynamic mode the configuration's incoming voters the names' (with `RnScope`'s no outgoing half: the
+static `CfgStatic`'s simple configuration), and the cluster untraced (the harness's,
+`NewRawNode.emptyStartForm`'s `Cluster.trace γ = none`). -/
+def RnCfgIn (γ : RaftNames) (id : w64) (rs : RNState) : Prop :=
+  id ∈ γ.reCfg ∧ (rs.mode.isDyn = true → rs.cfg.cfg.incoming = γ.reCfg) ∧ γ.reTrace = none
+
+/-- **The harness's scope, owned part**: at `sc = true` `RnScope`, the node in the harness's
+configuration (`RnCfgIn`) and the storage never compacted past `0` (`storCapF`, persistent); nothing
+at `sc = false`. -/
+def rnScopeAt (γ : RaftNames) (id : w64) (sc : Bool) (rs : RNState) (s : NState) : IProp GF :=
+  if sc then iprop(⌜RnScope rs s ∧ RnCfgIn γ id rs⌝ ∗ storCapF s.logst.storage 0) else iprop(emp)
 
 /-- **A `RawNode` at its protocol state** (see the file header): `ownRawNode`'s body, conjunct for
 conjunct, but `"Hpend"` with the queued states named (`pendAt`), and three conjuncts more: the
@@ -163,7 +174,7 @@ def ownRawNodeAt (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (ps : PSt
   -- (#33 S3c) the protocol reading, and the harness's scope at `sc`
   "%Hps" ∷ ⌜toPState s = ps⌝ ∗
   "%Hip" ∷ ⌜uint.nat s.logst.inprogress = ip + 1⌝ ∗
-  "Hsc" ∷ rnScopeAt sc rs s)
+  "Hsc" ∷ rnScopeAt γ id sc rs s)
 
 /-- **Forgetting the protocol state** (design §2.1, `ownRawNodeAt_ownRawNode`): at any scope flag.
 By unfolding: `pendAt` gives `pendList`, the rest is `ownRawNode`'s body. -/

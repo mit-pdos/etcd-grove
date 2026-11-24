@@ -233,7 +233,7 @@ theorem leader_beat_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (m :
   · refine ⟨Hwf, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, rfl, rfl, rfl, rfl⟩
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .beat _ ms Hpr (fun m' h => (Hok m' h).1)
-      (fun m' h => by rw [toPState_rd_leader s Hr]; exact (Hok m' h).2.1)
+      (fun m' h => by rw [toPState_rd_leader s Hr, (Hok m' h).2.1]; exact hbCtx_ok _)
   all_goals exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
 
 /-- `stepLeader` on `MsgHeartbeatResp` (of the current term, to this node):

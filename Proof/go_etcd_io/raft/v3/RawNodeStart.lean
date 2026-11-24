@@ -93,7 +93,10 @@ abbrev NewRawNode.restartAtSpec (sc : Bool) : Prop :=
   TraceLoggerOk cv.TraceLogger' →
   Cluster.trace γ = none →
   StorageHolds S σ →
-  (sc = true → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧ γ.rnMode = .static ∧
+  -- (2026-11-24) the configuration simple over the names' voters, the node one of them (until then
+  -- `γ.rnMode = .static`, which `isCluster` contradicts: the scope was empty)
+  (sc = true → cv.PreVote' = false ∧ cv.CheckQuorum' = false ∧
+    (m.voters = γ.raftNames.reCfg ∧ m.votersOutgoing = ∅ ∧ cv.ID' ∈ γ.raftNames.reCfg) ∧
     σ.base = base0) →
   ∀ (x : CrashNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
@@ -422,9 +425,9 @@ private theorem pendAt_nil (γ : RaftNames) (id : w64) (W : DurMaps) :
     iempintro
 
 /-- The scope's owned part at the start: its facts, the storage's cap from the pre. -/
-private theorem rnScopeAt_start (sc : Bool) (rs : RNState) (s : NState) (st : Storage)
-    (Hst : s.logst.storage = st) (H : sc = true → RnScope rs s) :
-    □ (⌜sc = true⌝ -∗ storCapF (GF := GF) st 0) ⊢ rnScopeAt sc rs s := by
+private theorem rnScopeAt_start {γ : RaftNames} {id : w64} (sc : Bool) (rs : RNState) (s : NState)
+    (st : Storage) (Hst : s.logst.storage = st) (H : sc = true → RnScope rs s ∧ RnCfgIn γ id rs) :
+    □ (⌜sc = true⌝ -∗ storCapF (GF := GF) st 0) ⊢ rnScopeAt γ id sc rs s := by
   cases sc with
   | false => iintro -; iapply rnScopeAt_false
   | true =>
@@ -941,13 +944,18 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     omega
   have HscR : sc = true → RnScope rs0 s1 := by
     intro hsc
-    obtain ⟨Hpv0, Hcq0, Hmd0, Hb0⟩ := Hsc hsc
-    refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_⟩
-    · show γ.mode inferInstance = .static; unfold Cluster.rnMode at Hmd0; exact Hmd0
+    obtain ⟨Hpv0, Hcq0, ⟨-, Hmo, -⟩, Hb0⟩ := Hsc hsc
+    refine ⟨?_, ?_, ?_, Hpd, rfl, ?_, Hsn0, ?_, ?_⟩
+    · intro _; exact Hmo
     · show s.prevote = false; rw [Hpvoff, Hpv0]
     · show s.cq = false; rw [Hcq, Hcq0]
     · show s.logst.prev = base0; rw [Hlp, ← Hb0]
     · intro m' hm; change m' ∈ s.outbox at hm; rw [Ho] at hm; cases hm
+    · intro hl; exact absurd (Hr.symm.trans hl) (by decide)
+  have HcinR : sc = true → RnCfgIn γ.raft cv.ID' rs0 := by
+    intro hsc
+    obtain ⟨-, -, ⟨Hmv, -, Hid⟩, -⟩ := Hsc hsc
+    exact ⟨Hid, fun _ => Hmv, HtrG⟩
   ihave Hrn : ownRawNodeAt γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
       (σ.b + σ.ents.length) sc $$ [Hrn Hphys Hghost Hsteps Hsteps_cap Hhistory]
   · iapply ownRawNodeAt_intro γ.raft rn cv.ID' rs0 (restartP S σ.base σ.hs.Commit') []
@@ -982,7 +990,7 @@ theorem NewRawNode_restartAt_impl (sc : Bool)
     · rw [show s1.logst.ksn = [] from Hksn]; iapply restoredSnapHistory_nil
     · iapply restoreLedger_fresh γ.raft cv.ID' sn s1 (show s1.logst.ksn = [] from Hksn) Ho $$ Hhistory
     · iapply rnTrace_none (GF := GF) γ.raft rnv.raft' cv.ID' _ _ s1 (by show s.gh.tr = none; rw [Hgh])
-    · iapply rnScopeAt_start sc rs0 s1 (interface.ok si) Hsg HscR $$ Hscp
+    · iapply rnScopeAt_start sc rs0 s1 (interface.ok si) Hsg (fun h => ⟨HscR h, HcinR h⟩) $$ Hscp
   -- the driver's view of the configuration is the node's: at the configuration point `a`
   have Hhp : hprev = σ.hs := by rw [Hhz, Hca]
   -- the post: the node at `rawNodeRestarted`, its committed log, the slot's generation, the
@@ -1130,7 +1138,8 @@ theorem NewRawNode.wp_proofEmptyStartAbs
       emptyStorContents (votersConfState vs) 0 (Membership.simple (GMap.listToSet vs)) RaftState.init
       F SV hSV H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx (.inl HAn) (by rw [Hb, HAn]; omega) (Nat.zero_le _)
       (by rw [Hb0]; exact Nat.zero_le _) (votersConfState_is vs Hnd) Hnsm Htlk HtrC
-      emptyStorContents_holds (fun _ => ⟨Hpq.1, Hpq.2, Hmd, rfl⟩) x)
+      emptyStorContents_holds (fun _ => ⟨Hpq.1, Hpq.2,
+        ⟨Hmd.1.symm, rfl, by rw [Hmd.1]; exact (GMap.elem_of_list_to_set _ _).2 Hmd.2⟩, rfl⟩) x)
     $$ [Hc Hlg Hcl Hvac Hfits HrS Hconf Hrs]
     as %rn %err ⟨%Herr, %l, %sn, %g, %K, Hrn, -, %Hl, Hgen, Hfree, HrS, HF⟩
   · rw [HAn]

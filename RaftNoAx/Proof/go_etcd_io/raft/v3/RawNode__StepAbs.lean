@@ -287,7 +287,7 @@ local macro "step_tail" : tactic => `(tactic| (
         iclear Hrntr Hsc
         ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
           (by rw [Hgh]; exact Hgtr.trans HtrG)
-        ihave Hsc := rnScopeAt_false (GF := GF)
+        ihave Hsc := rnScopeAt_false (GF := GF) (γ := γ) (id := id)
           { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s'
         wp_auto
         iapply HΦ $$ %err %s'.term %(toPState s') %(uint.nat s'.logst.inprogress - 1)
@@ -387,7 +387,8 @@ local macro "step_tail" : tactic => `(tactic| (
           (∀ ty, mtypeOf m.Type' = some ty →
             RecvEnd (rnCfg γ) id (toPState s) (absMsg ty m ents ctx) (toPState s')) ∧
           s'.rd.pend = s.rd.pend ∧
-          uint.nat s'.logst.inprogress - 1 = min ip (lcpLen (toPState s).log (toPState s').log) := by
+          uint.nat s'.logst.inprogress - 1 = min ip (lcpLen (toPState s).log (toPState s').log) ∧
+          ((toPState s).rd.ro.pending = [] → (toPState s').rd.ro.pending = []) := by
         intro h
         obtain ⟨Hl, -⟩ := Hlift h
         obtain ⟨hant, hctx, -⟩ := Hscp h
@@ -395,7 +396,8 @@ local macro "step_tail" : tactic => `(tactic| (
         have HR := recvEnd_of_stepEnd_net Hl hant h0 hctx (noSnapSent_of_noSnapL (Hx h).2) (Hx h).1
         have HC := HCf h
         obtain ⟨ty0, hty0⟩ := antStep_mtype hant
-        refine ⟨fun ty hty => (HR ty hty).1.of_halves HC.1 HC.2.1 (HR ty hty).2, ?_, ?_⟩
+        refine ⟨fun ty hty => (HR ty hty).1.of_halves HC.1 HC.2.1 (HR ty hty).2, ?_, ?_,
+          recvEnd_ro (HR ty0 hty0).2 (HR ty0 hty0).1⟩
         · rw [← toPState_rd_pend s', ← toPState_rd_pend s]
           exact recvEnd_rd_pend (HR ty0 hty0).2 (HR ty0 hty0).1
         · have hlo : 1 ≤ uint.Z s.logst.inprogress := by
@@ -408,7 +410,7 @@ local macro "step_tail" : tactic => `(tactic| (
       ihave Hsc := rnScopeAt_keepIf sc rs
         { rs with term := s'.term, psnap := rs.psnap || decide (m.Type' = MsgSnap) } s s'
         (fun h Hs0 => RnScope.keep Hs0 rfl rfl Hpre Hcq' (Hlifted h).2.1 Hpv Hsn
-          (fun x hx => .inr ((Hx h).2 x hx))) Hsg $$ Hsc
+          (fun x hx => .inr ((Hx h).2 x hx)) (Hlifted h).2.2.2) Hsg $$ Hsc
       iclear Hrntr
       ihave Hrntr := rnTrace_none (GF := GF) γ rnv.raft' id cf rs.delivered s'
         (by rw [Hgx]; exact Hgtr.trans HtrG)
@@ -440,7 +442,7 @@ local macro "step_tail" : tactic => `(tactic| (
       ipureintro
       intro h
       rw [← Hps]
-      exact ⟨(Hlifted h).1, (Hlifted h).2.2⟩))
+      exact ⟨(Hlifted h).1, (Hlifted h).2.2.1⟩))
 
 set_option maxHeartbeats 1000000 in
 /-- **`RawNode.Step`, strengthened** (`RawNode.Step.absSpec`). -/
@@ -481,13 +483,15 @@ theorem RawNode.Step.wp_absProof
   icases ownRaftPhysC_ackScope cf rnv.raft' id s $$ Hphys with ⟨%Hal0, Hphys⟩
   icases ownRaftPhysC_cq cf rnv.raft' id s $$ Hphys with ⟨#Hcq0, Hphys⟩
   icases ownStepGhost_followerVotes γ _ cf id s $$ Hghost with ⟨%Hfv, Hghost⟩
-  icases ownStepGhost_cfgStatic γ _ cf id s $$ Hghost with ⟨%Hcfs, Hghost⟩
-  have HCf : sc = true → CfgStatic γ cf := fun h => Hcfs (by rw [(Hscope h).1]; rfl)
+  icases rnScopeAt_cfgIn sc rs s $$ Hsc with ⟨%Hcin, Hsc⟩
+  icases ownStepGhost_cfgScope γ rs fp _ cf id s $$ Hghost with ⟨%Hcfm, Hghost⟩
+  have HCf : sc = true → CfgScope γ cf := fun h => (cfgScope_of (Hscope h) (Hcin h) Hcfm).1
   have Hlift : sc = true → LiftScope id s ∧ AckScope cf := fun h => by
     have Hs := Hscope h
     have HC := HCf h
     have Hv : cf.voters = γ.reCfg := HC.voters
-    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom0.1 Hdom0.2 (by rw [Hv]; exact Hin Hs.1), Hal0 HC.2.1⟩
+    exact ⟨liftScope_of Hs Hpre0 Hfv Hdom0.1 Hdom0.2 (by rw [Hv]; exact (Hcin h).1),
+      Hal0 HC.2.1⟩
   have Hp0 : sc = true → uint.Z s.logst.prev.index' = 0 := fun h => by
     rw [(Hscope h).2.2.2.2.2.1]; rfl
   have HfromIds : sc = true → m.From' ∈ cf.ids := fun h => by
@@ -566,7 +570,7 @@ theorem RawNode.Step.wp_absProof
           · iexact Hcap
           isplitr
           · ipureintro; exact Hp0 hsc
-          · ipureintro; exact (Hscope hsc).2.2.2.2.2.2.2
+          · ipureintro; exact (Hscope hsc).2.2.2.2.2.2.2.1
         simp only [HnP]
         iintro %err %s' %c' %md' ⟨Hphys, Hghost, %Hwf', %Href, %Hcc, -, %Hfr, %Hxwf, %Htm, %Hresp,
           %Hsfr, %Htrc, -, %Hend, -, %Hns', -⟩
