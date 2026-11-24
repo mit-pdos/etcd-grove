@@ -92,6 +92,31 @@ theorem drain_exit (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.N
   unfold causeOwn
   iexact Hco
 
+/-! ## The next loop head's record -/
+
+/-- **The record after `Ready`, the write's handshake and `Advance`** agrees with the view the
+iteration's reports leave (`v₁`: the node at `pAccepted ps₁`, the committed entries handed out
+delivered): `RsView` at the next loop head. -/
+theorem rsView_next {id : w64} {rs : RNState} {v v₁ : AntSim.NodeView} {ps₁ : PState}
+    {h : HardStateM} {es ce : List EntryM} {ms : List QMsg} {ss : Option (w64 × StateType)}
+    {L : Option SnapLoan} {steps : List Pending} {W : DurMaps} {t : w64} {ca : Nat}
+    (hrv : RsView rs v) (hce : v.ce = []) (hout : ReadyOut id rs ps₁ h es ce ms ss L)
+    (hps : v₁.ps = pAccepted ps₁) (hdl : v₁.delivered = v.delivered ++ ce) (hce₁ : v₁.ce = []) :
+    RsView (advRS
+      { rs with delivered := rs.delivered ++ ce, unpersisted := [], steps := steps, outlb := 0,
+                unst := false, phs := phsNext rs.phs h, psnap := false, slent := L,
+                dur := readyDurable rs.dur (phsNext rs.phs h) L es,
+                role := roleAfter rs.role ss, bw := W } t ca) v₁ := by
+  obtain ⟨hra, hnext, hdur, -, -, -, -, -, hL⟩ := hout
+  subst hL
+  obtain ⟨-, -, -, hdel, -, -, -⟩ := hrv
+  rw [advRS_none _ _ rfl]
+  refine ⟨?_, ?_, ?_, ?_, rfl, rfl, rfl⟩
+  · simp only [hps, pAccepted]; exact hnext
+  · simp only [hps, pAccepted]; exact hra
+  · simp only [hps, pAccepted]; exact hdur
+  · simp only [hdel, hce, hce₁, hdl, List.append_nil]
+
 end proof
 
 end AntHarness
