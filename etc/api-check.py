@@ -15,9 +15,6 @@ Linking files (`Link`, `Results`, `Adequacy*`, `MainLinked`) are exempt from rul
 every proof. A non-linking module that imports one (of any package) is reported as a warning
 (`--strict`: an error): through it every package's internals are reachable.
 
-What an importable module exposes is `etc/gen-interface.py`'s output (`interface/`): its
-declarations as a client sees them, for review.
-
 The configuration, one directive per line, `#` comments:
 
     inside PREFIX         a path prefix of the package's own files (repeatable)

@@ -430,8 +430,8 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
 
 ## Preferences: measures
 
-Preferences too, but counted for each spec: on its unfolded statement (as `etc/gen-interface.py`
-renders it), or in its callers' proofs. Each is a cost; lower is better among specs that keep the
+Preferences too, but counted for each spec: on its unfolded statement (`<F>.spec`
+unfolded), or in its callers' proofs. Each is a cost; lower is better among specs that keep the
 hard rules. (`notes/spec-first-plan.md`,
 Review)
 

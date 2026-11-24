@@ -35,7 +35,6 @@ axiom Perennial.google_golang_org.grpc.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
-axiom Perennial.math.rand.opaqueInitsOk
 axiom Perennial.net.http.initFuncsOk
 axiom Perennial.runtime.GOARCH_amd64
 axiom Perennial.runtime.GOOS_linux
@@ -206,6 +205,7 @@ axiom proto.UnmarshalPb.wp_proof
 axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rand.Float64.wp_proof
+axiom rand.Int31.wp_proof
 axiom reflect.DeepEqual.wp_proof_pgidSet
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafeGetAllLeases.wp_proof
@@ -227,7 +227,6 @@ axiom storage.OpenBackend.wp_proof
 axiom strings.Contains.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
-axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom transport.NewTimeoutTransport.wp_proof
 axiom txn.WarnOfExpensiveRequest.wp_proof

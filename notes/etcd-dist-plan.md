@@ -49,8 +49,8 @@ Cluster []Peer, Token, CompactorMode, Retention, SnapCount, CatchUp, Auth}`. It 
 (`etcdserver.NewServer`), serve its raft handler on its peer listener with `http.Server.Serve`, start
 it, serve `v3rpc.Server` on its client listener with `grpc.Server.Serve`, then sleep forever. The
 same `Main` is the boot program after a crash: `NewServer` finds the WAL (bootstrap's `haveWAL`) and
-restarts the member; the initial cluster and token are then ignored by etcd. It first clears the
-proxy variables and `ETCD_VERIFY` (`clearProxyEnv`: §4 and Q10). The binary (`cmd/server`) reads the
+restarts the member; the initial cluster and token are then ignored by etcd. (Until 2026-11-23 it first cleared the
+proxy variables and `ETCD_VERIFY`, `env.ClearProxy`; dropped, Q10's update.) The binary (`cmd/server`) reads the
 `Config` as JSON; the Lean boot program is `Main` applied to the `Config`'s Go value (the parsing is
 not translated).
 
@@ -566,7 +566,9 @@ leaseexpiryN in, `noExpiry` conditional; Q3 the `durable` workload under real cr
 up accepted; Q5 a trusted Lean SHA-1 tested against Go first, Perennial's `crypto/sha1` proof later; Q6 the
 carried premises accepted for the first version; Q7 the interim theorem without crashes is the first
 milestone; Q8 etcd's full peer handler; Q9 no further `ServerConfig` fields in the first version; Q10 the
-server clears the proxy variables itself. Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
+server clears the proxy variables itself (**superseded 2026-11-23**, the owner's option (A): `env.ClearProxy` dropped,
+since `os.Unsetenv` has no spec; `verifyEnvOff` per machine and its token `envVerifyOff` are premises of the
+statement, as in one process; a proxy premise comes with S5: `notes/putget-dist-plan.md` section 11). Open: the name (decided 2026-11-22: `etcd_safe`, the distributed theorems take the plain names; vs. the files' `_robust`
 convention) and U1-U5 (upamanyus, etcd-grove#24).
 
 For the user:

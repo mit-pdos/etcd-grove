@@ -182,7 +182,7 @@ theorem wf_log {G : GoString → IProp GF} (h : KitG G) :
 
 theorem wf_math_rand {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.math.rand G :=
-  And.intro h.e_math_rand ⟨wf_sync h, True.intro⟩
+  And.intro h.e_math_rand ⟨wf_sync h, wf_sync_atomic h, True.intro⟩
 
 theorem wf_time {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.time G :=
@@ -500,7 +500,7 @@ theorem wfO_log {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
 theorem wfO_math_rand {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.math.rand (gOff S G) :=
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.math.rand ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_math_rand) ⟨wfO_sync h S hS, True.intro⟩
+    h.e_math_rand) ⟨wfO_sync h S hS, wfO_sync_atomic h S hS, True.intro⟩
 
 theorem wfO_time {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.time (gOff S G) :=
