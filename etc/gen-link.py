@@ -627,12 +627,13 @@ LEAN_FIRST = {
 # The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
 # Linux file extension's specs are over any semantics of it with `FsSemOk`
 # (`GooseLang/Ext/Fs/SemOk.lean`), so that they hold over a restricted one (`NoTear.lean`).
-EXTS = {"--bboltfs": "[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]",
-        # the packages the member ids' proofs call into (their `Assumptions`, as section instances)
-        "--deployment": "[go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions] "
-                        "[go_etcd_io.etcd.client.pkg.v3.types.Assumptions] [_root_.Perennial.sort.Assumptions] "
-                        "[_root_.Perennial.strings.Assumptions] [_root_.Perennial.crypto.sha1.Assumptions] "
-                        "[encoding.binary.Assumptions]"}
+EXTS = {"--bboltfs": "[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]"}
+# The package assumptions a mode's sections take beside its own package's (after `package_sem`): those
+# of packages its proofs call into that its package's `Assumptions` does not import (`types`'s and
+# `strings`'s come from the deployment's)
+PKG_ASMS = {"--deployment": "[go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions] "
+                            "[_root_.Perennial.sort.Assumptions] [_root_.Perennial.crypto.sha1.Assumptions] "
+                            "[encoding.binary.Assumptions]"}
 # The namespaces a mode's links open before those binders (the file extension's names are in `Fs`).
 EXT_OPENS = {"--bboltfs": "\nopen Fs\n"}
 # The request ids' issue record (`GooseLang/Ext/IdIssue`, the restart plan's R2c stage 2): the trusted
@@ -1264,7 +1265,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}""")
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}""")
     def hyp(fn):
         return "h_" + fn.replace("+", "_")
 
@@ -1456,7 +1457,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}""")
         out.extend(emit_cache(fn) for fn in special)
         out.append("end links_hasLC\n")
     later = [fn for fn in order if fn in blocked and fn not in pending and fn not in external]
@@ -1486,7 +1487,7 @@ variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 {raft_var}variable [package_sem : {assumptions}]
-{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
+{("variable " + PKG_ASMS[sys.argv[1]] + chr(10)) if sys.argv[1] in PKG_ASMS else ""}{em}{LC_EXTRA_VARS.get(sys.argv[1], "")}{hyps}
 {include_line}
 """)
         out.extend((("include " + " ".join(hyp(p) for p in sorted(reach[fn])) + " in\n")
