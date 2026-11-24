@@ -2,8 +2,8 @@
 
 # `examples/lib/durable` over `fsExt`: a generation's boot (W4c U2, `notes/wal-fsext-w4c-plan.md`)
 
-`durBoot`: at a generation's switch to the shared mode (`wp_osShare`: the shared invariant, a whole claim
-on every name of the file's directory, nothing logged), from what the generation found at the file's
+`durBoot`: at a generation's start, from its tree's shared view (`osShared`: the shared invariant, a whole
+claim on every name of the file's directory, nothing logged), from what the generation found at the file's
 names (`durFound`: no file and the contents `none`, or a file whose start resources the generation holds,
 its contents `v`; `durFoundTmp`: no temporary, or a file there held whole), the file's invariant, a handle,
 the client's half of the state `⟨v, none⟩` and the crash token, under fresh ghost names. The directory is

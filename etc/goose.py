@@ -380,15 +380,20 @@ PROJECTS = [
         # modernize analyzer's errorsastype rewrite across the modules, and by hand where `As` is the
         # first operand of an `&&` (fileutil's preallocExtend/preallocFixed, isSafeRetryImmutableRPC),
         # so that those proofs use Perennial's proved `AsType` spec instead of its `errors.As` axiom.
-        # Then (real fmt stage 1, 2026-11-24, mit-pdos/etcd-grove#9) c81d63037 (branch
-        # `goose-lean-fmt1`, on edc800c6f): `Election.Campaign`, `Mutex.tryAcquire` and
+        # Then (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42 item 2, per the fmt decision on
+        # mit-pdos/perennial#671) bc2b5f4d0 (branch `goose-lean-fmtattrs`, on edc800c6f): `publishV3`'s
+        # three log lines format the member's attributes field by field,
+        # `fmt.Sprintf("{Name:%s ClientURLs:[%s]}", Name, strings.Join(ClientURLs, " "))`, the same bytes
+        # as `fmt.Sprintf("%+v", s.attributes)`, which reaches fmt's reflection-based `printValue`.
+        # Then (real fmt stage 1, 2026-11-24, mit-pdos/etcd-grove#9) 0a5fe8d9 (branch
+        # `goose-lean-fmt1b`, the commits of `goose-lean-fmt1` rebased onto bc2b5f4d0): `Election.Campaign`, `Mutex.tryAcquire` and
         # `store.restore` convert a method-less named lease ID to `int64` before `fmt.Sprintf`
         # formats it (`%x`, `%016x`): byte-identical output, through `fmtInteger` (Perennial's verified
-        # subset) instead of `printValue`. Then 6b1ff3860 (same branch): `Client.dial` numbers its
+        # subset) instead of `printValue`. Then 5e311a563 (same branch): `Client.dial` numbers its
         # dial targets with a package counter (`clientTargetSeq`, an `atomic.Uint64`) in place of
         # `%p` of the client, which real `fmt` does not cover (the decision on #9,
         # issuecomment-7122889900: fork rewrites, no `%p` axiom).
-        rev="6b1ff3860e6a999e4db53cfba727bcaa9925d058",
+        rev="5e311a563c075dfc78adca68e4e2d30d8784be38",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
@@ -512,6 +517,9 @@ PROJECTS = [
             "golang.org/x/crypto/bcrypt",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
+            # (prove-ps2-srvgoroutines, 2026-11-24, #42) `FDUsage`/`FDLimit` trusted (pkg/v3/runtime.toml):
+            # `monitorFileDescriptor`'s leaves
+            "go.etcd.io/etcd/pkg/v3/runtime",
             "go.etcd.io/etcd/pkg/v3/notify",
             "go.etcd.io/etcd/pkg/v3/pbutil",
             "go.etcd.io/etcd/pkg/v3/traceutil",

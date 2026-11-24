@@ -435,7 +435,7 @@ theorem mvccfull_adequate_below [lctx : GoLocalContext] [sem : go.Semantics]
   iapply start_fileHolds (extLocal Fs.fsExt σ.world) Hfs r j0 mvccfull.mvccfullNames Hr
     mvccfull.mvccfullNames_nodup
     (fun b hb => ⟨mvccfull.mvccfullNames_ok b hb,
-      Fs.pathFits_of_dirFits Hrfit (mvccfull.mvccfullNames_len b hb)⟩) Habs _ rfl _ $$ [Hl]
+      Fs.pathFits_of_dirFits Hrfit (mvccfull.mvccfullNames_len b hb)⟩) Habs _ _ $$ [Hl]
   · iapply Hst $$ Hl
   iintro Hfiles
   unfold mvccfullProgram

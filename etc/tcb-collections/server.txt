@@ -27,7 +27,6 @@ roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
-axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
@@ -86,7 +85,6 @@ axiom membership.clusterImageOk_restModel.wp_proof
 axiom membership.membersOfBk_empty
 axiom membership.membersOf_decode
 axiom metadata.FromIncomingContext.wp_proof
-axiom monitorFileDescriptor.wp_proof
 axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbEntryC_reg
