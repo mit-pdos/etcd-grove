@@ -857,8 +857,6 @@ noncomputable def UnsafeAuthServer.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] UnsafeAuthServer.ty
 
-opaque Metadata.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque EmptyResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque HashRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
@@ -5909,11 +5907,33 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Auth_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
 
-opaque Metadata.nonempty_type : NonemptyType.{0}
-def Metadata : Type := Metadata.nonempty_type.type
-instance Metadata.nonempty : Nonempty Metadata := Metadata.nonempty_type.property
-opaque Metadata.zero_val : ZeroVal Metadata := ⟨Classical.ofNonempty⟩
-attribute [instance] Metadata.zero_val
+structure Metadata [GooseExts] where
+  mk ::
+  state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
+  NodeID' : Loc
+  ClusterID' : Loc
+  unknownFields' : GoSlice
+  sizeCache' : w32
+
+noncomputable instance Metadata.zero_val [GooseExts] : ZeroVal Metadata :=
+  ⟨Metadata.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def Metadata.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
+(go.field_decl.FieldDecl go!"NodeID" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"ClusterID" (go.GoType.PointerType go.uint64)),
+(go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
+(go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
+
+@[irreducible] noncomputable def Metadata.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Metadata.fieldsUnsealed
+
+noncomputable instance equals_unfold_Metadata [GooseExts] [GoGlobalContext] :
+    EqualsUnfold Metadata.fields Metadata.fieldsUnsealed :=
+  ⟨by unfold Metadata.fields; rfl⟩
+
+@[reducible] noncomputable def Metadata.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Metadata.fields)
 
 structure RequestHeader [GooseExts] where
   mk ::

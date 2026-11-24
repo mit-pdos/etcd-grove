@@ -34,6 +34,16 @@ abbrev membership.RaftCluster.ID.spec : Prop :=
     (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"ID")) (Val #()))
   {{ RET #cid; True }}
 
+/-- **`c.ID()` with the id field read at any fraction** (claim #34, stage 2, 2026-11-25: `Finalize`'s
+`SetID(c.nodeID, c.cl.ID())`, on the cluster before it is shared, whose `SetID` then writes the
+field): the field's value, the points-to given back. -/
+abbrev membership.RaftCluster.ID.specO : Prop :=
+  ∀ (c : Loc) (dq : DFrac) (cid : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
+      membership.rcCidAddr c ↦{dq} cid }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!! go!"ID")) (Val #()))
+  {{ RET #cid; membership.rcCidAddr c ↦{dq} cid }}
+
 end spec
 
 end EtcdGrove
