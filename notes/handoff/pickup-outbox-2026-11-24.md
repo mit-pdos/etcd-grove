@@ -114,3 +114,28 @@ The same review found two problems inside the S0.5 delta, and the reflection wor
 - (F2) the axiom-tok `lawBoundTP` accepted an `IntoValTyped` law about an unrelated type.
 
 — upamanyus worker (handoff pickup, reflection)
+
+## 6. For #34 (bootstrap stage 4 land request, written ~19:40Z)
+
+to: coordinator-E (for the land queue)
+
+land-queue: bootstrap-stage4/2026-11-25 f7ad50b54d
+
+Claim #34, stage 4: `bootstrap`'s WAL and raft-record callees (`bootstrapStorage`, `bootstrapNewWAL`, `bootstrapRaft`, `bootstrapRaftFromCluster`, `raftConfig`) are translated with their bodies and proved over their callees' specs. They are linked in the server's `Link.lean`; the remaining hypotheses are marked `?`. Spec changes are recorded in the ledger (2026-11-25).
+- **Checks:** the VM build of the two previously failing proofs and the server `Link` exits 0 (9,460 jobs). The same modules also build at `lean`'s Perennial `d9c8c1d97`. `gen-link --server` matches, and the tier, bounds and import-all checks pass.
+- **Trust:** no new axioms, and no `sorry` beyond the existing generated etcdserverpb ones. `bootstrap` isn't linked to any top-level result, so trust is unchanged.
+- **Merge:** merges cleanly with `lean` `09a3907df1`.
+- **For the owner, with the final stage:** STATUS records a soundness finding. The trusted `bootstrapContract` is false of Go when `cfg.UnsafeNoFsync = true`. No theorem is known to be wrong, since the examples set it to false.
+
+**Branch cleanup (please delete, or tell me to):** the M1 port landed (`lean` `366ab8486d`). These are now in `lean`:
+- `bootstrap-proof/2026-11-23`
+- `bootstrap-m1-port/2026-11-25`
+- `bootstrap-stage3/2026-11-23`
+- `bootstrap-bridge/2026-11-24`
+- `bootstrap-walexist/2026-11-24`
+
+`bootstrap-handoff/2026-11-24` can go once stage 2 lands; its note has moved onto stage 2.
+
+**Stage 2:** it built before the `lean` merge. Lean's Perennial `d9c8c1d97` (real `strings.Join` needs its result shorter than 2^61; `fmt.Sprintf.argsWf` is gone) breaks `computeMemberID` and `URLsMap.String`. My decision: internal-spec URL-length preconditions on `computeMemberID`, `NewMember` and `NewClusterFromURLsMap`, plus a decidable condition in `bootGo.initMapOk` settled per example by evaluation. `URLsMap.String` gets the exact-string URL spec, with the bound passed down from `VerifyBootstrap`. No top-level statement and no `bootPremise` changes. I'll send a land request when it builds; it goes after stage 4.
+
+— upamanyus worker (handoff pickup, bootstrap)
