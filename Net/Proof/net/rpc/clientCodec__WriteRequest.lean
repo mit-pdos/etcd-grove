@@ -1,8 +1,9 @@
 /-
 The proof of `clientCodec.WriteRequest` (`Net/Spec/net/rpc/clientCodec__WriteRequest.lean`): the
-sticky error first; then the header (`putU64`, `putString`) and the two frames (`putFrame`, the
-codec's `Encode`, `encOk`), written by one `Write` through the library's writer predicate and
-accessor (`writeP`, `write_acc`).
+sticky error first; then the header (`putU64`, `putString`), the codec's `Encode` (`encOk`), the
+check against `maxFrame` (the stuck point, excluded by the caller's bounds), and the two frames
+(`putFrame`), written by one `Write` through the library's writer predicate and accessor (`writeP`,
+`write_acc`).
 -/
 module
 
@@ -52,7 +53,7 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
     (wp_Write : net.Conn.Write.spec (GF := GF) (hG := hG)) :
     clientCodec.WriteRequest.spec (GF := GF) (hG := hG) := by
   intro c t cn s a la ra r rv body w0 ed C Pr W0 Ψ0 Ψ
-  wp_start as ⟨#Hrwc, #Hc, #Hed, Hwerr, Hr, #Hset, Htok, Henc, Hupd⟩
+  wp_start as ⟨#Hrwc, #Hc, #Hed, Hwerr, Hr, #Hset, Htok, %Hsm, Henc, Hupd⟩
   wp_auto
   cases w0 with
   | ok e =>
@@ -68,9 +69,6 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
   ihave Hn0c := ownSliceCap_nil (V := w8)
   wp_apply wp_putU64 slice.nil [] rv.Seq' $$ [$Hn0 $Hn0c] as %h1 ⟨Hh1, Hh1c⟩
   wp_apply wp_putString h1 _ rv.ServiceMethod' $$ [$Hh1 $Hh1c] as %h2 ⟨Hh2, Hh2c⟩
-  ihave Hn1 := ownSlice_nil (V := w8) (DFrac.own 1)
-  ihave Hn1c := ownSliceCap_nil (V := w8)
-  wp_apply wp_putFrame slice.nil [] h2 (DFrac.own 1) _ $$ [$Hn1 $Hn1c $Hh2] as %b1 ⟨Hb1, Hb1c, Hh2⟩
   wp_apply wp_getCodec C $$ Hset as %cd #Hcd
   unfold codecIs
   icases Hcd with ⟨%v, #Hv, #Henc', #Hdec', -⟩
@@ -80,14 +78,32 @@ theorem clientCodec.WriteRequest.wp_proof (wp_getCodec : getCodec.spec (GF := GF
   wp_bind (App (Val #v.Encode') _)
   iapply Henc' $$ Henc
   inext
-  iintro %sl %eb Hsl Hslc HΨ0
+  iintro %sl %eb Hsl Hslc ⟨%Heb, HΨ0⟩
   ihave %Hsll := ownSlice_len $$ Hsl
   ihave %Hh2l := ownSlice_len $$ Hh2
-  have hfit : rv.ServiceMethod'.length + 16 < 2 ^ 63 ∧ eb.length < 2 ^ 63 := by
-    have := sint_nat_lt' sl.len
-    have := sint_nat_lt' h2.len
+  have hfit : rv.ServiceMethod'.length + 16 ≤ maxFrameN ∧ eb.length ≤ maxFrameN := ⟨Hsm, Heb⟩
+  have hh2 : sint.nat h2.len ≤ 2 ^ 30 := by
     simp [strEnc_length, u64Le_length] at Hh2l
+    unfold maxFrameN at Hsm
     omega
+  have hsl : sint.nat sl.len ≤ 2 ^ 30 := by
+    unfold maxFrameN at Heb
+    omega
+  wp_auto
+  -- the check against `maxFrame`: neither frame is too long (the caller's bounds)
+  wp_if_destruct
+  · exfalso
+    rename_i Hif
+    have : sint.nat h2.len = (sint.Z h2.len).toNat := rfl
+    word
+  wp_if_destruct
+  · exfalso
+    rename_i Hif
+    have : sint.nat sl.len = (sint.Z sl.len).toNat := rfl
+    word
+  ihave Hn1 := ownSlice_nil (V := w8) (DFrac.own 1)
+  ihave Hn1c := ownSliceCap_nil (V := w8)
+  wp_apply wp_putFrame slice.nil [] h2 (DFrac.own 1) _ $$ [$Hn1 $Hn1c $Hh2] as %b1 ⟨Hb1, Hb1c, Hh2⟩
   ihave Hupd := Hupd $$ %trivial
   unfold reqUpd
   imod Hupd $$ %eb %hfit HΨ0 with ⟨#Hproto, HΨ⟩

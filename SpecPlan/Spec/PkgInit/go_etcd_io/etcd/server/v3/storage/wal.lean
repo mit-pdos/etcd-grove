@@ -6,7 +6,7 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.encoding.binary.Base
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.fmt.Base
-public import SpecPlan.Spec.PkgInit.hash
+public import Perennial.Proof.hash.Base
 public import Perennial.Proof.io.Base
 public import Perennial.Proof.sync.Base
 public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto

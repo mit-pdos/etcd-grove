@@ -72,6 +72,22 @@ A property of a system is a `Robust` statement about a deployment with a program
 and panics. Linearizability of a store: a client on a machine of `stable` records its history and
 panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness does in one process.
 
+**An exit is a safe run, so a checker panics** (2026-11-24, the user's approval of Perennial's
+model of Go's process exit, on the condition that it is documented; `notes/decisions.md`, "Go's
+process exit stays angelic, and checkers panic"). `syscall.Exit` (so `os.Exit`, `log.Fatal`, zap's
+and klog's `Fatal`) is `AngelicExit` (Perennial `ca6df841b`, Perennial's and this repository's
+`TrustedCode/syscall.lean`): the exiting goroutine steps to itself forever, which is neither stuck
+nor a panic, and the machine's other goroutines keep running, where Go ends the process. So under
+`Robust` an exit of any status, 0 or 1, ends nothing and violates nothing: a program that reports a
+violation with `os.Exit(1)` or `log.Fatal` is checked by nothing, and its theorem says nothing about
+the property. Go's run of a machine that exits is, up to the exit, one of the model's executions,
+and after it is like a machine the scheduler stops picking (an execution `Robust` covers); the model
+also lets the other goroutines run on, which the proof must show safe too (more executions than Go:
+sound). `etc/exit-check.py` (in `etc/gates.sh` and CI) lists the exits in the own code (under
+`examples/`) of every program a `TopLevelDefs.lean` boots, type-checked by `etc/exitcheck`; each needs
+an entry in `etc/exit-allow.txt` with its reason (a usage error of a command line, before any check
+runs), so no check of a robustness theorem's program exits on a violation.
+
 ## Every closed example is an instance (2026-11-18)
 
 Each closed theorem of the examples has a restatement `…_robust` (the same hypotheses but the

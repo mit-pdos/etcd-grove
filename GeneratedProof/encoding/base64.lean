@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import GeneratedProof.internal.byteorder
+public import Perennial.GeneratedProof.internal.byteorder
 public import Perennial.GeneratedProof.strconv
 public import Perennial.Golang.Theory
 public import Code.encoding.base64

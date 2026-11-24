@@ -9,7 +9,7 @@ machine's thread bound), generalized from `[netExt]` to the kit's extension list
   extensions' ghost state in the universal slot 0, as `remoteGpreS` puts the network's);
 * the extensions' global start: the net extension's is the first of the two (`netSha_globalStart`,
   `sep_elim_left`, as `Net`'s `net_globalStart`); the hash has none (`globalStart _ _ := True`);
-* the extensions' initial global state (`goose_dist_adequacy`'s `Hinitg`): the net extension's from
+* the extensions' initial global state (`goose_dist_adequacy_below`'s `Hinitg`): the net extension's from
   `DistDeploy` (no connection), the hash's (nothing hashed) from `Robust`'s `extsInitGlobal g`
   (the hash's `initgP` is its semantics' `initGlobal`).
 
@@ -67,7 +67,8 @@ theorem nodeWp_of_distBootGT [lctx : GoLocalContext] [G : GooseGlobalGS .hasLC G
 
 /-- dsv-epaxos's `robust_of_distBootLisRBT` over `netShaExts`: from the addresses `addrs` and the
 listeners `las` unset (pairwise disjoint, disjoint from `addrs`) to each machine's share, with
-the receipt bound `receiptBound GF ≤ bound` and each machine's thread bound `bound + 1`. -/
+the receipt bound `receiptBound GF ≤ bound` and each machine's thread bound `threads`, `Robust`'s
+(Perennial's `goose_dist_adequacy_below`: the thread bound along the execution at hand). -/
 theorem robust_of_distBootLisRBT_sha [lctx : GoLocalContext] (addrs las : List GoString)
     (nodes : List (Expr × state)) (g : GlobalState) (threads bound : Nat)
     (hlas : las.Pairwise (fun l1 l2 => ∀ a, lisAccepts l1 a → ¬ lisAccepts l2 a))
@@ -76,16 +77,15 @@ theorem robust_of_distBootLisRBT_sha [lctx : GoLocalContext] (addrs las : List G
       ⊢ ([∗list] a ∈ addrs, addrUnset a) -∗ ([∗list] la ∈ las, lisUnset la) ={⊤}=∗
         ∃ Ps : Nat → IProp GF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m →
-            DistBootWpGT (bound + 1) m.1 (Ps i)⌝ ∗
+            DistBootWpGT threads m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
     DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
   rintro ⟨Hnd, Hok, Hconns, -⟩ hfresh hig _ n κs c hsteps hn i tp σ hi e he
   simp only [List.map_nil, List.nil_append] at hfresh hsteps
-  have H := goose_dist_adequacy (GF := GF) (n + 1) (n + 2) nodes g (fun _ v => v = #())
+  have H := goose_dist_adequacy_below (GF := GF) (n + 1) threads nodes g (fun _ v => v = #())
     (fun _ p h => intoVal_ne_PanicV () p h.symm) ⟨Hconns, hig.2.1, trivial⟩
     (fun _ _ => ⟨trivial, trivial, trivial⟩)
-    ?_ n κs c (distNsteps_of_crash_nil hsteps.nsteps) (Nat.lt_succ_self n)
-    (fun m hm => (hfresh m hm).2.2) (DistThreadsBelow.of_single ?_) i tp σ hi
+    ?_ n κs c hsteps (Nat.lt_succ_self n) (fun m hm => (hfresh m hm).2.2) i tp σ hi
   · exact ⟨H.2.1 e he, H.2.2 e he⟩
   · intro G HN
     iintro Hg
@@ -96,14 +96,8 @@ theorem robust_of_distBootLisRBT_sha [lctx : GoLocalContext] (addrs las : List G
     imodintro
     iapply BigSepL.bigSepL_mono ?_ $$ HPs
     intro j m hm
-    exact nodeWp_of_distBootGT (n + 2) (bound + 1) (by omega) m.1 m.2 (Ps j)
+    exact nodeWp_of_distBootGT threads threads (Nat.le_refl _) m.1 m.2 (Ps j)
       (hfresh m (List.mem_of_getElem? hm)) (HP j m hm)
-  · intro j tp' σ' hj
-    simp only [distInit, List.getElem?_map] at hj
-    obtain ⟨x, hx, hx'⟩ := Option.map_eq_some_iff.mp hj
-    simp only [Prod.mk.injEq] at hx'
-    obtain ⟨-, rfl⟩ := hx'
-    exact (hfresh x (List.mem_of_getElem? hx)).2.2
 
 /-- **The bridge over `netShaExts`, wildcard listeners and the thread bound** (dsv-epaxos's
 `robust_of_distProtoLisRBT` over the kit's two extensions): `robust_of_distBootLisRBT_sha` with
@@ -116,7 +110,7 @@ theorem robust_of_distProtoLisRBT_sha [lctx : GoLocalContext] (addrs las : List 
       ⊢ regCtx -∗ ([∗list] a ∈ addrs, addrUnset a) -∗ ([∗list] la ∈ las, lisUnset la) ={⊤}=∗
         ∃ Ps : Nat → IProp GF,
           ⌜∀ (i : Nat) (m : Expr × state), nodes[i]? = some m →
-            DistBootWpGT (bound + 1) m.1 (Ps i)⌝ ∗
+            DistBootWpGT threads m.1 (Ps i)⌝ ∗
           [∗list] i ↦ _m ∈ nodes, Ps i) :
     DistDeploy addrs nodes g → Robust [] nodes g threads bound := by
   refine robust_of_distBootLisRBT_sha (GF := GF) addrs las nodes g threads bound hlas hdisj ?_
