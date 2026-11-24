@@ -331,7 +331,7 @@ def httpRegInv : IProp GF :=
 /-- Connection `cn`'s slots are the mono-list `γ` (persistent). -/
 def httpConn (cn : Nat) (γ : GName) : IProp GF := ghostMapElem hπ.reg cn .discard γ
 
-instance httpConn_persistent (cn : Nat) (γ : GName) : Persistent (httpConn cn γ) := by
+instance httpConn_persistent (cn : Nat) (γ : GName) : Persistent (httpConn (hlc := hlc) cn γ) := by
   unfold httpConn; infer_instance
 
 /-- A slot's facts (see the file header). -/
@@ -340,13 +340,13 @@ def slotFacts (P : HProto GF) : ReqSlot → IProp GF
   | .inr _ => iprop(True)
 
 instance slotFacts_persistent (P : HProto GF) (s : ReqSlot) :
-    Persistent (slotFacts P s) := by
+    Persistent (slotFacts (hlc := hlc) P s) := by
   rcases s with ⟨R, τ, B⟩ | j <;> unfold slotFacts <;> infer_instance
 
 /-- See the file header. -/
 def httpReqP (P : HProto GF) : Net.Proto GF := fun cn bs =>
-  iprop(∃ (γ : GName) (L : List ReqSlot), httpConn cn γ ∗ monoListLbOwn γ L ∗
-    ⌜slotsOk L ∧ bs <+: slotsWire L⌝ ∗ [∗list] s ∈ L, slotFacts P s)
+  iprop(∃ (γ : GName) (L : List ReqSlot), httpConn (hlc := hlc) cn γ ∗ monoListLbOwn γ L ∗
+    ⌜slotsOk L ∧ bs <+: slotsWire L⌝ ∗ [∗list] s ∈ L, slotFacts (hlc := hlc) P s)
 
 /-- The facts of the `i`-th answer `x`, of the slots `L` (see the file header). -/
 def respFacts (P : HProto GF) (L : List ReqSlot) (i : Nat) : RespSlot → IProp GF
@@ -359,23 +359,23 @@ def respFacts (P : HProto GF) (L : List ReqSlot) (i : Nat) : RespSlot → IProp 
   | .bad => iprop(True)
 
 instance respFacts_persistent (P : HProto GF) (L : List ReqSlot) (i : Nat) (x : RespSlot) :
-    Persistent (respFacts P L i x) := by
+    Persistent (respFacts (hlc := hlc) P L i x) := by
   cases x <;> unfold respFacts <;> infer_instance
 
 /-- See the file header. -/
 def httpRespP (P : HProto GF) : Net.Proto GF := fun cn bs =>
   iprop(∃ Rs : List RespSlot, ⌜respsCover Rs bs⌝ ∗
     (⌜∀ x ∈ Rs, x = .bad⌝ ∨
-      ∃ (γ : GName) (L : List ReqSlot), httpConn cn γ ∗ monoListLbOwn γ L ∗
-        ⌜Rs.length ≤ L.length⌝ ∗ [∗list] i ↦ x ∈ Rs, respFacts P L i x))
+      ∃ (γ : GName) (L : List ReqSlot), httpConn (hlc := hlc) cn γ ∗ monoListLbOwn γ L ∗
+        ⌜Rs.length ≤ L.length⌝ ∗ [∗list] i ↦ x ∈ Rs, respFacts (hlc := hlc) P L i x))
 
 /-- See the file header. -/
 def protoLis (la : GoString) (P : HProto GF) : IProp GF :=
-  iprop(lisProto (Gg := Gg) la (httpReqP P) (httpRespP P) ∗
-    inv httpRegN (httpRegInv))
+  iprop(lisProto (Gg := Gg) la (httpReqP (hlc := hlc) P) (httpRespP (hlc := hlc) P) ∗
+    inv httpRegN (httpRegInv (hlc := hlc)))
 
 instance protoLis_persistent (la : GoString) (P : HProto GF) :
-    Persistent (protoLis la P) := by
+    Persistent (protoLis (hlc := hlc) la P) := by
   unfold protoLis; infer_instance
 
 end proto
