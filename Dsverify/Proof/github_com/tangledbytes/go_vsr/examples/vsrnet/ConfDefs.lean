@@ -417,7 +417,7 @@ theorem wp_sendConf (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
   simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
     show (W64 1 - W64 0) = W64 1 from rfl,
     show (zero_val (GoArray w8 1)).arr = [W8 0] from rfl]
-  wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #t⟩ (fun _ m => 0 < m)
+  wp_apply io.wp_ReadFull (net.connIface t) (fun _ m => 0 < m)
       (recvTokL (Gg := hG.goose_globalGS) cn false ackProto) (net.connReadE eof la ra ed) [] (slice.mk a_ptr (W64 1) (W64 1)) [W8 0] eof ueof
       $$ [Hrv Hs2] as %n2 %err2 ⟨%ys, %Hys, Hs2, Hrv, #Hres⟩
   · iframe Hrd Heof Hue Hrv Hs2; ipureintro; intro _ hl; simp only [List.length_cons, List.length_nil] at hl ⊢; omega
@@ -584,7 +584,7 @@ theorem wp_awaitConf (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
   simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
     show (W64 3 - W64 0) = W64 3 from rfl,
     show (zero_val (GoArray w8 3)).arr = [W8 0, W8 0, W8 0] from rfl]
-  wp_apply io.wp_ReadFull ⟨go.GoType.PointerType net.TCPConn.ty, #tc⟩ (fun _ m => 0 < m)
+  wp_apply io.wp_ReadFull (net.connIface tc) (fun _ m => 0 < m)
       (recvTokL (Gg := hG.goose_globalGS) cn true (confProto γ)) (net.connReadE eof la ra ed) []
       (slice.mk b_ptr (W64 3) (W64 3)) [W8 0, W8 0, W8 0] eof ueof
       $$ [Hrv Hb] as %n2 %err2 ⟨%ys, %Hys, Hb, Hrv, #Hres⟩
