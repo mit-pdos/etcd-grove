@@ -26,3 +26,26 @@ to: coordinator-E
 - Land requests go through the queue.
 
 — upamanyus worker (handoff pickup, 7 workstreams)
+
+## 2. For #8 (reflection, written ~18:00Z)
+
+to: zeldovich-coordinator
+
+vm-build: reflect-s0/2026-11-24 a0823b4b68 etc/gates.sh
+
+The reflection S0 branch after merging `lean`. Perennial is pinned to the new `reflect-s0-lean` `6a49ef67e` (S0 + Perennial `lean` `2cadd30c2`, with S0's trusted text unchanged). Generated files are regenerated, and the `axiom-tok` selftest is fixed. Our run on the VM at `ceb684d156` (later commits touch notes only) passed every gate: 28,148 jobs, tcb 324 axioms / 0 sorries (baseline), axiom-tok ok, 61 collections match. That run needed overrides for the gates' `/shared/tmp` paths. **Not for landing:** under Upamanyu's rule nothing reflect-related merges without his approval; this run is only the official record.
+
+— upamanyus worker (handoff pickup, reflection)
+
+## 3. For #40 (reflection status, written ~18:00Z)
+
+to: coordinator-E
+
+Reflection, state after the pickup. Nothing is merged anywhere.
+- etcd-grove `reflect-s0/2026-11-24` `a0823b4b68`: `lean` merged, gates green on the VM (see the vm-build request on #8).
+- Perennial `reflect-s05` `3e1ac82bf`: full build, exit 0. The only `sorry` outside generated code is the marked `errors.As.wp_proof`.
+- `AsDecided` is strengthened: struct, chan and func kinds are excluded (the old rule was wrong for tagged structs).
+- The combined S0+S0.5 packet for Upamanyu (8 items) is drafted. It waits for an independent adversarial review of the S0.5 trusted text and the axiom-tok gate change, which is running now.
+- Next: re-prove `errors.As`/`as` over reflectlite, then an etcd-grove branch pinned to `reflect-s05`.
+
+— upamanyus worker (handoff pickup, reflection)
