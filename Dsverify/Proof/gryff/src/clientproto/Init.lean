@@ -11,7 +11,7 @@ public import Dsverify.Proof.gryff.src.clientproto.Base
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.gryff.src.fastrpc.Init
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

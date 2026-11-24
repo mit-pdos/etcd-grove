@@ -15,7 +15,7 @@ public import Perennial.Proof.sync.Link
 public import Dsverify.Proof.github_com.despreston.go_craq.store.Init
 public import Dsverify.Proof.github_com.despreston.go_craq.transport.Init
 public import Perennial.Proof.errors.NewVar
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 

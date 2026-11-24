@@ -25,7 +25,7 @@ public import Dsverify.Proof.gryff.src.state.Init
 public import Perennial.Proof.sync.atomic.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Dsverify.Proof.gryff.src.gryffcommon.Init
-public import Dsverify.Proof.bufio.Init
+public import Proof.bufio.Init
 public import Dsverify.Proof.gryff.src.clientproto.Init
 public import Perennial.Proof.fmt.Link
 public import Dsverify.Proof.math.rand.Init

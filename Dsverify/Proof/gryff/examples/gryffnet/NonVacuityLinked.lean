@@ -23,7 +23,7 @@ public import Dsverify.Spec.gryff.examples.gryffnet.TopLevelRobustness
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.sync.atomic.Link
 public import Proof.math.Pow
-public import Net.Proof.runtime.PkgInitExt
+public import Proof.runtime.PkgInitExt
 public import Perennial.Proof.internal.stringslite.Link
 
 @[expose] public section
