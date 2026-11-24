@@ -581,7 +581,8 @@ version_Cluster: v3_NewVersion v3_Version__Major v3_Version__Minor =_root_.Peren
 prometheus_GaugeVec__With:
 etcdserver_tickToDur:
 EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks =_root_.Perennial.time.wp_After
-EtcdServer__publishV3:
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the member's publication over its body
+EtcdServer__publishV3: EtcdServer__MemberID EtcdServer__Logger EtcdServer__raftRequest types_ID__String membership_RaftCluster__ID zap_String zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.strings.wp_Join
 EtcdServer__purgeFile: EtcdServer__Logger
 # (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the file descriptor monitor over its body: etcd's
 # `runtime.FDUsage`/`FDLimit` over their trusted models (TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean)

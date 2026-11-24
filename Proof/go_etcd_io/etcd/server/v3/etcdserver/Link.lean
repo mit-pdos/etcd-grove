@@ -3061,7 +3061,7 @@ theorem EtcdServer.wp_adjustTicks :
 
 theorem EtcdServer.wp_publishV3 :
     EtcdServer.publishV3.spec (GF := GF) (hG := hG) :=
-  EtcdServer.publishV3.wp_proof
+  EtcdServer.publishV3.wp_proof EtcdServer.wp_MemberID EtcdServer.wp_Logger EtcdServer.wp_raftRequest types.ID.wp_String membership.RaftCluster.wp_ID zap.wp_String zap.wp_Duration zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn _root_.Perennial.fmt.wp_Sprintf _root_.Perennial.strings.wp_Join
 
 theorem EtcdServer.wp_purgeFile :
     EtcdServer.purgeFile.spec (GF := GF) (hG := hG) :=

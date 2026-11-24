@@ -32,14 +32,17 @@ variable [sem : go.Semantics]
 /-- **What the leadership check reads of the server `s`** (persistent): its raft wrapper's `tickMu`
 with the lock's pools of reader slots (`rnTickPool`: `isActive` borrows one around
 `getLatestTickTs`); the wrapper's node, whose `Status()` returns (`raftStatus`; raft's node API's
-`node.Status`); and `s.ctx`, a context (`ensureLeadership`'s `WithTimeout` parent). -/
+`node.Status`); and `s.ctx`, a context (`ensureLeadership`'s `WithTimeout` parent) whose values are
+`Background()`'s (`ctxValueFrom`; prove-ps2-srvgoroutines, 2026-11-24: `publishV3`'s request context, a
+deadline child of it, has the request path's context facts). -/
 def srvLeadCheckOk (s : Loc) : IProp GF :=
   iprop((∃ mu : Loc, rnTickMuAddr (srvRAddr s) ↦□ mu ∗ rnTickPool (srvRAddr s) mu) ∗
     (∃ (n : GoInterface) (ni : GoInterfaceOk), rnNodeAddr (srvRAddr s) ↦□ n ∗ ⌜n = GoInterface.ok ni⌝ ∗
       □ ({{ True }} (App (Val #(methods ni.ty go!"Status" ni.v)) (Val #()))
         {{ (st : go_etcd_io.raft.v3.Status), RET #st; True }})) ∗
     (∃ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-      structFieldRef EtcdServer go!"ctx" s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd))
+      structFieldRef EtcdServer go!"ctx" s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗
+      _root_.Perennial.context.ctxValueFrom _root_.Perennial.context.backgroundCtxVal ctx))
 
 instance srvLeadCheckOk_persistent (s : Loc) : Persistent (srvLeadCheckOk (GF := GF) s) := by
   unfold srvLeadCheckOk; infer_instance
@@ -63,9 +66,10 @@ theorem srvLeadCheckOk_of
     (s : Loc) (E : RNEnv GF) (γ : RNNames GF) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isRaftNode E γ (srvRAddr s) ∗
-      structFieldRef EtcdServer go!"ctx" s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ⊢
+      structFieldRef EtcdServer go!"ctx" s ↦□ GoInterface.ok ctx ∗ context.isContext ctx cd ∗
+      _root_.Perennial.context.ctxValueFrom _root_.Perennial.context.backgroundCtxVal ctx ⊢
       srvLeadCheckOk s := by
-  iintro ⟨#Hpkg, #Hr, #Hc, #Hci⟩
+  iintro ⟨#Hpkg, #Hr, #Hc, #Hci, #Hcf⟩
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
@@ -86,7 +90,7 @@ theorem srvLeadCheckOk_of
     iapply HΦ
     itrivial
   · iexists ctx, cd
-    iframe Hc Hci
+    iframe Hc Hci Hcf
 
 end lemmas
 

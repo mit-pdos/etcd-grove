@@ -377,11 +377,17 @@ PROJECTS = [
         # modernize analyzer's errorsastype rewrite across the modules, and by hand where `As` is the
         # first operand of an `&&` (fileutil's preallocExtend/preallocFixed, isSafeRetryImmutableRPC),
         # so that those proofs use Perennial's proved `AsType` spec instead of its `errors.As` axiom.
+        # Then (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42 item 2, per the fmt decision on
+        # mit-pdos/perennial#671) bc2b5f4d0 (branch `goose-lean-fmtattrs`, on edc800c6f): `publishV3`'s
+        # three log lines format the member's attributes field by field,
+        # `fmt.Sprintf("{Name:%s ClientURLs:[%s]}", Name, strings.Join(ClientURLs, " "))`, the same bytes
+        # as `fmt.Sprintf("%+v", s.attributes)`, which reaches fmt's reflection-based `printValue`.
         # Then (sortslice, 2026-11-24, mit-pdos/etcd-grove#18, approved by Upamanyu via
-        # coordinator-E) a336e97f9 (branch `goose-lean-slicessort`, on edc800c6f): mvcc's
-        # `hashStorage.Store` sorts with `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead
-        # of `sort.Slice` (whose reflection Perennial does not model), an upstream-ready change.
-        rev="a336e97f92ff403336ddb096643bdc5f0b002ec4",
+        # coordinator-E) 6b942d23f (branch `goose-lean-slicessort-on-fmtattrs`, on bc2b5f4d0; first
+        # a336e97f9 on edc800c6f, branch `goose-lean-slicessort`): mvcc's `hashStorage.Store` sorts with
+        # `slices.SortFunc(s.hashes, cmp.Compare on Revision)` instead of `sort.Slice` (whose reflection
+        # Perennial does not model), an upstream-ready change.
+        rev="6b942d23f4aa521933095fd2ac8724e99ff38cdf",
         # grpc-go v1.84.0 (etcd's go.mod) from its model, models/grpc (the same API; its transport
         # and connection management replaced: models/README.md, "The grpc model"), so that grpc's
         # specs can be proved over the model's bodies (notes/phase7-plan.md, S0)
