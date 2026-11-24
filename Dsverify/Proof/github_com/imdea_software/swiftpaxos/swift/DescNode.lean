@@ -385,8 +385,6 @@ theorem swift.nodeN_diff : ↑sp.spN ⊆ (⊤ \ ↑swift.nodeN : CoPset) := by
   rw [LawfulSet.mem_diff]
   exact ⟨CoPset.mem_full, fun h' => swift.nodeN_spN e ⟨h', he⟩⟩
 
-/-- The store under a change of the rows' values (not of their keys). -/
-
 /-- The node invariant inside a node prophecy's invariant (a resolution's step, at
 `⊤ ∖ ↑client.nodeProphN`). -/
 theorem swift.nodeN_pE : ↑swift.nodeN ⊆ (⊤ \ ↑client.nodeProphN : CoPset) := by
@@ -397,6 +395,7 @@ theorem swift.spN_pE : ↑sp.spN ⊆ ((⊤ \ ↑client.nodeProphN) \ ↑swift.no
   unfold sp.spN swift.nodeN client.nodeProphN
   solve_ndisj
 
+/-- The store under a change of the rows' values (not of their keys). -/
 theorem swift.storeOk_dom (cb : Nat) (O O' : GMap (Nat × sp.CmdId) swift.RowV) Rt Out Cl
     (hO : ∀ K, (O.lookup K).isSome ↔ (O'.lookup K).isSome) (h : swift.storeOk cb O Rt Out Cl) :
     swift.storeOk cb O' Rt Out Cl := by

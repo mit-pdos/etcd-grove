@@ -311,14 +311,13 @@ def swift.ownRdr (rp : Loc) (γdl : GName) : IProp netDistGF :=
 instance swift.exOk_persistent (γ : sp.Names) (N r b : Nat) (e : swift.ExE) :
     Persistent (swift.exOk γ N r b e) := by unfold swift.exOk; infer_instance
 
-/-- An epoch pin against `delivInv`'s share: not in removal mode, and the record's epoch is the
-pin's. -/
-
 /-- The delivered-commands invariant inside a node prophecy's invariant and the node invariant. -/
 theorem swift.delivN_pE : ↑swift.delivN ⊆ ((⊤ \ ↑client.nodeProphN) \ ↑swift.nodeN : CoPset) := by
   unfold swift.delivN swift.nodeN client.nodeProphN
   solve_ndisj
 
+/-- An epoch pin against `delivInv`'s share: not in removal mode, and the record's epoch is the
+pin's. -/
 theorem swift.epochPin_agree (γxp : GName) (b bX : Nat) (rm : Bool) :
     swift.epochPin γxp b ∗ ghostVar γxp (if rm then 1 else (1 : Qp).half) bX ⊢
       swift.epochPin γxp b ∗ ghostVar γxp (if rm then 1 else (1 : Qp).half) bX ∗
