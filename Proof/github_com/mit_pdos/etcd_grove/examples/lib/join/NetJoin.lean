@@ -13,8 +13,9 @@ over Perennial's raw `WaitGroup` specs (taken as hypotheses, as `sync.tokJoin` d
   network's goroutines return nothing and are added from three goroutines at once, hence this local
   form (the general shared-adder join is recorded in `notes/perennial-changes.md`). Once the adders
   have all come back (`njAdder 1`), `njClose` gives the waiters' right, and `wp_Wait` returns.
-* **`join3`** (`drivers`, a local `WaitGroup`): one `Add(3)` from a fresh wait group, three `Done`s,
-  one `Wait` (`sync.join`'s `Add` is `Add(1)` only).
+* **`join3`** (a local `WaitGroup`): one `Add(3)` from a fresh wait group, three `Done`s,
+  one `Wait` (`sync.join`'s `Add` is `Add(1)` only); **`joinN`** the same for `Add(k)` (the Antithesis
+  harness's `drivers`, `Add(2)`).
 
 Neither carries a resource through `Done`/`Wait`: the harness needs none back.
 -/
@@ -47,6 +48,12 @@ structure NetJoinNames where
   dep : GName
   /-- the adders' right (a fraction of `()`) -/
   ad : GName
+
+/-- A `joinN`'s names (`JoinN`: as `Join3Names`, for any number of goroutines). -/
+structure JoinNNames where
+  wg : WaitGroupNames
+  /-- the goroutines not yet done -/
+  nd : GName
 
 /-- The `drivers` join's names. -/
 structure Join3Names where
@@ -439,6 +446,166 @@ theorem join3.wp_Wait_of
   imod Hclose $$ [Hwgo Hnd Hctr] with -
   · inext
     unfold j3Inv
+    iexists ctr, n
+    iframe Hwgo Hnd Hctr
+  imodintro
+  iintro -
+  iapply HΦ
+  itrivial
+
+/-! ## `joinN`
+
+`join3` for any number `k` of goroutines (`0 < k < 2^31`, a `WaitGroup`'s counter): one `Add(k)` on a
+fresh wait group, `k` `Done`s, one `Wait` (2026-11-24, #33 S4: the Antithesis harness's `drivers`,
+`Add(2)`). The `Done` rights come as one `jNDones N wg γ k`, split by `jNDones_split`. -/
+
+/-- A `joinN`'s invariant: the counter is the goroutines not yet done. -/
+def jNInv (γ : JoinNNames) : IProp GF :=
+  iprop(∃ (ctr : w32) (n : Nat), ownWaitGroup γ.wg ctr ∗ ownTokAuth γ.nd n ∗ ⌜sint.Z ctr = n⌝)
+
+/-- A `joinN` (persistent). -/
+def isJoinN (N : Namespace) (wg : Loc) (γ : JoinNNames) : IProp GF :=
+  iprop(isWaitGroup wg γ.wg (N.@"wg") ∗ inv (N.@"inv") (jNInv γ))
+
+instance isJoinN_persistent (N : Namespace) (wg : Loc) (γ : JoinNNames) :
+    Persistent (isJoinN (GF := GF) N wg γ) := by
+  unfold isJoinN; infer_instance
+
+/-- `m` goroutines' rights to `Done` (`jNDones N wg γ 1`: one goroutine's). -/
+def jNDones (N : Namespace) (wg : Loc) (γ : JoinNNames) (m : Nat) : IProp GF :=
+  iprop(ownToks γ.nd m ∗ isJoinN N wg γ)
+
+/-- The waiter's right to `Wait`. -/
+def jNWaiter (N : Namespace) (wg : Loc) (γ : JoinNNames) : IProp GF :=
+  iprop(ownWaitGroupWaiters γ.wg 0 ∗ isJoinN N wg γ)
+
+/-- Splitting the rights to `Done`. -/
+theorem jNDones_split (N : Namespace) (wg : Loc) (γ : JoinNNames) (m n : Nat) :
+    jNDones (GF := GF) N wg γ (m + n) ⊢ jNDones N wg γ m ∗ jNDones N wg γ n := by
+  unfold jNDones
+  iintro ⟨Ht, #Hj⟩
+  icases ownToks_add_1 n m γ.nd $$ Ht with ⟨Hm, Hn⟩
+  iframe Hm Hn Hj
+
+/-- **`wg.Add(k)` on a fresh wait group**: `k` rights to `Done` and the right to `Wait`. -/
+theorem joinN.wp_Add_of
+    (wp_Add : sync.WaitGroup.Add.spec (GF := GF) (hG := hG))
+    (N : Namespace) (wg : Loc) (γwg : WaitGroupNames) (k : Nat) (Hk : k < 2 ^ 31) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ isWaitGroup wg γwg (N.@"wg") ∗
+        ownWaitGroup γwg (W32 0) ∗ ownWaitGroupWaiters γwg 0 }}
+      (App (Val (wg @!! go.GoType.PointerType WaitGroup.ty @!! go!"Add")) (Val #(W64 k)))
+    {{ RET #(); ∃ γ : JoinNNames, jNDones N wg γ k ∗ jNWaiter N wg γ }} := by
+  wp_start_folded as ⟨#Hwg, Hwgo, Hw⟩
+  have Hz : sint.Z (W32 (sint.Z (W64 k))) = (k : Int) := by
+    have h1 : sint.Z (W64 k) = (k : Int) := by word
+    rw [h1]; word
+  have Hc : sint.Z (W32 0 + W32 (sint.Z (W64 k))) = (k : Int) := by
+    rw [show W32 0 + W32 (sint.Z (W64 k)) = W32 (sint.Z (W64 k)) by word]; exact Hz
+  wp_apply_core wp_Add wg (W64 k) γwg (N.@"wg") $$ [] [-]
+  · iframe #
+  iapply fupd_mask_intro (fun _ _ => CoPset.mem_full)
+  iintro Hmask
+  inext
+  iexists W32 0
+  iframe Hwgo
+  isplitr
+  · ipureintro
+    have h0 : sint.Z (W32 0) = 0 := rfl
+    rw [h0, Hz]; constructor <;> omega
+  iright
+  iframe Hw
+  iintro Hw Hwgo
+  imod Hmask with -
+  imod ownTokAuth_alloc (GF := GF) with ⟨%γnd, Hnd⟩
+  imod ownTokAuth_add k γnd 0 $$ Hnd with ⟨Hnd, Htoks⟩
+  let γ : JoinNNames := ⟨γwg, γnd⟩
+  imod inv_alloc (N.@"inv") ⊤ (jNInv (GF := GF) γ) $$ [Hwgo Hnd] with #Hinv
+  · inext
+    unfold jNInv
+    iexists W32 0 + W32 (sint.Z (W64 k)), 0 + k
+    iframe Hwgo Hnd
+    ipureintro; rw [Hc]; push_cast; omega
+  imodintro
+  iapply HΦ
+  iexists γ
+  unfold jNDones jNWaiter isJoinN
+  iframe Htoks Hw Hwg Hinv
+
+/-- **A goroutine's `wg.Done()`.** -/
+theorem joinN.wp_Done_of
+    (wp_Done : sync.WaitGroup.Done.spec (GF := GF) (hG := hG))
+    (N : Namespace) (wg : Loc) (γ : JoinNNames) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ jNDones N wg γ 1 }}
+      (App (Val (wg @!! go.GoType.PointerType WaitGroup.ty @!! go!"Done")) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start_folded as Hd
+  unfold jNDones
+  icases Hd with ⟨Hdtok, #Hj⟩
+  iunfold isJoinN at Hj
+  icases Hj with ⟨#Hwg, #Hinv⟩
+  wp_apply_core wp_Done wg γ.wg (N.@"wg") $$ [] [-]
+  · iframe #
+  imod inv_acc (E := ⊤) (fun _ _ => CoPset.mem_full) $$ Hinv with ⟨Hi, Hclose⟩
+  iapply fupd_mask_intro (wg_mask_ndot_ne N "wg" "inv" (by decide))
+  iintro Hmask
+  inext
+  iunfold jNInv at Hi
+  icases Hi with ⟨%ctr, %n, Hwgo, Hnd, %Hctr⟩
+  icombine Hnd Hdtok gives %Hn1
+  obtain ⟨n', rfl⟩ : ∃ n', n = n' + 1 := ⟨n - 1, by omega⟩
+  have hz : sint.Z (ctr - W32 1) = sint.Z ctr - 1 := by
+    have : 1 ≤ sint.Z ctr := by push_cast at Hctr; omega
+    word
+  iexists ctr
+  iframe Hwgo
+  isplitr
+  · ipureintro; push_cast at Hctr; constructor <;> word
+  iintro Hwgo
+  imod Hmask with -
+  imod ownTokAuth_delete_S γ.nd n' $$ Hnd Hdtok with Hnd
+  imod Hclose $$ [Hwgo Hnd] with -
+  · inext
+    unfold jNInv
+    iexists ctr - W32 1, n'
+    iframe Hwgo Hnd
+    ipureintro; rw [hz]; push_cast at Hctr; omega
+  imodintro
+  iapply HΦ
+  itrivial
+
+/-- **The waiter's `wg.Wait()`.** -/
+theorem joinN.wp_Wait_of
+    (wp_Wait : sync.WaitGroup.Wait.spec (GF := GF) (hG := hG))
+    (N : Namespace) (wg : Loc) (γ : JoinNNames) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ jNWaiter N wg γ }}
+      (App (Val (wg @!! go.GoType.PointerType WaitGroup.ty @!! go!"Wait")) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start_folded as Hw
+  unfold jNWaiter
+  icases Hw with ⟨Hwait, #Hj⟩
+  iunfold isJoinN at Hj
+  icases Hj with ⟨#Hwg, #Hinv⟩
+  iapply fupd_wp
+  imod fupd_mask_subseteq (E1 := ⊤) (E2 := ↑(N.@"wg")) (fun _ _ => CoPset.mem_full) with Hmask
+  imod alloc_wait_token wg γ.wg (N.@"wg") 0 (by decide) $$ Hwg Hwait with ⟨-, Htok⟩
+  imod Hmask with -
+  imodintro
+  wp_apply_core wp_Wait wg γ.wg (N.@"wg") $$ [Htok] [-]
+  · iframe #; iframe
+  imod inv_acc (E := ⊤ \ ↑(N.@"wg")) (wg_mask_ndot_ne N "inv" "wg" (by decide)) $$ Hinv
+    with ⟨Hi, Hclose⟩
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iunfold jNInv at Hi
+  icases Hi with ⟨%ctr, %n, Hwgo, Hnd, Hctr⟩
+  iexists ctr
+  iframe Hwgo
+  iintro %H0 Hwgo
+  imod Hmask with -
+  imod Hclose $$ [Hwgo Hnd Hctr] with -
+  · inext
+    unfold jNInv
     iexists ctr, n
     iframe Hwgo Hnd Hctr
   imodintro
