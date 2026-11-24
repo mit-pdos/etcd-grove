@@ -7,6 +7,7 @@ store's map, the index, the configuration), raft's `Status` (its hard state read
 module
 
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__status
+public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Node__current
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Replica__contents
 public import KvNet.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvnet.Stats__Snapshot
 public import KvNet.Spec.go_etcd_io.raft.v3.node__Status
@@ -43,21 +44,22 @@ theorem Node.status.wp_proof
     (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetCommit : raftpb.HardState.GetCommit.spec (GF := GF) (hG := hG))
     (wp_Snapshot : Stats.Snapshot.spec (GF := GF) (hG := hG))
-    (γk : KdNames) (vs : List w64) (dir : GoString) (F : KvFacts GF) :
-    Node.status.spec (GF := GF) (hG := hG) F (kvRep γk vs dir) := by
-  intro nd γ N id n
+    (γk : KdNames) (vs : List w64) (dir : GoString) (F : KvFacts GF) (stp : NodeStopper GF)
+    (wp_current : Node.current.spec (GF := GF) (hG := hG) F (kvRep γk vs dir) stp) :
+    Node.status.spec (GF := GF) (hG := hG) F (kvRep γk vs dir) stp := by
+  intro nd γ N id
   wp_start as #Hnd
   ihave #Hnd' := Hnd
   iunfold isNodeS at Hnd'
-  icases Hnd' with ⟨%r, %t, %sp, #Hr, #Ht, #Hsp, #Hst, #Hnode, #Hrep, #Htc⟩
-  ihave #Htc' := Htc
-  iunfold isTransportCore at Htc'
-  icases Htc' with ⟨%sp', -, -, -, -, #HisN, -, -⟩
-  iunfold kvRep at Hrep
+  icases Hnd' with ⟨%cfg, %Mc, %sp, %f, -, -, -, #Hsp, #Hst, -, -, -, -, -⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
+  try wp_auto
+  -- (2026-11-24, G5) the current incarnation's replica, read once
+  wp_apply wp_current nd γ N id $$ [$Hpkg $Hnd] as %r ⟨%n, #Hrn, #Hrep, #HisN⟩
+  iunfold kvRep at Hrep
   try wp_auto
   wp_apply wp_contents γk vs dir id r $$ [$Hrep] as %m %idx %csp ⟨%M, %c, HM, %HMf, #Hcs⟩
   try wp_auto
