@@ -137,7 +137,7 @@ index df5babb..a54a384 100644
  	for _, d := range e.dep {
  		depDesc := r.getCmdDesc(d, nil, nil)
  		if depDesc == nil {
-@@ -795,3 +801,163 @@ func (r *Replica) reinitNewLeaderAckNs(b int32) {
+@@ -795,3 +801,165 @@ func (r *Replica) reinitNewLeaderAckNs(b int32) {
  	Q := replica.NewMajorityOf(r.N)
  	r.newLeaderAckNs = r.newLeaderAckNs.ReinitMsgSet(Q, accept, free, r.handleNewLeaderAckNs)
  }
@@ -298,6 +298,8 @@ index df5babb..a54a384 100644
 +func resolveTakeSync(b int32) {
 +	s := ""
 +	w := uint64(11)
++	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
++	w = uint64(b)
 +	s += string(byte(w&127)) + string(byte(w>>7&127)) + string(byte(w>>14&127)) + string(byte(w>>21&127)) + string(byte(w>>28&127)) + string(byte(w>>35&127)) + string(byte(w>>42&127)) + string(byte(w>>49&127)) + string(byte(w>>56&127)) + string(byte(w>>63&127))
 +	nodeProph.Resolve(s)
 +}
