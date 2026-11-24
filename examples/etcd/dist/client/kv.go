@@ -22,12 +22,10 @@ import (
 const kvCheckTimeout = 2 * time.Minute
 
 // RunKV runs the kv workload (see above) with the client machines nodes (client c's at nodes[c],
-// its clientv3 client of every endpoint, preferring eps[c mod k]); its set-up is the wait for
-// them (ready after it).
+// its clientv3 client of every endpoint, preferring eps[c mod k]); no set-up (ready at once). A
+// client machine that is not listening yet is a call without an answer (no wait: the harness starts
+// the orchestrator once its client machines listen).
 func RunKV(nodes []string, ops int, ready func()) Result {
-	if !AwaitAccept(nodes) {
-		return ended("kv: a client machine never answered")
-	}
 	ready()
 	r := kvremote.Orch(nodes, ops, kvCheckTimeout)
 	if r == porcupine.Illegal {

@@ -4,7 +4,7 @@ module
 public import GeneratedProof.k8s_io.kubernetes.pkg.util.hash
 public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.fmt.Base
-public import SpecPlan.Spec.PkgInit.hash
+public import Perennial.Proof.hash.Base
 public import SpecPlan.Spec.PkgInit.k8s_io.utils.dump
 
 @[expose] public section
@@ -21,7 +21,7 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance pkgInit_k8s_io_kubernetes_pkg_util_hash : IsPkgInit (IProp GF) pkg_id.k8s_io.kubernetes.pkg.util.hash :=
+instance : IsPkgInit (IProp GF) pkg_id.k8s_io.kubernetes.pkg.util.hash :=
   define_is_pkg_init (pkgInitDef (GF := GF) pkg_id.k8s_io.kubernetes.pkg.util.hash)
 end
 

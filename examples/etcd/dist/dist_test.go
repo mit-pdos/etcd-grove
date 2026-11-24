@@ -83,7 +83,58 @@ func TestWellFormed(t *testing.T) {
 	if WellFormed(bad) == nil {
 		t.Error("an ephemeral port passed")
 	}
-	if deployment.AddrOk("010.1.1.1:80") || deployment.AddrOk("10.1.1:80") || !deployment.AddrOk("10.77.1.1:2379") {
+	// the size bounds (MaxMembers, MaxLen)
+	bad = d
+	bad.Members = append([]Member(nil), d.Members...)
+	bad.Members[0].Name = strings.Repeat("n", deployment.MaxLen+1)
+	if WellFormed(bad) == nil {
+		t.Error("a too-long member name passed")
+	}
+	bad = d
+	bad.Token = strings.Repeat("t", deployment.MaxLen+1)
+	if WellFormed(bad) == nil {
+		t.Error("a too-long token passed")
+	}
+	bad = d
+	bad.Members = nil
+	for i := 0; i <= deployment.MaxMembers; i++ {
+		p, c := addr(i)
+		bad.Members = append(bad.Members, Member{Name: fmt.Sprintf("m%d", i), Peer: p, Client: c})
+	}
+	if WellFormed(bad) == nil {
+		t.Error("too many members passed")
+	}
+	// the member names, the token, the server configuration
+	bad = d
+	bad.Members = append([]Member(nil), d.Members...)
+	bad.Members[1].Name = bad.Members[0].Name
+	if WellFormed(bad) == nil {
+		t.Error("a repeated member name passed")
+	}
+	bad.Members[1].Name = "m_1"
+	if WellFormed(bad) == nil {
+		t.Error("a member name with '_' passed")
+	}
+	bad = d
+	bad.Token = ""
+	if WellFormed(bad) == nil {
+		t.Error("an empty token passed")
+	}
+	bad = d
+	bad.Cfg.SnapCount = 0
+	if WellFormed(bad) == nil {
+		t.Error("a snapshot count of 0 passed")
+	}
+	bad = d
+	bad.Cfg.CompactorMode, bad.Cfg.Retention = deployment.CompactorPeriodic, 9
+	if WellFormed(bad) == nil {
+		t.Error("a periodic compactor below its minimum retention passed")
+	}
+	bad.Cfg.CompactorMode, bad.Cfg.Retention = "hourly", 1000
+	if WellFormed(bad) == nil {
+		t.Error("an unknown compactor mode passed")
+	}
+	if deployment.AddrOk("010.1.1.1:80") || deployment.AddrOk("10.1.1:80") || deployment.AddrOk("10.-1.2.3:80") || !deployment.AddrOk("10.77.1.1:2379") {
 		t.Error("AddrOk")
 	}
 	// the client machines: their number, their addresses
@@ -114,6 +165,23 @@ func TestWellFormed(t *testing.T) {
 	bad.Workloads = []Workload{{Kind: deployment.KV, Clients: 2, Ops: 1 << 59}}
 	if WellFormed(bad) == nil {
 		t.Error("kv's clients*ops >= 2^60 passed")
+	}
+	// the workloads' compatibility and their server configuration
+	bad = d
+	bad.Workloads = []Workload{{Kind: deployment.KV, Clients: 2, Ops: 3}, {Kind: deployment.Durable, Clients: 1}}
+	bad.Nodes = [][]string{d.Nodes[0], {}}
+	if WellFormed(bad) == nil {
+		t.Error("kv beside a workload writing keys passed")
+	}
+	bad.Workloads = []Workload{{Kind: deployment.Auth}}
+	bad.Nodes = [][]string{testNodes(bad.Workloads)[0]}
+	bad.Cfg.Auth = false
+	if WellFormed(bad) == nil {
+		t.Error("auth without the token provider passed")
+	}
+	bad.Cfg.Auth = true
+	if err := WellFormed(bad); err != nil {
+		t.Errorf("auth with the token provider failed: %v", err)
 	}
 	bad.Workloads = []Workload{{Kind: deployment.Durable + 1}}
 	bad.Nodes = [][]string{{}}

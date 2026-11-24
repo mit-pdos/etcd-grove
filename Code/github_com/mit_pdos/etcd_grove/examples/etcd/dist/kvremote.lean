@@ -31,9 +31,6 @@ namespace github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote
 @[reducible] noncomputable def Attempt [GooseExts] [GoGlobalContext] : val :=
   #(W64 10000000000)
 
-@[reducible] noncomputable def Retry [GooseExts] [GoGlobalContext] : val :=
-  #(W64 100000000)
-
 noncomputable def encCmp [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote.encCmp"
 
@@ -81,9 +78,6 @@ noncomputable def Codec [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def Orch [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote.Orch"
-
-noncomputable def connect [GooseExts] [GoGlobalContext] : GoString :=
-  go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote.connect"
 
 noncomputable def Node [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/etcd/dist/kvremote.Node"
@@ -821,16 +815,20 @@ noncomputable def Orch.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.anishathalye.porcupine.CheckResult.ty))) (Var "$res0")))))))
 
-/-- connect makes a clientv3 client of the endpoints eps, trying until it succeeds.
+/-- Node is client machine c's program, at addr: a clientv3 client of the endpoints eps (in the
+    order the client prefers), each operation it is asked txnlin.Call through it. It never returns,
+    except at once if its client fails to be made (no retry: the orchestrator's calls to it then go
+    unanswered).
 
     go: kvremote.go:215:6 -/
-noncomputable def connect.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "eps"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Val #())))
+noncomputable def Node.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "addr"
+  (Lam "eps"
   (Seq (App (Val exceptionDo)
   (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "eps"))
-  (App (App (App (Val doFor) (Lam BAnon
-  (Val #true))) (Lam BAnon
+  (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (Var "c"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
   (Let "$a1" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.NewNop []))) (Val #())) (Val #()))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -843,43 +841,10 @@ noncomputable def connect.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doExecute)
-  (Let "$a0" (Val Retry)
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #()))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0"))))))))))))))
-  (Lam BAnon
-  (Val #())))))
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "$res0")))))
-
-/-- Node is client machine c's program, at addr: a clientv3 client of the endpoints eps (in the
-    order the client prefers), each operation it is asked txnlin.Call through it. It never returns.
-
-    go: kvremote.go:227:6 -/
-noncomputable def Node.impl [GooseExts] [GoGlobalContext] : val :=
-  (LamV "c"
-  (Lam "addr"
-  (Lam "eps"
-  (Seq (App (Val exceptionDo)
-  (Let "eps" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "eps"))
-  (Let "addr" (App (Val (GoInstruction (GoAlloc go.string))) (Var "addr"))
-  (Let "c" (App (Val (GoInstruction (GoAlloc go.int))) (Var "c"))
   (Let "$r0" (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.any))) (App (Val (GoInstruction (GoZeroVal go.any))) (Val #())))
   (Seq (App (Val exceptionDo)
-  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "eps"))
-  (App (App (Val (GoInstruction (FuncResolve connect []))) (Val #())) (Var "$a0"))))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty) go.any))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Var "cli")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -916,7 +881,16 @@ noncomputable def Node.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.any]))))) (Pair (Var "op") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [go.int] false [go.any]))))) (Pair (Var "newClient") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.Client.ty)))) (Pair (Var "cli") (Var "$r0"))))))))))))))))
   (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.dist.kvremote where
@@ -967,7 +941,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   DecOutput_unfold : FuncUnfold DecOutput [] DecOutput.impl
   Codec_unfold : FuncUnfold Codec [] Codec.impl
   Orch_unfold : FuncUnfold Orch [] Orch.impl
-  connect_unfold : FuncUnfold connect [] connect.impl
   Node_unfold : FuncUnfold Node [] Node.impl
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_porcupine_Assumption : _root_.Perennial.github_com.anishathalye.porcupine.Assumptions
@@ -994,7 +967,6 @@ attribute [instance] Assumptions.encCmp_unfold
   Assumptions.DecOutput_unfold
   Assumptions.Codec_unfold
   Assumptions.Orch_unfold
-  Assumptions.connect_unfold
   Assumptions.Node_unfold
   Assumptions.import_time_Assumption
   Assumptions.import_porcupine_Assumption

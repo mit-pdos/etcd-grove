@@ -13,6 +13,8 @@ public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.github_com.prometheus.client_golang.prometheus.Metric
 public import Proof.errors.NewVar
 public import Perennial.Proof.internal.bytealg.Base
+public import Perennial.Proof.crypto.sha1.Base
+public import Perennial.Proof.encoding.binary.Base
 
 @[expose] public section
 

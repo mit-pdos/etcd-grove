@@ -7,7 +7,9 @@ dialer writes, and `Q`, what the acceptor writes).
 * `hijackOk rp cn a P Q hs D`: the right to hijack the connection through the response `rp` (a
   `*response`): `rp.Hijack()` returns the connection (`*TCPConn`, the acceptor's end of `cn`) with
   nothing written and exactly the head `hs` read (the server's buffered reader holds nothing more:
-  no dialer byte past its head before an answer, the protocol's fact), its fresh token, and `D`,
+  no dialer byte past its head before an answer, the protocol's fact), its fresh token, its read
+  deadline's token, cleared (`hijackLocked` clears both deadlines; or, if that failed, the end was
+  closed and its reading is dead, `readDead`), and `D`,
   what the server gets back from the handler (2026-11-23: the evidence that the connection was
   hijacked, which `conn.serve` needs after the handler returns; a handler's spec returns it).
   Stated as the weakest precondition of the call, which net/http's `conn.serve` gives the handler
@@ -50,7 +52,9 @@ def hijackOk (rp : Loc) (cn : Nat) (a : GoString) (P Q : Proto GF) (hs : List w8
       net.connAt (GF := GF) t cn true a la ra -∗
       sendTok (Gg := hG.goose_globalGS) cn true Q [] -∗
       recvTok (Gg := hG.goose_globalGS) cn true P hs -∗
-      connFresh (Gg := hG.goose_globalGS) cn true -∗ D -∗
+      connFresh (Gg := hG.goose_globalGS) cn true -∗
+      (∃ b : Bool, rdlTok (Gg := hG.goose_globalGS) cn true b ∗
+        (⌜b = false⌝ ∨ readDead (Gg := hG.goose_globalGS) cn true)) -∗ D -∗
       Φ (PairV (PairV #(interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t) #bw)
         #(interface.nil : GoInterface))) -∗
     WP (App (Val #(methods (go.GoType.PointerType net.http.response.ty) go!"Hijack" #rp)) (Val #()))

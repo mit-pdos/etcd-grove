@@ -76,7 +76,8 @@ func newClient(eps []string) (*clientv3.Client, error) {
 	return etcdstart.NewClients(eps, zap.NewNop())
 }
 
-// How many times, and how far apart, AwaitCluster tries its read.
+// How many times, and how far apart, AwaitCluster tries its read (k8s/dist's wait; etcd_safe's
+// programs do not retry: see MainReady).
 const (
 	readyTries = 60
 	readyPause = 500 * time.Millisecond
@@ -111,10 +112,9 @@ func Main(w deployment.Workload, eps []string, nodes []string) Result {
 
 // hasSetUp says whether a workload of kind k has a set-up: steps before its checks whose unknown
 // outcome cannot be redone (auth's users and AuthEnable, authLease's leases, leaseCatchup's first
-// lease) or that must precede the writes (the watch and the cache opened before any write), or that
-// wait for its client machines (kv, watch, cache, auth).
+// lease) or that must precede the writes (the watch and the cache opened before any write).
 func hasSetUp(k deployment.Kind) bool {
-	return k == deployment.KV || k == deployment.Watch || k == deployment.Cache || k == deployment.Auth ||
+	return k == deployment.Watch || k == deployment.Cache || k == deployment.Auth ||
 		k == deployment.AuthLease || k == deployment.LeaseCatchup
 }
 
@@ -122,19 +122,20 @@ func hasSetUp(k deployment.Kind) bool {
 // that pick a member use eps[i mod len(eps)]), with its client machines nodes (deployment.NodeCount(w) of
 // them: nodes.go). A failed check is a panic inside the workload.
 //
-// ready is called once the workload's set-up is done (at once, after the cluster's first read, for
-// a workload with none), or not at all if the workload ends before: the test may hold its faults
-// until then (examples/etcd/dist (its test)). It is an observer only: nothing the workload does
-// depends on it.
+// ready is called once the workload's set-up is done (at once for a workload with none), or not at
+// all if the workload ends before: the test may hold its faults until then (examples/etcd/dist (its
+// test)). It is an observer only: nothing the workload does depends on it.
+//
+// No step is retried for liveness: the first failure of a step the workload needs ends it (a
+// Result that is not Checked). Waiting until the members serve clients and the client machines
+// listen is the harness's (examples/etcd/dist's Cluster.Run, before it starts the orchestrators),
+// not the program's.
 func MainReady(w deployment.Workload, eps []string, nodes []string, ready func()) Result {
 	if len(eps) == 0 {
 		return ended("no endpoint")
 	}
 	if len(nodes) != deployment.NodeCount(w) {
 		return ended("not one client machine per client")
-	}
-	if !AwaitCluster(eps) {
-		return ended("the cluster never answered a read")
 	}
 	if !hasSetUp(w.Kind) {
 		ready()

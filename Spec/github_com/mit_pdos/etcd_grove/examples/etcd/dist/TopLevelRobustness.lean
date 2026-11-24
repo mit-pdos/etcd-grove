@@ -2,12 +2,9 @@
 
 # `etcd/dist`: the distributed etcd theorem, stated (DRAFT)
 
-**Two statements, drafts** (`notes/etcd-dist-plan.md` §11-§13): `etcd_robust.spec` (`etcd_safe`, with
-crashes) and the interim `etcd_robust_nocrash.spec` (`etcd_safe_nocrash`, no machine crashing; Q7), both
-over the fixed bundle `etcdNetExts` (`[idIssueExt, fsExt at etcdFsSem, netExt]`). Built, not proved; **not
-instantiable yet**: the boot programs are opaque PLACEHOLDERs until stage D2 translates
-`examples/etcd/dist/{server,client}`. `etcd_safe` takes the plain name (2026-11-22, the naming on #24) of
-the single-process theorem it replaces (`examples/etcd/all`, now `etcd_safe_single_process`).
+**Two statements** (`notes/etcd-dist-plan.md` §11-§15): `etcd_robust.spec` (`etcd_safe`, with crashes)
+and `etcd_robust_nocrash.spec` (`etcd_safe_nocrash`, no machine crashing), both over the fixed bundle
+`etcdNetExts` (`[idIssueExt, fsExt at etcdFsSem, netExt]`). Not proved yet.
 
 **For every deployment** of one etcd cluster and its clients -- `k ≥ 1` members, each running
 `examples/etcd/dist/server` on a machine of its own **that may crash at any step and restart** (with the
@@ -17,59 +14,54 @@ crash** (`examples/etcd/dist/client`: KV with porcupine, watch, watch cache, com
 lease rows, lease reads, lease catch-up, lease expiry, durability) against the members' client
 addresses -- **in every execution** of Perennial's distributed semantics (any interleaving, any crash of
 any member, every fault the net extension allows: bytes delayed, a direction cut at any read or write, a
-dial refused; a partition is such an execution) of fewer than `bound` steps along which every machine
-keeps fewer than `threads` threads, **no thread of any machine is stuck or has an unrecovered panic**.
-Each client panics if its check fails, so no check fails.
+dial refused; a partition is such an execution) of fewer than `etcdSteps` (`2 ^ 48`) steps along which
+every machine keeps fewer than `etcdThreads` (`2 ^ 28`) live threads, **no thread of any machine is stuck
+or has an unrecovered panic**. Each client panics if its check fails, so no check fails.
 
-**The deployment is not a premise.** Every machine's program receives the whole deployment and checks
-it first (Go's `deployment.WellFormed`, mirrored by Lean's `Deployment.WellFormed`: names, `addrOk` addresses,
-distinct, the members' ids apart in their low bits, the server configuration in its supported set, the
-workloads compatible and within their bounds), returning at once if it fails; `TestWellFormed` and
-`TestDist` show the check passes on random deployments and the real path runs.
+**The two bounds** (`Robust`'s; `TopLevelDefs.lean`, `notes/etcd-dist-plan.md` §14):
+- `etcdThreads = 2 ^ 28`, a bound on the execution (one where a machine reaches `2 ^ 28` live threads is
+  covered up to the configuration before): the server's and clients' specs cap their thread pools by it;
+- `etcdSteps = 2 ^ 48`, the cap on the proofs' time receipts, the highest the specs allow, for three
+  lifetime counters of the Go code: `idutil`'s request ids (a 48-bit suffix: distinct for fewer than
+  `2 ^ 48` ids per generator), the mvcc store's changes, and the auth store's admin requests (its fuel).
+
+**The deployment is not a premise.** Every machine's program receives the whole deployment as a Go value
+and checks it first (Go's `deployment.WellFormed`: names, `addrOk` addresses, all distinct, the members'
+ids apart in their low bits, the server configuration in its supported set, the workloads compatible and
+within their bounds), returning at once if it fails; `TestWellFormed` and `TestDist` show the check
+passes on random deployments, rejects malformed ones, and the real path runs.
 
 **The premises**, classified:
 - *start states* (deployment facts): `ServerStart` (the member's files as on disk, `FsInit`, its data
   directory and WAL area empty) and `ClientStart` (`FsInit`). The rest of the start (fresh processes, no
-  listener, no connection) is `Robust`'s own (`extsInitLocal`/`extsInitGlobal`). `FsInit` goes into the
-  semantics if `fsSemWithS` gets the file extension's `initLocal` (stage D4a, a trusted change);
-- *bootstrap's results*, `BootFacts` (pure, carried from every etcd theorem): the peers, contexts and
-  bootstrap log the members compute. To be retired when they are Lean functions of the deployment and
-  `bootstrap` has its spec (premises-to-axioms item A/K, #34);
-- *environment and workload*, `EtcdEnv` (carried from the single-process theorems: `authRecordsFit`,
-  `backendUnderQuota`, `grpcRepliesFit`, `diskOk`, `leasePeersOk`, conditional `leasesNoExpiry`; its
-  `peerRequests` field is `True`, a PLACEHOLDER until phase 7 S5);
-- *`ETCD_VERIFY` off*, `HEnv` on every machine (approved 2026-11-23) and its token `HEnvTok` (the
-  single-process start gives it by its start axiom; premises-to-axioms item G, an adequacy decision).
-- *`GODEBUG` `fips140` off*, `Hfips` (Perennial's `GodebugFips140Off`, approved: `crypto/sha1` panics in
-  `fips140=only` mode; every program's check of the deployment computes the member ids with it).
-- the instance binders: the Goose translations' `Assumptions` classes and models, as the single-process
-  theorems' (and, after D2, the `dist` packages' own).
+  listener, no connection) is `Robust`'s own (`extsInitLocal`/`extsInitGlobal`);
+- *bootstrap's results*, `BootFacts` (pure): the peers, contexts and bootstrap log the members compute;
+  to be retired by `bootstrap`'s spec, with them Lean functions of the deployment;
+- *environment and workload*, `EtcdEnv`: `authRecordsFit`, `backendUnderQuota`, `grpcRepliesFit`,
+  `diskOk`, `leasePeersOk`, conditional `leasesNoExpiry`; its `peerRequests` field is `True`, a
+  PLACEHOLDER until etcd's peer clients are over the net extension (phase 7 S5);
+- *`ETCD_VERIFY` off*, `HEnv` on every machine, and its token `HEnvTok` (`os.Getenv`'s spec gives the
+  variable's value as off only under the token);
+- *`GODEBUG` `fips140` off*, `Hfips` (Perennial's `GodebugFips140Off`: `crypto/sha1`, with which every
+  program's check computes the member ids, panics in `fips140=only` mode);
+- the instance binders: the Goose translations' `Assumptions` classes and models.
 
-**Not in the statement** (2026-11-24): no Iris premise of a function contract (`Hprem`, `Hctx`, `Hcec`,
-the draft's `TrustBoundary`): each is a per-function axiom in the function's own file, or a theorem
-(premises-to-axioms plan); no `WellFormed` (the programs check it); no `NetStart` (in `Robust`); no
-prometheus names (prom-registry).
+No function contract is a premise: each is a per-function axiom in the function's own file, or a
+theorem.
 
-What the single-process `etcd_safe` had and this does not: no `Hlow` (one member per process), no
-per-cluster premises, no addresses or data directories claimed in one process (`addrsUnclaimed`,
-`dataDirsAbsent`), no schedules (the network's faults replace `cluster3`'s partitioner and the
-`third_party/bridge` relay, and with them `bridge.New`'s axioms), no in-process stop and restart (real
-crashes), no one-process resource caveat.
-
-**What the semantics assumes** (not premises: part of the semantics it is stated over; review F2, F3):
+**What the semantics assumes** (not premises: part of the semantics it is stated over):
 - the file extension at `etcdFsSem` (`examples/lib/etcdstart/FsExts.lean`): no file operation fails with
   an I/O error and no `flock`/`mmap` error, on every member's machine; a crash is a power loss, or a kill
   followed by a sync, restricted only by the WAL's `W1` (`etcdCQ`: every WAL frame a fresh reader accepts
   after the crash is as of one change, i.e. no CRC-32C collision on a torn frame; pending review, D6 Q2);
 - the request ids' issue record survives a machine's crash and must tell a restarted member's generator
   from the one before the crash: today it keys generators by heap address and has no crash
-  interpretation, so the crash statement is **not provable over today's extension**; stage D4b keys it by
-  incarnation (a trusted change with its semantics example and an axiom review). The idutil model's clock
-  assumption (the wall clock does not step back across a restart,
-  `nonissues/etcd-request-id-restart-reuse.md`) then spans machine restarts.
+  interpretation, so the crash statement is **not provable over today's extension** (stage D4b keys it
+  by incarnation). The idutil model's clock assumption (the wall clock does not step back across a
+  restart, `nonissues/etcd-request-id-restart-reuse.md`) then spans machine restarts.
 
-**Trusted gap** (review F15): the binaries (`cmd/{server,client}`) parse a JSON file the harness writes
-from the deployment; the parsing is not translated, so the boot programs are the `Main`s applied to the
+**Trusted gap**: the binaries (`cmd/{server,client,node}`) parse a JSON file the harness writes from the
+deployment; the parsing is not translated, so the boot programs are the entry points applied to the
 deployment's Go value.
 -/
 module
@@ -101,14 +93,12 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 
 /-- **`etcd_safe`** (see the file header): every deployment of an etcd cluster on machines that may
 crash and restart, and of its checking clients on machines that never crash (each workload an
-orchestrator machine and its client machines, D8), is robust: no thread of any machine is stuck or has
-an unrecovered panic.
-
-PLACEHOLDER binders: the `dist` packages' `Assumptions` (stage D2) join the instance binders. The bound is
-`etcd_safe_nocrash`'s until the crash proof fixes its own (kvnet's crash theorem has `2 ^ 61`). -/
+orchestrator machine and its client machines), is robust: no thread of any machine is stuck or has
+an unrecovered panic. -/
 def etcd_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     -- carried over from the single-process theorems (review F7); each to go when its model is proved
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
@@ -128,16 +118,16 @@ def etcd_robust.spec : Prop :=
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),
-    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := 2 ^ 28)
-      (bound := 2 ^ 28 - 1)
+    Robust (servers d σs) (clients d σc ++ nodeMachines d σn) g (threads := etcdThreads)
+      (bound := etcdSteps)
 
-/-- **`etcd_safe_nocrash`** (the interim milestone, open question Q7): `etcd_safe`'s deployment with no
+/-- **`etcd_safe_nocrash`** (the interim milestone): `etcd_safe`'s deployment with no
 machine crashing (`Robust []` over every machine: members, orchestrators, client machines). The crash
-theorem `etcd_safe` implies it; the weaker variant takes the longer name. Over Perennial's
-`goose_dist_adequacy` through the bridge `Net.robust_of_distBootIL`. The bound is `putget_safe`'s. -/
+theorem `etcd_safe` implies it. -/
 def etcd_robust_nocrash.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment)
@@ -152,7 +142,7 @@ def etcd_robust_nocrash.spec : Prop :=
     -- the run's `fips140` GODEBUG setting off (Perennial's environment premise: `crypto/sha1`, which
     -- the programs' check of the deployment computes the member ids with, panics in `fips140=only`)
     (Hfips : crypto.fips140.GodebugFips140Off),
-    Robust [] (machines d σs σc σn) g (threads := 2 ^ 28) (bound := 2 ^ 28 - 1)
+    Robust [] (machines d σs σc σn) g (threads := etcdThreads) (bound := etcdSteps)
 
 end etcd_dist
 end EtcdGrove

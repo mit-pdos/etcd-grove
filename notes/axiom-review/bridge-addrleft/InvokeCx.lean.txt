@@ -1,0 +1,132 @@
+/- UNCHECKED sketch against origin/lean 94767c2a2f (no build on this machine: disk 99% full; a VM
+   check would need a fresh ~17 GB etcd-grove sync and cold build). Names and lines are origin/lean's.
+
+   Claim: `invokecx.Main` (cx/invokecx.go) panics when run (5/5), yet has a no-panic triple from
+   lean's own trust base: no interim axiom. Beyond the single-process base already in
+   `examples/etcd/putget`'s `Main.wp_proof`, it uses one more trusted fact, `bridge.New.wp_proof`
+   (Proof/github_com/mit_pdos/etcd_grove/third_party/bridge/New.lean:28), and reaches grpc's
+   `grpc.ClientConn.Invoke.wp_proof` (Proof/google_golang_org/grpc/ClientConn__Invoke.lean:43)
+   through the proved `client.client_Get_own` (Proof/go_etcd_io/etcd/client/v3/ClientPutGet.lean:149).
+
+   The novel steps are the two lemmas below (pure ghost reasoning over proved laws); the rest of the
+   program's proof is `examples/etcd/putget/Main.lean:57-...` with three insertions (see the end).
+-/
+module
+
+public import Proof.net.InvNet
+public import Proof.go_etcd_io.etcd.client.v3.KVService
+public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
+public import GooseLang.Ext.Net.Slot
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace invokecx
+
+open Iris Iris.BI Iris.ProofMode Net client go_etcd_io.etcd.server.v3.etcdserver
+
+section
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+attribute [local instance] GooseGlobalGS.gooseInvGS
+
+/-- etcd's five KV entries (`kvRegsAt`'s, KVService.lean:942) at names the program chooses: a
+service table is plain data (`GrpcSvc`, InvGrpcWire.lean:481). -/
+def fakeSvc (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) : GrpcSvc GF := fun n =>
+  if n = go!"/etcdserverpb.KV/Put" then
+    some ⟨pbPutRequest.wire, pbPutResponse.wire, GrpcSpec.md (etcdPutSpec E γr cid mid)⟩
+  else if n = go!"/etcdserverpb.KV/Range" then
+    some ⟨pbRangeRequest.wire, pbRangeResponse.wire, etcdRangeSpecE E γr cid mid⟩
+  else if n = go!"/etcdserverpb.KV/DeleteRange" then
+    some ⟨pbDeleteRangeRequest.wire, pbDeleteRangeResponse.wire,
+      GrpcSpec.md (etcdDeleteSpec E γr cid mid)⟩
+  else if n = go!"/etcdserverpb.KV/Txn" then
+    some ⟨pbTxnRequest.wire, pbTxnResponse.wire, GrpcSpec.md (etcdTxnSpec E γr γr cid mid)⟩
+  else if n = go!"/etcdserverpb.KV/Compact" then
+    some ⟨pbCompactionRequest.wire, pbCompactionResponse.wire,
+      GrpcSpec.md (etcdCompactSpec E γr cid mid)⟩
+  else none
+
+/-- **Route A**: what `net.Listen` leaves beside the open listener (`netAddrLeft`, InvNet.lean:71;
+`net.Listen.spec`, Spec/net/Listen.lean:31) sets the address's table to anything, here etcd's KV
+registrations at any `E`, `γr`, `cid`, `mid`. Laws: `netProto_alloc` (Proto.lean:605),
+`depSlots_alloc` (Slot.lean:205), `addr_set_proto_tok` (Proto.lean:702), `grpcSvcAt_of_addr`
+(InvGrpcWire.lean:723), `isGrpcRpcMd`/`grpcReach` (InvGrpc.lean:45/34, `a₀ = a`). -/
+theorem fake_kvRegsAt (a : GoString) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) :
+    netAddrLeft (GF := GF) a ⊢ |={⊤}=> kvRegsAt (⟨a, E, γr, cid, mid⟩ : SrvAt GF) := by
+  iintro Hl
+  iunfold netAddrLeft at Hl
+  icases Hl with ⟨%hX, Hp, #Ht, #Hti⟩
+  haveI : HasExt netExt := hX
+  imod netProto_alloc (Gg := hG.goose_globalGS) ⊤ with ⟨%π, #Hreg⟩
+  imod depSlots_alloc (Gg := hG.goose_globalGS) ⊤ with ⟨%σ, #Hs⟩
+  imod addr_set_proto_tok (Gg := hG.goose_globalGS) ⊤ a (grpcCliPI (fakeSvc E γr cid mid))
+    (grpcSrvPI (fakeSvc E γr cid mid)) $$ Hreg Hp Ht Hti with #Hpr
+  ihave #Ha : grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a (fakeSvc E γr cid mid) $$ []
+  · unfold grpcAddrAt; iframe Hpr Hs
+  have reg : ∀ {Req Rep : ProtoMsg GF} (n : GoString) (S : GrpcSpecMd Req Rep),
+      fakeSvc E γr cid mid n = some ⟨Req.wire, Rep.wire, S⟩ →
+      grpcAddrAt (Gg := hG.goose_globalGS) (π := π) (σ := σ) a (fakeSvc E γr cid mid) ⊢
+        isGrpcRpcMd a n S := by
+    intro Req Rep n S h
+    iintro #Ha
+    unfold isGrpcRpcMd
+    iexists a, hX, π, σ
+    isplitl []
+    · unfold grpcReach; ileft; ipureintro; rfl
+    · iapply (grpcSvcAt_of_addr a n (fakeSvc E γr cid mid) ⟨Req.wire, Rep.wire, S⟩ h) $$ Ha
+  imodintro
+  unfold kvRegsAt isGrpcRpc
+  isplitl []; · iapply (reg go!"/etcdserverpb.KV/Put" _ (by simp [fakeSvc])) $$ Ha
+  isplitl []; · iapply (reg go!"/etcdserverpb.KV/Range" _ (by simp [fakeSvc])) $$ Ha
+  isplitl []; · iapply (reg go!"/etcdserverpb.KV/DeleteRange" _ (by simp [fakeSvc])) $$ Ha
+  isplitl []; · iapply (reg go!"/etcdserverpb.KV/Txn" _ (by simp [fakeSvc])) $$ Ha
+  · iapply (reg go!"/etcdserverpb.KV/Compact" _ (by simp [fakeSvc])) $$ Ha
+
+/-- **The put's invariant, fabricated**: a fresh KV state variable holding `key ↦ val` and a flag
+already at 1 (`putGetInv`, PutThenGet.lean:134; `etcdKV`, InvRequest.lean:297, half of a
+`ghostVar`). `γr` is any read names with the fresh state variable. -/
+theorem fake_putGetInv (γr0 : ReadNames) (key val : GoString) (σ0 : KVState)
+    (h : putGetOk key val σ0 1) :
+    ⊢ |={⊤}=> ∃ (γst γf : GName), putGetInv (GF := GF)
+        { γr0 with kv := { γr0.kv with st := γst } } γf key val ∗ monoNatLbOwn γf 1 := by
+  -- ghostVar_alloc σ0, split into halves (one dropped); monoNat auth alloc at 1 and its lb;
+  -- inv_alloc kvClientN (InvServerKV.lean:281) with the left side ⟨σ0, 1, half, auth, h⟩.
+  sorry -- UNCHECKED: routine allocation (names of the alloc lemmas not looked up)
+
+end
+
+/- **The program's proof** (`invokecx.Main`, triple `{{ start rights ∗ netAddrFree "127.0.0.1:23822" }}
+   Main {{ True }}`): `examples/etcd/putget/Main.lean:57-` with the member's address 23821 for 23790,
+   and these insertions after `Serve` (Main.lean:~150):
+
+   1. `l, err := net.Listen("tcp", addrA)`: `net.Listen.wp_proof` (Proof/net/Listen.lean:31; spec
+      Spec/net/Listen.lean:31) with `netAddrFree addrA`: `netListenerAt l addrA ∗ netAddrLeft addrA`
+      (or an error: return).
+   2. ghost: `γr := { ρ.rd with kv := { ρ.rd.kv with st := γst } }` from `fake_putGetInv ρ.rd "k" "v"
+      σ0` (σ0.kvs = [k ↦ v]); `#Hreg := fake_kvRegsAt addrA E γr cid mid $$ Hleft` (E, cid, mid: the
+      real member's, from `Serve`'s continuation, or any).
+   3. `bridge.New(clientB, l)`: `bridge.New.wp_proof` (spec Spec/.../third_party/bridge/New.lean:39)
+      with `netListenerAt l addrA`; the post is dropped.
+   4. `cli := etcdstart.NewClient(addrA, lg)`: as Main.lean (`isNewClient cl [addrA] V`).
+   5. `cli.Get(gctx, "k")`: `client.client_Get_own cl addrA _ E γr γf 0 cid mid …` (Main.lean:204)
+      with `kvRegsAt ⟨addrA, E, γr, cid, mid⟩` = `#Hreg`, `committedAtLeast γr 0` from
+      `monoNatLbOwn_0 γr.committed` (left disjunct, as Main.lean:203), `putGetInv γr γf "k" "v"`,
+      `monoNatLbOwn γf 1`, and `kvLogLb E.γs []` (`v3rpc.kvLogLb_nil`, ServerKV.lean:353).
+   6. The check: Main.lean:~220-260 verbatim; `Get`'s nil branch gives the value "v", so `panic` is
+      unreachable in the proof. In Go the bridge relays to the real member, whose store is empty.
+
+   Under the fix (bridge.New also consumes `netAddrLeft a`), step 2 and step 3 compete for the one
+   `netAddrLeft addrA` (its `netPend a ∅` is exclusive), so this proof no longer goes through.
+-/
+
+end invokecx
+end EtcdGrove
+end Perennial
+
+end

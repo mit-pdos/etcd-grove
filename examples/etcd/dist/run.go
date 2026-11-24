@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -247,8 +248,40 @@ func (c *Cluster) Run() Result {
 		orchs = append(orchs, robust.Client{Name: fmt.Sprintf("client-%d-%s", j, w.Kind), Machine: c.clients[j],
 			Args: []string{RoleClient, c.file, strconv.Itoa(j)}, Ready: ReadyFile(c.file, j)})
 	}
-	lines := c.run.RunClients(nodes, orchs, c.machines)
+	lines := c.run.RunClientsAwait(nodes, orchs, c.machines, c.await)
 	return Result{Lines: lines, Err: c.run.Err()}
+}
+
+// How long, and how often, the harness waits for an address to accept a connection (await).
+const (
+	awaitFor   = 3 * time.Minute
+	awaitPause = 100 * time.Millisecond
+)
+
+// await is the harness's liveness wait before the orchestrators start (the programs do not retry,
+// client.MainReady): from each workload's orchestrator machine, every member's client address
+// (a member serves it only once it is ready, server.MainLogger) and the workload's client
+// machines' addresses accept a TCP connection, each within awaitFor.
+func (c *Cluster) await() error {
+	for j := range c.d.Workloads {
+		m := c.clients[j]
+		addrs := append(c.d.Endpoints(), c.d.Nodes[j]...)
+		for _, a := range addrs {
+			deadline := time.Now().Add(awaitFor)
+			for {
+				conn, err := m.Dial(a, time.Second)
+				if err == nil {
+					conn.Close()
+					break
+				}
+				if time.Now().After(deadline) {
+					return fmt.Errorf("%s did not accept a connection from %s within %v", a, m.Name, awaitFor)
+				}
+				time.Sleep(awaitPause)
+			}
+		}
+	}
+	return nil
 }
 
 // Stop removes the members' links (the run's Stop kills the members and removes their disks).

@@ -1,24 +1,19 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist`: the definitions its top-level statement is written in (DRAFT)
+# `etcd/dist`: the definitions its top-level statement is written in
 
-**Draft** (`notes/etcd-dist-plan.md`): the statements' definitions (built; the Spec file imports it). What is a
-placeholder is marked `PLACEHOLDER`; each names the stage of the plan that replaces it.
-
-The deployment `etcd_safe` quantifies over: one etcd cluster of `k ≥ 1` members, each on a
-machine of its own that may crash and restart (`servers`), and client machines that never crash,
-each running one workload against the members' client addresses (`clients`). Its premise is one
-decidable predicate, `Deployment.WellFormed` (addresses, names, ids, the server configuration in
-its supported set, the workloads' bounds and their compatibility), plus the machines' start
-states (`ServerStart`, `ClientStart`) and the environment premises not yet
-discharged (`EtcdEnv`, the plan's "what is still not decidable").
-
-The Go programs are `examples/etcd/dist/{server,client}` (sketches); their translations do not
-exist yet, so the boot programs `serverProg`/`clientProg` are placeholders.
+The statements' definitions (the Spec file imports this module): the deployment as the programs receive
+it (a Go value: `Deployment`, `deploymentLit`), the machines and their boot programs (`servers`,
+`clients`, `nodeMachines`), the machines' start states (`ServerStart`, `ClientStart`), bootstrap's results
+(`BootFacts`), the environment premises not yet discharged (`EtcdEnv`) and the two bounds (`etcdThreads`,
+`etcdSteps`). What a placeholder is is marked `PLACEHOLDER`, with the stage of `notes/etcd-dist-plan.md`
+that replaces it. No premise is on the deployment: every program checks it (Go's `deployment.WellFormed`)
+and returns if it fails.
 -/
 module
 
 public import Robustness.Statement
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MemberId
 public import GooseLang.Ext.Net.Impl
 public import GooseLang.Ext.Fs.Impl
 public import GooseLang.Ext.IdIssue.Impl
@@ -101,11 +96,11 @@ def Deployment.nodeList (d : Deployment) : List (Workload × Nat × GoString) :=
 def Workload.needsNoExpiry (w : Workload) : Bool :=
   decide (w.kind = W64 6 ∨ w.kind = W64 8)
 
-/-- PLACEHOLDER (open question Q5): **etcd's member id**, as `membership.NewMember` computes it: the
-first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs concatenated with the cluster
-token. In no premise but `BootFacts`'s; to be the Lean model of `membership.NewMember` (translated with
-its body, over Perennial's proved `crypto/sha1`). -/
-opaque memberId (peerURL : GoString) (token : GoString) : w64
+/-- **etcd's member id** of the member whose one peer URL is `peerURL`, in the cluster `token`: the Lean
+model of `computeMemberID`, single URL, no time (`membership.memberIdOf`: the first 8 bytes, big-endian,
+of the SHA-1 of the URL followed by the token), the definition `membership.NewMember`'s proved spec
+gives. -/
+def memberId (peerURL : GoString) (token : GoString) : w64 := membership.memberIdOf peerURL token
 
 /-- The members' ids, in the members' order. -/
 def Deployment.ids (d : Deployment) : List w64 :=
@@ -245,10 +240,7 @@ each to be discharged or turned into a decidable fact of `WellFormed` (the plan,
 decidable"): the auth store's records fit bbolt's value bound; every backend under its quota;
 every gRPC reply below the transport's maximum; the disk cooperates (bbolt's and the snapshots'
 opens); the peers answer `/leases/internal` as etcd does or not with `200` (true by construction
-here: every peer address is a member's raft handler); no lease expires, when a workload needs it.
-(The programs' prometheus names, `HNs`, were a premise until prom-registry, 2026-11-22: each
-proof allocates its registration rights itself.) (`verifyEnvOff` and the proxy variables are gone if the
-server clears them, `clearProxyEnv`: open question Q10.) -/
+here: every peer address is a member's peer handler); no lease expires, when a workload needs it. -/
 structure EtcdEnv (d : Deployment) : Prop where
   authRecords : authRecordsFit
   underQuota : apply.backendUnderQuota
@@ -263,6 +255,24 @@ structure EtcdEnv (d : Deployment) : Prop where
   peerRequests : True
 
 end env
+
+/-! ## The bounds -/
+
+/-- **The statements' thread bound** (`Robust`'s `threads`): the executions covered are those along which
+every machine keeps fewer than `etcdThreads` live threads. It is the logic's thread bound on every machine
+(`Net.robust_of_distBootILT`): at least the levels of a thread token a serving member uses (`srvLevelK =
+5`), at most the `2 ^ 28` the server's and the clients' specs cap it by (their reader-slot pools and
+`RWMutex` readers; `notes/etcd-dist-plan.md` §14). -/
+def etcdThreads : Nat := 2 ^ 28
+
+/-- **The statements' step bound** (`Robust`'s `bound`): the executions covered are those of fewer than
+`etcdSteps` steps. It is the cap on the proofs' time receipts (`receiptBound ≤ 2 ^ 48`), the highest the
+specs allow, for three lifetime counters of the Go code: etcd's request-id generator (`idutil`) issues
+`prefix | (suffix mod 2 ^ 48)`, distinct only for fewer than `2 ^ 48` ids per generator; the mvcc store's
+changes (revisions, compactions) are counted below `2 ^ 48`; and the auth store's admin requests, one
+receipt each (its fuel), stay below `2 ^ 48`, which keeps its revision and its permissions within their
+bounds (`auth/Fuel.lean`; `notes/etcd-dist-plan.md` §14). -/
+def etcdSteps : Nat := 2 ^ 48
 
 /-! ## The ghost state the statements' Iris premise is stated at -/
 
