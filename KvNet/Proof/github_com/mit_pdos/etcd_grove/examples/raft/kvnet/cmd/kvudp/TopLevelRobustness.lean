@@ -30,6 +30,8 @@ namespace Perennial
 namespace EtcdGrove
 namespace raft_kvudp
 
+variable [go_gctx : GoGlobalContext]
+
 /-- **kvudp is robust** (the statement: `raft_kvudp_robust.spec`). -/
 theorem raft_kvudp_robust : raft_kvudp_robust.spec := by
   sorry
