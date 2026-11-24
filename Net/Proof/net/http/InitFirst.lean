@@ -40,7 +40,7 @@ axiom wp_init_first (g g' : GoString → IProp GF)
     (hsame : ∀ p, p ≠ pkg_id.net.http → g' p = g p) :
     {{ ownInitializing g }} (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing g' ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-        muxOwn dmux [] }}
+        muxOwn (GF := GF) dmux [] }}
 
 end init
 

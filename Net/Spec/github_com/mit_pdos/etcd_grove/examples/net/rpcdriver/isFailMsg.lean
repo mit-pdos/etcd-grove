@@ -6,6 +6,7 @@
 module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Defs
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 

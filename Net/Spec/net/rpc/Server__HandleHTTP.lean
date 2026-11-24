@@ -39,13 +39,13 @@ abbrev Server.HandleHTTP.spec : Prop :=
     (Ps : List GoString) (rp dp : GoString),
     net.http.litPattern rp → net.http.litPattern dp → rp ≠ dp → rp ∉ Ps → dp ∉ Ps →
   {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗
-      net.http.muxOwn net.http.dmux Ps ∗ isServerAny s γs ∗
+      net.http.muxOwn (GF := GF) net.http.dmux Ps ∗ isServerAny s γs ∗
       (□ ∀ a, ⌜A a⌝ → srvServes γs C W a ∗ ⌜W.hs a ≠ [] ∧ W.hsAns a = connectAns⌝) ∗
       srvEnv ∗ codecSet C ∗ globalAddr net.rpc.connected ↦□ connectedStatus }}
     (App (App (Val (s @!! go.GoType.PointerType net.rpc.Server.ty @!! go!"HandleHTTP"))
       (Val #rp)) (Val #dp))
-  {{ RET #(); net.http.muxOwn net.http.dmux (dp :: rp :: Ps) ∗
-      net.http.muxRpc net.http.dmux W A rp }}
+  {{ RET #(); net.http.muxOwn (GF := GF) net.http.dmux (dp :: rp :: Ps) ∗
+      net.http.muxRpc (GF := GF) net.http.dmux W A rp }}
 
 end spec
 end net.rpc

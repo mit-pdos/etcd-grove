@@ -37,9 +37,9 @@ variable [π : NetProtoGS]
 abbrev Serve.spec_rpc : Prop :=
   ∀ (W : net.rpc.RpcWorld GF) (la path : GoString) (lis : GoInterface) (l : w64),
     litPattern path →
-  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ httpSrvEnv ∗
+  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ httpSrvEnv (GF := GF) ∗
       net.rpc.rpcLisP (Gg := hG.goose_globalGS) W la (net.rpc.connectReq path) net.rpc.connectAns ∗
-      muxRpc dmux W (fun a => addrOk a = true ∧ lisAccepts la a) path ∗
+      muxRpc (GF := GF) dmux W (fun a => addrOk a = true ∧ lisAccepts la a) path ∗
       net.isListener (GF := GF) lis l ∗ netLisOn (extLocalGS netExt (L := hG.goose_localGS)) l la ∗
       lisInv (Gg := hG.goose_globalGS) (extLocalGS netExt (L := hG.goose_localGS)) l la }}
     (App (App (Val (@! net.http.Serve)) (Val #lis)) (Val #(interface.nil : GoInterface)))

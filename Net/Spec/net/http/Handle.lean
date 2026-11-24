@@ -32,9 +32,9 @@ variable [package_sem' : net.http.Assumptions]
 abbrev Handle.spec : Prop :=
   ∀ (Ps : List GoString) (p : GoString) (h : GoInterface),
     litPattern p → p ∉ Ps → h ≠ interface.nil →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ muxOwn dmux Ps }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ muxOwn (GF := GF) dmux Ps }}
     (App (App (Val (@! net.http.Handle)) (Val #p)) (Val #h))
-  {{ RET #(); muxOwn dmux (p :: Ps) ∗ muxRoute dmux p h }}
+  {{ RET #(); muxOwn (GF := GF) dmux (p :: Ps) ∗ muxRoute (GF := GF) dmux p h }}
 
 end spec
 end net.http

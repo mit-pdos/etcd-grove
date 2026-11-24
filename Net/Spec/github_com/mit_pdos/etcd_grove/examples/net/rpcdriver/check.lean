@@ -10,6 +10,7 @@ module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Defs
 public import Net.Proof.net.rpc.Codec
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 
@@ -42,8 +43,8 @@ def callOutcome (pr : Loc) (id : w64) (data : List w8) (fail : GoString) (err : 
 abbrev check.spec : Prop :=
   ∀ (pa pr : Loc) (id : w64) (dsl : GoSlice) (data : List w8) (fail : GoString)
     (err : GoInterface),
-  {{ drvFacts ∗ pa ↦ service.Args.mk id dsl fail ∗ dsl ↦* data ∗
-      ⌜fail = [] ∨ fail ∈ failList⌝ ∗ callOutcome pr id data fail err }}
+  {{ drvFacts ∗ isPkgInit (PROP := IProp GF) pkg_id.strings ∗ pa ↦ service.Args.mk id dsl fail ∗ dsl ↦* data ∗
+      ⌜fail = [] ∨ fail ∈ failList⌝ ∗ callOutcome (GF := GF) pr id data fail err }}
     (App (App (App (Val (@! check)) (Val #pa)) (Val #pr)) (Val #err))
   {{ RET #(); True }}
 

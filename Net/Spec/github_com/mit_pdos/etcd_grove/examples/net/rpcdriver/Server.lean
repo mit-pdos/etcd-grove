@@ -40,8 +40,8 @@ abbrev Server.spec : Prop :=
   {{ drvFacts ∗ net.rpc.codecSet drvCodec ∗ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
       isPkgInit (PROP := IProp GF) pkg_id.net.http ∗ isPkgInit (PROP := IProp GF) pkg_id.log ∗
       isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service ∗
-      net.rpc.srvEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ net.http.httpSrvEnv ∗
-      net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅ ∗ net.http.muxOwn net.http.dmux [] ∗
+      net.rpc.srvEnv ∗ globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus ∗ net.http.httpSrvEnv (GF := GF) ∗
+      net.rpc.defaultServerO γs γf ∗ net.rpc.svcOwn γf ∅ ∗ net.http.muxOwn (GF := GF) net.http.dmux [] ∗
       net.rpc.rpcLisP (Gg := hG.goose_globalGS) (drvWorld γid reg) tcpAddr [] [] ∗
       net.rpc.rpcLisP (Gg := hG.goose_globalGS) (drvWorld γid reg) httpAddr
         (net.rpc.connectReq net.rpc.defaultRPCPath) net.rpc.connectAns }}

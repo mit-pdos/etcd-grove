@@ -277,7 +277,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h47 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h0, h6, h45, h24, h43, h5, h46, True.intro⟩
+    exact ⟨h0, h6, h45, h24, h43, h12, h5, h46, True.intro⟩
   have h48 : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

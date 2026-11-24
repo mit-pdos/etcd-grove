@@ -28,7 +28,7 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 /-- See the file header. -/
 abbrev below.spec : Prop :=
   ∀ (n : w64),
-  {{ True }}
+  {{ (True : IProp GF) }}
     (App (Val (@! below)) (Val #n))
   {{ (r : w64), RET #r; ⌜(n = W64 0 → r = W64 0) ∧ (n ≠ W64 0 → uint.Z r < uint.Z n)⌝ }}
 
