@@ -32,23 +32,22 @@ def arrayLitKEe [GooseExts] (t : go.GoType) (e : Expr) : keyed_element :=
 
 theorem arrayLiteralSize_unkeyed [GooseExts] {A : Type} (t : go.GoType) (f : A → Expr) (es : List A) :
     go.arrayLiteralSize (es.map (fun x => arrayLitKEe t (f x))) = (es.length : Int) := by
-  have h : ∀ (es : List A) (i m : Int), 0 ≤ i → m ≤ 0 →
-      List.foldl (fun (p : Int × Int) ke =>
-        match ke with
-        | KeyedElement none _ => (p.1 + 1, p.2)
-        | KeyedElement (some (KeyInteger cur_index')) _ => (cur_index' + 1, Max.max p.1 p.2)
-        | _ => (0, 0)) (i, m) (es.map (fun x => arrayLitKEe t (f x))) = (i + es.length, m) := by
-    intro es
+  have h : ∀ (F : Int × Int → keyed_element → Int × Int),
+      (∀ (a b : Int) (x : A), F (a, b) (KeyedElement none (ElementExpression t (f x))) = (a + 1, b)) →
+      ∀ (es : List A) (i m : Int),
+        List.foldl F (i, m) (es.map (fun x => KeyedElement none (ElementExpression t (f x)))) =
+          (i + es.length, m) := by
+    intro F hF es
     induction es with
-    | nil => intro i m _ _; simp
+    | nil => intro i m; simp
     | cons e es ih =>
-      intro i m hi hm
-      simp only [List.map_cons, List.foldl_cons, arrayLitKEe]
-      rw [ih (i + 1) m (by omega) hm]
+      intro i m
+      simp only [List.map_cons, List.foldl_cons, hF]
+      rw [ih (i + 1) m]
       simp only [List.length_cons, Int.natCast_add, Int.natCast_one, Prod.mk.injEq, and_true]
       omega
-  unfold go.arrayLiteralSize
-  rw [h es 0 0 (le_refl _) (le_refl _)]
+  unfold go.arrayLiteralSize arrayLitKEe
+  rw [h _ (fun _ _ _ => rfl) es 0 0]
   simp only
   omega
 
@@ -60,7 +59,7 @@ variable [sem : go.Semantics]
 
 /-- The element `e` of an array literal of expressions, once the array so far is a value. -/
 theorem wp_arrayLit_exprs_set_val {s : Stuckness} {E : CoPset} (n : Int) (t : go.GoType) {V : Type}
-    [IntoVal V] (acc : List V) (e : Expr) (P : V → IProp GF) (i : Int)
+    (acc : List V) (e : Expr) (P : V → IProp GF) (i : Int)
     (he : ∀ Ψ : val → IProp GF, iprop(∀ v, P v -∗ Ψ #v) ⊢ WP e @ s; E {{ Ψ }})
     (Φ : val → IProp GF) :
     iprop(∀ v, P v -∗ Φ #(array.mk n (acc.set (sint.nat (W64 i)) v))) ⊢
@@ -70,16 +69,17 @@ theorem wp_arrayLit_exprs_set_val {s : Stuckness} {E : CoPset} (n : Int) (t : go
     EctxItem.PairRCtx #(array.mk n acc) (isPanic_intoVal _),
     EctxItem.AppRCtx (Val (GoInstruction GoInstruction.ArraySet))]) .rfl)
   refine .trans ?_ (he _)
+  show _ ⊢ iprop(∀ v, P v -∗
+    WP gl(ArraySet (Val #(array.mk n acc), (#(W64 i), Convert t t (Val #v)))) @ s; E {{ Φ }})
   iintro H %v HP
   ispecialize H $$ %v HP
-  show WP gl(ArraySet (Val #(array.mk n acc), (#(W64 i), Convert t t (Val #v)))) @ s; E {{ Φ }}
   wp_pures
   iexact H
 
 /-- One element of an array literal of expressions: the array so far `e0`, then the element `e`
 (left to right: a pair's left component first). -/
 theorem wp_arrayLit_exprs_set {s : Stuckness} {E : CoPset} (n : Int) (t : go.GoType) {V : Type}
-    [IntoVal V] (e0 e : Expr) (Q : List V → IProp GF) (P : V → IProp GF) (i : Int)
+    (e0 e : Expr) (Q : List V → IProp GF) (P : V → IProp GF) (i : Int)
     (he0 : ∀ Ψ : val → IProp GF, iprop(∀ acc, Q acc -∗ Ψ #(array.mk n acc)) ⊢ WP e0 @ s; E {{ Ψ }})
     (he : ∀ Ψ : val → IProp GF, iprop(∀ v, P v -∗ Ψ #v) ⊢ WP e @ s; E {{ Ψ }})
     (Φ : val → IProp GF) :
@@ -89,6 +89,8 @@ theorem wp_arrayLit_exprs_set {s : Stuckness} {E : CoPset} (n : Int) (t : go.GoT
     (App (Val (GoInstruction (GoInstruction.Convert t t))) e)),
     EctxItem.AppRCtx (Val (GoInstruction GoInstruction.ArraySet))]) .rfl)
   refine .trans ?_ (he0 _)
+  show _ ⊢ iprop(∀ acc, Q acc -∗
+    WP gl(ArraySet (Val #(array.mk n acc), (#(W64 i), Convert t t e))) @ s; E {{ Φ }})
   iintro HΦ %acc HQ
   iapply (wp_arrayLit_exprs_set_val n t acc e P i he Φ)
   iintro %v HP
@@ -96,8 +98,8 @@ theorem wp_arrayLit_exprs_set {s : Stuckness} {E : CoPset} (n : Int) (t : go.GoT
 
 /-- The steps of an array literal of expressions, from index `i` on, after the array so far `e0`. -/
 theorem wp_arrayLit_exprs_fold {s : Stuckness} {E : CoPset} (n : Int) (t : go.GoType) {A V : Type}
-    [IntoVal V] (f : A → Expr) (P : A → V → IProp GF)
-    (hf : ∀ x (Ψ : val → IProp GF), iprop(∀ v, P x v -∗ Ψ #v) ⊢ WP f x @ s; E {{ Ψ }})
+    (f : A → Expr) (P : A → V → IProp GF)
+    (hf : ∀ x (Ψ : val → IProp GF), iprop(∀ v, P x v -∗ Ψ #v) ⊢ WP (f x) @ s; E {{ Ψ }})
     (F : Int × Expr → keyed_element → Int × Expr)
     (hF : ∀ (i : Int) (e : Expr) (x : A), F (i, e) (arrayLitKEe t (f x)) =
       (i + 1, gl(ArraySet (e, (#(W64 i), Convert t t (f x)))))) :
@@ -110,7 +112,7 @@ theorem wp_arrayLit_exprs_fold {s : Stuckness} {E : CoPset} (n : Int) (t : go.Go
   | [], i, e0, Q, he0, Φ => by
     refine .trans ?_ (he0 Φ)
     iintro H %acc HQ
-    iapply H $$ HQ
+    iapply H $$ %acc %([] : List V) HQ
     iapply BigSepL2.bigSepL2_nil.2
     iempintro
   | x :: xs, i, e0, Q, he0, Φ => by
@@ -119,7 +121,7 @@ theorem wp_arrayLit_exprs_fold {s : Stuckness} {E : CoPset} (n : Int) (t : go.Go
       (fun acc' => iprop(∃ acc v, ⌜acc' = acc.set (sint.nat (W64 i)) v⌝ ∗ Q acc ∗ P x v)) ?_ Φ)
     · iintro H %acc' %vs ⟨%acc, %v, %Heq, HQ, HP⟩ Hvs
       subst Heq
-      iapply H $$ HQ
+      iapply H $$ %acc %(v :: vs) HQ
       iapply BigSepL2.bigSepL2_cons.2
       iframe
     · intro Ψ
@@ -134,7 +136,7 @@ set_option goose.wp.unfoldSliceLiterals true in
 /-- **A slice literal**, its array literal's elements chosen as it evaluates (Perennial's
 `wp_slice_literal_nonnull` fixes them beforehand). -/
 theorem wp_slice_literal_ex {s : Stuckness} {E : CoPset} {st t : go.GoType} {V : Type}
-    [IntoValTyped (GF := GF) V t] [st ↓u go.SliceType t]
+    [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] [st ↓u go.SliceType t]
     (kvs : List keyed_element) (Φ : val → IProp GF) :
     iprop(⌜go.arrayLiteralSize kvs < 2 ^ 63⌝ -∗
     WP (App (Val (GoInstruction (CompositeLiteral (go.ArrayType (go.arrayLiteralSize kvs) t))))
@@ -178,9 +180,9 @@ theorem wp_slice_literal_ex {s : Stuckness} {E : CoPset} {st t : go.GoType} {V :
 /-- **A slice literal of expressions** `[]t{f x₀, f x₁, ...}`: each element evaluates (left to right)
 to a value related to its source by `P`; the slice owns the values. -/
 theorem wp_sliceLit_exprs {s : Stuckness} {E : CoPset} {st t : go.GoType} {A V : Type}
-    [IntoValTyped (GF := GF) V t] [st ↓u go.SliceType t]
+    [ZeroVal V] [TypedPointsto (GF := GF) V] [IntoValTyped (GF := GF) V t] [st ↓u go.SliceType t]
     (f : A → Expr) (P : A → V → IProp GF)
-    (hf : ∀ x (Ψ : val → IProp GF), iprop(∀ v, P x v -∗ Ψ #v) ⊢ WP f x @ s; E {{ Ψ }})
+    (hf : ∀ x (Ψ : val → IProp GF), iprop(∀ v, P x v -∗ Ψ #v) ⊢ WP (f x) @ s; E {{ Ψ }})
     (xs : List A) (Φ : val → IProp GF) :
     iprop(∀ (sl : GoSlice) (vs : List V), sl ↦* vs -∗ ([∗list] x;v ∈ xs;vs, P x v) -∗ Φ #sl) ⊢
       WP (App (Val (GoInstruction (CompositeLiteral st)))
@@ -273,7 +275,7 @@ variable [sem : go.Semantics]
 variable [package_sem : deployment.Assumptions]
 
 theorem wp_memberLitE {s : Stuckness} {E : CoPset} (m : Member) (Ψ : val → IProp GF) :
-    iprop(∀ v : deployment.Member, ⌜v = m.val⌝ -∗ Ψ #v) ⊢ WP memberLitE m @ s; E {{ Ψ }} := by
+    iprop(∀ v : deployment.Member, ⌜v = m.val⌝ -∗ Ψ #v) ⊢ WP (memberLitE m) @ s; E {{ Ψ }} := by
   iintro H
   unfold memberLitE
   wp_pures
@@ -281,7 +283,7 @@ theorem wp_memberLitE {s : Stuckness} {E : CoPset} (m : Member) (Ψ : val → IP
   ipureintro; rfl
 
 theorem wp_workloadLitE {s : Stuckness} {E : CoPset} (w : Workload) (Ψ : val → IProp GF) :
-    iprop(∀ v : deployment.Workload, ⌜v = w.val⌝ -∗ Ψ #v) ⊢ WP workloadLitE w @ s; E {{ Ψ }} := by
+    iprop(∀ v : deployment.Workload, ⌜v = w.val⌝ -∗ Ψ #v) ⊢ WP (workloadLitE w) @ s; E {{ Ψ }} := by
   iintro H
   unfold workloadLitE
   wp_pures
@@ -289,7 +291,7 @@ theorem wp_workloadLitE {s : Stuckness} {E : CoPset} (w : Workload) (Ψ : val �
   ipureintro; rfl
 
 theorem wp_nodesLitE {s : Stuckness} {E : CoPset} (ns : List GoString) (Ψ : val → IProp GF) :
-    iprop(∀ sl : GoSlice, sl ↦*□ ns -∗ Ψ #sl) ⊢ WP nodesLitE ns @ s; E {{ Ψ }} := by
+    iprop(∀ sl : GoSlice, sl ↦*□ ns -∗ Ψ #sl) ⊢ WP (nodesLitE ns) @ s; E {{ Ψ }} := by
   iintro H
   unfold nodesLitE
   wp_pure
@@ -306,10 +308,11 @@ theorem wp_nodesLitE {s : Stuckness} {E : CoPset} (ns : List GoString) (Ψ : val
 value holding `d` (`deploymentRepr`, persistent). -/
 theorem wp_deploymentLit {s : Stuckness} {E : CoPset} (d : Deployment) (Φ : val → IProp GF) :
     iprop(∀ v : deployment.Deployment, deploymentRepr v d -∗ Φ #v) ⊢
-      WP deploymentLit d @ s; E {{ Φ }} := by
+      WP (deploymentLit d) @ s; E {{ Φ }} := by
   iintro HΦ
   simp only [deploymentLit]
   wp_pures
+  trace_state
   sorry
 
 end lit
