@@ -45,7 +45,11 @@ theorem Node.current.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) 
   try wp_auto
   iapply HΦ
   iexists n
-  iframe #
+  isplitr
+  · iexact Hrn
+  isplitr
+  · imodintro; iexact Hrep
+  iexact Hn
 
 end proof
 

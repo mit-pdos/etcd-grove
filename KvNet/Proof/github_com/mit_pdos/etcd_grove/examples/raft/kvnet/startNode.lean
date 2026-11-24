@@ -55,9 +55,9 @@ theorem startNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (st
   ihave Hnd := typedPointsto_split _ _ _ $$ «$r0»
   simp only [TypedPointsto.typedPointstoDef, named]
   icases Hnd with ⟨Hcfg, Hst, HnewT, Hmu, Hr, Ht, -⟩
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hcfg with #Hcfg
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ Hst with #Hst
-  imod (typedPointsto_dfractional (GF := GF) _ _).dfractional_persist _ $$ HnewT with #HnewT
+  ipersist Hcfg
+  ipersist Hst
+  ipersist HnewT
   imod sync.init_Mutex (nodeLockInv rep stp nd cfg M γ N cfg.ID') ⊤ _ $$ Hmu [Hr Ht Hstp] with #Hmu
   · inext
     iunfold nodeLockInv

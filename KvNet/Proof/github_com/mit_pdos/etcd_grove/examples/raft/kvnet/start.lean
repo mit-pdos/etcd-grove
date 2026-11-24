@@ -517,11 +517,11 @@ theorem start.wp_proof
   iunfold kvPeerAddrs at Hpeers'
   iunfold ptCtor at Hctor
   ihave #Hctor1 := Hctor $$ %(cfg.Addrs') %M %sp
-  wp_apply Hctor1 $$ [$Hpkg $HM $Hstats'] as %tv Hfresh
+  wp_apply Hctor1 $$ [$Hpkg $HM $Hstats'] as %tv Hpt0
   · simp only [tcpAP]
     iexact Hpeers'
-  iunfold ptFresh at Hfresh
-  icases Hfresh with ⟨%i, %Hi, Hfresh⟩
+  iunfold ptFresh at Hpt0
+  icases Hpt0 with ⟨%i, %Hi, Hpt0⟩
   subst Hi
   try wp_auto
   -- the configuration
@@ -594,7 +594,7 @@ theorem start.wp_proof
   ihave #HisNode' : isNode n γ.r.cluster kdRaftN cfg.ID' $$ []
   · rw [← HcID]; iexact HisNode
   -- the transport started on the node
-  wp_apply Hfresh $$ %n Hpkg HisNode' as Hrun
+  wp_apply Hpt0 $$ %n Hpkg HisNode' as Hrun
   iunfold ptRunning at Hrun
   icases Hrun with ⟨#Hsend0, Hpstop⟩
   -- the tick
