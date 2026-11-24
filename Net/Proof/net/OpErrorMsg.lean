@@ -178,6 +178,45 @@ theorem wp_OpError_Error (pe : Loc) (v : net.OpError) (Φ : val → IProp GF) :
     repeat (apply opPrefix_append)
     exact opPrefix_self _
 
+/-- An error whose `Error()` returns a fixed string (`errors.New`'s, `errors.newVar`'s) has
+`errStr`. -/
+theorem errStr_of_wp (ii : GoInterfaceOk) (s : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #s -∗
+      WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }}) ⊢
+      errStr (interface.ok ii) := by
+  iintro #H
+  unfold errStr
+  iexists ii
+  isplitr
+  · ipureintro; rfl
+  rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
+  imodintro
+  iintro %Φ HΦ
+  iapply H
+  inext
+  iapply HΦ
+
+/-- A failure's error (`resErr (some k)`, an `*OpError`) has an `Error()`. -/
+theorem resErr_errStr (k : NetErr) (op : GoString) (src addr : GoInterface)
+    (ed : Option GoInterface) (nm : GoString → Prop) (err : GoInterface) :
+    resErr (GF := GF) (some k) op src addr ed nm err ⊢ errStr err := by
+  unfold resErr opErr
+  iintro ⟨%e, ⟨%pe, %nw, ⟨%Herr, -⟩, #Hpe⟩, -, #Hes, #Hs, #Ha⟩
+  subst Herr
+  ihave #Hok : opErrMsgOk (GF := GF) (OpError.mk op nw src addr e) $$ []
+  · unfold opErrMsgOk; iframe Hes Hs Ha
+  unfold errStr
+  iexists ⟨go.GoType.PointerType OpError.ty, #pe⟩
+  isplitr
+  · ipureintro; rfl
+  rw [_root_.Perennial.fmt.stringMethodSpec_unfold]
+  imodintro
+  iintro %Φ HΦ
+  iapply wp_OpError_Error $$ Hpe Hok
+  inext
+  iintro %msg -
+  iapply HΦ
+
 end proof
 
 end net

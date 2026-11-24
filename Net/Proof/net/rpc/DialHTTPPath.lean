@@ -86,6 +86,30 @@ theorem readErr_ptr (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) :
     simp only [interface.mkOk] at h
     cases h; exact ⟨pe, rfl⟩
 
+/-- A read's error other than for bytes is a pointer, not `nil`, with an `Error()` (`io.EOF`'s, or the
+`*OpError`'s: `resErr_errStr`). -/
+theorem readErr_some' (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (m : GoString)
+    (hr : ∀ bs, r ≠ .bytes bs) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
+      WP (App (Val #(methods (go.GoType.PointerType errors.errorString.ty) go!"Error" #xe))
+        (Val #())) {{ Φ }}) -∗
+    net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err -∗
+      ⌜err ≠ interface.nil ∧ _root_.Perennial.io.ptrTyped err⌝ ∗ net.errStr err := by
+  iintro #Hw HE
+  ihave #Hes : net.errStr (GF := GF) err $$ [HE]
+  · cases r with
+    | bytes bs => exact absurd rfl (hr bs)
+    | eof =>
+      simp only [net.ReadErr]
+      icases HE with %h; subst h
+      iapply net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #xe⟩ m $$ Hw
+    | err k =>
+      simp only [net.ReadErr]
+      iapply net.resErr_errStr $$ HE
+  ihave %H := readErr_some r la ra ed err xe hr $$ HE
+  iframe Hes
+  ipureintro; exact H
+
 /-- A read's error other than for bytes is a pointer: not `nil`. -/
 theorem readErr_some (r : ReadRes) (la ra ed err : GoInterface) (xe : Loc) (hr : ∀ bs, r ≠ .bytes bs) :
     net.ReadErr (GF := GF) r (interface.mkOk errors.errorString.ty.PointerType #xe) la ra ed err ⊢
@@ -135,7 +159,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
   ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
   icases Hinit with ⟨-, -, -, -, #HEOF, -, -⟩
   unfold errors.newVar
-  icases HEOF with ⟨%xe, #Hxe, -⟩
+  icases HEOF with ⟨%xe, #Hxe, -, #Hxew⟩
   iunfold EtcdGrove.io.readerStreamNE
   imodintro
   iintro %r %p %xs
@@ -197,7 +221,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       ileft; iframe Hc Hdead
     all_goals (
       obtain ⟨hk, rfl⟩ := Hout
-      ihave %Hne := readErr_some _ la ra ed err xe (by intro bs h; cases h) $$ HE
+      ihave ⟨%Hne, #Hes⟩ := readErr_some' _ la ra ed err xe _ (by intro bs h; cases h) $$ Hxew HE
       obtain ⟨Hne, Hptr⟩ := Hne
       imodintro
       iapply HΦ
@@ -210,7 +234,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []
-        · iright; imodintro; iunfold crErr; iexact Hlb
+        · iright; imodintro; iunfold crErr; iframe Hlb Hes
         · ipureintro; exact Hptr
       iunfold crSt
       iframe HrT Hrdl Hrpc Hh
@@ -268,7 +292,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
     all_goals (
       obtain ⟨hk, rfl⟩ := Hout
       simp only [ReadRes.got, List.append_nil] at Hpre' ⊢
-      ihave %Hne := readErr_some _ la ra ed err xe (by intro bs h; cases h) $$ HE
+      ihave ⟨%Hne, #Hes⟩ := readErr_some' _ la ra ed err xe _ (by intro bs h; cases h) $$ Hxew HE
       obtain ⟨Hne, Hptr⟩ := Hne
       ihave #Hd : readDead (Gg := hG.goose_globalGS) cn false $$ [Hdead]
       · iapply Hdead
@@ -289,7 +313,7 @@ theorem crStream (wp_Read : net.Conn.Read.specLc (GF := GF) (hG := hG))
       isplitr
       · unfold EtcdGrove.io.errAt
         isplitl []
-        · iright; imodintro; iunfold crErr; iexact Hlb
+        · iright; imodintro; iunfold crErr; iframe Hlb Hes
         · ipureintro; exact Hptr
       iunfold crSt
       iframe HrT Hrdl Hrpc Hh
@@ -399,10 +423,19 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
     · imodintro
       iintro %r0 %r' %e He HS
       iapply crErr_final W a cn γ γe r0 r' e $$ [$He $HS]
+    ihave #Hlaw3 : (□ ∀ (r0 : List w8) (e : GoInterface), crErr γe r0 e -∗
+        net.http.errMsgOk e : IProp GF) $$ []
+    · imodintro
+      iintro %r0 %e He
+      iunfold crErr at He
+      icases He with ⟨-, #Hes⟩
+      unfold net.errStr at Hes
+      unfold net.http.errMsgOk
+      iexact Hes
     wp_apply wp_ReadResponse b _ (crSt W a cn γ γe) (crErr γe) req _
-        $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hreq] as %resp %rerr Hres
+        $$ [$Hhenv $Hstream $Hb $Hlaw1 $Hlaw2 $Hlaw3 $Hreq] as %resp %rerr Hres
     · ipureintro; rfl
-    icases Hres with (%Hne | ⟨%Hnil, %rv, Hrv, Hst⟩)
+    icases Hres with (⟨%Hne, #Hrm⟩ | ⟨%Hnil, %rv, Hrv, Hst⟩)
     · -- an error: wrapped
       cases rerr with
       | nil => exact absurd rfl Hne
@@ -424,7 +457,13 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errAny_opErrPtr $$ Hpe
+      iapply errAny_opErrPtr
+      isplitr
+      · iexact Hpe
+      unfold net.opErrMsgOk net.addrOrNil
+      isplitr
+      · unfold net.http.errMsgOk at Hrm; unfold net.errStr; iexact Hrm
+      isplitr <;> (ileft; ipureintro; rfl)
     subst Hnil
     iStructNamed Hrv
     icases Hst with (%Hst | ⟨%Hst, Hb⟩)
@@ -449,7 +488,13 @@ theorem DialHTTPPath.wp_proof (wp_Dial : net.Dial.spec (GF := GF) (hG := hG))
       iright
       isplitr
       · ipureintro; intro h; cases h
-      iapply errAny_opErrPtr $$ Hpe
+      iapply errAny_opErrPtr
+      isplitr
+      · iexact Hpe
+      unfold net.opErrMsgOk net.addrOrNil
+      isplitr
+      · iapply net.errStr_of_wp ⟨go.GoType.PointerType errors.errorString.ty, #x⟩ _ $$ Hx
+      isplitr <;> (ileft; ipureintro; rfl)
     -- the answer: the reader delivered it whole
     wp_auto
     rw [decide_eq_true Hst]

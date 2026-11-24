@@ -10,8 +10,8 @@ timeout, and the dialer sets no read deadline).
   `hsErr`: the server could not read the handshake); its read deadline not set (`rdlTok cn false
   false`); and the once-cell `γe` (a monotone list): empty while no read has failed, `[r]` once one
   failed at `r`, and then the end reads nothing more (`readDead`, `read_after_dead_au`).
-* `crErr γe r err`: a read failed at `r` (persistent): no byte after it (`crErr_final`), what
-  `http.ReadResponse.spec`'s finality law asks.
+* `crErr γe r err`: a read failed at `r` with `err` (persistent): no byte after it (`crErr_final`),
+  and `err` has an `Error()` (`net.errStr`): what `http.ReadResponse.spec`'s laws ask.
 -/
 module
 
@@ -51,8 +51,8 @@ def crSt (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNames) (γe : 
       monoListAuthOwn γe 1 ([] : List (List w8))))
 
 /-- See the file header. -/
-def crErr (γe : GName) (r : List w8) (_err : GoInterface) : IProp GF :=
-  monoListLbOwn γe [r]
+def crErr (γe : GName) (r : List w8) (err : GoInterface) : IProp GF :=
+  iprop(monoListLbOwn γe [r] ∗ net.errStr err)
 
 instance crErr_persistent (γe : GName) (r : List w8) (err : GoInterface) :
     Persistent (crErr (GF := GF) γe r err) := by
@@ -66,6 +66,7 @@ theorem crErr_final (W : RpcWorld GF) (a : GoString) (cn : Nat) (γ : RpcConnNam
   iunfold crSt at Hst
   icases Hst with ⟨-, -, -, -, -, Hc⟩
   iunfold crErr at He
+  icases He with ⟨#He, -⟩
   icases Hc with (⟨Hc, -⟩ | Hc)
   · ihave %Hv := mono_list_auth_lb_valid _ _ _ _ $$ Hc He
     obtain ⟨-, Hp⟩ := Hv
