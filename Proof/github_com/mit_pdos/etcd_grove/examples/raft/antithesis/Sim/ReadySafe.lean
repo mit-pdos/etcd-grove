@@ -157,7 +157,7 @@ theorem lc_ok {G : RaftFacts} (hG : RaftLaws G) {ll : TermFn (List Entry)} {L : 
     ∀ p ∈ ll, p.1 > uint.Z T → isPrefix ((logOf L).take (uint.Z c).toNat) p.2 = .ok true := by
   intro p hp hgt
   obtain ⟨l, -, hpl, t, l0, ht, hcamp, hpre⟩ := hll p hp
-  obtain ⟨-, -, -, -, -, hcl⟩ := hG
+  obtain ⟨-, -, -, -, -, hcl, -⟩ := hG
   have := (hcl _ hcm).2 (t, l0) hcamp (by simp only; omega)
   rw [hpl, uZ_toNat_nat, logOf_take, hcG]
   exact isPrefix_of_prefix (logOf_prefix (this.trans hpre))

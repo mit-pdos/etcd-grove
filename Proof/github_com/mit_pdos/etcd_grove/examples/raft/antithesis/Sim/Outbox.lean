@@ -381,7 +381,7 @@ theorem outOk_reach {S : AntCheck.State} {net : List Msg} {n : Fin 3} {v : NodeV
     cases inp with
     | recv m =>
       obtain ⟨hmn, -, hm0⟩ := hm m rfl
-      exact outOk_recv hX hb hm0 hbe hca (hnet.2.2 m hmn).1 (hnet.1 m hmn).1 hs
+      exact outOk_recv hX hb hm0 hbe hca (hnet.2.2.1 m hmn).1 (hnet.1 m hmn).1 hs
     | tick => exact outOk_tick hX hb hs
     | propose d => exact outOk_propose hX hs
   | advance _ _ _ _ ha =>

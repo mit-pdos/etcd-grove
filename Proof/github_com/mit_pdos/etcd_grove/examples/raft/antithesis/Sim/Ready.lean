@@ -85,6 +85,115 @@ theorem reach_byE {id : w64} {net : List Msg} {v : NodeView} {ps₁ : PState} {r
 theorem roleOf_leader_iff (r : Role) : roleOf r = leader ↔ r = .leader := by
   cases r <;> decide
 
+theorem roleOf_follower_iff (r : Role) : roleOf r = follower ↔ r = .follower := by
+  cases r <;> decide
+
+/-! ## The terms' recorded commits (C3's `TermLenOk`, C4's `LeadCommitMsgOk`) -/
+
+theorem tlOld_cons (q : Int × Int) (qs : TermFn Int) (t : Int) :
+    tlOld (q :: qs) t = if q.1 = t then q.2 else tlOld qs t := by
+  unfold tlOld; simp only [List.find?_cons]; by_cases h : q.1 = t
+  · simp [h]
+  · have hb : (q.1 == t) = false := beq_false_of_ne h
+    simp [hb, h]
+
+theorem tlOld_with (f : TermFn Int) (t v t' : Int) :
+    tlOld (f.with t v) t' = if t' = t then v else tlOld f t' := by
+  induction f with
+  | nil =>
+    simp only [TermFn.with, tlOld_cons]
+    by_cases h : t' = t
+    · rw [if_pos h.symm, if_pos h]
+    · rw [if_neg (Ne.symm h), if_neg h]
+  | cons q qs ih =>
+    unfold TermFn.with
+    split
+    · rw [tlOld_cons]
+      by_cases h : t' = t
+      · rw [if_pos h.symm, if_pos h]
+      · rw [if_neg (Ne.symm h), if_neg h]
+        split
+        · rename_i he; rw [tlOld_cons, if_neg (by rw [he]; exact Ne.symm h)]
+        · rfl
+    · rename_i hlt
+      rw [tlOld_cons, tlOld_cons, ih]
+      by_cases h : t' = t <;> by_cases h2 : q.1 = t' <;> simp only [h, h2, if_true, if_false] <;> omega
+
+/-- A sendable append is from a leader of its term. -/
+theorem sendable_led {S : State} {f : AppendFact} (h : S.sendable f = .ok true) :
+    S.leaders.contains { server := f.src, term := f.term } = true := by
+  unfold State.sendable sendableIn at h
+  cases h1 : S.leaders.contains { server := f.src, term := f.term } <;>
+    simp only [h1, Bool.not_false, Bool.not_true, ite_true, Bool.false_eq_true, ite_false] at h
+  · cases h
+  · rfl
+
+/-- **A follower's commit on a leader's message** (an append or heartbeat sent to node `n`, whose
+term `n` has not passed): its term is led, and its commit is within every leader's of its term
+(election safety, C4's `LeadCommitMsgOk`). -/
+theorem fol_led {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} {n : Fin 3} {m : Msg}
+    (hs : AntSim S V net) (hgo : GlobalOk S net G) (hl : RaftLaws G) (hm : m ∈ net)
+    (hty : m.ty = .app ∨ m.ty = .heartbeat) (hdst : m.dst = nodeId n)
+    (hle : S.currentTerm[n.val]! ≤ uint.Z m.term) :
+    (∃ l ∈ S.leaders, l.term = uint.Z m.term) ∧
+    ∀ k : Fin 3, S.role[k.val]! = leader → S.currentTerm[k.val]! = uint.Z m.term →
+      uint.Z m.commit ≤ S.commitIndex[k.val]! := by
+  obtain ⟨-, -, hn, hno⟩ := hs
+  obtain ⟨-, -, j, hj, hjk⟩ := hn.1 m hm
+  have hjn : j = n := nodeId_inj (hj.symm.trans hdst)
+  subst hjn
+  have hsd := (hjk hle).1 hty
+  rw [toAppendFact_msgOf, eok_bind] at hsd
+  have hlm := List.contains_iff_mem.mp (sendable_led hsd)
+  refine ⟨⟨_, hlm, rfl⟩, fun k hk hkt => ?_⟩
+  have hvk : (V k).ps.role = .leader :=
+    (roleOf_leader_iff _).mp (by rw [← (hno k).1.2.2.2.2.1]; exact hk)
+  have hkm := List.contains_iff_mem.mp ((hno k).2.1 hvk).1
+  obtain ⟨a, ta, ha, hsa, hta⟩ := hgo.1 _ hlm
+  obtain ⟨b, tb, hb, hsb, htb⟩ := hgo.1 _ hkm
+  have hct : S.currentTerm[k.val]! = uint.Z (V k).ps.term := (hno k).1.1
+  have hta' : uint.Z m.term = uint.Z ta := hta
+  have htb' : uint.Z (V k).ps.term = uint.Z tb := htb
+  have htt : ta = tb := uint_Z_inj.mp (by omega)
+  have hab : a = b := hl.1 _ ha _ hb htt
+  have hsa' : nameOf m.src = nameOf a := hsa
+  have hsb' : nameOf (nodeId k) = nameOf b := hsb
+  have hik : m.src = nodeId k := nameOf_inj (by rw [hsa', hsb', hab])
+  exact hn.2.2.2 m hm hty k hik (by rw [hk]; decide) hkt
+
+/-- `termLen` after a follower's commit `cc` on a leader's message at term `T` (`OnDisk`'s `adv`):
+it only grows, at `T`, which is led, within every leader's commit at `T`. -/
+theorem fol_tl {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFacts} {n : Fin 3} {m : Msg}
+    {T cc : w64} (hs : AntSim S V net) (hgo : GlobalOk S net G) (hl : RaftLaws G) (hm : m ∈ net)
+    (hty : m.ty = .app ∨ m.ty = .heartbeat) (hdst : m.dst = nodeId n)
+    (hle : S.currentTerm[n.val]! ≤ uint.Z m.term) (hT : T = m.term) (hcc : uint.Z cc ≤ uint.Z m.commit) :
+    (∀ T', tlOld S.termLen T' ≤ tlOld (S.termLen.with (uint.Z T) (imax (tlOld S.termLen (uint.Z T)) (uint.Z cc))) T') ∧
+    (∀ T', tlOld S.termLen T' <
+        tlOld (S.termLen.with (uint.Z T) (imax (tlOld S.termLen (uint.Z T)) (uint.Z cc))) T' →
+      T' = uint.Z T ∧ (∃ l ∈ S.leaders, l.term = uint.Z T) ∧
+      ∀ k : Fin 3, k ≠ n → S.role[k.val]! = leader → S.currentTerm[k.val]! = uint.Z T →
+        tlOld (S.termLen.with (uint.Z T) (imax (tlOld S.termLen (uint.Z T)) (uint.Z cc))) (uint.Z T) ≤
+          S.commitIndex[k.val]!) := by
+  subst hT
+  obtain ⟨hld, hk⟩ := fol_led hs hgo hl hm hty hdst hle
+  have hb17 := hs.2.1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
+  refine ⟨fun T' => ?_, fun T' hlt => ?_⟩
+  · rw [tlOld_with]; unfold imax
+    by_cases h1 : T' = uint.Z m.term
+    · rw [if_pos h1]; subst h1; split <;> omega
+    · rw [if_neg h1]; exact Int.le_refl _
+  · rw [tlOld_with] at hlt
+    have hT' : T' = uint.Z m.term := by
+      by_cases h : T' = uint.Z m.term
+      · exact h
+      · rw [if_neg h] at hlt; omega
+    subst hT'
+    refine ⟨rfl, hld, fun k _ hkl hkt => ?_⟩
+    have h1 := hk k hkl hkt
+    have h2 := (hb17.2.2 k hkl).2
+    rw [hkt] at h2
+    rw [tlOld_with, if_pos rfl]; unfold imax; split <;> omega
+
 /-! ## Kinds that write no entry and move no commit -/
 
 /-- **`ReadyOk` of a `Ready` that changes only the term, the vote or the role** of a non-leader
@@ -117,7 +226,8 @@ theorem readyOk_plain {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G :
     (hqs : ∀ q ∈ rd.qs, QsOk (readyS S n.val (uint.Z ps₁.term) vo (S.log[n.val]!) (uint.Z ps₁.commit)
       (S.role.set n.val (roleOf ps₁.role)) (S.confirmed[n.val]!) M Vs S.leaders S.ledLog p S.chain
       S.termLen S.viol (memNL S n.val (roleOf ps₁.role))) n ((V n).afterReady ps₁ rd) q)
-    (hlh : LeadHint (nodeId n) ps₁) (hvsp : ps₁.role ≠ .follower → ps₁.vote = nodeId n) :
+    (hlh : LeadHint (nodeId n) ps₁) (hvsp : ps₁.role ≠ .follower → ps₁.vote = nodeId n)
+    (hrnf : ps₁.role ≠ .follower → ps₁.term = (V n).ps.term → (V n).ps.role ≠ .follower) :
     ReadyOk S V net G n ((V n).afterReady ps₁ rd) (uint.Z ps₁.term) vo (S.log[n.val]!)
       (uint.Z ps₁.commit) (S.role.set n.val (roleOf ps₁.role)) (S.confirmed[n.val]!) M Vs
       S.leaders S.ledLog p S.chain S.termLen S.viol (memNL S n.val (roleOf ps₁.role)) := by
@@ -190,7 +300,17 @@ theorem readyOk_plain {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G :
     hqs := hqs
     drain := ⟨rfl, rfl⟩
     hlead := hlh
-    hvself := hvsp }
+    hvself := hvsp
+    rnf := by
+      intro hf ht
+      rw [get!_set_self _ hn3] at hf
+      rw [d5]; intro h'
+      have hpf : ps₁.role ≠ .follower := fun e => hf (by rw [e]; rfl)
+      have hvt : ps₁.term = (V n).ps.term := uint_Z_inj.mp (by rw [ht, d1])
+      exact hrnf hpf hvt ((roleOf_follower_iff _).mp h')
+    tlMono := fun _ => Int.le_refl _
+    tlNew := fun _ h => absurd h (Int.lt_irrefl _)
+    tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl }
 
 /-! ## Facts of the kinds -/
 
@@ -453,7 +573,12 @@ theorem readyOk_fol {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : R
         ((S.confirmed[n.val]!).term = uint.Z ps₁.term → (S.confirmed[n.val]!).index ≤ cf.index)))
     (hconf : ∀ l, S.ledLog.get cf.term = .ok l →
       cf.index ≤ L1.length ∧ cf.index ≤ l.length ∧ L1.take cf.index.toNat = l.take cf.index.toNat)
-    (hlh : LeadHint (nodeId n) ps₁) (hso : SelfOut (nodeId n) ps₁) :
+    (hlh : LeadHint (nodeId n) ps₁) (hso : SelfOut (nodeId n) ps₁)
+    (htlM : ∀ T, tlOld S.termLen T ≤ tlOld tl T)
+    (htlN : ∀ T, tlOld S.termLen T < tlOld tl T → T = uint.Z ps₁.term ∧
+      (∃ l ∈ S.leaders, l.term = uint.Z ps₁.term) ∧
+      ∀ k : Fin 3, k ≠ n → S.role[k.val]! = leader → S.currentTerm[k.val]! = uint.Z ps₁.term →
+        tlOld tl (uint.Z ps₁.term) ≤ S.commitIndex[k.val]!) :
     ReadyOk S V net G n ((V n).afterReady ps₁ rd) (uint.Z ps₁.term) none L1
       (uint.Z ps₁.commit) (S.role.set n.val (roleOf ps₁.role)) cf M S.votes
       S.leaders S.ledLog p ch tl S.viol (memNL S n.val (roleOf ps₁.role)) := by
@@ -519,7 +644,11 @@ theorem readyOk_fol {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : R
     hqs := fun q hq => (qs_follower hro hso hpr q hq).elim
     drain := ⟨rfl, rfl⟩
     hlead := hlh
-    hvself := fun h => absurd hpr h }
+    hvself := fun h => absurd hpr h
+    rnf := fun hf _ => absurd (by rw [get!_set_self _ hn3, hpr]; rfl) hf
+    tlMono := htlM
+    tlNew := htlN
+    tlSelf := fun h => absurd ((roleOf_leader_iff _).mp ((get!_set_self _ hn3).symm.trans h)) hnl }
 
 theorem nat_commit_le {G : RaftFacts} {id : w64} {ps : PState} (hrf : ReadyFacts G id ps) :
     uint.Z ps.commit ≤ ps.log.length := by
@@ -675,7 +804,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
   obtain ⟨hd, -, -, -, hQ, -, hca, hlo, hvs⟩ := hno n
   obtain ⟨d1, d2, d3, d4, d5, -, d7, d8, d9, d10, -, -, -⟩ := hd
   have hq0 : S1.queue[n.val]! = [] := (hb.2.1 n).1
-  have hin : ∀ m ∈ net, InMsg m := fun m hm => ⟨(hnet.1 m hm).1, hnet.2.2 m hm⟩
+  have hin : ∀ m ∈ net, InMsg m := fun m hm => ⟨(hnet.1 m hm).1, hnet.2.2.1 m hm⟩
   have hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
@@ -693,7 +822,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
     refine ⟨i, fun h => ?_, hi, hti⟩
     subst h
-    exact (hnet.2.2 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
+    exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
   cases hk with
   | demote hvc hpr hpt hpv hpl hpc hen =>
     rw [hen]
@@ -709,6 +838,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
       (fun f hf hn => absurd hf hn) (fun y hy => hy) (fun y hy hn => absurd hy hn)
       (fun h => absurd rfl h) hpm (fun h => absurd (h.symm.trans hpr) (by decide))
       (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh hvs1
+      (fun h ht => by first | exact absurd hpr h | (rw [ht] at htz; omega))
   | camp hbe hnl0 hpt hpv hpr hpl hpc hen =>
     rw [hen, hbe, hpv]
     have htz : uint.Z ps₁.term = uint.Z (V n).ps.term + 1 := by
@@ -752,6 +882,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
         · refine ⟨h1, h2, h3, h4, .inr ⟨rfl, ?_⟩⟩
           rw [rS_votes]; exact mem_lset_add.mpr (.inr rfl))
       hlh hvs1
+      (fun h ht => by first | exact absurd hpr h | (rw [ht] at htz; omega))
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm rfl (queued_other _ _ _ _ _ _ _ _ (by decide)) hod) hok
@@ -773,6 +904,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
       (fun f hf hn => absurd hf hn) (fun y hy => hy) (fun y hy hn => absurd hy hn)
       (fun h => absurd rfl h) hpm (fun h => absurd (h.symm.trans hpr) (by decide))
       (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh hvs1
+      (fun h ht => by first | exact absurd hpr h | (rw [ht] at htz; omega))
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
@@ -825,6 +957,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
       (fun _ => by rw [hpv]; exact mem_lset_add.mpr (.inr rfl)) hpm
       (fun h => absurd (h.symm.trans hpr) (by decide))
       (fun q hq => (qs_follower hro hso hpr q hq).elim) hlh hvs1
+      (fun h ht => by first | exact absurd hpr h | (rw [ht] at htz; omega))
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
@@ -877,6 +1010,8 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
     have hok := readyOk_fol (M := S1.msgs) (cf := S1.confirmed[n.val]!) (rd := rd) hs1 hrf hr hro hpr hft hpt
       rfl (Int.le_of_lt hlt) (fun f hf => hf) (fun f hf hn => absurd hf hn) hpm f1 f2 f3 f4 f5 f6 f7
       (.inl rfl) (fun l hl => by rw [← hlogn]; exact hb.2.2.2.2.2.2.1 n l hl) hlh hso
+      (fol_tl hs1 hgo1 hl hm.2.2.1 (.inr hty) hm.2.2.2.1 hle hpt (by rw [hpc]; exact Int.le_refl _)).1
+      (fol_tl hs1 hgo1 hl hm.2.2.1 (.inr hty) hm.2.2.2.1 hle hpt (by rw [hpc]; exact Int.le_refl _)).2
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
@@ -885,7 +1020,7 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
     have hnl : ps₁.role ≠ .leader := by rw [hpr]; decide
     have hpend := pending_of (hno n) (htold hm.1) hm.2.1
     obtain ⟨i, hin', hsi, hti⟩ := hsender m hm
-    have hpay : AppPayloadOk m := (hnet.2.2 m hm.2.2.1).1 hty
+    have hpay : AppPayloadOk m := (hnet.2.2.1 m hm.2.2.1).1 hty
     have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
       rw [d1]; rcases hft with ⟨h, -⟩ | ⟨h, -, -⟩
       · exact Int.le_of_lt h
@@ -988,7 +1123,8 @@ theorem ready_main (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs : 
               have hb' : ((S1.confirmed[n.val]!).term == uint.Z m.term) = false := by simpa using ht
               unfold ackConf; simp only [hb', Bool.false_eq_true, ite_false]
             rw [e]; exact ⟨m1, m2, m3⟩)
-        hlh hso
+        hlh hso (fol_tl hs1 hgo1 hl hm.2.2.1 (.inl hty) hm.2.2.2.1 hle hpt hcc).1
+        (fol_tl hs1 hgo1 hl hm.2.2.1 (.inl hty) hm.2.2.2.1 hle hpt hcc).2
       rw [hpr] at hok
       exact ready_finish hp hgc hs1 hgo1 hl
         (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
@@ -1038,7 +1174,7 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
   obtain ⟨hd, -, -, -, hQ, -, hca, hlo, hvsN⟩ := hno n
   obtain ⟨d1, d2, d3, d4, d5, -, d7, d8, d9, d10, -, -, -⟩ := hd
   have hq0 : S1.queue[n.val]! = [] := (hb.2.1 n).1
-  have hin : ∀ m ∈ net, InMsg m := fun m hm => ⟨(hnet.1 m hm).1, hnet.2.2 m hm⟩
+  have hin : ∀ m ∈ net, InMsg m := fun m hm => ⟨(hnet.1 m hm).1, hnet.2.2.1 m hm⟩
   have hqs : ∀ q ∈ (V n).qs, SelfMsg (nodeId n) (V n).ps.term q := fun q hq => by
     obtain ⟨h1, h2, h3, h4, h5⟩ := hQ q hq
     exact ⟨h1, h2, h3, h4, h5.imp (fun h => h.1) (fun h => h.1)⟩
@@ -1053,8 +1189,8 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
     obtain ⟨-, ⟨i, hi, hti⟩, -⟩ := hnet.1 m hm.2.2.1
     refine ⟨i, fun h => ?_, hi, hti⟩
     subst h
-    exact (hnet.2.2 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
-  have hpay : AppPayloadOk m := (hnet.2.2 m hm.2.2.1).1 hty
+    exact (hnet.2.2.1 m hm.2.2.1).2.1 (by rw [hi, hm.2.2.2.1])
+  have hpay : AppPayloadOk m := (hnet.2.2.1 m hm.2.2.1).1 hty
   have hle : S1.currentTerm[n.val]! ≤ uint.Z m.term := by
     rw [d1]; rcases hft with ⟨h, -⟩ | ⟨h, -, -⟩
     · exact Int.le_of_lt h
@@ -1222,6 +1358,10 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
   rw [hpr, hents]
   by_cases hlt : S1.commitIndex[n.val]! < uint.Z ps₁.commit
   · rw [if_pos hlt, if_pos hlt] at hod
+    have hFT := fol_tl (cc := ps₁.commit) hs1 hgo1 hl hm.2.2.1 (.inl hty) hm.2.2.2.1 hle hpt (by
+      rcases hcmv with h | h
+      · rw [d4, h] at hlt; exact absurd hlt (Int.lt_irrefl _)
+      · exact h.2.1)
     obtain ⟨f1, f2, f3, f4, f5, f6, f7⟩ := commit_fields (n := n) (T := ps₁.term) hb hgo1 hcL hcG
       hrf.2.1 hrf.2.2.2.1 hlt
     have hok := readyOk_fol (rd := rd) (L1 := logOf ps₁.log)
@@ -1235,7 +1375,7 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
         · exact absurd h hn
         · subst h
           exact ⟨rfl, rfl, ⟨i, by show nameOf m.src = _; rw [hsi]⟩, rfl, .inl ⟨rfl, Int.le_refl _⟩⟩)
-      hpm f1 f2 f3 f4 f5 f6 f7 (.inr ⟨rfl, hhas, hcmono⟩) hconf hlh hso
+      hpm f1 f2 f3 f4 f5 f6 f7 (.inr ⟨rfl, hhas, hcmono⟩) hconf hlh hso hFT.1 hFT.2
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok
@@ -1255,7 +1395,7 @@ theorem ready_storeB (S : State) (V : Fin 3 → NodeView) (net : List Msg) (evs 
         · refine .inr ⟨q, hq, ?_, hceq ▸ h2⟩
           have := hle; rw [← hpt] at this; omega)
       (fun q hq => ⟨q, hq, rfl, Int.le_refl _⟩) hgo1.2.2.2.2.1 hgo1.2.2.2.2.2.1
-      (.inr ⟨rfl, hhas, hcmono⟩) hconf hlh hso
+      (.inr ⟨rfl, hhas, hcmono⟩) hconf hlh hso (fun _ => Int.le_refl _) (fun _ h => absurd h (Int.lt_irrefl _))
     rw [hpr] at hok
     exact ready_finish hp hgc hs1 hgo1 hl
       (ready_of hq0 hm' rfl (queued_recv _ _ _ _ _ _ _ _ hpend) hod) hok

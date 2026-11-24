@@ -407,7 +407,7 @@ theorem quiet_reach {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps�
     cases inp with
     | recv m =>
       obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
-      exact quiet_recv hc hnet hmn hmd (hnet.2.2 m hmn).2.1 hm0 hct hs hro ht hl
+      exact quiet_recv hc hnet hmn hmd (hnet.2.2.1 m hmn).2.1 hm0 hct hs hro ht hl
     | tick => exact quiet_tick hs ht
     | propose d => exact quiet_propose hs hl
   | advance _ _ _ _ ha =>
@@ -532,7 +532,7 @@ theorem reach_leadOk {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {ps
     cases inp with
     | recv m =>
       obtain ⟨hmn, hmd, -⟩ := hm m rfl
-      have hsd : m.src ≠ nodeId n := hmd ▸ (hnet.2.2 m hmn).2.1
+      have hsd : m.src ≠ nodeId n := hmd ▸ (hnet.2.2.1 m hmn).2.1
       exact leadHint_recv hlo hid (hnet.1 m hmn).1 (.inl hsd) hs
     | tick => exact leadHint_tick hlo hid hs
     | propose d => exact leadHint_propose hlo hs
@@ -725,7 +725,7 @@ theorem reach_selfFree {S : State} {net : List Msg} {n : Fin 3} {v : NodeView} {
     cases inp with
     | recv m =>
       obtain ⟨hmn, hmd, hm0⟩ := hm m rfl
-      obtain ⟨-, hsd, hpt⟩ := hnet.2.2 m hmn
+      obtain ⟨-, hsd, hpt⟩ := hnet.2.2.1 m hmn
       have hsd' : m.src ≠ nodeId n := hmd ▸ hsd
       exact selfFree_recv hX (hnet.1 m hmn).1 (fun hp => hm0 (hpt hp)) hsd' hm0 hro ht hs
     | tick => exact selfFree_tick hX ht hs

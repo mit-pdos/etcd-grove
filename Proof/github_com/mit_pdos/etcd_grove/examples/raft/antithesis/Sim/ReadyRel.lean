@@ -310,6 +310,13 @@ structure ReadyOk (S : State) (V : Fin 3 → NodeView) (net : List Msg) (G : Raf
   drain : w.told = (V n).told ∧ w.cause = (V n).cause
   hlead : LeadOk n w
   hvself : VoteSelf n w
+  -- C3's recorded commits, C4's leader commits
+  rnf : ro[n.val]! ≠ follower → t1 = S.currentTerm[n.val]! → S.role[n.val]! ≠ follower
+  tlMono : ∀ T, tlOld S.termLen T ≤ tlOld tl T
+  tlNew : ∀ T, tlOld S.termLen T < tlOld tl T → T = t1 ∧ (∃ l ∈ ld, l.term = t1) ∧
+    ∀ k : Fin 3, k ≠ n → S.role[k.val]! = leader → S.currentTerm[k.val]! = t1 →
+      tlOld tl t1 ≤ S.commitIndex[k.val]!
+  tlSelf : ro[n.val]! = leader → (termAt L1 c = t1 → c ≤ tlOld tl t1) ∧ tlOld tl t1 ≤ c
 
 
 /-! ## The new state, piece by piece -/
@@ -436,8 +443,8 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
   have hge := rr_ct_ge hs hok
   have hllm := rr_ll hok
   obtain ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩, hb, -, -⟩ := hs
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16⟩ := hb
-  refine ⟨hok.hviol, hb2, ?_, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
+  refine ⟨hok.hviol, hb2, ?_, hok.tlLen, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · -- undo
     intro k q hq
     change (S.undo.set n.val (some p))[k.val]! = some q at hq
@@ -578,6 +585,30 @@ theorem rr_binding (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c
       · rw [e]; exact ⟨hold _ (hb16 n).1, Int.le_trans (hb16 n).2 hok.tge⟩
       · exact ⟨.inr (.inl (e1 ▸ e2)), Int.le_of_eq e1⟩
     · rw [rr_cf_o hj, rr_ct_o hj]; exact ⟨hold _ (hb16 j).1, (hb16 j).2⟩
+  · -- TermLenOk
+    refine ⟨fun T hT => ?_, fun k hk => ?_⟩
+    · change 0 < tlOld tl T at hT
+      by_cases hlt : tlOld S.termLen T < tlOld tl T
+      · obtain ⟨e1, ⟨l, hl, hlt'⟩, -⟩ := hok.tlNew T hlt
+        exact .inl ⟨l, hl, hlt'.trans e1.symm⟩
+      · rcases hb17.1 T (by omega) with ⟨l, hl, hlt'⟩ | h
+        · exact .inl ⟨l, hok.lsub l hl, hlt'⟩
+        · exact .inr fun i => Int.lt_of_lt_of_le (h i) (hge i)
+    · change ro[k.val]! = leader at hk
+      change (AntCheck.termAt ((S₂).log[k.val]!) ((S₂).commitIndex[k.val]!) = (S₂).currentTerm[k.val]! →
+          (S₂).commitIndex[k.val]! ≤ tlOld tl ((S₂).currentTerm[k.val]!)) ∧
+        tlOld tl ((S₂).currentTerm[k.val]!) ≤ (S₂).commitIndex[k.val]!
+      by_cases hkn : k = n
+      · subst hkn
+        rw [rr_ct_n sh1, rr_cm_n sh5, rr_log_n sh4]; exact hok.tlSelf hk
+      · rw [rr_ct_o hkn, rr_cm_o hkn, rr_log_o hkn]
+        have hk' : S.role[k.val]! = leader := by rw [← hok.rother k hkn]; exact hk
+        obtain ⟨o1, o2⟩ := hb17.2 k hk'
+        refine ⟨fun h => Int.le_trans (o1 h) (hok.tlMono _), ?_⟩
+        by_cases hlt : tlOld S.termLen (S.currentTerm[k.val]!) < tlOld tl (S.currentTerm[k.val]!)
+        · obtain ⟨e1, -, e3⟩ := hok.tlNew _ hlt
+          rw [e1]; exact e3 k hkn hk' e1
+        · omega
 
 /-- C4 at the new state. -/
 theorem rr_net (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro cf M Vs ld ll p ch tl vi r) :
@@ -585,11 +616,24 @@ theorem rr_net (hs : AntSim S V net) (hok : ReadyOk S V net G n w t1 vo L1 c ro 
   have hge := rr_ct_ge hs hok
   have hllm := rr_ll hok
   obtain ⟨⟨sh0, sh1, -, -, -, sh5, -, -, -, -, sh10, -⟩, hb, hn, -⟩ := hs
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hb16⟩ := hb
-  obtain ⟨hn1, hn2, hn3⟩ := hn
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, hb16, -⟩ := hb
+  obtain ⟨hn1, hn2, hn3, hn4⟩ := hn
   have hsend : ∀ f, S.sendable f = .ok true → (S₂).sendable f = .ok true := fun f h =>
     rr_sendableIn_mono hok.lsub hllm.1 hok.hchain hok.tlDom h
-  refine ⟨fun m hm => ?_, ?_, hn3⟩
+  refine ⟨fun m hm => ?_, ?_, hn3, fun m hm hty i hsrc hro hct => ?_⟩
+  rotate_left 2
+  · change ro[i.val]! ≠ follower at hro
+    by_cases hin : i = n
+    · subst hin
+      rw [rr_ct_n sh1] at hct; rw [rr_cm_n sh5]
+      obtain ⟨-, ⟨i', hsrc', hti⟩, -⟩ := hn1 m hm
+      have hii : i' = i := nodeId_inj (hsrc'.symm.trans hsrc)
+      subst hii
+      have ht1 : t1 = S.currentTerm[i'.val]! := by have := hok.tge; omega
+      exact Int.le_trans (hn4 m hm hty i' hsrc (hok.rnf hro ht1) (ht1 ▸ hct)) hok.cge
+    · rw [rr_ct_o hin] at hct; rw [rr_cm_o hin]
+      rw [hok.rother i hin] at hro
+      exact hn4 m hm hty i hsrc hro hct
   · obtain ⟨hty, ⟨i, hsrc, hti⟩, j, hdst, hj⟩ := hn1 m hm
     refine ⟨hty, ⟨i, hsrc, Int.le_trans hti (hge i)⟩, j, hdst, fun hle => ?_⟩
     obtain ⟨h1, h2, h3, h4⟩ := hj (Int.le_trans (hge j) hle)

@@ -178,12 +178,6 @@ theorem ox_conf1_app {x : OnDisk} (hx : odX S n id b r t v c es [msgOf m to] ro 
   generalize (uint.Z c != S.commitIndex[n]!) = mv
   cases sb <;> cases mv <;> simp [AntCheck.andM, AntCheck.notM, epure, eok_bind] <;> split <;> rfl
 
-/-- `old` (B 346) as a value. -/
-def tlOld (tl : TermFn Int) (t : Int) : Int :=
-  match tl.find? (fun p => p.1 == t) with
-  | some p => p.2
-  | none => 0
-
 theorem tl_old_ok (tl : TermFn Int) (t : Int) :
     (if tl.has t then tl.get t else .ok 0) = (.ok (tlOld tl t) : EvalM Int) := by
   unfold tlOld TermFn.get TermFn.has

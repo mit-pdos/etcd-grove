@@ -255,6 +255,27 @@ def ConfirmedOk (S : AntCheck.State) : Prop :=
       ∀ i : Fin 3, (S.confirmed[j.val]!).term < S.currentTerm[i.val]!) ∧
     (S.confirmed[j.val]!).term ≤ S.currentTerm[j.val]!
 
+/-- `old` (B 346) as a value: the commit `termLen` records for term `t` (`0` if none). -/
+def tlOld (tl : AntCheck.TermFn Int) (t : Int) : Int :=
+  match tl.find? (fun p => p.1 == t) with
+  | some p => p.2
+  | none => 0
+
+/-- **C3, the terms' recorded commits**: a term with a positive recorded commit is led (in
+`leaders`) or every node has passed it (a node commits at a term only on its leader's message, or
+as its leader, and `GC` drops a leader only once every node has passed its term, B 709); and a
+leader's commit is what its term records once it is at an entry of the term (the leader records it
+at its commit, `InMemory`'s `cmt`, B 252-258), and never below it (a follower records at most the
+commit of its leader's message, C4's `LeadCommitMsgOk`). `InMemory`'s guards on a leader's commit
+(`cmt`: beyond the recorded one) and a proposal (no new commit) read it. -/
+def TermLenOk (S : AntCheck.State) : Prop :=
+  (∀ T, 0 < tlOld S.termLen T →
+    (∃ l ∈ S.leaders, l.term = T) ∨ ∀ i : Fin 3, T < S.currentTerm[i.val]!) ∧
+  ∀ n : Fin 3, S.role[n.val]! = AntCheck.leader →
+    (AntCheck.termAt (S.log[n.val]!) (S.commitIndex[n.val]!) = S.currentTerm[n.val]! →
+      S.commitIndex[n.val]! ≤ tlOld S.termLen (S.currentTerm[n.val]!)) ∧
+    tlOld S.termLen (S.currentTerm[n.val]!) ≤ S.commitIndex[n.val]!
+
 /-- **C3**: facts about `S` alone, kept by every step and by `GC` (§3.2): no violation; no queued
 write or read (default mode); an announced write never `made` (`undo`, B 349-359, only between a
 `ready` and the next `send`/`apply`); `termLen` within `chain`; each node's commit within `chain`
@@ -266,7 +287,7 @@ only while it leads it; the grants' and acks' senders and receivers and the vote
 (`GC` looks them up, B 699-708: an evaluation error otherwise); a node's vote at its term in
 `votes` (recorded by the write that made it, B 410: what a `send` of its grant checks, B 540);
 the acks' terms (`AckTermsOk`), the votes' terms (`VoteTermOk`) and the `confirmed` records'
-(`ConfirmedOk`) within the nodes' terms. -/
+(`ConfirmedOk`) within the nodes' terms; the terms' recorded commits (`TermLenOk`). -/
 def BindingOk (S : AntCheck.State) : Prop :=
   S.viol = [] ∧
   (∀ n : Fin 3, S.queue[n.val]! = [] ∧ S.reads[n.val]! = []) ∧
@@ -292,7 +313,7 @@ def BindingOk (S : AntCheck.State) : Prop :=
   (∀ v ∈ S.votes, ∃ i : Fin 3, v.voter = nameOf (nodeId i)) ∧
   (∀ n : Fin 3, S.vote n.val ≠ [] →
     { voter := nameOf (nodeId n), term := S.currentTerm[n.val]!, cand := S.vote n.val } ∈ S.votes) ∧
-  AckTermsOk S ∧ VoteTermOk S ∧ ConfirmedOk S
+  AckTermsOk S ∧ VoteTermOk S ∧ ConfirmedOk S ∧ TermLenOk S
 
 /-! ## C4: the network -/
 
@@ -308,6 +329,16 @@ def HbCommitOk (S : AntCheck.State) (net : List Msg) : Prop :=
     S.currentTerm[j.val]! ≤ uint.Z m.term →
     ((S.confirmed[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (S.confirmed[j.val]!).index) ∨
       uint.Z m.commit ≤ S.commitIndex[j.val]!
+
+/-- **C4, a leader's message's commit**: an append or heartbeat from node `i` at the term `i` is at,
+while `i` is not a follower, carries at most `i`'s commit (`AppOk`/`HeartbeatOk` at its `send`:
+`commit` the sender's; commits only grow, and a node is a non-follower at a term only after
+campaigning to it, when it had sent nothing at it). With election safety, a follower's commit on it
+stays within its term's leader's commit (`TermLenOk`). -/
+def LeadCommitMsgOk (S : AntCheck.State) (net : List Msg) : Prop :=
+  ∀ m ∈ net, (m.ty = .app ∨ m.ty = .heartbeat) → ∀ i : Fin 3, m.src = nodeId i →
+    S.role[i.val]! ≠ AntCheck.follower → S.currentTerm[i.val]! = uint.Z m.term →
+    uint.Z m.commit ≤ S.commitIndex[i.val]!
 
 /-- **C4, a message's shape**: an append carries a well-formed payload that does not wrap
 (`AppPayloadOk`, what `RecvEnd` reads of a received `MsgApp`), no message is to its sender, and a
@@ -326,7 +357,8 @@ binding checks at its receipt or of its answer was recorded by its sender's repo
 `send` of a request checked `Sendable`; B 418, 540, 573: the facts of a vote request, a grant, an
 ack) and is kept while its receiver has not passed its term (GC drops only what a term has
 passed, B 696-709); a heartbeat's commit within its receiver's confirmation or commit
-(`HbCommitOk`); every message's shape (`NetShape`). -/
+(`HbCommitOk`); every message's shape (`NetShape`); a leader's message's commit within its own
+(`LeadCommitMsgOk`). -/
 def NetOk (S : AntCheck.State) (net : List Msg) : Prop :=
   (∀ m ∈ net,
     (m.ty = .vote ∨ m.ty = .voteResp ∨ m.ty = .app ∨ m.ty = .appResp ∨ m.ty = .heartbeat ∨
@@ -342,7 +374,7 @@ def NetOk (S : AntCheck.State) (net : List Msg) : Prop :=
             AntCheck.Fact) ∈ S.msgs) ∧
         ((m.ty = .appResp ∧ m.reject = false ∧ m.index ≠ W64 0) →
           AckIn S (nameOf m.src) (nameOf m.dst) (uint.Z m.term) (uint.Z m.index)))) ∧
-  HbCommitOk S net ∧ NetShape net
+  HbCommitOk S net ∧ NetShape net ∧ LeadCommitMsgOk S net
 
 set_option linter.iris.dupNamespace false in
 /-- **The refinement relation** (§3.2: C1-C4). -/
@@ -364,8 +396,16 @@ structure RaftFacts where
   committed : List EntryM
   commits : List (w64 × Nat)
 
+/-- **A campaign log's terms are below its term** (raft's `isCamp γ c T F`, the log when the node
+became a candidate at `T`, carries `CampOk T F`: every entry of an earlier term). With it a win's
+log `l0 ++ [entry at T]` has `l0` the campaign log, and a candidate's commit is at no entry of its
+term. -/
+def CampTermsOk (G : RaftFacts) : Prop :=
+  ∀ p ∈ G.camps, ∀ e ∈ p.2, uint.Z e.Term' < uint.Z p.1
+
 /-- What raft proves of its global facts (election safety `isLeader_unique`, one vote per term
-`isVote_agree`, log matching `logRecs_agree`, leader completeness `commitIn_camp`): the laws a
+`isVote_agree`, log matching `logRecs_agree`, leader completeness `commitIn_camp`, a campaign log's
+terms below its term `CampTermsOk`): the laws a
 `RaftFacts` the harness builds satisfies. -/
 def RaftLaws (G : RaftFacts) : Prop :=
   (∀ a ∈ G.leaders, ∀ b ∈ G.leaders, a.2 = b.2 → a.1 = b.1) ∧
@@ -375,7 +415,8 @@ def RaftLaws (G : RaftFacts) : Prop :=
   G.committed ∈ G.logs ∧
   (∀ p ∈ G.camps, p.2 ∈ G.logs) ∧
   (∀ x ∈ G.commits, x.2 ≤ G.committed.length ∧
-    ∀ p ∈ G.camps, uint.Z x.1 < uint.Z p.1 → G.committed.take x.2 <+: p.2)
+    ∀ p ∈ G.camps, uint.Z x.1 < uint.Z p.1 → G.committed.take x.2 <+: p.2) ∧
+  CampTermsOk G
 
 /-- **C5, `GlobalOk`**: everything `S` and `net` hold is certified by `G` -- its leaders and votes
 are raft's, its logs (`log[·]`, `ledLog[·]`, each starting with its term's campaign log) certified,

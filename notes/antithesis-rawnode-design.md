@@ -196,7 +196,7 @@ facts read out of the owned predicate):
 | `rawNode_wf` | `⌜ps.base = base0 → PlogWf base0 ps.log ∧ uint.Z ps.commit ≤ plogLastIndexZ base0 ps.log ∧ ps.term = rs.term⌝` | `NStateWf`, `LogOk`, `Htrm` |
 | `rawNode_logRecs` | `logRecs γ base0 ps.log` (when `ps.base = base0`) | `ownLogGhost`'s `Hrecs` |
 | `rawNode_leader` | `⌜ps.role = .leader⌝ → isLeader γ id ps.term ∗ ∃ F0, isCamp γ id ps.term F0 ∗ ⌜F0 <+: ps.log⌝` | `leaderWit`, `leadLogOwn` |
-| `rawNode_vote` | `⌜ps.vote ≠ 0⌝ → isVote γ id ps.term ps.vote` | `VoteHistOk`, vote table |
+| `rawNode_vote` *(restated 2026-11-24)* | of the durable state, not of `rawNode`: `ownDurGhost γ id S ={raftN}=∗ □(⌜S.vote ≠ 0⌝ → isVote γ id S.term S.vote) ∗ ownDurGhost γ id S`. A vote a `Step` grants is only a promise in the virtual maps until a `Ready`'s enter persists it (`Protocol/Enter.lean`, `votesTbl_insert`); read through the slot invariant's `durFrags`, agreed with the durable half's share | `VoteHistOkD`, vote table |
 | `rawNode_tally` | `[∗ set] v ∈ granted ps.votes, isVote γ v ps.term id` | `Htally` |
 | `rawNode_commit` | `commitIn γ ps.log ps.commit ps.term ∗ isCommitted γ (ps.log.take ps.commit)` | `ownLogGhost`'s `Hcommit` |
 | `rawNode_outbox` | `[∗ list] m ∈ ps.outbox, outMsgOk …` reduced to: each message is `isMessage` once its batch is entered (as `Ready.spec`'s `Henter`) | `Hout` |
@@ -415,7 +415,7 @@ The binding variable, the raft fact the refinement reads it from, and where it i
 | `msgs`: vote requests | `isMessage(.vote)` = `isCamp` + `plogLast` | carried by every message (`isRaftMsg`) |
 | `msgs`: grants | `isMessage(.voteResp, ¬reject)` = `isVote` | same |
 | `msgs`: acks | `isAcked`/`ackIn` in `isMessage(.appResp)` | same |
-| `votes` | `isVote` (`rawNode_vote`) | `VoteHistOk`, vote table |
+| `votes` | `isVote` (`rawNode_vote`, of `rs.dur` after `Ready`'s enter, from `nodeRaft`'s `ownDurGhost`) | `VoteHistOkD`, vote table |
 | `leaders` | `isLeader` (`rawNode_leader`) | `leaderWit` |
 | `ledLog[t]` | the leader's `ps.log` at its last report; its start `isCamp` | `leadLogOwn` |
 | `chain`, `termLen` | `isCommitted`, `commitIn` (`rawNode_commit`) | `ownLogGhost` |
@@ -985,6 +985,22 @@ named definition in `Rel.lean`, appended as a conjunct; `GC`, `init`, `boot`, `r
 - **Statements:** `antSim_ready.stmt` takes `uint.Z (V n).ps.term + 1 < 2 ^ 64` (a campaign's
   `term + 1` does not wrap; the harness has raft's term budget); `ReadyOutP` gains
   `ReadyMsgsToVoters` (raft's side must provide it).
+- **For the leader kinds of `ready` (2026-11-24, approved by the lead):**
+  - **`NodeOk` gains `VoteSelf`** (a non-follower's vote is its own, raft's `GhostState` fact):
+    `ReadyOk.hvself`, from `voteSelf_kind`; `ready_nonleader` lost its `hvs` premise.
+  - **C3 gains `TermLenOk`**: a term with a positive recorded commit (`tlOld termLen T`, moved to
+    `Rel.lean`) is in `leaders` or passed by every node; a leader's commit is its term's recorded
+    commit once at an entry of the term (`termAt log c = T → c ≤ tlOld T`, `InMemory`'s `prop`
+    guard) and never below it (`tlOld T ≤ c`, the `cmt` guard's `tlOld < c`). A follower's commit
+    records `max(old, c)` at the message's term: `fol_tl` (`Ready.lean`) bounds it by every leader's
+    commit at that term (election safety plus C4's new conjunct), and the message's `Sendable`
+    gives the term's leader. `ReadyOk` gains `rnf`, `tlMono`, `tlNew`, `tlSelf`.
+  - **C4 gains `LeadCommitMsgOk`**: an append or heartbeat from `i` at `i`'s term, while `i` is not
+    a follower, carries at most `i`'s commit (`AppOk`/`HeartbeatOk` at `send`, `SendOk.lcm`; kept
+    since commits only grow and a node becomes a non-follower at a term only by campaigning to it,
+    `ReadyOk.rnf`).
+  - **`RaftLaws` gains `CampTermsOk`**: every entry of a campaign log is of an earlier term (raft's
+    `isCamp γ c T F` carries `CampOk T F`). The harness must supply it with the other laws.
 
 ---
 

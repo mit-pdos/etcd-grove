@@ -85,6 +85,8 @@ structure SendOk (S : State) (n : Fin 3) (q : Msg) (M : List Fact) (C : List Con
   hb : q.ty = .heartbeat → ∀ j : Fin 3, q.dst = nodeId j → S.currentTerm[j.val]! ≤ uint.Z q.term →
     ((C[j.val]!).term = uint.Z q.term ∧ uint.Z q.commit ≤ (C[j.val]!).index) ∨
       uint.Z q.commit ≤ S.commitIndex[j.val]!
+  lcm : (q.ty = .app ∨ q.ty = .heartbeat) → S.role[n.val]! ≠ follower →
+    S.currentTerm[n.val]! = uint.Z q.term → uint.Z q.commit ≤ S.commitIndex[n.val]!
 
 /-- A leader's confirmation after a `send` (`SendOk.cmono`: it stays, or moves up at the node's term). -/
 theorem SendOk.leaderConf {S : State} {n k : Fin 3} {q : Msg} {M : List Fact} {C : List Confirmed}
@@ -132,7 +134,7 @@ theorem send_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : Raft
     AntSim (sendS S n.val M C) (setV V n { V n with pend := rest }) (net ++ [q]) ∧
       GlobalOk (sendS S n.val M C) (net ++ [q]) G := by
   obtain ⟨hsh, hb, hn, hno⟩ := hs
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
   have hsub := hok.sub
   have hack : ∀ {src dst : Str} {t k : Int}, AckIn S src dst t k → AckIn (sendS S n.val M C) src dst t k :=
     fun h => AckIn.mono hsub h
@@ -140,7 +142,7 @@ theorem send_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : Raft
   refine ⟨⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, hok.clen, by simpa [sendS] using sh11,
     sh12, sh13, sh14⟩, ?_, ?_, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, ?_, hb4, hb5, hb6, ?_, ?_, hb9, hb10, ?_, hb12, hb13, ?_, hb15, ?_⟩
+    refine ⟨hb1, hb2, ?_, hb4, hb5, hb6, ?_, ?_, hb9, hb10, ?_, hb12, hb13, ?_, hb15, ?_, hb17⟩
     · intro j p hp
       by_cases hj : j = n
       · subst hj
@@ -186,7 +188,7 @@ theorem send_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : Raft
           ∀ i : Fin 3, (C[k.val]!).term < S.currentTerm[i.val]!) ∧ (C[k.val]!).term ≤ S.currentTerm[k.val]!
         rw [hok.cother k hk]; exact hb16 k
   · -- NetOk
-    refine ⟨fun m hm => ?_, ?_, fun m hm => ?_⟩
+    refine ⟨fun m hm => ?_, ?_, fun m hm => ?_, fun m hm hty i hsrc hro hct => ?_⟩
     rotate_left
     · intro m hm hty j hdst hle
       change ((C[j.val]!).term = uint.Z m.term ∧ uint.Z m.commit ≤ (C[j.val]!).index) ∨
@@ -209,8 +211,15 @@ theorem send_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : Raft
         subst hm
         exact hok.hb hty j hdst hle
     · rcases List.mem_append.mp hm with hm | hm
-      · exact hn.2.2 m hm
+      · exact hn.2.2.1 m hm
       · rw [List.mem_singleton] at hm; subst hm; exact hshape
+    · rcases List.mem_append.mp hm with hm | hm
+      · exact hn.2.2.2 m hm hty i hsrc hro hct
+      · rw [List.mem_singleton] at hm
+        subst hm
+        have hi : i = n := nodeId_inj (hsrc.symm.trans hok.src.1)
+        subst hi
+        exact hok.lcm hty hro hct
     rcases List.mem_append.mp hm with hm | hm
     · obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm
       refine ⟨hty, hsrc, j, hdst, fun hle => ?_⟩

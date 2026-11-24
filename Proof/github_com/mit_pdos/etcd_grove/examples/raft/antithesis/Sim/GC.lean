@@ -532,10 +532,10 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
     (ho : S.oldVotes = .ok o) : AntSim (gcRes S g o) V net ∧ GlobalOk (gcRes S g o) net G := by
   obtain ⟨hsh, hb, hn, hno⟩ := hs
   have hc : S.cfg = cfg3 := hsh.1
-  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4, hb5, hb6, hb7, hb8, hb9, hb10, hb11, hb12, hb13, hb14, hb15, hb16, hb17⟩ := hb
   refine ⟨⟨hsh, ?_, ?_, ?_⟩, ?_⟩
   · -- BindingOk
-    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_⟩
+    refine ⟨hb1, hb2, hb3, hb4, hb5, hb6, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, hb15, ?_, ?_⟩
     · intro n l hl
       exact hb7 n l (gcRes_get_ok hl)
     · intro n a ha
@@ -565,8 +565,16 @@ theorem gc_rel {S : State} {V : Fin 3 → NodeView} {net : List Msg} {G : RaftFa
           refine Int.lt_of_not_ge fun hle => ?_
           rw [over_false (S := S) (t := (S.confirmed[j.val]!).term) hc i hle] at hov; cases hov
       · exact .inr (.inr h)
+    · refine ⟨fun T hT => ?_, hb17.2⟩
+      rcases hb17.1 T hT with ⟨l, hl, hlt⟩ | h
+      · cases hov : S.over l.term
+        · exact .inl ⟨l, gcRes_leaders_keep hl hov, hlt⟩
+        · refine .inr fun i => ?_
+          refine Int.lt_of_not_ge fun hle => ?_
+          rw [over_false (S := S) (t := l.term) hc i (by rw [hlt]; exact hle)] at hov; cases hov
+      · exact .inr h
   · -- NetOk
-    refine ⟨fun m hm => ?_, hn.2.1, hn.2.2⟩
+    refine ⟨fun m hm => ?_, hn.2.1, hn.2.2.1, hn.2.2.2⟩
     obtain ⟨hty, hsrc, j, hdst, hj⟩ := hn.1 m hm
     refine ⟨hty, hsrc, j, hdst, fun hle => ?_⟩
     obtain ⟨h1, h2, h3, h4⟩ := hj hle
