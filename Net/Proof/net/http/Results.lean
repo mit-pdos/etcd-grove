@@ -1,8 +1,8 @@
 /-
 The net/http model's linked results (2026-11-23): `http.ReadResponse` on net/rpc's `CONNECT`
 answer (`Net/Spec/net/http/ReadResponse.lean`), each proof applied to its callees' linked proofs:
-the model's head parser (`modelReadLine`, `modelReadMIMEHeader`), `strings.Cut` and
-`strings.TrimLeft` (pending: `section links_pending`, below), `ParseHTTPVersion`, `badStringError` (over Perennial's `fmt.Errorf`),
+the model's head parser (`modelReadLine`, `modelReadMIMEHeader`), Perennial's `strings.Cut` and
+`strings.TrimLeft` (`section links_strings`, below), `ParseHTTPVersion`, `badStringError` (over Perennial's `fmt.Errorf`),
 `readTransfer` and its helpers (`shouldClose`, `parseTransferEncoding`, `fixLength`, `fixTrailer`,
 `Header.Del`, textproto's `MIMEHeader.Del` and `CanonicalMIMEHeaderKey`, the model's
 `modelHeaderValuesContainsToken` and its helpers), `fixPragmaCacheControl`, Perennial's `strconv.Atoi`
@@ -19,25 +19,29 @@ head's read, `connReader.Read` in the head phase (`crHead`, over `Conn.Read`).
 
 The request's URI (2026-11-23): the model's `modelParseRequestURI` (`url.ParseRequestURI`) on a
 `reqPath`, over `modelPathBytes` and `modelPathByte`; the request line's `parseRequestLine` (over
-`strings.Cut`, pending) and `validMethod` (over `isToken` and httpguts' `ValidHeaderFieldName`, which reads
+Perennial's `strings.Cut`) and `validMethod` (over `isToken` and httpguts' `ValidHeaderFieldName`, which reads
 `isTokenTable`: `tokenTable`, a premise).
 
 The request (2026-11-23): `readRequestLimit` on net/rpc's `CONNECT` request, and
-`Server.maxHeaderValueCount`.
+`Server.maxHeaderValueCount`; and (2026-11-24, phase 7 S5) what `conn.readRequest` calls on it:
+`http1ServerSupportsRequest`, `Request.ProtoAtLeast`, `Request.isH2Upgrade`, `Request.wantsClose` and
+`Request.wantsHttp10KeepAlive` (over `Header.get` and `hasToken`, both on a header with no
+`Connection` entry: `hasToken`'s loop calls `isTokenBoundary` and `ascii.EqualFold`, names only),
+`conn.hijacked`, and the read limit's `connReader.setReadLimit`/`setInfiniteReadLimit`/`hitReadLimit`;
+and `conn.readRequest` itself (`section server`), over them, Perennial's `time.Now` and
+`context.WithCancel`, the net extension's `Conn.SetReadDeadline`, bufio's `Writer.Reset` and
+`NewWriterSize`.
 
 net/url's escaping (2026-11-24, phase 7 S5; what the ServeMux runs on a request's path): `shouldEscape`,
-`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`.
+`ishex` (over net/url's fact `urlInit`: its table, proved by its initializer), `unhex`, `validEncoded`, `escape`,
+`unescape`, `PathUnescape` and `URL.EscapedPath`; `unescape` over Perennial's `strings.Builder.Grow`,
+`WriteByte` and `String`.
 
 The chunked writer (2026-11-24, phase 7 S5): `net/http/internal`'s `NewChunkedWriter`,
 `chunkedWriter.Write` (over Perennial's `fmt.Fprintf`) and `chunkedWriter.Close`; both methods call
 `io.WriteString`, names only at the pin (`notes/perennial-changes.md`): linked over its spec
 (`Spec/io/WriteString.lean`) as a hypothesis `h_WriteString` (`section chunked`).
-**Pending** (`section links_pending`, 2026-11-23): the model calls `strings.Cut` and
-`strings.TrimLeft` as Go's net/http does; Perennial translates them as names only at the pin (its
-branch `strings-cut-lastindex`, `8ff6a1c79a`, translates their bodies, not proved yet:
-`notes/perennial-changes.md`), so `ReadResponse`, `parseRequestLine` and `readRequestLimit` are
-linked over their specs (`Spec/strings/Cut.lean`, `Spec/strings/TrimLeft.lean`) as hypotheses
-`h_Cut`, `h_TrimLeft`. No axiom, no `sorry`.
+No axiom, no `sorry`.
 -/
 module
 
@@ -94,10 +98,29 @@ public import Proof.net.url.shouldEscape
 public import Proof.net.url.ishex
 public import Proof.net.url.unhex
 public import Proof.net.url.validEncoded
+public import Proof.net.url.escape
+public import Proof.net.url.unescape
+public import Proof.net.url.PathUnescape
+public import Proof.net.url.URL__EscapedPath
 public import Net.Proof.net.http.internal.chunkedWriter__Write
 public import Net.Proof.net.http.internal.chunkedWriter__Close
 public import Net.Proof.net.http.isToken
 public import Net.Proof.vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName
+public import Net.Proof.net.http.Header__get
+public import Net.Proof.net.http.hasToken
+public import Net.Proof.net.http.Request__isH2Upgrade
+public import Net.Proof.net.http.Request__wantsClose
+public import Net.Proof.net.http.Request__wantsHttp10KeepAlive
+public import Net.Proof.net.http.conn__hijacked
+public import Net.Proof.net.http.connReader__setReadLimit
+public import Net.Proof.net.http.connReader__setInfiniteReadLimit
+public import Net.Proof.net.http.connReader__hitReadLimit
+public import Net.Proof.net.http.conn__readRequest
+public import Perennial.Proof.time.Link
+public import Perennial.Proof.context.Link
+public import Proof.bufio.NewWriterSizeRep
+public import Net.Proof.net.http.Request__ProtoAtLeast
+public import Net.Proof.net.http.http1ServerSupportsRequest
 
 @[expose] public section
 
@@ -126,7 +149,6 @@ theorem modelReadMIMEHeader.wp : modelReadMIMEHeader.spec (GF := GF) (hG := hG) 
     modelReadLine.wp net.textproto.CanonicalMIMEHeaderKey.wp_proof
     vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldName.wp_proof
     vendor.golang_org.x.net.http.httpguts.ValidHeaderFieldValue.wp_proof fmt.wp_Sprintf
-    fmt.wp_Sprintf_bytes
 
 theorem Header.Del.wp : Header.Del.spec (GF := GF) (hG := hG) :=
   Header.Del.wp_proof
@@ -158,36 +180,48 @@ theorem validMethod.wp : validMethod.spec (GF := GF) (hG := hG) :=
 theorem Server.maxHeaderValueCount.wp : Server.maxHeaderValueCount.spec (GF := GF) (hG := hG) :=
   Server.maxHeaderValueCount.wp_proof
 
+theorem Request.ProtoAtLeast.wp : Request.ProtoAtLeast.spec (GF := GF) (hG := hG) :=
+  Request.ProtoAtLeast.wp_proof
+theorem http1ServerSupportsRequest.wp : http1ServerSupportsRequest.spec (GF := GF) (hG := hG) :=
+  http1ServerSupportsRequest.wp_proof
+theorem Request.isH2Upgrade.wp : Request.isH2Upgrade.spec (GF := GF) (hG := hG) :=
+  Request.isH2Upgrade.wp_proof
+theorem Header.get.wp : Header.get.spec (GF := GF) (hG := hG) := Header.get.wp_proof
+theorem hasToken.wp : hasToken.spec (GF := GF) (hG := hG) := hasToken.wp_proof
+theorem Request.wantsHttp10KeepAlive.wp : Request.wantsHttp10KeepAlive.spec (GF := GF) (hG := hG) :=
+  Request.wantsHttp10KeepAlive.wp_proof Header.get.wp hasToken.wp
+theorem Request.wantsClose.wp : Request.wantsClose.spec (GF := GF) (hG := hG) :=
+  Request.wantsClose.wp_proof Header.get.wp hasToken.wp
+theorem connReader.setReadLimit.wp : connReader.setReadLimit.spec (GF := GF) (hG := hG) :=
+  connReader.setReadLimit.wp_proof
+theorem connReader.setInfiniteReadLimit.wp :
+    connReader.setInfiniteReadLimit.spec (GF := GF) (hG := hG) :=
+  connReader.setInfiniteReadLimit.wp_proof
+theorem connReader.hitReadLimit.wp : connReader.hitReadLimit.spec (GF := GF) (hG := hG) :=
+  connReader.hitReadLimit.wp_proof
+
 end link
 
-section links_pending
+section links_strings
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.http.Assumptions]
--- Pending: Perennial's `strings.Cut` (see the file header).
-variable (h_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
--- Pending: Perennial's `strings.TrimLeft` (see the file header).
-variable (h_TrimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
-
-include h_Cut h_TrimLeft in
 theorem ReadResponse.wp : ReadResponse.spec (GF := GF) (hG := hG) :=
-  ReadResponse.wp_proof modelReadLine.wp modelReadMIMEHeader.wp h_Cut
-    h_TrimLeft ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
+  ReadResponse.wp_proof modelReadLine.wp modelReadMIMEHeader.wp strings.wp_Cut
+    strings.wp_TrimLeft ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
     fixPragmaCacheControl.wp_proof readTransfer.wp strconv.wp_Atoi
 
-include h_Cut in
 theorem parseRequestLine.wp : parseRequestLine.spec (GF := GF) (hG := hG) :=
-  parseRequestLine.wp_proof h_Cut
+  parseRequestLine.wp_proof strings.wp_Cut
 
-include h_Cut in
 theorem readRequestLimit.wp : readRequestLimit.spec (GF := GF) (hG := hG) :=
-  readRequestLimit.wp_proof modelReadLine.wp modelReadMIMEHeader.wp (parseRequestLine.wp h_Cut)
+  readRequestLimit.wp_proof modelReadLine.wp modelReadMIMEHeader.wp parseRequestLine.wp
     validMethod.wp ParseHTTPVersion.wp (badStringError.wp_proof fmt.wp_Errorf)
     modelParseRequestURI.wp fixPragmaCacheControl.wp_proof shouldClose.wp readTransfer.wp
     strings.wp_HasPrefix
 
-end links_pending
+end links_strings
 
 section server
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
@@ -219,8 +253,18 @@ theorem conn.hijackLocked.wp : conn.hijackLocked.spec (GF := GF) (hG := hG) :=
   conn.hijackLocked.wp_proof connReader.abortPendingRead.wp net.Conn.SetDeadline.wp_proof
     EtcdGrove.bufio.Writer.Reset.wp_proof
 
+theorem conn.hijacked.wp : conn.hijacked.spec (GF := GF) (hG := hG) := conn.hijacked.wp_proof
+
 theorem response.Hijack.wp : response.Hijack.spec (GF := GF) (hG := hG) :=
   response.Hijack.wp_proof conn.hijackLocked.wp EtcdGrove.bufio.Writer.Reset.wp_proof
+
+theorem conn.readRequest.wp : conn.readRequest.spec (GF := GF) (hG := hG) :=
+  conn.readRequest.wp_proof conn.hijacked.wp time.wp_Now connReader.setReadLimit.wp
+    connReader.setInfiniteReadLimit.wp connReader.hitReadLimit.wp connReader.Read.wp
+    readRequestLimit.wp http1ServerSupportsRequest.wp Request.ProtoAtLeast.wp
+    Request.isH2Upgrade.wp Request.wantsClose.wp Request.wantsHttp10KeepAlive.wp
+    Server.maxHeaderValueCount.wp context.wp_WithCancel net.Conn.SetReadDeadline.wp_proof
+    EtcdGrove.bufio.Writer.Reset.wp_proof EtcdGrove.bufio.NewWriterSize.wp_proofRep
 
 end server
 
@@ -267,6 +311,19 @@ theorem ishex.wp : ishex.spec (GF := GF) (hG := hG) := ishex.wp_proof
 theorem unhex.wp : unhex.spec (GF := GF) (hG := hG) := unhex.wp_proof
 theorem validEncoded.wp : validEncoded.spec (GF := GF) (hG := hG) :=
   validEncoded.wp_proof shouldEscape.wp
+theorem escape.wp : escape.spec (GF := GF) (hG := hG) := escape.wp_proof shouldEscape.wp
+
+variable [package_sem_strings : _root_.Perennial.strings.Assumptions]
+
+theorem unescape.wp : unescape.spec (GF := GF) (hG := hG) :=
+  unescape.wp_proof ishex.wp unhex.wp shouldEscape.wp strings.Builder.wp_Grow strings.Builder.wp_WriteByte
+    strings.Builder.wp_String
+
+theorem PathUnescape.wp : PathUnescape.spec (GF := GF) (hG := hG) :=
+  PathUnescape.wp_proof unescape.wp
+
+theorem URL.EscapedPath.wp : URL.EscapedPath.spec (GF := GF) (hG := hG) :=
+  URL.EscapedPath.wp_proof unescape.wp escape.wp validEncoded.wp
 
 end url
 
@@ -288,7 +345,23 @@ end Perennial
 #print axioms Perennial.net.http.validMethod.wp
 #print axioms Perennial.net.http.readRequestLimit.wp
 #print axioms Perennial.net.http.Server.maxHeaderValueCount.wp
+#print axioms Perennial.net.http.Request.ProtoAtLeast.wp
+#print axioms Perennial.net.http.http1ServerSupportsRequest.wp
+#print axioms Perennial.net.http.Request.isH2Upgrade.wp
+#print axioms Perennial.net.http.Header.get.wp
+#print axioms Perennial.net.http.hasToken.wp
+#print axioms Perennial.net.http.Request.wantsHttp10KeepAlive.wp
+#print axioms Perennial.net.http.Request.wantsClose.wp
+#print axioms Perennial.net.http.connReader.setReadLimit.wp
+#print axioms Perennial.net.http.connReader.setInfiniteReadLimit.wp
+#print axioms Perennial.net.http.connReader.hitReadLimit.wp
+#print axioms Perennial.net.http.conn.hijacked.wp
+#print axioms Perennial.net.http.conn.readRequest.wp
 #print axioms Perennial.net.url.shouldEscape.wp
 #print axioms Perennial.net.url.ishex.wp
 #print axioms Perennial.net.url.unhex.wp
 #print axioms Perennial.net.url.validEncoded.wp
+#print axioms Perennial.net.url.escape.wp
+#print axioms Perennial.net.url.unescape.wp
+#print axioms Perennial.net.url.PathUnescape.wp
+#print axioms Perennial.net.url.URL.EscapedPath.wp

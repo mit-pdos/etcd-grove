@@ -12,6 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMemb
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.newServer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__RaftHandler
 public import Spec.net.Listen
+public import Spec.net.ListenHttp
 public import Proof.net.http.Axioms
 
 @[expose] public section
@@ -37,11 +38,11 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.As
 
 theorem NewMember.wp_proof
     (wp_newServer : newServer.spec (GF := GF) (hG := hG))
-    (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
+    (wp_ListenHttp : net.Listen.specHttp (GF := GF) (hG := hG))
     (wp_RaftHandler : EtcdServer.RaftHandler.spec (GF := GF) (hG := hG)) :
     NewMember.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token snapCount catchUp peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
-    γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 HnL Haf Hbuq
+    γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL Haf Hbuq
     Hdbo
   wp_start as ⟨#Hzlg, Htok, #Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet, Hfresh⟩
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hzlg
@@ -53,7 +54,7 @@ theorem NewMember.wp_proof
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, 0, snapCount, catchUp, lg)`: the compactor off
   wp_apply (wp_newServer N name peerAddr client token (W64 0) snapCount catchUp peer cluster lg M iu Uok ps bootLog
-      ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU HU8 HnL
+      ctxs dir id γ ρ E₀ Φs γn cmp lm Htb Hrb48 HrbN HwbN hvs hrule hboot hblen Hγn1 Hγn2 Hdirok Hdir Hdirps HU Hpf Hcf HU8 HnL
       (by decide) Haf Hbuq Hdbo) $$ [Htok Hmb Hfresh] as %s %err Hres
   · iframe; iframe #
   icases Hres with (⟨%Herr, Htok⟩ | ⟨%Herr, Htok, Hmb, -⟩)
@@ -66,9 +67,9 @@ theorem NewMember.wp_proof
   subst Herr
   wp_auto
   -- `net.Listen("tcp", peerAddr)`
-  wp_apply (wp_Listen go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
+  wp_apply (wp_ListenHttp go!"tcp" peerAddr) $$ [Haddr] as %lis %lerr Hlis
   · iframe; ipureintro; rfl
-  icases Hlis with (⟨%Hlerr, Hlis, Hpleft⟩ | %Hlerr)
+  icases Hlis with (⟨%Hlerr, Hlis⟩ | %Hlerr)
   rotate_left
   · cases lerr with
     | nil => exact absurd rfl Hlerr
@@ -83,7 +84,7 @@ theorem NewMember.wp_proof
     Hlgm, Hrc, #Hnm, Htokp, HServeR, #Hlr, Hkeep⟩
   -- (2026-10-24, rafthttp stage 6d) the listener serves the peer address with the raft protocol
   -- (the program start's reservation)
-  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpleft Hpown with Hlis
+  imod (http.register lis peerAddr (raftProto (netRh γn))) $$ Hlis Hpown with Hlis
   -- `go http.Serve(l, s.RaftHandler())`: the member owns its peer address (the directory's)
   have Hown : (netRh γn).owner peerAddr = id := by
     rw [netRh_owner]

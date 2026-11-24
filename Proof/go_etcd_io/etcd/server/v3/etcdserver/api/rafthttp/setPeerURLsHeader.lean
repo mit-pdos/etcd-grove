@@ -6,6 +6,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.setPeerURLsHeader
 public import Perennial.Spec.strings.Join
+public import Perennial.Proof.strings.JoinBounded
 
 @[expose] public section
 
@@ -30,7 +31,7 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
     (hJoin : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
     (hSet : http.HeaderSetPtr_spec (GF := GF)) :
     rafthttp.setPeerURLsHeader.spec (GF := GF) (hG := hG) := by
-  intro r R urls uvs
+  intro r R urls uvs Hfit
   wp_start as ⟨Hreq, #Hurls⟩
   iunfold http.reqOwn at Hreq
   icases Hreq with ⟨%hm, #Hhf, Hhm, Hrest⟩
@@ -121,8 +122,25 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
   -- `req.Header.Set("X-PeerURLs", strings.Join(peerURLs, ","))`
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
   · iPkgInit
+  -- the strings, `http://host` of each URL (`plainURLsFit`), at most `etcdURLLenMax` bytes each
+  have hxs : xs = uvs.map fun u => go!"http://" ++ u.Host' := by
+    apply List.ext_getElem?
+    intro j
+    rw [List.getElem?_map]
+    cases hj : uvs[j]? with
+    | none =>
+      have : uvs.length ≤ j := List.getElem?_eq_none_iff.1 hj
+      exact List.getElem?_eq_none_iff.2 (by omega)
+    | some v =>
+      have hjl : j < uvs.length := (List.getElem?_eq_some_iff.1 hj).1
+      exact Hk4 j v (by unfold sint.nat at *; word) hj (Hfit v (List.mem_of_getElem? hj)).1
+  have hxB : ∀ x ∈ xs, x.length ≤ etcdURLLenMax := by
+    rw [hxs]; intro x hx
+    obtain ⟨u, hu, rfl⟩ := List.mem_map.1 hx
+    exact (Hfit u hu).2
   (try wp_auto)
-  wp_apply hJoin $$ [Hpu] as Hpu
+  wp_apply (_root_.Perennial.strings.Join_owned_bounded_of hJoin pu xs go!"," etcdURLLenMax hxB
+      (by unfold maxAddr _root_.Perennial.strings.joinMax etcdURLLenMax; simp)) $$ [Hpu] as Hpu
   · iframe; try iframe #
   (try wp_auto)
   wp_apply (hSet _ hm R.hdr _ _) $$ [Hhm] as Hhm
@@ -138,17 +156,6 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
     intro _ hall
     rw [http.hdrGet_hdrSet_eq]
     unfold peerURLsHdr
-    have hxs : xs = uvs.map fun u => go!"http://" ++ u.Host' := by
-      apply List.ext_getElem?
-      intro j
-      rw [List.getElem?_map]
-      cases hj : uvs[j]? with
-      | none =>
-        have : uvs.length ≤ j := List.getElem?_eq_none_iff.1 hj
-        exact List.getElem?_eq_none_iff.2 (by omega)
-      | some v =>
-        have hjl : j < uvs.length := (List.getElem?_eq_some_iff.1 hj).1
-        exact Hk4 j v (by unfold sint.nat at *; word) hj (hall v (List.mem_of_getElem? hj))
     rw [hxs]
   isplitr
   · ipureintro; intro h

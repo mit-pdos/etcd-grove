@@ -712,12 +712,13 @@ auth_authStore__GenTokenPrefix:
 # 2026-11-03 Perennial's proved `time.NewTicker` and `Ticker.Stop`, `=` terms),
 # and the new cluster's `bootstrappedRaft.newRaftNode` over the node API's `StartNode` (2026-10-27:
 # its linked results at the server's storage model, `NodeApiLink.lean`, `=` terms) and Perennial's
-# mutex.
+# mutex; (wal-nostorageok, 2026-11-21) `NewStorage`'s contract, a law proved over the real WAL
+# (`RnNewStorageLinked.lean`, at raft's linked `GetIndex`; it takes `os`'s field assumptions).
 # (D17d, 2026-10-18) `NewServer` reads `run`'s snapshot contract off the storage's application
 # token through `MemoryStorage.Snapshot`'s application triple (`rnSnapOnce_of_tok`).
 MemoryStorage__Snapshot: @
 newRaftNode: SetLogger =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop
-bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRaftNode
+bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_RestartNode newRaftNode =rnNewStorageOk_law_holds~raftpb.SnapshotMetadata.wp_GetIndex
 # The server's construction (server.go's `NewServer`; the server-construction unit, stage N0,
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
@@ -904,6 +905,9 @@ etcdserver_NewServer+R: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger_
 # configuration's `BackendPath`; raft's metadata getter and `fmt.Errorf` are linked elsewhere (`@`).
 fmt_Errorf: @
 snap_Snapshotter__DBFilePath:
+# (claim #34, 2026-11-23) the snapshotter's constructor, proved (`snapshotterRO` defined, the
+# `fsyncDir` field: axiom review in notes/axiom-review/)
+snap_New: zap_NewNop
 os_Rename:
 # (bkarea, 2026-11-22) `BackendPath` proved over `datadir` (translated with its bodies) and
 # `filepath.Join` (the part's translation, proved; the WAL's Link links it in its own namespace)

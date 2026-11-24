@@ -11,6 +11,8 @@ public import Spec.k8s_io.apiserver.pkg.storage.Preconditions__Check
 public import Spec.k8s_io.apiserver.pkg.storage.NewInvalidObjError
 public import Spec.k8s_io.apimachinery.pkg.api.meta.Accessor
 public import Perennial.Proof.fmt
+public import Perennial.Proof.fmt.Link
+public import Proof.fmt.SprintfPure
 
 @[expose] public section
 
@@ -108,20 +110,18 @@ theorem storage.Preconditions.Check.wp_proof
           (try wp_auto)
           ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
           · iPkgInit
-          wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
-          case wf =>
+          wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"Precondition failed: ResourceVersion in precondition: %v, ResourceVersion in object meta: %v"
+            [.lit go!"Precondition failed: ResourceVersion in precondition: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", ResourceVersion in object meta: ", .dir none _root_.Perennial.fmt.verb_v]
+            _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+          case pa =>
             rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
             simp only [List.set_cons_succ, List.set_cons_zero]
-            exact _root_.Perennial.fmt.ArgsWf.cons_string _ _
-              (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)
+            exact .str _ _ _ (.str _ _ _ .nil)
+          case fits => fmt_fits
           (try wp_auto)
           have hm : msg = KPre.failMsg ⟨none, some r⟩ uid rvs := by
-            rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at hmsg
-            simp only [List.set_cons_succ, List.set_cons_zero] at hmsg
-            rw [sprintfOut_v2 (pre := go!"Precondition failed: ResourceVersion in precondition: ")
-              (mid := go!", ResourceVersion in object meta: ") (by decide) (by decide)
-              (_root_.Perennial.fmt.StrArgValue.string r)
-              (_root_.Perennial.fmt.StrArgValue.string rvs) hmsg]
+            rw [hmsg]
+            simp (config := { decide := true }) only [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, ↓reduceIte, List.append_nil]
             simp [KPre.failMsg]
           subst hm
           wp_apply +noauto wp_NewInvalidObjError as %l ⟨%x, Hl, #Hc⟩
@@ -195,20 +195,18 @@ theorem storage.Preconditions.Check.wp_proof
             (try wp_auto)
             ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
             · iPkgInit
-            wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
-            case wf =>
+            wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"Precondition failed: ResourceVersion in precondition: %v, ResourceVersion in object meta: %v"
+              [.lit go!"Precondition failed: ResourceVersion in precondition: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", ResourceVersion in object meta: ", .dir none _root_.Perennial.fmt.verb_v]
+              _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+            case pa =>
               rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
               simp only [List.set_cons_succ, List.set_cons_zero]
-              exact _root_.Perennial.fmt.ArgsWf.cons_string _ _
-                (_root_.Perennial.fmt.ArgsWf.cons_string _ _ _root_.Perennial.fmt.ArgsWf.nil)
+              exact .str _ _ _ (.str _ _ _ .nil)
+            case fits => fmt_fits
             (try wp_auto)
             have hm : msg = KPre.failMsg ⟨some u, some r⟩ u rvs := by
-              rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at hmsg
-              simp only [List.set_cons_succ, List.set_cons_zero] at hmsg
-              rw [sprintfOut_v2 (pre := go!"Precondition failed: ResourceVersion in precondition: ")
-                (mid := go!", ResourceVersion in object meta: ") (by decide) (by decide)
-                (_root_.Perennial.fmt.StrArgValue.string r)
-              (_root_.Perennial.fmt.StrArgValue.string rvs) hmsg]
+              rw [hmsg]
+              simp (config := { decide := true }) only [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, ↓reduceIte, List.append_nil]
               simp [KPre.failMsg]
             subst hm
             wp_apply +noauto wp_NewInvalidObjError as %l ⟨%x, Hl, #Hc⟩
@@ -236,37 +234,18 @@ theorem storage.Preconditions.Check.wp_proof
         (try wp_auto)
         ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
         · iPkgInit
-        wp_apply _root_.Perennial.fmt.wp_Sprintf_argsWf _ _ _ _ ?wf $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
-        case wf =>
+        wp_apply fmt.wp_Sprintf_pure _root_.Perennial.fmt.wp_Sprintf go!"Precondition failed: UID in precondition: %v, UID in object meta: %v"
+          [.lit go!"Precondition failed: UID in precondition: ", .dir none _root_.Perennial.fmt.verb_v, .lit go!", UID in object meta: ", .dir none _root_.Perennial.fmt.verb_v]
+          _ _ _ _ (by fmt_encode) ?fits ?pa $$ [$Hfmt $Hargs] as %msg ⟨-, %hmsg⟩
+        case pa =>
           rw [show sint.nat (W64 (0 + 1)) = 1 by rfl]
           simp only [List.set_cons_succ, List.set_cons_zero]
-          have hUs : k8s_io.apimachinery.pkg.types.UID.ty ≠ go.string := by
-            simp [k8s_io.apimachinery.pkg.types.UID.ty, go.string]
-          have hUi : ¬ _root_.Perennial.fmt.IsIntType k8s_io.apimachinery.pkg.types.UID.ty := by
-            simp [_root_.Perennial.fmt.IsIntType, k8s_io.apimachinery.pkg.types.UID.ty, go.int,
-              go.int64, go.int32, go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16,
-              go.uint8]
-          have hUm :=
-            _root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil k8s_io.apimachinery.pkg.types.UID.ty
-          exact _root_.Perennial.fmt.ArgsWf.cons_named_string _ _ _ hUs hUi go.IsUnderlying.is_underlying
-            hUm (_root_.Perennial.fmt.ArgsWf.cons_named_string _ _ _ hUs hUi
-              go.IsUnderlying.is_underlying hUm _root_.Perennial.fmt.ArgsWf.nil)
+          exact .str _ _ _ (.str _ _ _ .nil)
+        case fits => fmt_fits
         (try wp_auto)
-        have hUi : ¬ _root_.Perennial.fmt.IsIntType k8s_io.apimachinery.pkg.types.UID.ty := by
-          simp [_root_.Perennial.fmt.IsIntType, k8s_io.apimachinery.pkg.types.UID.ty, go.int,
-            go.int64, go.int32, go.int16, go.int8, go.uint, go.uint64, go.uint32, go.uint16,
-            go.uint8]
-        have hUu : underlying k8s_io.apimachinery.pkg.types.UID.ty = go.string :=
-          go.IsUnderlying.is_underlying
-        have hUm :=
-          _root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil k8s_io.apimachinery.pkg.types.UID.ty
         have hm : msg = KPre.failMsg ⟨some u, pr⟩ uid rvs := by
-          rw [show sint.nat (W64 (0 + 1)) = 1 by rfl] at hmsg
-          simp only [List.set_cons_succ, List.set_cons_zero] at hmsg
-          rw [sprintfOut_v2 (pre := go!"Precondition failed: UID in precondition: ")
-            (mid := go!", UID in object meta: ") (by decide) (by decide)
-            (_root_.Perennial.fmt.StrArgValue.named _ u hUi hUu hUm)
-          (_root_.Perennial.fmt.StrArgValue.named _ uid hUi hUu hUm) hmsg]
+          rw [hmsg]
+          simp (config := { decide := true }) only [_root_.Perennial.fmt.render, _root_.Perennial.fmt.dirOutFn, ↓reduceIte, List.append_nil]
           simp [KPre.failMsg, hu]
         subst hm
         wp_apply +noauto wp_NewInvalidObjError as %l ⟨%x, Hl, #Hc⟩

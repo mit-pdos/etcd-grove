@@ -51,7 +51,7 @@ theorem kvWatch_served_tbl (Hp : mvcc.api.persistent.law (GF := GF))
   iintro ⟨#Pv3, #Psrv, #Ppb, #Hreq, #Hrd, #Hsf, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hleft, -⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hleft, -, #Hics⟩
   obtain ⟨HCA, -, Hregs, Hsreg, hRs, hRE, hRw, -, Hnd⟩ := HC
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs

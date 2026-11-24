@@ -285,7 +285,7 @@ noncomputable def Election.Campaign.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"%s%x"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Election.ty go!"keyPrefix"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Election.ty)))) (Var "e")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Lease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))) (Val #())))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Lease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1519,7 +1519,7 @@ noncomputable def Mutex.tryAcquire.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"%s%x"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Mutex.ty go!"pfx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Mutex.ty)))) (Var "m")))))
-  (Let "$sl1" (App (Val (GoInstruction (Convert _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID.ty go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Lease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))) (Val #())))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.int64 go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Session.ty) go!"Lease"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Session.ty)))) (Var "s"))) (Val #())))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon

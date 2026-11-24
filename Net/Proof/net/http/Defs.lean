@@ -5,7 +5,8 @@ translated by project models-net), for `ReadResponse` on net/rpc's `CONNECT` ans
 * `httpEnv` (persistent): the package state the parse reads: `bufio`'s, `io`'s, `fmt`'s (the
   `badStringError`s) and `strconv`'s (`Atoi`) initialization, httpguts' token table (`tokenTable`,
   `ValidHeaderFieldName`'s), `strings`' initialization (`ParseHTTPVersion`'s `HasPrefix`), net/http's
-  `errTooLarge` (an `errors.New` error, `readRequestLimit`'s) and `NoBody` (the body of a response with
+  `errTooLarge` (`errors.New("http: request too large")`, `readRequestLimit`'s: its message persistent,
+  which `conn.serve` compares other errors against) and `NoBody` (the body of a response with
   none). net/http has no package initialization proof yet
   (`notes/dsverify-net-port-plan.md`, phase 5 item 2, 5): a client takes `httpEnv` as a premise.
 * `cutByte s c`, `trimLeftByte s c`: what the model's `modelCutByte` and `modelTrimLeftByte` return
@@ -24,7 +25,8 @@ translated by project models-net), for `ReadResponse` on net/rpc's `CONNECT` ans
   `eol ++ "\n"` (`eol` `""` or `"\r"`); `hdrOwn m hb`, the map `m` the model built of the block
   (each name to the one-value slice of its value); `hdrVals ms k`, the values of `k`'s slice in the
   header map `ms`, if it has one (what `shouldClose` reads of `"Connection"`); `mimeErr E err`, the
-  errors `modelReadMIMEHeader` returns (the stream's or a `textproto.ProtocolError`).
+  errors `modelReadMIMEHeader` returns (the stream's or a `textproto.ProtocolError`, whose message
+  starts with `"malformed MIME header"`).
 -/
 module
 
@@ -33,7 +35,9 @@ public import Net.Proof.net.rpc.Proto
 public import Proof.bufio.Defs
 public import Perennial.Proof.fmt
 public import Perennial.Proof.strconv
-public import Proof.strings.CutDefs
+public import Perennial.Proof.internal.stringslite.Base
+public import Perennial.Proof.strings.Base
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 
@@ -56,39 +60,34 @@ def cutByte (s : List w8) (c : w8) : List w8 × List w8 × Bool :=
 /-- See the file header. -/
 def trimLeftByte (s : List w8) (c : w8) : List w8 := s.dropWhile (· = c)
 
-theorem index_single_nil (c : w8) : EtcdGrove.strings.index [] [c] = none := by
-  simp [EtcdGrove.strings.index]
-
-theorem index_single_cons (x : w8) (s : List w8) (c : w8) :
-    EtcdGrove.strings.index (x :: s) [c] =
-      if x = c then some 0 else (EtcdGrove.strings.index s [c]).map (· + 1) := by
-  unfold EtcdGrove.strings.index
-  rw [List.length_cons, List.range_succ_eq_map, List.find?_cons]
-  by_cases h : x = c
-  · subst h; simp
-  · have h' : ¬ ([c] <+: x :: s) := by
-      rw [List.cons_prefix_cons]; exact fun h2 => h h2.1.symm
-    simp only [List.drop_zero, h', decide_false, h, if_false, List.find?_map]
-    rfl
-
 /-- `strings.Cut(s, string(c))` is `cutByte s c`. -/
-theorem cut_single (s : List w8) (c : w8) : EtcdGrove.strings.cut s [c] = cutByte s c := by
-  induction s with
-  | nil => simp [EtcdGrove.strings.cut, index_single_nil, cutByte]
-  | cons x s ih =>
-    unfold EtcdGrove.strings.cut at ih ⊢
-    unfold cutByte at ih ⊢
-    rw [index_single_cons, List.findIdx?_cons]
-    by_cases h : x = c
-    · simp [h]
-    · simp only [h, if_false, decide_false]
-      cases hi : EtcdGrove.strings.index s [c] <;> cases hf : s.findIdx? (· = c) <;>
-        simp_all
+theorem cut_single (s : List w8) (c : w8) : internal.stringslite.cut s [c] = cutByte s c := by
+  unfold internal.stringslite.cut cutByte
+  rcases internal.bytealg.index_cases s [c] with ⟨i, hi, hp, hmin⟩ | ⟨hi, hn⟩
+  · have hf : s.findIdx? (· = c) = some i := by
+      rw [List.findIdx?_eq_some_iff_getElem]
+      have hp' := (internal.bytealg.singleton_prefix_drop s c i).1 hp
+      obtain ⟨hlt, heq⟩ := List.getElem?_eq_some_iff.1 hp'
+      refine ⟨hlt, by simpa using heq, fun j hj => ?_⟩
+      have := hmin j hj
+      rw [internal.bytealg.singleton_prefix_drop, List.getElem?_eq_getElem (by omega)] at this
+      simpa using this
+    rw [hi, hf]; simp
+  · have hf : s.findIdx? (· = c) = none := by
+      rw [List.findIdx?_eq_none_iff]
+      intro x hx
+      simp only [decide_eq_false_iff_not]
+      intro hxc
+      obtain ⟨j, hj, rfl⟩ := List.getElem_of_mem hx
+      apply hn j
+      rw [internal.bytealg.singleton_prefix_drop, List.getElem?_eq_getElem hj]
+      simpa using hxc
+    rw [hi, hf]; simp
 
 /-- `strings.TrimLeft(s, string(c))` is `trimLeftByte s c`. -/
 theorem trimLeft_single (s : List w8) (c : w8) :
-    EtcdGrove.strings.trimLeft s [c] = trimLeftByte s c := by
-  unfold EtcdGrove.strings.trimLeft trimLeftByte
+    strings.trimLeft s [c] = trimLeftByte s c := by
+  unfold strings.trimLeft trimLeftByte
   congr 1
   funext b
   simp
@@ -198,8 +197,7 @@ def httpEnv : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.bufio ∗ isPkgInit (PROP := IProp GF) pkg_id.io ∗
     isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ isPkgInit (PROP := IProp GF) pkg_id.strconv ∗
     (vendor.golang_org.x.net.http.httpguts.tokenTable ∗ isPkgInit (PROP := IProp GF) pkg_id.strings ∗
-      ∃ l : Loc, globalAddr net.http.errTooLarge ↦□
-        interface.mkOk (go.GoType.PointerType errors.errorString.ty) #l) ∗
+      errors.newVar net.http.errTooLarge go!"http: request too large") ∗
     ∃ nb : net.http.noBody, globalAddr net.http.NoBody ↦□ nb)
 
 theorem httpEnv_tokenTable : httpEnv (GF := GF) ⊢ vendor.golang_org.x.net.http.httpguts.tokenTable := by
@@ -212,6 +210,14 @@ theorem httpEnv_strings : httpEnv (GF := GF) ⊢ isPkgInit (PROP := IProp GF) pk
   iintro H
   iunfold httpEnv at H
   icases H with ⟨-, -, -, -, ⟨-, #Hs, -⟩, -⟩
+  iexact Hs
+
+/-- `errTooLarge` holds `errors.New("http: request too large")`. -/
+theorem httpEnv_errTooLarge :
+    httpEnv (GF := GF) ⊢ errors.newVar (GF := GF) net.http.errTooLarge go!"http: request too large" := by
+  iintro H
+  iunfold httpEnv at H
+  icases H with ⟨-, -, -, -, ⟨-, -, #Hs⟩, -⟩
   iexact Hs
 
 instance httpEnv_persistent : Persistent (httpEnv (GF := GF)) := by
@@ -248,10 +254,12 @@ def hdrVals (ms : GMap GoString GoSlice) (k : GoString) : IProp GF :=
   | some s => iprop(∃ vs : List GoString, s ↦* vs)
 
 /-- The errors `modelReadMIMEHeader` returns: the stream's (with `E`'s evidence at some position)
-or a `textproto.ProtocolError` (a line cut by the stream's error). -/
+or a `textproto.ProtocolError` (a malformed line, or one cut by the stream's error), whose message
+starts with `"malformed MIME header"`. -/
 def mimeErr (E : List w8 → GoInterface → IProp GF) (err : GoInterface) : IProp GF :=
   iprop((∃ r : List w8, □ E r err) ∨
-    ⌜∃ msg : GoString, err = interface.mkOk net.textproto.ProtocolError.ty #msg⌝)
+    ⌜∃ msg : GoString, err = interface.mkOk net.textproto.ProtocolError.ty #msg ∧
+      go!"malformed MIME header" <+: msg⌝)
 
 instance mimeErr_persistent (E : List w8 → GoInterface → IProp GF) (err : GoInterface) :
     Persistent (mimeErr E err) := by

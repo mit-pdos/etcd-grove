@@ -66,7 +66,7 @@ private theorem kv_lease_served_core (Wo : Option (v3rpc.SrvW GF)) (s : Loc) (E 
   iintro ⟨HWo, #Pv3, #Psrv, #Hreq, #Hrd, #Hlr, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hleft, #Hlu⟩
+    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, Hgo, Hleft, #Hlu, #Hics⟩
   obtain ⟨HCA, -, Hregs, Hwreg, hRs, hRE, -, -, Hnd⟩ := HC
   -- the run pools, built from `memberUp`'s stocks
   imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩

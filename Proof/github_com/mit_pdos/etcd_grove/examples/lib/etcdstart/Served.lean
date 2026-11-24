@@ -125,7 +125,7 @@ theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Re
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
     #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbemu, Hgo,
-    Hleft, #Hlu⟩
+    Hleft, #Hlu, #Hics⟩
   -- (phase 7's switch, SW1) the axiom binds the server to its listener; a bound one has its
   -- certificate already
   ihave ⟨Hgsn, %Hnr⟩ : iprop(grpcSrvBound gs lis addr [il, im, iu] [ims, is] svcs regs sregs ∗

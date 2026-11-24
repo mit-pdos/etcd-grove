@@ -110,7 +110,7 @@ def walReadFallback (w : Loc) (dir : GoString) (allNames selected : List GoStrin
   iprop(∃ fb : Loc, structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fallback" w ↦ fb ∗
     (⌜fb = null⌝ ∨ ∃ (v : go_etcd_io.etcd.server.v3.storage.wal.walReadRange) (names : List GoString),
       fb ↦ v ∗ v.names' ↦* names ∗ ⌜0 < sint.Z v.first' ∧ sint.nat v.first' < names.length ∧
-        dir.length < 2 ^ 61 ∧ names = allNames ∧ names.drop (sint.nat v.first') = selected⌝))
+        PathFits dir ∧ names = allNames ∧ names.drop (sint.nat v.first') = selected⌝))
 
 /-- See the file header. -/
 def walReadTie (dir : GoString) (write : Bool) (s : w64 × w64) (j : Ino) (fs : List (DecFile GF))

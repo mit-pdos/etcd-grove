@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvAuthServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvLease
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.UnaryChain
 
 @[expose] public section
 
@@ -47,7 +48,8 @@ service's four methods and its `LeaseKeepAlive` stream on the `*quotaLeaseServer
 service values above and the `*ClusterServer` `pc` and the `*authMaintenanceServer` `pm`, and grpc's
 health service's, nothing else; given the service values' method sets (`ServerMethodSets`, Go's
 type checker's facts). The server's resources come back (J8a-3: the progress interval read-only,
-`NewWatchServer` no longer writes it). -/
+`NewWatchServer` no longer writes it). (2026-11-24) The unary chain is etcd's by identity
+(`etcdUnaryIcs`: the three constructors' closures), what the members' axiom `etcd_noRefusal` reads. -/
 abbrev v3rpc.Server.spec : Prop :=
   v3rpc.ServerMethodSets → ∀ (s : Loc) (C : v3rpc.GrpcCfg GF) (d : w64) (gsl : GoSlice) (gvs : List GoInterface),
   -- the backend stays under its quota (audit phase B3, D19h)
@@ -75,7 +77,8 @@ abbrev v3rpc.Server.spec : Prop :=
       (□ ∀ Q : GoInterface → IProp GF, srvInterceptorOk im iprop(True) Q) ∗
       srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
       srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
-      srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s }}
+      srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
+      v3rpc.etcdUnaryIcs s [il, im, iu] }}
 
 end spec
 

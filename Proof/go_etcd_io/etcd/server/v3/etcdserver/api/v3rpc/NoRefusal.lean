@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvGrpcStart
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.UnaryChain
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Proof.net.InvNet
@@ -27,14 +28,28 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **An etcd member never answers a KV call with a refusal** (an axiom; D29; narrowed to the KV
-service 2026-10-23). The gRPC server `gs`, built by `v3rpc.Server(s, ...)` with the quota wrapper
-`q` over the KV service of the server `s` (`kvRegs q` among its registrations), about to be served
-on the listener `lis` at `addr`: if `s` runs with authentication off (`E.authOn = false`: a fresh
+service 2026-10-23). The gRPC server `gs` being built with the quota wrapper `q` over the KV service
+of the server `s` (`kvRegs q` among its registrations) behind etcd's unary chain over `s`
+(`v3rpc.etcdUnaryIcs s ics`, by identity: the closures `newLogUnaryInterceptor(s)` and
+`newUnaryInterceptor(s)` return and one of grpc-prometheus's, in `v3rpc.Server`'s order and nothing
+else), about to be served on the listener `lis` at `addr`; it comes back bound to that listener
+(`grpcSrvBound`, which only `grpc.startBound` takes, so the server started on `lis` is `gs`). If `s` runs with authentication off (`E.authOn = false`: a fresh
 backend, `NewAuthStore`'s `isAuthStore … false`) and as a voter (the server model boots a new
 cluster's member; a voter stays one unless a conf change re-adds it as a learner, which `ccLogOk`,
 the conf-change policy of `isServerReq`'s raft log invariant, does not exclude: the voter fact is
 assumed, see the end), no status `gs` sends in answer to a
-call of the KV service (`kvMethod`) has a refusal's description (`noRefusalAt addr`).
+call of one of the KV service's five methods has a refusal's description (`noRefusalAt addr`, read by
+the attempt contract for `kvMethod`, the five exact full names
+`/etcdserverpb.KV/{Range,Put,DeleteRange,Txn,Compact}`, which `kvRegs q` among the registrations and
+distinct full names dispatch to etcd's handlers).
+
+**Only the first server at `addr`.** `noRefusalAt addr` is a fact about the address string: it binds
+the server started on `lis`, not a later listener at `addr` (after `lis` closes, a crash, or on another
+node), which could host a refusing server while the fact holds. No landed theorem re-listens at a
+certified address; distributed and restart work must not use this axiom until decision E makes
+no-refusal a property of the table's entries (`notes/axiom-review/phase7-switch.md`, finding 1; the
+refuted earlier statements and their counterexamples, `examples/axiomcx/norefusal/`:
+`notes/axiom-review/norefusal-link.md`).
 
 True of etcd at the pin, by its code: a KV call's error reaches the client through the unary
 interceptor and `togRPCError`. The four etcd refusals (`refusalDescs`) are `togRPCError`'s map
@@ -49,10 +64,7 @@ server's own, none of the six strings; grpc's server-side errors carry grpc's me
 the old balancer's two strings occurs in grpc v1.84). Not every method of `gs` is refusal-free,
 which is why the claim is about the KV service: the Auth service's `UserAdd` of an empty name
 returns `auth.ErrUserEmpty` with authentication off (`authStore.UserAdd`), and the watch stream's
-cancel reasons use the auth strings. (Phase 7's switch, SW1, 2026-11-24, the review's finding 1)
-The server and its listener come back bound (`grpcSrvBound`, which only `grpc.startBound` takes): until
-then they came back separately, and a program could serve another server on the listener under the
-certificate. Not proved: the server's specs describe its errors by
+cancel reasons use the auth strings. Not proved: the server's specs describe its errors by
 structure, not identity (`notes/read-retry-plan.md` R1), and `IsLearner`'s spec returns any
 boolean, so the voter fact rests on this axiom too. -/
 axiom etcd_noRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface) (E : apply.AEnv GF)
@@ -62,16 +74,17 @@ axiom etcd_noRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface) (E :
   isServerReq s E ρ ∗
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
-    grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
+    v3rpc.etcdUnaryIcs s ics ∗ grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
   grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noRefusalAt addr⌝
 
 /-- **An etcd member never answers a KV call with a non-auth refusal, in either auth mode** (an
 axiom; F-S2 part 1, 2026-10-29, approved by the user; reviewed: survives under the voter condition,
-`notes/axiom-review/etcd-noOtherRefusal.md`). As `etcd_noRefusal`, without its premise
+`notes/axiom-review/etcd-noOtherRefusal.md`; restated with `etcd_noRefusal`,
+`notes/axiom-review/norefusal-link.md`, `phase7-switch.md`). As `etcd_noRefusal` (etcd's chain, the
+server bound to its listener, the first server at `addr` only), without its premise
 `E.authOn = false`, over the server's view in its mode (`isServerReqM E.authOn`), and with the
 conclusion narrowed to the descriptions that do not depend on authentication
-(`noOtherRefusalAt addr`: the learner's refusal and the old balancer's two); the server and its
-listener come back bound (`grpcSrvBound`, SW1).
+(`noOtherRefusalAt addr`: the learner's refusal and the old balancer's two).
 
 True of etcd at the pin, by its code: the learner refusal (`rpctypes.ErrGRPCNotSupportedForLearner`)
 is returned only by the interceptors' learner branch (`interceptor.go:54` unary, `:225` stream),
@@ -93,7 +106,7 @@ axiom etcd_noOtherRefusal (addr : GoString) (gs q p s : Loc) (lis : GoInterface)
   isServerReqM E.authOn s E ρ ∗
     v3rpc.quotaKVServerAt q
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty, #p⟩ s ∗
-    grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
+    v3rpc.etcdUnaryIcs s ics ∗ grpcSrvNew gs ics sics svcs regs sregs ∗ netListenerAt lis addr ⊢
   grpcSrvBound gs lis addr ics sics svcs regs sregs ∗ ⌜noOtherRefusalAt addr⌝
 
 end axioms

@@ -95,6 +95,14 @@ structure cfgOk (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Conf
   bp1 : plainEndpoint cfg.Bridge1'
   bp2 : plainEndpoint cfg.Bridge2'
   bp3 : plainEndpoint cfg.Bridge3'
+  -- (fmt stage 1, 2026-11-24) the members' peer and client addresses within etcd's URL bounds
+  -- (`NewServer`'s `etcdURLsFit`)
+  fp1 : etcdstart.addrFits cfg.Peer1'
+  fp2 : etcdstart.addrFits cfg.Peer2'
+  fp3 : etcdstart.addrFits cfg.Peer3'
+  fc1 : etcdstart.addrFits cfg.Client1'
+  fc2 : etcdstart.addrFits cfg.Client2'
+  fc3 : etcdstart.addrFits cfg.Client3'
 
 /-- The bridges' addresses, which every client dials (`NewClient`). -/
 abbrev bridges (cfg : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) : List GoString :=

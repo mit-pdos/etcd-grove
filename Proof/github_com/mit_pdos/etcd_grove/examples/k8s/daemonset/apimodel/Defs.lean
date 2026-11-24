@@ -633,20 +633,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [errors_sem : _root_.Perennial.errors.Assumptions]
 
-/-- An `errors.New` error (`EtcdGrove.wp_New_errorString_cell`'s method spec) is one `fmt` prints
-without panicking (what `apierrors.NewConflict` needs of its error). -/
-theorem errorString_argOk (x : Loc) (msg : GoString) :
+/-- An `*errors.errorString` is `fmtErrorOkOrNil` (`apierrors.NewConflict`'s premise). -/
+theorem errorString_fmtErrorOkOrNil (x : Loc) (msg : GoString) :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
         go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
-    fmt.argOk (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+    fmtErrorOkOrNil (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
   iintro #H
-  ihave #Hok := EtcdGrove.errorString_fmtErrorOk x msg $$ H
-  unfold interface.mkOk fmtErrorOk fmt.argOk
-  icases Hok with ⟨%h, #Hs⟩
-  iright; ileft
-  iframe Hs
-  ipureintro; exact h
+  iapply fmtErrorOkOrNil_of
+  iapply EtcdGrove.errorString_fmtErrorOk x msg $$ H
 
 end errStr
 

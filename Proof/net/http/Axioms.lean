@@ -17,6 +17,7 @@ module
 
 public import Proof.net.http.Boundary
 public import Proof.net.http.Proved
+public import Proof.net.http.AddrNet
 public import Perennial.Proof.io.Link
 
 @[expose] public section
@@ -43,19 +44,53 @@ True of a model with a global ghost map from addresses to saved protocols whose 
 set once, with the exclusive `httpProtoFree a`. (http-boundary-fix, 2026-11-14) Of a protocol
 that admits the server's own answers (`Proto.srvOk`): `RoundTrip`'s post promises the protocol's
 `resp` of whatever status it returns, which may be one Go's server made running no handler (`431`
-for headers over `MaxHeaderBytes`, `examples/premisefix/httpsrvstatus`). -/
+for headers over `MaxHeaderBytes`, `examples/premisefix/httpsrvstatus`).
+
+(2026-11-24) Of an address whose net protocols are net/http's (`httpAddrNet a`, `AddrNet.lean`; set from
+`netAddrFree a` by the theorem `httpAddrFree_set`): `RoundTrip`'s promise holds from the reservation on, whoever then
+answers at `a`, so nothing but net/http's server may answer there. Without it a program reserved `a`, never registered
+it, listened at `a` with `net.Listen` (`netAddrFree a`), set `a`'s net protocols to trivial ones from its `netAddrLeft a`
+(`addr_set_proto_tok`) and answered a raw `HTTP/1.1 200 OK`, a status the protocol excluded, which `RoundTrip`'s post
+(`roundTripperOk`) promised the client could not come (Go panics: `examples/axiomcx/httpreserve/`,
+`notes/axiom-review/http-reserve-addrproto.md`). With it `a`'s pending set is spent (no `netAddrLeft a`, so no
+protocols of the program's own at `a`). A raw program may still listen at `a` (`listen_au`) and accept and read
+connections to it, but its connections meet `a`'s protocols, the opaque `httpNetSrvP` and `httpNetCliP`: a raw
+acceptor or dialer at `a` can write nothing a client or server of `a` reads (only the empty write), and what a raw
+reader reads tells it nothing. -/
 axiom reserve (a : GoString) (P : Proto GF) (hP : P.srvOk) :
-  ⊢ httpProtoFree (GF := GF) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
+  ⊢ httpAddrNet (hG := hG) a -∗ httpProtoFree (GF := GF) a ==∗ httpProtoAt a P ∗ httpProtoOwn a P
+
+/-- **Reservation of an address and its net protocols** (2026-11-24; a theorem over `reserve` and
+`httpAddrFree_set`): the right to listen at `a` and to fix its HTTP protocol give `a`'s protocol `P`, the right to
+listen at `a` reserved for HTTP (`httpAddrFree`, what `net.Listen.specHttp` takes) and the right to serve it with
+`P`. -/
+theorem reserveAddr (E : CoPset) (a : GoString) (P : Proto GF) (hP : P.srvOk) :
+    ⊢ netAddrFree (hG := hG) a -∗ httpProtoFree (GF := GF) a ={E}=∗
+      httpProtoAt a P ∗ httpAddrFree (hG := hG) a ∗ httpProtoOwn a P := by
+  iintro Ha Hf
+  imod httpAddrFree_set E a $$ Ha with Ha
+  icases httpAddrFree_net a $$ Ha with ⟨Ha, #Hn⟩
+  imod reserve a P hP $$ Hn Hf with ⟨#Hat, Ho⟩
+  imodintro
+  iframe Hat Ha Ho
 
 /-- **Registration** (D38c, D39a): the address's listener, with the right to serve it with the
-address's reserved protocol, serves it with that protocol (the model: the listener bound once,
-`net.Listen` consuming `netAddrFree a`; the protocol the ghost map's entry for `a`). (Phase 7's switch,
-SW1, 2026-11-24, the review's finding 4) It also consumes `netAddrLeft a`, what sets the address's
-net-library protocols (as `bridge.New` did from `cf333b5be9`): an address served over HTTP is never
-given a grpc table (`grpc_addr_set`, `addr_set_proto_tok`), so no program both serves HTTP at `a` and
-claims grpc's protocols there, which the end state's defined protocols (W5) would make unsound. -/
+address's reserved protocol, serves it with that protocol (the model: the claim on `a`'s requests,
+`addrClaim a`, held once, which `netListenerAt` carries; the protocol the ghost map's entry for `a`). The listener is
+`a`'s: `netListenerAt l a` ties the Go value `l` to the extension's listener open at `a` (`lisAt`, since 2026-11-24;
+before, a listener at another address could be registered as `a`'s: `examples/axiomcx/httpregfwd/`). The net token of
+`a` is not once: `listen_au` re-issues it to whoever holds `a`'s protocols.
+
+(2026-11-24, `http-register-addrleft`) Between it and the address's own net protocols: an address served by net/http
+speaks HTTP, so no program may both register `a` and give `a` net protocols of its own (until then a program
+listened at `a`, set `a`'s protocols from `netAddrLeft` to trivial ones, wrote raw bytes to `a`, and `Serve_ok`
+promised the handler `(H.proto a).req R` of a request the protocol excludes: `examples/axiomcx/httpaddrleft/`,
+`notes/axiom-review/http-register-addrleft.md`). From that day to the next fix `register` consumed `netAddrLeft a`;
+since `reserve` takes `a`'s net protocols as net/http's (`httpAddrNet a`, the same day,
+`notes/axiom-review/http-reserve-addrproto.md`), `httpProtoOwn a P` already says so, nothing gives `netAddrLeft a`
+for a reserved address (its pending set is spent), and `register` takes the listener alone. -/
 axiom register (l : GoInterface) (a : GoString) (P : Proto GF) :
-  ⊢ netListenerAt (GF := GF) l a -∗ netAddrLeft a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
+  ⊢ netListenerAt (GF := GF) l a -∗ httpProtoOwn a P ==∗ httpListenerAt l a P
 
 /-- (rafthttp stage 6d, 2026-10-24: the examples' members serving their raft handler) `http.Serve`
 of a registered listener with a handler of its address's protocol (`Serve_spec`): it serves each

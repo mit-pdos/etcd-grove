@@ -39,7 +39,7 @@ instance os.fileNamed_persistent (f : Loc) (name : GoString) :
 theorem os.ownFile_named (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) :
     os.ownFile (GF := GF) f fd name dq ⊢ os.fileNamed f name := by
   unfold os.ownFile os.fileNamed
-  iintro ⟨%inner, #Hf, -, #Hn⟩
+  iintro ⟨%inner, #Hf, -, #Hn, #Hsys⟩
   iexists inner
   isplitl [] <;> iassumption
 

@@ -170,6 +170,45 @@ theorem memberAt_name_len (pfx : GoString) (hp : pfx.length ≤ 134) (pb cb i : 
   simp only [memberAt, List.length_append, List.length_cons, List.length_nil]
   omega
 
+/-- `127.0.0.1:<p>` is `host:port` with a numeric port (fmt stage 1, 2026-11-24: the examples' Dir
+files have their own copies, `loopback_plain`). -/
+theorem loopback_plainPeerURL (p : w64) :
+    types.plainPeerURL (go!"http://" ++ (go!"127.0.0.1:" ++ decStr p)) := by
+  have hne := decStr_ne_nil p
+  have hd := decStr_digits p
+  unfold types.plainPeerURL types.plainHostPort
+  refine ⟨List.isPrefixOf_iff_prefix.2 (List.prefix_append _ _), ?_⟩
+  have hdrop : (go!"http://" ++ (go!"127.0.0.1:" ++ decStr p) : List w8).drop 7 =
+      go!"127.0.0.1:" ++ decStr p := by simp
+  rw [hdrop]
+  have hidx : (go!"127.0.0.1:" ++ decStr p : List w8).idxOf (58 : w8) = 9 := by
+    rw [List.idxOf_append]; simp only [show (58 : w8) ∈ (go!"127.0.0.1:" : List w8) from by decide, ite_true]; decide
+  simp only [hidx]
+  refine ⟨by decide, ?_, ?_, ?_⟩
+  · simp; exact List.length_pos_iff.2 hne
+  · rw [List.take_append_of_le_length (by decide)]; decide
+  · intro c hc
+    rw [List.drop_append_of_le_length (by decide)] at hc
+    simp at hc
+    exact hd c hc
+
+/-- **`127.0.0.1:<p>` is within etcd's URL bounds** (`addrFits`, fmt stage 1, 2026-11-24). -/
+theorem loopback_addrFits (p : w64) : addrFits (go!"127.0.0.1:" ++ decStr p) := by
+  refine ⟨loopback_plainPeerURL p, ?_⟩
+  have := decStr_length_le p
+  simp only [List.length_append, etcdURLLenMax]
+  have h1 : (go!"http://").length = 7 := rfl
+  have h2 : (go!"127.0.0.1:").length = 10 := rfl
+  omega
+
+/-- **The members' addresses are within etcd's URL bounds** (`StartMembers`'s premise). -/
+theorem membersOf_addrFits (pfx : GoString) (k : Nat) (pb cb : w64) :
+    ∀ m ∈ membersOf pfx k pb cb, addrFits m.Peer' ∧ addrFits m.Client' := by
+  intro m hm
+  unfold membersOf at hm
+  obtain ⟨i, -, rfl⟩ := List.mem_map.1 hm
+  exact ⟨loopback_addrFits _, loopback_addrFits _⟩
+
 /-- **The members' names are distinct.** -/
 theorem membersOf_names_nodup (pfx : GoString) (k : Nat) (hk : k ≤ 2 ^ 64) (pb cb : w64) :
     ((membersOf pfx k pb cb).map (·.Name')).Nodup := by

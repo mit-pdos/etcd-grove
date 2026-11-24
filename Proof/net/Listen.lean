@@ -66,11 +66,11 @@ theorem net.Listen.wp_proof
     iunfold netListenerAt
     iframe Hclaim
     iunfold _root_.Perennial.net.isListener at Hli
-    icases Hli with ⟨%t, %x, %Hli, -⟩
+    icases Hli with ⟨%t, %x, %Hli, #Hla⟩
     isplitr [Hpend]
     · iunfold netListenerOpen
-      iexists hX, t, l
-      iframe Hlis Hat
+      iexists hX, t, l, x
+      iframe Hla Hlis Hat
       ipureintro; exact Hli
     · iunfold netAddrLeft
       iexists hX

@@ -76,7 +76,7 @@ abbrev os.RemoveAll.specAbsentN [os.Assumptions] : Prop :=
   ∀ (d b : GoString) (j : Ino) (R : Roots) (qd : Qp) (N : NameSet) (dqn : DFrac) (h : NamesH)
     (qc : Qp),
   NameOk b → N.Mem b → h.cur !! b = none →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
       osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
     (App (Val (@! os.RemoveAll)) (Val #(child d b)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osNames j N dqn h ∗
