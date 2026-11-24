@@ -1,12 +1,13 @@
 /-
 Crash-aware specs of the `os`, `syscall` and `golang.org/x/sys/unix` calls minibolt makes on its
 database file, over the generic crash invariant (`csInv N P R γ Good Ok`, `Proof/os/CrashSt.lean`:
-the file at the path `P` in the roots `R`, and half of the tree's history): the caller holds its
-part of the file (`csOwnF γ s`; with its half of the history, `csOwn P R γ s V`, for the open) and
-shows `Ok` of each state the call passes through. Proved in `Proof/os/CrashStSpec.lean`.
+the file at the path `P`, a name of a root directory of `R`, and half of the claim on that name):
+the caller holds its part of the file (`csOwnF γ s`; with its half of the claim, `csOwn P R γ s`,
+for the open, which also takes the tree's shared invariant and a share of the call permission of
+`d`'s key) and shows `Ok` of each state the call passes through. Proved in `Proof/os/CrashStSpec.lean`.
 Lean-first (no Rocq counterpart).
 
-* `os.OpenFile.specCrashS`: `P = d/b`, `d` a directory; absent or idle, to `csOpenSt` of it
+* `os.OpenFile.specCrashS`: `P = d/b`; absent or idle, to `csOpenSt` of it
   (created, its `create` logged, if absent); on failure maybe.
 * `os.File.WriteAt.specCrashS`: idle, the write starting inside the file, to an idle state the
   loop reached (`WReach`: each attempt writes a prefix of the rest of the data, from the `nn` bytes
@@ -24,6 +25,7 @@ Lean-first (no Rocq counterpart).
 -/
 module
 
+public import Proof.os.PkgInit
 public import Proof.os.CrashStOps
 public import Spec.golang_org.x.sys.unix.Mmap
 public import Spec.golang_org.x.sys.unix.Munmap
@@ -184,20 +186,20 @@ variable [sem : go.Semantics]
 variable [os.Assumptions] in
 /-- See the file header. -/
 abbrev os.OpenFile.specCrashS : Prop :=
-  ∀ (d b : GoString) (perm : w32) (N : Namespace) (R : Roots) (V : Hist) (j : Ino) (γ : GName)
+  ∀ (d b : GoString) (perm : w32) (N : Namespace) (R : Roots) (q : Qp) (γ : GName)
     (Good : Option OsFile → Prop) (Ok : CState → Prop) (s : CState),
-  NameOk b → lookupH R V d = some (.dir j) →
+  NameOk b →
   (s = none ∨ ∃ i m bs fa fb, s = some (i, ⟨m, bs, fa, fb, .idle⟩)) → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
-  (s = none → ∀ i, Ok (csNew i)) →
-  {{ osInv (GF := GF) ∗ csInv (GF := GF) N (child d b) R γ Good Ok ∗
-      csOwn (GF := GF) (child d b) R γ s V }}
+  ↑osShN ⊆ (⊤ : CoPset) \ ↑N → (s = none → ∀ i, Ok (csNew i)) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R d) q ∗
+      csInv (GF := GF) N (child d b) R γ Good Ok ∗ csOwn (GF := GF) (child d b) R γ s }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #perm))
-  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
-      (∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ (s = none ∨ sIno s = some i)⌝ ∗
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R d) q ∗
+      ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ (s = none ∨ sIno s = some i)⌝ ∗
           os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-          csOwn (child d b) R γ (csOpenSt j b V i s).1 (csOpenSt j b V i s).2) ∨
-      (⌜err ≠ interface.nil ∧ f = null⌝ ∗ (csOwn (child d b) R γ s V ∨
-          ∃ i : Ino, csOwn (child d b) R γ (csOpenSt j b V i s).1 (csOpenSt j b V i s).2)) }}
+          csOwn (child d b) R γ (csOpenSt i s)) ∨
+      (⌜err ≠ interface.nil ∧ f = null⌝ ∗ (csOwn (child d b) R γ s ∨
+          ∃ i : Ino, csOwn (child d b) R γ (csOpenSt i s)))) }}
 
 variable [os.Assumptions] in
 /-- See the file header. -/

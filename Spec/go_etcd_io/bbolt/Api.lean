@@ -22,8 +22,7 @@ public import Perennial.Proof.ProofPrelude
 public import Perennial.ProgramLogic.Bounds
 public import Iris.BI.Lib.Atomic
 public import GooseLang.Ext.Fs.Specs
-public import GooseLang.Ext.Fs.TreeSpecs
-public import GooseLang.Ext.Fs.TreeSpecsOpen
+public import GooseLang.Ext.Fs.TreeShared
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.go_etcd_io.bbolt.Data
 public import Perennial.Ghost.DGhostVar

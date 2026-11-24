@@ -37,7 +37,7 @@ theorem parseRVForMetricsWithTruncation.wp_proof
   · (try wp_auto)
     wp_func_call
     wp_call
-    by_cases hl : rv.length < 2 ^ 63
+    by_cases hl : ((rv).length : Int) ≤ maxAddr
     case neg => simp only [hl, ↓reduceIte]; wp_apply wp_AngelicExit
     simp only [hl, ↓reduceIte]
     wp_auto

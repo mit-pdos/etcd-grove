@@ -171,6 +171,7 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG)) :
     wal.Repair.spec (W := W) Mr := by
   intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  have hdl' : dir.length < 4096 := hdl.1
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'

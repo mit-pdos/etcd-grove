@@ -3,6 +3,7 @@ module
 
 public import Perennial.Code.sync
 public import Perennial.Code.errors
+public import Perennial.Code.internal.strconv
 public import Perennial.Code.internal.oserror
 public import Perennial.Golang.Defn
 public import TrustedCode.syscall
@@ -5430,6 +5431,40 @@ noncomputable def Utime [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def utimes [GooseExts] [GoGlobalContext] : GoString :=
   go!"syscall.utimes"
 
+/-- go: syscall_unix.go:110:16 -/
+noncomputable def Errno.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc Errno.ty))) (Var "e"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"errno ")) (Let "$a0" (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.strconv.Itoa []))) (Val #())) (Var "$a0")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Val #(W64 0)) (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e"))))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e"))) (Val #(W64 133)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 133 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr errors))) (Val #())) (App (Val (GoInstruction (Convert Errno.ty go.int))) (App (Val (GoInstruction (GoLoad Errno.ty))) (Var "e"))))))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!""))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- go: syscall_unix.go:120:16 -/
 noncomputable def Errno.Is.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
@@ -5479,12 +5514,13 @@ noncomputable def Errno.Is.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.syscall where
-  pkgImportedPkgs := [pkg_id.sync, pkg_id.errors, pkg_id.internal.oserror]
+  pkgImportedPkgs := [pkg_id.sync, pkg_id.errors, pkg_id.internal.strconv, pkg_id.internal.oserror]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.syscall)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5821,6 +5857,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.errors.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.internal.strconv.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.oserror.initialize') (Val #()))))))
   (App (Val doExecute)

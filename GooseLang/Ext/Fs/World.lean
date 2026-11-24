@@ -2,8 +2,8 @@
 The worlds of the Linux file extension's specs (`Impl.lean`, `Ghost.lean`): the resources of a
 generation's ghost state, the invariant of the mapped cells, the steps that leave the tree alone
 (`TreeFrame`, the data operations), the world an operation's proof works with and the lifting of a
-step (`wp_os_step` for the data operations, `wp_fs_stepT` for every operation, with the tree's
-world), and the tree's resources and their laws. Untrusted.
+step (`wp_os_step` for the data operations, `wp_fs_stepM` for every operation, with the tree's
+interpretation). The tree's resources are the shared ones (`TreeSharedRes.lean`). Untrusted.
 
 **Resources** (all of the generation's ghost state `gooseOsGS`):
 * `osByte i b dq (x, cs)`: byte `b` of the page cache of the file of inode `i` is `x`, and its crash
@@ -12,10 +12,6 @@ world), and the tree's resources and their laws. Untrusted.
 * `osMeta i dq m`: the file of inode `i` exists and `m` (`OsMeta`) says what the ghost state knows of
   it. Fractional; a change, a sync and (un)mapping need it whole.
 * `osFd fd dq d`: `fd` is open, on the file `d.ino`, with `d`'s access mode; fractional.
-* `osTree dq V`: (a fraction of) the tree's history `V`. `osDir j dq g`: the directory of inode `j`,
-  as `g` says: a fraction of the history, of which `g` is `j`'s view. `osDirFd fd dq x`: `fd` is an
-  open directory fd, on `x.1`, its read at `x.2`. `osCall t s p q`: the call on a path `t` (on `p`) is in flight,
-  begun when the log had `s` entries.
 * `osInv`: the invariant of the generation's mapped cells; every spec takes it, with `↑osN ⊆ E`.
 -/
 module
@@ -162,104 +158,6 @@ theorem osInv_alloc (E : CoPset) :
   iexists ∅, 0
   iframe Hv
   unfold cellsRes; iapply BigSepM.bigSepM_empty.2; iempintro
-
-/-- (A fraction `dq` of) the tree's roots `R` and history `V`: the tree the generation booted with,
-and the entries logged since. -/
-def osTree (dq : DFrac) (R : Roots) (V : Hist) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd () dq (R, V)
-
-/-- The directory of inode `j`, as `g` says: a fraction of the history, of which `g` is `j`'s view.
--/
-def osDir (j : Ino) (dq : DFrac) (g : DirG) : IProp GF :=
-  iprop(∃ (R : Roots) (V : Hist), osTree dq R V ∗ ⌜g = dview V j⌝)
-
-/-- The directory fd `fd`, on `x.1`, its read at `x.2` (never negative, as `osFd`). -/
-def osDirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) : IProp GF :=
-  gFdElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf fd dq x
-
-/-- An open directory fd is not negative. -/
-theorem osDirFd_nonneg (fd : w64) (dq : DFrac) (x : Ino × DirPh) :
-    osDirFd (L := L) fd dq x ⊢ ⌜0 ≤ fd.toInt⌝ := by
-  unfold osDirFd; exact gFdElem_nonneg _ _ _ _ _
-
-/-- The call on a path `t` is in flight, begun on the path `p` when the log had `s` entries; the
-state interpretation holds the fraction `q` of the history for it, which its step gives back. -/
-def osCall (t : Nat) (s : Nat) (p : GoString) (q : Qp) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc t (DFrac.own 1) ((s, p), q)
-
-instance osTree_timeless (dq : DFrac) (R : Roots) (V : Hist) :
-    Timeless (osTree (L := L) dq R V) := by
-  unfold osTree; infer_instance
-instance osDir_timeless (j : Ino) (dq : DFrac) (g : DirG) : Timeless (osDir (L := L) j dq g) := by
-  unfold osDir; infer_instance
-instance osCall_timeless (t s : Nat) (p : GoString) (q : Qp) :
-    Timeless (osCall (L := L) t s p q) := by
-  unfold osCall; infer_instance
-
-/-- The history held, with the authoritative one: they agree. -/
-theorem osTree_auth (R R' : Roots) (V V' : Hist) (dq : DFrac) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
-      osTree (L := L) dq R' V' -∗ ⌜R' = R ∧ V' = V⌝ := by
-  iintro HA Hh
-  unfold osTree
-  icases gAuth_lookup _ _ _ _ _ _ $$ HA Hh with %h
-  ipureintro
-  simp only [histMap, GMap.lookup_singleton_eq, Option.some.injEq, Prod.mk.injEq] at h
-  exact ⟨h.1.symm, h.2.symm⟩
-
-/-- A directory held, with the authoritative history: its view. -/
-theorem osDir_view (R : Roots) (V : Hist) (j : Ino) (dq : DFrac) (g : DirG) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
-      osDir (L := L) j dq g -∗ ⌜g = dview V j⌝ := by
-  unfold osDir
-  iintro HA ⟨%R', %V', Hh, %hg⟩
-  icases osTree_auth R R' V V' dq $$ HA Hh with %h
-  obtain ⟨rfl, rfl⟩ := h
-  ipureintro; exact hg
-
-/-- The history updated, with the whole of it. -/
-theorem osTree_update (R : Roots) (V V' : Hist) (R' : Roots) (W : Hist) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
-      osTree (L := L) (DFrac.own 1) R' W ==∗
-      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V')) ∗
-      osTree (L := L) (DFrac.own 1) R V' := by
-  iintro HA Hh
-  unfold osTree
-  imod gAuth_update _ _ _ _ _ (R, V') $$ HA Hh with ⟨HA, Hh⟩
-  have : (<[() := (R, V')]> (histMap (R, V))) = histMap (R, V') := by
-    apply GMap.ext; intro u; cases u; simp [histMap]
-  rw [this]
-  imodintro; iframe
-
-/-- A directory held whole, with the authoritative history, updated to the history `V'`, its view
-there `g'`. -/
-theorem osDir_update (R : Roots) (V V' : Hist) (j : Ino) (g g' : DirG) (hg' : g' = dview V' j) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V)) -∗
-      osDir (L := L) j (DFrac.own 1) g ==∗
-      gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (R, V')) ∗
-      osDir (L := L) j (DFrac.own 1) g' := by
-  unfold osDir
-  iintro HA ⟨%R', %W, Hh, -⟩
-  imod osTree_update R V V' R' W $$ HA Hh with ⟨HA, Hh⟩
-  imodintro
-  iframe HA
-  iexists R, V'
-  iframe Hh
-  ipureintro; exact hg'
-
-/-- The history is a directory's view (of any directory). -/
-theorem osTree_dir (dq : DFrac) (R : Roots) (V : Hist) (j : Ino) :
-    osTree (L := L) dq R V ⊢ osDir (L := L) j dq (dview V j) := by
-  unfold osDir
-  iintro H; iexists R, V; iframe; ipureintro; rfl
-
-/-- A call held, with the authoritative calls: it is in flight, with its start. -/
-theorem osCall_auth (C : GMap Nat CallV) (t s : Nat) (p : GoString) (q : Qp) :
-    ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc C -∗ osCall (L := L) t s p q -∗
-      ⌜C !! t = some ((s, p), q)⌝ := by
-  iintro HA Hc
-  unfold osCall
-  iapply gAuth_lookup $$ HA Hc
 
 end resources
 
@@ -450,16 +348,6 @@ def osWorld (st : OsState) (Γb : GMap (Ino × Nat) (ByteG))
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb ∗ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗
     gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γf Γf ∗ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γt Γt ∗
     tokRes (gooseOsGS (L := L)) Γt ∗ cellsRes (cellView st) ∗ naHeapCtx tls h)
-
-/-- What a tree operation's proof works with of the tree: the state's facts, the ghost maps of the
-history, the directory fds and the calls in flight, and the fractions the reads in progress hold. -/
-def treeWorld (st : OsState) (V : Hist) (Γdf : GMap w64 (Ino × DirPh))
-    (Γc : GMap Nat CallV) : IProp GF :=
-  iprop(⌜FsTreeWf st ∧ TreeCoh st V Γdf Γc⌝ ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γd (histMap (st.fs.roots, V)) ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γdf Γdf ∗
-    gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γc Γc ∗
-    rdRes (gooseOsGS (L := L)) Γdf ∗ callRes (gooseOsGS (L := L)) Γc)
 
 /-- **The lifting of any step of a data operation, `mmap`'s step to itself included**
 (`MmapStall`): as `wp_os_stepX`, over `FsStep` (not only the steps that return), with the masks
@@ -693,121 +581,6 @@ theorem wp_os_stepL (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   inext
   iintro %e' %h' %st' %Hst
   iapply Hc $$ %e' %h' %st' %Hst.1
-
-/-- A resource of the legacy mode: with the shared mode's interpretation, a contradiction. A legacy
-step's proof holds one (`osTree`, `osCall`, `osDirFd`), which tells it the mode. -/
-def LegacyWit (W : IProp GF) : Prop := ∀ st, W ∗ treeShared (gooseOsGS (L := L)) st ⊢ False
-
-theorem legacyWit_tree (dq : DFrac) (R : Roots) (V : Hist) :
-    LegacyWit (L := L) (osTree (L := L) dq R V) := by
-  intro st
-  unfold treeShared osTree
-  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, Hd, -⟩
-  icases gElem_valid_2 _ _ _ _ _ _ _ $$ H Hd with %Hv
-  exact absurd (DFrac.valid_op_own Hv.1) (by simp)
-
-theorem legacyWit_call (t s : Nat) (p : GoString) (q : Qp) :
-    LegacyWit (L := L) (osCall (L := L) t s p q) := by
-  intro st
-  unfold treeShared osCall
-  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, -, -, Hac, -⟩
-  icases gAuth_lookup _ _ _ _ _ _ $$ Hac H with %Hv
-  simp at Hv
-
-theorem legacyWit_dirFd (fd : w64) (dq : DFrac) (x : Ino × DirPh) :
-    LegacyWit (L := L) (osDirFd (L := L) fd dq x) := by
-  intro st
-  unfold treeShared osDirFd
-  iintro ⟨H, %V0, %s0, %Γdf, %Γc, %Γg, %hw, -, -, Haf, -⟩
-  icases gFdElem_lookup _ _ _ _ _ _ $$ Haf H with %Hv
-  simp at Hv
-
-/-- With a legacy resource, the tree's interpretation is the legacy mode's. -/
-theorem treeCtx_legacy (W : IProp GF) (hW : LegacyWit (L := L) W) (st : OsState) :
-    ⊢ W -∗ treeCtx (gooseOsGS (L := L)) st -∗
-      W ∗ treeLegacy (gooseOsGS (L := L)) st ∗ commitRes (gooseOsGS (L := L)) st := by
-  unfold treeCtx
-  iintro HW ⟨Hm, Hcm⟩
-  icases Hm with (Hm | Hm)
-  · iframe
-  · iexfalso
-    iapply hW st
-    iframe
-
-/-- The lifting of any operation of the legacy mode (`W`: a resource of it): as `wp_os_step`, with
-the tree's world too (`treeWorld`). -/
-theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
-    (hE : ↑osN ⊆ E) (W : IProp GF) (hW : LegacyWit (L := L) W)
-    (hO : o ≠ "OutClose" := by decide) (hl : ¬ LockOp o := by simp [LockOp])
-    (hM : o ≠ "Mmap" := by decide) :
-    ⊢ osInv (L := L) -∗ W -∗
-      (W -∗ ∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc ==∗
-        ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
-        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' ()⌝ ==∗
-          ∃ Γb' Γm' Γf' Γt' V' Γdf' Γc', osWorld st' Γb' Γm' Γf' Γt' h' ∗
-            treeWorld st' V' Γdf' Γc' ∗ WP e' @ s; E {{ Φ }}) -∗
-      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
-  iintro #Hinv HW HF
-  iapply wp_extStep o v Φ hv
-  iintro %h %σ %g Hheap Hl -
-  icases (os_local_ctx_eq σ).mp $$ Hl with Hl
-  unfold osCtx osCtxF
-  icases Hl with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, HAb, HAm, HAf, HAt, Htok, Hv⟩, Hns, Hof, Hlk⟩
-  icases treeCtx_legacy W hW σ $$ HW Hns with ⟨HW, Hns, Hcm⟩
-  unfold treeLegacy
-  icases Hns with ⟨%V, %Γdf, %Γc, %Hns, HAd, HAdf, HAc, Hrd, Hcr, Hlh⟩
-  unfold osInv
-  imod inv_acc hE $$ Hinv with ⟨Hi, Hclose⟩
-  icases Hi with >Hi
-  icases Hi with ⟨%cv, %n, Hv', Hcells⟩
-  icases gVar_agree _ _ _ _ _ $$ Hv Hv' with %Heq
-  simp only [Prod.mk.injEq] at Heq
-  obtain ⟨rfl, rfl⟩ := Heq
-  imod HF $$ HW %σ %Γb %Γm %Γf %Γt %V %Γdf %Γc %h [HAb HAm HAf HAt Htok Hcells Hheap]
-    [HAd HAdf HAc Hrd Hcr] with ⟨%Hex, Hcont⟩
-  · unfold osWorld; iframe; ipureintro; exact Hwc
-  · unfold treeWorld; iframe; ipureintro; exact Hns
-  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ E \ ↑osN from Std.LawfulSet.empty_subset)
-  iintro Hclose2
-  isplitr
-  · ipureintro
-    obtain ⟨e', h', st', Hst⟩ := Hex
-    exact FsSemOk.step_ex _ _ _ _ g _ _ _ ()
-      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) (Or.inl Hst)
-  inext
-  iintro %e' %h' %σ' %g' %Hst -
-  have Hst := fsStepV_of_ne hM (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst)
-  imod Hclose2
-  imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', %V', %Γdf', %Γc', Hw, Hn, Hwp⟩
-  unfold osWorld
-  icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩
-  imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
-  imod Hclose $$ [Hv' Hcells] with -
-  · inext; iexists (cellView σ'), (GMap.size σ'.proc.inflight); iframe
-  imod ofdCtx_step _ Hst.1 hO $$ Hof with Hof
-  ihave Hlk := lockCtx_frame _ (isFsStep_lockFrame Hst.1 hl) $$ Hlk
-  imodintro
-  iframe Hheap Hwp
-  isplitl [HAb HAm HAf HAt Htok Hv Hn Hcm Hlh Hof Hlk]
-  · iapply (os_local_ctx_eq σ').mpr
-    unfold osCtx osCtxF treeCtx
-    isplitl [HAb HAm HAf HAt Htok Hv]
-    · iexists Γb', Γm', Γf', Γt'
-      iframe
-      ipureintro; exact Hwc'
-    iframe Hof Hlk
-    · unfold treeWorld
-      icases Hn with ⟨%Hns', HAd, HAdf, HAc, Hrd, Hcr⟩
-      isplitl [HAd HAdf HAc Hrd Hcr Hlh]
-      · ileft
-        unfold treeLegacy
-        iexists V', Γdf', Γc'
-        iframe HAd HAdf HAc Hrd Hcr Hlh
-        ipureintro; exact Hns'
-      · iapply commitRes_grow _ (fsStep_commitGrows (Or.inl Hst)) $$ Hcm
-  · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
-        iprop(True) := rfl
-    rw [this]; itrivial
 
 /-- `wp_fs_stepM`, whose continuation also gets the semantics' own step (which may say more than
 `FsStepV`: `fsSemWithS`'s premise on steps, `FsStepSat`; session S3d). -/

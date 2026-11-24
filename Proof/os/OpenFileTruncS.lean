@@ -9,7 +9,7 @@ the file and returned `EINTR`, the retry truncates it (`wp_osOpenTruncS`, with t
 module
 
 public import Proof.os.OpenFileTruncLemmas
-public import Proof.os.OpenFile
+public import Spec.os.OpenFileS
 public import Spec.os.OpenFileTruncS
 
 @[expose] public section
@@ -34,6 +34,9 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   have hnd : ∀ J, h.cur !! b ≠ some (.dir J) := by intro J; rw [hn]; simp
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  ihave #Hsys0 : isPkgInit (PROP := IProp GF) pkg_id.syscall $$ []
+  · iPkgInit
+  ihave #Hsys := syscall.errnoOk_of_isPkgInit $$ Hsys0
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   ihave HSt : iprop((osAUnc (osNames j (.only [b]) (DFrac.own r) h) (crOut j b h (DFrac.own r)) Q ∗
       osNames j (.only [b]) (DFrac.own q) h) ∨
@@ -86,7 +89,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
           iapply trFile_new $$ Hm
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
         wp_auto
-        wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+        wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
         iapply HΦ
         dsimp only [crTr]
         iframe
@@ -120,7 +123,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         isplitr [off]
         · iexists inner_ptr
           iframe
-          isplitl [] <;> iassumption
+          (repeat' isplitl []) <;> iassumption
         · iexists inner_ptr
           iframe
           iassumption
@@ -148,7 +151,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
         wp_auto
-        wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+        wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
         iapply HΦ
         iframe
         dsimp only [crOut, crTr]
@@ -206,7 +209,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
       isplitr [off]
       · iexists inner_ptr
         iframe
-        isplitl [] <;> iassumption
+        (repeat' isplitl []) <;> iassumption
       · iexists inner_ptr
         iframe
         iassumption
@@ -232,7 +235,7 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
         iright; iexists (x, sx, i); dsimp only [crTr]; iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
       wp_auto
-      wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
+      wp_apply os.wp_pathError_ok _ _ e he0 $$ Hsys as %pe #Hok
       iapply HΦ
       dsimp only [crTr]
       iframe
@@ -248,9 +251,9 @@ theorem os.OpenFile.wp_proofCreateTruncSnc : os.OpenFile.specCreateTruncSnc (GF 
 /-- `specCreateTruncS` from `specCreateTruncSnc`: an `osAU` is an `osAUnc`. -/
 theorem os.OpenFile.wp_proofCreateTruncS : os.OpenFile.specCreateTruncS (GF := GF) (hG := hG) := by
   intro d b flag perm R j dq h q r qc Q hfl hcr htr hb hn hq
-  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hos, #Hsi, Hp, Hperm, Hn, Hau⟩ HΦ
   iapply os.OpenFile.wp_proofCreateTruncSnc d b flag perm R j dq h q r qc Q hfl hcr htr hb hn hq $$ [Hp Hperm Hn Hau] HΦ
-  iframe Hos Hsi Hp Hperm Hn
+  iframe Hpkg Hos Hsi Hp Hperm Hn
   iapply osAU_osAUnc $$ Hau
 
 end proof

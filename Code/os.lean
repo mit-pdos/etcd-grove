@@ -5,6 +5,7 @@ public import Perennial.Code.io
 public import Code.io.fs
 public import Perennial.Code.sync
 public import Code.syscall
+public import Perennial.Code.internal.testlog
 public import Code.internal.poll
 public import Perennial.Code.errors
 public import Perennial.Golang.Defn
@@ -1698,6 +1699,33 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))
 
+/-- Exit causes the current program to exit with the given status code.
+    Conventionally, code zero indicates success, non-zero an error.
+    The program terminates immediately; deferred functions are not run.
+
+    For portability, the status code should be in the range [0, 125].
+
+    go: proc.go:62:6 -/
+noncomputable def Exit.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "code"
+  (Seq (App (Val exceptionDo)
+  (Let "code" (App (Val (GoInstruction (GoAlloc go.int))) (Var "code"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "code"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.syscall.Exit []))) (Val #())) (Var "$a0"))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "code"))
+  (App (App (Val (GoInstruction (FuncResolve runtime_beforeExit []))) (Val #())) (Var "$a0")))))))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "code")) (Val #(W64 0)))) (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.testlog.PanicOnExit0 []))) (Val #())) (Val #())) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"unexpected call to os.Exit(0) during test")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Val #())))
+
 /-- go: rawconn.go:45:6 -/
 noncomputable def newRawConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "file"
@@ -2125,12 +2153,13 @@ noncomputable def tryLimitedReader.impl [GooseExts] [GoGlobalContext] : val :=
   (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res2"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.os where
-  pkgImportedPkgs := [pkg_id.io, pkg_id.io.fs, pkg_id.sync, pkg_id.syscall, pkg_id.internal.poll, pkg_id.errors]
+  pkgImportedPkgs := [pkg_id.io, pkg_id.io.fs, pkg_id.sync, pkg_id.syscall, pkg_id.internal.testlog, pkg_id.internal.poll, pkg_id.errors]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.os)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2283,6 +2312,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.syscall.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.internal.testlog.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.poll.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -3465,6 +3496,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   splitPath_unfold : FuncUnfold splitPath [] splitPath.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   runtime_args_unfold : FuncUnfold runtime_args [] runtime_args.impl
+  Exit_unfold : FuncUnfold Exit [] Exit.impl
+  runtime_beforeExit_unfold : FuncUnfold runtime_beforeExit [] runtime_beforeExit.impl
   newRawConn_unfold : FuncUnfold newRawConn [] newRawConn.impl
   Stat_unfold : FuncUnfold Stat [] Stat.impl
   Lstat_unfold : FuncUnfold Lstat [] Lstat.impl
@@ -3476,6 +3509,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
+  import_testlog_Assumption : _root_.Perennial.internal.testlog.Assumptions
   import_poll_Assumption : _root_.Perennial.internal.poll.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
 
@@ -3523,6 +3557,8 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.splitPath_unfold
   Assumptions.«init.0_unfold»
   Assumptions.runtime_args_unfold
+  Assumptions.Exit_unfold
+  Assumptions.runtime_beforeExit_unfold
   Assumptions.newRawConn_unfold
   Assumptions.Stat_unfold
   Assumptions.Lstat_unfold
@@ -3534,6 +3570,7 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.import_fs_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_syscall_Assumption
+  Assumptions.import_testlog_Assumption
   Assumptions.import_poll_Assumption
   Assumptions.import_errors_Assumption
 

@@ -3,8 +3,9 @@
 `names[nameIndex:]` in `dirpath` (write mode: `fileutil.TryLockFile(p, O_RDWR, 0600)`; read mode:
 `os.OpenFile(p, O_RDONLY, 0600)`) and wraps it in a `fileutil.FileReader`; on an error closes what
 it opened (`closeAll`). At the file-system level, over a fraction of a claim on names `N` of the
-directory holding each name as a file (`is`: their inodes, in order; `filepath.Join`'s bound: `|d|` and
-each name's length below `2^60`, so that `|d| + |b| + 2 < 2^62`): on success the readers, the
+directory holding each name as a file (`is`: their inodes, in order; `d` fits (`PathFits`) and each name
+is at most 255 bytes: `filepath.Join`'s bound, and `closeAll`'s message bound, `wal.closeMsgMax`, on the
+paths the closer closes; since 2026-11-24, `< 2^60` before): on success the readers, the
 locks (nil in read mode) and each file opened (`walOpenedFile`, fd whole, offset 0); on an error an
 error `fmt.Errorf` may wrap, in read mode one on which `errors.Is` returns for every pointer target
 (`errIsTerm`; 2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' retry test). On success also the closer (`wal.walCloser`, `CloseDefs.lean`; since
@@ -44,9 +45,9 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.spec : Prop :=
     (write : Bool) (is : List Ino) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) (N : NameSet)
     (dqn : DFrac) (h : NamesH),
   0 ≤ sint.Z k → sint.nat k ≤ names.length → (names.drop (sint.nat k)).length = is.length →
-  d.length < 2 ^ 61 →
+  PathFits d →
   (∀ (m : Nat) (b : GoString) (i : Ino), (names.drop (sint.nat k))[m]? = some b → is[m]? = some i →
-    N.Mem b ∧ NameOk b ∧ b.length < 2 ^ 60 ∧ h.cur !! b = some (.file i)) →
+    N.Mem b ∧ NameOk b ∧ b.length ≤ 255 ∧ h.cur !! b = some (.file i)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
       osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j N dqn h ∗ sl ↦*{dqs} names }}

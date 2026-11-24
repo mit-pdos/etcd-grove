@@ -6,13 +6,13 @@ go 1.27
 // `etc/goose.py --check` fails if they differ). tests/v3 is linkvtxn's differential test's
 // (robustness's model), test-only.
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261122075727-edc800c6f262
-	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261122075727-edc800c6f262
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261122075727-edc800c6f262
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261122075727-edc800c6f262
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261122075727-edc800c6f262
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261122075727-edc800c6f262
-	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261122075727-edc800c6f262
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261124070122-df6af0c36a6b
+	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261124070122-df6af0c36a6b
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261110053807-d2c16c558247
 )
 
@@ -93,4 +93,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 )
 
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261120232526-ca88bb6a8339
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261124052636-7d335aa3eb23

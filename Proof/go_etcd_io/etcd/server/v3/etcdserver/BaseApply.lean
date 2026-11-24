@@ -44,6 +44,7 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Base
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.features.PkgInit
+public import Proof.go_etcd_io.etcd.pkg.v3.runtime.PkgInit
 
 @[expose] public section
 
@@ -426,7 +427,10 @@ abbrev srvRaftInit : IProp GF :=
 `applySnapshotInProgress` a fixed gauge (`applySnapshot`'s `Inc`/`Dec`); (revoke-open, 2026-11-06)
 `leaseExpired` a fixed counter (`revokeExpiredLeases`' `Inc`; its initializer translated); (auth-mediation
 M2, 2026-11-20) `learnerPromoteSucceed` a fixed counter and `learnerPromoteFailed` a counter vector with
-its label name (`PromoteMember`'s). -/
+its label name (`PromoteMember`'s); (prove-ps2-srvgoroutines, 2026-11-24) `fdUsed` and `fdLimit` fixed
+gauges (`monitorFileDescriptor`'s `Set`); (claim #34, 2026-11-23) and `recommendedMaxRequestBytesString`'s
+value (`bootstrap`'s, placed last here so that the destructuring patterns of the other conjuncts
+keep their shape). -/
 abbrev srvApplyLoopInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr proposalsApplied ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
     (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl) ∗
@@ -441,7 +445,13 @@ abbrev srvApplyLoopInit : IProp GF :=
     (∃ c : GoInterfaceOk, globalAddr learnerPromoteSucceed ↦□ GoInterface.ok c ∗
       go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c) ∗
     (∃ hv : Loc, globalAddr learnerPromoteFailed ↦□ hv ∗
-      ⌜EtcdGrove.prometheus.vecLabels hv [go!"Reason"]⌝))
+      ⌜EtcdGrove.prometheus.vecLabels hv [go!"Reason"]⌝) ∗
+    -- (prove-ps2-srvgoroutines, 2026-11-24) `monitorFileDescriptor`'s gauges (`Set`)
+    (∃ g : GoInterfaceOk, globalAddr fdUsed ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    (∃ g : GoInterfaceOk, globalAddr fdLimit ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
+    -- (claim #34, 2026-11-23) `recommendedMaxRequestBytesString` (`humanize.Bytes` of 10 MiB, written
+    -- once by the initializer), which `bootstrap`'s request-size warning reads (`bootstrap.go:59`)
+    (∃ s : GoString, globalAddr recommendedMaxRequestBytesString ↦□ s))
 
 /-- **The server package's facts**: the raft wrapper's (`srvRaftInit`), the request path's
 (`srvReqInit`), merged 2026-10-12, and the apply loop's (`srvApplyLoopInit`, 2026-10-13). All are

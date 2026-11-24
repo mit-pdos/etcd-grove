@@ -73,7 +73,7 @@ theorem EtcdServer.ensureLeadership.wp_proof
   · iPkgInit
   ihave #Hlck' := Hlck
   iunfold srvLeadCheckOk at Hlck'
-  icases Hlck' with ⟨⟨%mu, #Hmu, #Htp⟩, -, ⟨%ctx, %cd, #Hctxf, #Hctxi⟩⟩
+  icases Hlck' with ⟨⟨%mu, #Hmu, #Htp⟩, -, ⟨%ctx, %cd, #Hctxf, #Hctxi, -⟩⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply hLg s w.lg $$ [Hlgr] as ⟨#Hl0, Hlgr⟩

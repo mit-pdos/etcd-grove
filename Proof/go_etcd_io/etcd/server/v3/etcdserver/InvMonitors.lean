@@ -37,6 +37,7 @@ rdslot, `adjustTicks`'s transport slot: `srvMonitorRes`), and the callers turn t
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.URLBounds
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 
@@ -133,10 +134,37 @@ instance srvMonitorsOff_persistent (s : Loc) : Persistent (srvMonitorsOff (GF :=
 `publishV3` closes it (`close(s.readych)`, once the member's attributes are published), so
 `NewServer` hands this to `Start`, which hands it to `publishV3`'s goroutine; a receiver
 (`ReadyNotify()`) would take the idiom's persistent part. Until then the axiom `publishV3.spec`
-closed the channel without owning it. -/
-def srvReadyCloser (s : Loc) : IProp GF :=
+closed the channel without owning it. (prove-ps2-srvgoroutines, 2026-11-24) The channel part of
+`srvReadyCloser`. -/
+def srvReadyCh (s : Loc) : IProp GF :=
   iprop(∃ (rdc : GoChan) (γ : ChanNames), structFieldRef EtcdServer go!"readych" s ↦□ rdc ∗
     ownBroadcastChan rdc γ iprop(True) .Pending)
+
+/-- **The server's attributes, read-only** (persistent; prove-ps2-srvgoroutines, 2026-11-24): `s.attributes`
+(`membership.Attributes{Name: cfg.Name, ClientURLs: cfg.ClientURLs.StringSlice()}`, set by `NewServer` and
+never written after), its `Name` and its `ClientURLs` slice with the slice's strings: what `publishV3`'s
+request (`ClusterMemberAttrSetRequest`, whose `ClientUrls` shares the slice) and its log lines read;
+(fmt stage 1, 2026-11-24) at most `etcdURLCountMax` strings of at most `etcdURLLenMax` bytes each
+(`NewServer`'s `etcdURLsFit` of its client URLs), which keeps `publishV3`'s `strings.Join` of them
+below `Join`'s length bound. -/
+def srvAttrsRO (s : Loc) : IProp GF :=
+  iprop(∃ (name : GoString) (sl : GoSlice) (urls : List GoString),
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name"
+      (structFieldRef EtcdServer go!"attributes" s) ↦□ name ∗
+    structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs"
+      (structFieldRef EtcdServer go!"attributes" s) ↦□ sl ∗
+    sl ↦*□ urls ∗ ⌜urls.length ≤ etcdURLCountMax ∧ ∀ u ∈ urls, u.length ≤ etcdURLLenMax⌝)
+
+instance srvAttrsRO_persistent (s : Loc) : Persistent (srvAttrsRO (GF := GF) s) := by
+  unfold srvAttrsRO; infer_instance
+
+/-- **`publishV3`'s resources** (2026-10-23; prove-ps2-srvgoroutines, 2026-11-24, with its body): the right
+to close `s.readych` (`srvReadyCh`), the server's attributes (`srvAttrsRO`), and the reader slots its
+proposals take (`raftRequest`'s, given back by each: one of `leadTimeMu` with one of the transport,
+`srvLeadTimeReader`, and the auth store's reader resource `E.RD`), which `NewServer` carves from the
+stocks it leaves after the revocation's pool. -/
+def srvReadyCloser (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(srvReadyCh s ∗ srvAttrsRO s ∗ srvLeadTimeReader s ∗ E.RD)
 
 end defs
 

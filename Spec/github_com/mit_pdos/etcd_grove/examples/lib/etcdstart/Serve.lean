@@ -65,7 +65,7 @@ abbrev Serve.spec : Prop :=
       srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
       (∀ (gs : Loc) (lis : GoInterface) (cid mid : w64) (R : v3rpc.WSrv GF),
         grpcUpM E.authOn s E ρ γr gs lis addr cid mid R ={⊤}=∗
-          (∃ γ, grpcServeTok gs lis γ) ∗ Q cid mid R) }}
+          (∃ Svc, grpcServeTok gs lis addr Svc) ∗ Q cid mid R) }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve))
       (Val #s)) (Val #addr))
   {{ (err : GoInterface), RET #err;

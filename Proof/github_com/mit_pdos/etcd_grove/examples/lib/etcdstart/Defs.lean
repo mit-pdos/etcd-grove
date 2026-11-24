@@ -82,6 +82,27 @@ theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoS
   have he : stringToGoString "" = [] := by simp [stringToGoString]
   exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, hm⟩
 
+/-- **An address within etcd's URL bounds** (fmt stage 1, 2026-11-24, #9's decision 7126397740, 2):
+`http://addr` a plain peer URL (`http://host:port`, `types.plainPeerURL`) of at most
+`etcdURLLenMax` bytes, so that a member's URL list `[http://addr]` is within `NewServer`'s
+`etcdURLsFit` (`etcdURLsFit_httpURL`). Decidable: the examples' literal addresses discharge it by
+`decide`. -/
+def addrFits (a : GoString) : Prop :=
+  types.plainPeerURL (go!"http://" ++ a) ∧ (go!"http://" ++ a).length ≤ etcdURLLenMax
+
+instance (a : GoString) : Decidable (addrFits a) := by unfold addrFits; infer_instance
+
+/-- **`[http://addr]` is within etcd's URL bounds**, of an address that fits (`NewServer`'s
+`etcdURLsFit` premise). -/
+theorem etcdURLsFit_httpURL (a : GoString) (h : addrFits a) : etcdURLsFit [httpURL a] := by
+  refine ⟨by simp [etcdURLCountMax], fun u hu => ?_⟩
+  rw [List.mem_singleton.1 hu]
+  have hpl := h.1.2
+  rw [List.drop_left' (by rfl)] at hpl
+  obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape a hpl
+  have he : stringToGoString "" = [] := by simp [stringToGoString]
+  exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, h.2⟩
+
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
 the member's initial URLs its peer URLs. -/
@@ -381,7 +402,7 @@ def memberBuilt (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn
     isServerBuilt s γA ci TM E ρ ρ.rd (srvEr ρ E₀ ai₀ c₀ x₀ id (srvTrKey γn γk) (srvTrStopK γk))
       γrn b ai₀ at₀ c₀ x₀ N ∗
     srvServeBuilt s E cfg ∗ srvSVRes s E ∗ srvMonitorsOff s ∗ srvMonitorRes s ∗
-    srvReadyCloser s ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
+    srvReadyCloser s E ∗ srvNetMember γn s id τ ∗ srvTrTok γn τ ∗
     memberPeerServeRes γn τ served ∗
     srvLeaseRd s E m ∗ srvStop.keep s cfg E γrn γk)
 
@@ -519,7 +540,7 @@ def grpcUp (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs :
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
 
 /-- **What member `id`'s `NewServer` takes of the ghost state, with auth on** (the auth plan's
 E3zb, 2026-10-28; `memberBoot`'s, `NewServer.specM true`'s): the start chain with the auth layer
@@ -625,7 +646,7 @@ def grpcUpOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
 
 
 /-- **What `v3rpc.Server` and `Listen` return, in the auth mode `on`** (the auth component's stage 5;
@@ -652,7 +673,7 @@ def grpcUpM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : Rea
     srvInterceptorOk iu (levelTok 0) v3rpc.learnerReqOk ∗
     srvStreamInterceptorOk ims iprop(True) ∗ srvStreamInterceptorWOk is (levelTok 0) ∗
     srvLgReader s ∗ srvBemuReader s ∗ srvGoRes s ∗
-    netListenerAt lis addr ∗ grpcLeaseUp s C.A regs)
+    netListenerAt lis addr ∗ netAddrLeft addr ∗ grpcLeaseUp s C.A regs)
 
 open Iris.ProofMode in
 /-- **`grpcUpM` with auth off is `grpcUp`** (a bridge): the configuration, the `*kvServer` and the
@@ -664,7 +685,7 @@ theorem grpcUpM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadN
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, #Hlu⟩
+    Hn, #Hq, #Hk, -, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
   obtain ⟨hA, hE, hkv, -, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢ v3rpc.raftKV s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) := by
     rw [hA]; exact v3rpc.raftKV_srvKVAnsM_false s E ρ γr (W64 0) [] .none
@@ -696,7 +717,7 @@ theorem grpcUpM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   iintro H
   iunfold grpcUpM at H
   icases H with ⟨%C, %q, %p, %pw, %pa, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC, #Hc,
-    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, #Hlu⟩
+    Hn, #Hq, #Hk, #Has, #Hw, #Hil, #Him, #Hiu, #Hims, #His, Hlg, Hbe, Hgo, Hlis, Hleft, #Hlu⟩
   obtain ⟨hA, hE, hkv, hau, hw, h6, h7, h8, h9⟩ := HC
   have hk : v3rpc.raftKV s C.A ⊢
       v3rpc.raftKV s (v3rpc.srvKVAnsOn s E ρ γr (W64 0) [] .none 0 none) := by

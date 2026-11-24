@@ -26,7 +26,6 @@ axiom grpcConn_persistent
 axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom metadata.FromOutgoingContext.wp_proof
-axiom mvcc.hashStorage.Store.wp_proof
 axiom os.Getenv.wp_proof
 axiom pbCompactionRequestT_reg
 axiom pbCompactionResponseT_reg
@@ -58,7 +57,4 @@ axiom status.FromError.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom strings.ToLower.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
-axiom zap.Logger.Fatal.wp_proof
-axiom zap.Logger.Panic.wp_proof
 axiom zap.Stack.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

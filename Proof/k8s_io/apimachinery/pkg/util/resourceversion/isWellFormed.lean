@@ -101,11 +101,12 @@ theorem isWellFormed.wp_proof
   wp_auto
   wp_func_call
   wp_call
-  by_cases hlen : s.length < 2 ^ 63
+  by_cases hlen : ((s).length : Int) ≤ maxAddr
   case neg =>
     rw [if_neg hlen]
     wp_apply wp_AngelicExit
   rw [if_pos hlen]
+  have hlen_lt : (s).length < 2 ^ 63 := by unfold maxAddr at hlen; omega
   wp_auto
   wp_if_destruct
   · -- `len(s) == 0`

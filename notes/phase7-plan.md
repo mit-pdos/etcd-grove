@@ -1,5 +1,10 @@
 # Phase 7: etcd's gRPC, net and net/http axioms as theorems over the models (plan, Draft)
 
+**Superseded where they differ by `notes/phase7-endstate.md`** (2026-11-24): the end state (one call
+protocol for unary calls and streams, heap-free stream entries, `grpcServeTok` in one form, bridges
+serving their target's table), the interim switch, the overnight decisions and the work plan. This note
+keeps the history and the S2 and S5 drafts.
+
 2026-11-21, claim #24. Phase 7 of `notes/dsverify-net-port-plan.md`, planned on its own as that section
 says. Coordination: #10's `grpc3` (grpc's resolver, `resolver/manual`, `attributes`, `serviceconfig`,
 etcd's `client/v3/internal/resolver`) and `http3` (`Proof/net/http/{Axioms,Boundary}.lean`,
@@ -240,7 +245,14 @@ One change from that branch: `grpcAddrAt` sets the address's protocols to the op
 `grpcCliP`/`grpcSrvP`), since over the defined protocols raw Go code dialing or listening on a grpc
 address could write or read the model's frames and make an axiom over `grpcAddrAt` unsound; the
 defined protocols and their parse laws stay as a library until S2's proofs of `Invoke` and `Serve`
-put them in place. `ProtoWire` still has `enc : M → List w8` (the switch's design has a `tree`).
+put them in place. **The interface switch is done** (2026-11-24, branch `s2-switch`, option (A), the
+user's request: "with the unproved parts as axioms, so etcd-dist can proceed"): `ProtoWire :=
+⟨ty, M, tree⟩` (`ProtoMsg` gains `tree`; `protoEncodes`, opaque, in place of `enc`); `isGrpcRpcMd`
+redefined over `grpcSvcAt` and `grpcReach`; `Server.Serve` an axiom over `grpcServeTok gs lis a Svc` and
+`grpcServes` (with the stream-name clause, C3); the model `Serve`'s leaves retired; the single-process
+start over Go's table (`grpcGoSvc`, `etcdTys`, `netAddrLeft`). Review: `notes/axiom-review/s2-interface.md`;
+ledger: `notes/specs-only/ledger.md`, 2026-11-24. S2's proofs then retire `Serve`'s axiom and the
+opaque protocols, which needs the dec-shaped run contract and F2's world premise (the review).
 How they amend §1.1 and §1.2 (the deposit with the data frame, per-connection refusal, `msgReady`,
 `ProtoWire.enc`, `grpcFieldsMd`) is §0a on `phase7-s2-core`, which lands with the rest of S2's
 core. `headerListOk` and `SrvFrame.oversized` are F1's (§0a), whose model fix is on that branch too:

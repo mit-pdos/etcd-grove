@@ -198,7 +198,7 @@ theorem wp_ptr_evaluateConditions_of
     (l : Loc) (dl : DFrac) (h : unionAuthzHandler) (ctx : GoInterface) (name : GoString)
     (d : ConditionsAwareDecision) (data : GoInterface) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.authorization.union ∗
-        l ↦{dl} h ∗ isUnionAuthz h ∗ isWFDecision d }}
+        l ↦{dl} h ∗ isUnionAuthz h ∗ isWFDecisionFit authzNameMax d }}
       (App (App (App (App (Val (l @!! go.GoType.PointerType unionAuthzHandler.ty @!! go!"evaluateConditions"))
         (Val #ctx)) (Val #name)) (Val #d)) (Val #data))
     {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); l ↦{dl} h }} := by

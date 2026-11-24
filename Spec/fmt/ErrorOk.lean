@@ -102,6 +102,102 @@ theorem fmt.argOkAt_of_fmtErrorOkOrNil [_root_.Perennial.fmt.Assumptions] {mv : 
     · iexact H
     · ipureintro; exact h
 
+/-! ### Errors whose message has at most `B` bytes
+
+What a caller that collects error messages needs (the WAL's `closeAll` joins its files' `Close`
+messages with `strings.Join`, whose spec bounds the output: `File__CloseLe.lean`). -/
+
+/-- `stringMethodSpec` whose result has at most `B` bytes. -/
+def stringMethodSpecLe (ii : GoInterfaceOk) (m : GoString) (B : Nat) : IProp GF :=
+  iprop(□ ∀ Φ : val → IProp GF, ▷ (∀ s : GoString, ⌜s.length ≤ B⌝ -∗ Φ #s) -∗
+    WP (App (Val #(methods ii.ty m ii.v)) (Val #())) {{ Φ }})
+
+instance stringMethodSpecLe_persistent (ii : GoInterfaceOk) (m : GoString) (B : Nat) :
+    Persistent (stringMethodSpecLe (GF := GF) ii m B) := by
+  unfold stringMethodSpecLe; infer_instance
+
+theorem stringMethodSpecLe_unfold (ii : GoInterfaceOk) (m : GoString) (B : Nat) :
+    stringMethodSpecLe (GF := GF) ii m B = iprop(□ ∀ Φ : val → IProp GF,
+      ▷ (∀ s : GoString, ⌜s.length ≤ B⌝ -∗ Φ #s) -∗
+      WP (App (Val #(methods ii.ty m ii.v)) (Val #())) {{ Φ }}) := rfl
+
+theorem stringMethodSpec_of_le (ii : GoInterfaceOk) (m : GoString) (B : Nat) :
+    stringMethodSpecLe (GF := GF) ii m B ⊢ fmt.stringMethodSpec ii m := by
+  unfold stringMethodSpecLe
+  rw [fmt.stringMethodSpec_unfold]
+  iintro #H
+  imodintro
+  iintro %Φ HΦ
+  iapply H
+  inext
+  iintro %s -
+  iapply HΦ
+
+theorem stringMethodSpecLe_mono (ii : GoInterfaceOk) (m : GoString) {B B' : Nat} (h : B ≤ B') :
+    stringMethodSpecLe (GF := GF) ii m B ⊢ stringMethodSpecLe ii m B' := by
+  unfold stringMethodSpecLe
+  iintro #H
+  imodintro
+  iintro %Φ HΦ
+  iapply H
+  inext
+  iintro %s %hs
+  iapply HΦ
+  ipureintro; omega
+
+/-- **`fmtErrorOk` with a message of at most `B` bytes**: `Error()` returns at most `B` bytes. -/
+def fmtErrorOkLe (B : Nat) : GoInterface → IProp GF
+  | .nil => iprop(False)
+  | .ok ii => iprop(⌜methodSet ii.ty !! go!"Format" = none ∧
+      methodSet ii.ty !! go!"Error" = some noArgStringSig⌝ ∗ stringMethodSpecLe ii go!"Error" B)
+
+instance fmtErrorOkLe_persistent (B : Nat) (err : GoInterface) :
+    Persistent (fmtErrorOkLe (GF := GF) B err) := by
+  cases err <;> unfold fmtErrorOkLe <;> infer_instance
+
+/-- `nil`, or `fmtErrorOkLe B`. -/
+def fmtErrorOkOrNilLe (B : Nat) : GoInterface → IProp GF
+  | .nil => iprop(True)
+  | .ok ii => fmtErrorOkLe B (.ok ii)
+
+instance fmtErrorOkOrNilLe_persistent (B : Nat) (err : GoInterface) :
+    Persistent (fmtErrorOkOrNilLe (GF := GF) B err) := by
+  cases err <;> unfold fmtErrorOkOrNilLe <;> infer_instance
+
+theorem fmtErrorOk_of_le (B : Nat) (err : GoInterface) :
+    fmtErrorOkLe (GF := GF) B err ⊢ fmtErrorOk err := by
+  cases err with
+  | nil => unfold fmtErrorOkLe; iintro %h; exact h.elim
+  | ok ii =>
+    unfold fmtErrorOkLe fmtErrorOk
+    iintro ⟨%h, #H⟩
+    isplitr
+    · ipureintro; exact h
+    · iapply stringMethodSpec_of_le $$ H
+
+theorem fmtErrorOkOrNil_of_le (B : Nat) (err : GoInterface) :
+    fmtErrorOkOrNilLe (GF := GF) B err ⊢ fmtErrorOkOrNil err := by
+  cases err with
+  | nil => unfold fmtErrorOkOrNil; iintro -; itrivial
+  | ok ii => exact fmtErrorOk_of_le B (.ok ii)
+
+theorem fmtErrorOkLe_mono {B B' : Nat} (h : B ≤ B') (err : GoInterface) :
+    fmtErrorOkLe (GF := GF) B err ⊢ fmtErrorOkLe B' err := by
+  cases err with
+  | nil => unfold fmtErrorOkLe; iintro %h; exact h.elim
+  | ok ii =>
+    unfold fmtErrorOkLe
+    iintro ⟨%hm, #H⟩
+    isplitr
+    · ipureintro; exact hm
+    · iapply stringMethodSpecLe_mono _ _ h $$ H
+
+theorem fmtErrorOkOrNilLe_mono {B B' : Nat} (h : B ≤ B') (err : GoInterface) :
+    fmtErrorOkOrNilLe (GF := GF) B err ⊢ fmtErrorOkOrNilLe B' err := by
+  cases err with
+  | nil => unfold fmtErrorOkOrNilLe; iintro -; itrivial
+  | ok ii => exact fmtErrorOkLe_mono h (.ok ii)
+
 theorem fmtErrorOkOrNil_nil : ⊢ fmtErrorOkOrNil (GF := GF) GoInterface.nil := by
   unfold fmtErrorOkOrNil; iintro; itrivial
 
