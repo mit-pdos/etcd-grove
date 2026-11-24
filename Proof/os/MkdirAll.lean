@@ -118,7 +118,7 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 ((joinPath r0 cs).length : Int)) by word)]
   wp_auto
   ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
-  wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ 1 hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
+  wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ 1 hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm, #He⟩
   · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
   (try rw [hkr]); (try rw [hkb])
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
@@ -128,6 +128,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
     imod os.osAU_commit_none _ _ Q (by dsimp only [mkOut]; exact .rfl) $$ Hau with HQ
     wp_auto
     iapply HΦ
+    isplitr
+    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
     iframe
     dsimp only [mkOut, mkNew]
     iframe
@@ -136,13 +138,15 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   wp_auto
   rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
   wp_apply os.Mkdir.wp_proofS (joinPath r0 cs) b perm R j (DFrac.own qd) h q r Q hb hn hq
-    $$ [Hp Hperm Hn Hau] as %e ⟨Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩
+    $$ [Hp Hperm Hn Hau] as %e ⟨#Hfe, Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩
   · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
   (try rw [hkr]); (try rw [hkb])
   cases e with
   | nil =>
     wp_auto
     iapply HΦ
+    isplitr
+    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
     iframe
     ipureintro; exact ho
   | ok ie3 =>
@@ -161,6 +165,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
     | ok ie4 =>
     wp_auto
     iapply HΦ
+    isplitr
+    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
     iframe
     dsimp only [mkOut]
     iframe
@@ -196,6 +202,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
     wp_if_destruct
     all_goals
       iapply HΦ
+      isplitr
+      · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
       iframe
       isimp only [mkOut]
       iframe
@@ -206,6 +214,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
     wp_auto
     subst hh
     iapply HΦ
+    isplitr
+    · first | iapply fmtErrorOkOrNil_nil | iexact He | iexact Hfe
     iframe
     isimp only [mkOut]
     iframe
