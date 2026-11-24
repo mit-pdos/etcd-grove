@@ -103,11 +103,12 @@ crash and restart, and of its checking clients on machines that never crash (eac
 orchestrator machine and its client machines, D8), is robust: no thread of any machine is stuck or has
 an unrecovered panic.
 
-PLACEHOLDER binders: the `dist` packages' `Assumptions` (stage D2) join the instance binders. The bound is
+The bound is
 `etcd_safe_nocrash`'s until the crash proof fixes its own (kvnet's crash theorem has `2 ^ 61`). -/
 def etcd_robust.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     -- carried over from the single-process theorems (review F7); each to go when its model is proved
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
@@ -137,6 +138,7 @@ theorem `etcd_safe` implies it; the weaker variant takes the longer name. Over P
 def etcd_robust_nocrash.spec : Prop :=
   ∀ [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [_root_.Perennial.errors.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    [server_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.server.Assumptions] [client_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.client.Assumptions]
     [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
     (d : Deployment)
