@@ -1,0 +1,98 @@
+/- Lean-first (no Rocq counterpart).
+
+# `etcd/dist/putget`: the client machine's boot, over the interim cross-machine axioms (`notes/putget-dist-plan.md` §12)
+
+`client_boot`: the client machine's boot program (`putget.initialize' #()`, then `putget.Client(client)`,
+its result discarded) is safe from the client's share of the distributed start (`clientShare` at
+`Pub = putgetPub`) and its whole start (`DistBootWpSL`), given the metric names' rights (`MemberBootHyps`'s
+`names`: the client machine initializes the same closure as the member's, so the one hypothesis serves
+both). Linked: `Client.wp_proof` at its callees' linked results (`zap.NewNop`'s, `etcdstart`'s `Link`,
+`context`'s, and the trust-boundary axioms `etcd_dist.Client_Put_dist.wp_proof` and
+`etcd_dist.Client_Get_dist.wp_proof`), `putget`'s `wp_initialize'`. The client touches no file: its
+files' and listeners' start resources are unused. That a valid address is a plain endpoint is proved
+(`etcd_dist.addrOk_plainEndpoint`); `errors.As`'s target `rpctypes.EtcdError` from the package's
+method sets (`rpctypesEtcdError_asTarget`).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.AdequacyMember
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientPutDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ClientGetDist
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.InitLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
+public import Proof.go_uber_org.zap.NewNop
+public import Perennial.Proof.context.Link
+public import Proof.context.Link
+public import Proof.context.WithTimeoutBackground
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Init
+public import Net.Statement.DistBridgeExts
+
+@[expose] public section
+
+set_option pp.fullNames true
+set_option linter.unusedSectionVars false
+set_option synthInstance.maxSize 4096
+set_option synthInstance.maxHeartbeats 400000
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace etcd_putget_dist
+
+open Iris Iris.BI Iris.ProofMode Iris.ProgramLogic go_etcd_io.raft.v3 Net
+
+attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp etcdNetExts_hasIdIssue
+  etcdNetExts_hasFs etcdNetExts_hasNet etcdFsSem GooseGlobalGS.gooseInvGS
+
+set_option maxHeartbeats 1600000 in
+/-- **The client machine's boot** (see the file header). -/
+theorem client_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [_root_.Perennial.errors.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [net.FieldAssumptions]
+    (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
+      ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC putgetGF,
+      ContextErrsClient (GF := putgetGF) (hG := putgetHeapAt hG lctx))
+    (HM : MemberBootHyps) (client : GoString) (hcl : Net.addrOk client = true) (σc : state)
+    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) (mid : w64) :
+    DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootClient client) σc
+      (clientShare client γE mid putgetPub) := by
+  intro hG hGG hL hlo hrb hT
+  obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
+  simp only at hGG hL
+  subst hGG hL
+  letI hG : HeapGS .hasLC putgetGF := ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩
+  haveI : ContextReadErrs (GF := putgetGF) (hG := hG) := Hctx hG
+  haveI : ContextErrsClient (GF := putgetGF) (hG := hG) := Hcec hG
+  iintro #Hshare - Hgs -
+  ihave Hown := ownInitializing_of_empty
+    (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit (GF := putgetGF)) $$ Hgs
+  ihave Hns := HM.names
+  imodintro
+  -- `putget.initialize' #()`
+  unfold bootClient
+  wp_apply (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.wp_initialize' _
+    github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit_wf) $$ [Hown Hns]
+    as ⟨-, #Hpkg⟩
+  · iframe; iexact Hns
+  (try wp_auto)
+  -- `putget.Client(client)`, its result discarded
+  wp_apply (Client.wp_proof zap.NewNop.wp_proof etcdstart.wp_NewClient context.wp_Background
+      context.WithTimeoutBackground.wp_proof context.wp_ErrAny
+      etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
+      client γE mid (etcd_dist.addrOk_plainEndpoint hcl) (by rw [hT]; omega)
+      EtcdGrove.rpctypesEtcdError_asTarget) $$ [] as %b -
+  · iframe #
+  (try wp_auto)
+  all_goals first | done | (ipureintro; rfl) | itrivial
+
+end etcd_putget_dist
+end EtcdGrove
+end Perennial
+
+end

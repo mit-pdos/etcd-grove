@@ -89,10 +89,12 @@ def bootMember [GoSemanticsFunctions] (peer client : GoString) : Expr :=
     (Val #client)
 
 /-- **The client machine's boot program**: `putget`'s initialization, then `putget.Client(client)`, the
-member's client address verbatim (`cmd/client`). -/
+member's client address verbatim, its result discarded (`cmd/client` only prints it; 2026-11-24: a
+machine's boot program returns `()`, `Net.DistBootWpSL`, which `Client`'s `bool` is not). -/
 def bootClient [GoSemanticsFunctions] (client : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initialize' #() ;;
-  App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client)) (Val #client)
+  (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Client)) (Val #client) ;;
+    Val #())
 
 /-- **The system**: the member machine and the client machine, from the local states `σm`, `σc`. -/
 def system [GoSemanticsFunctions] (peer client : GoString) (σm σc : state) : List (Expr × state) :=

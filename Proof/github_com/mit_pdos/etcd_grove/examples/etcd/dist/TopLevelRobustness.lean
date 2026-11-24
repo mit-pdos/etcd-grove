@@ -8,11 +8,12 @@ boot program safe from its share and its whole start), by the all-stable bridge 
 (`Net.robust_of_distBootIL`): `putget_safe_of_boot` over a deployment's list of machines (members,
 orchestrators, client machines). No axiom and no `sorry`.
 
-What discharges `EtcdBootNC`, in later steps: the start from S2's names (`S2Holds etcdDistGF`, the members'
-client addresses: `cluster_svc_start`), S5's (`S5Holds etcdDistGF`, the members' peer addresses:
-`S5Draft.http_addr_set`) and D7's cluster start (`etcdClusterStart`, after the idutil split); the k-member
-boot; the workloads' starts and boots (D8). The reduction from S2's and S5's names is written once the
-interim S2 interface (the member's and client's shares, `notes/putget-dist-plan.md`) is fixed.
+What discharges `EtcdBootNC`, in later steps: the start over the interim cross-machine vocabulary (the
+members' client addresses: `cluster_svc_start`, `ClusterStart.lean`, over `S2Interim.lean`'s
+`envPub_start` and `etcdAddr_set`; `notes/putget-dist-plan.md` §12), S5's (`S5Holds etcdDistGF`, the
+members' peer addresses: `S5Draft.http_addr_set`) and D7's cluster start (`etcdClusterStart`); the
+k-member boot; the workloads' starts and boots (D8). The member's and client's shares are fixed
+(putget's `memberShare`/`clientShare`, `dist/putget/Defs.lean`).
 -/
 module
 

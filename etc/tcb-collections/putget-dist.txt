@@ -1,0 +1,22 @@
+# putget_safe (examples/etcd/dist/putget, notes/putget-dist-plan.md): etcd's first distributed theorem,
+# one member machine and one client machine, no crash. Its proof today is `putget_safe_of_hyps`
+# (Proof/.../examples/etcd/dist/putget/TopLevelRobustness.lean), whose remaining hypotheses are the
+# member's start resources with no source yet (`MemberBootHyps`: the metric names' rights, `dataDirFresh`);
+# its cross-machine steps rest on the five interim axioms of notes/putget-dist-plan.md §12
+# (`etcd_dist.etcdAddrRaw`, `etcd_dist.etcdAddr_set`, `etcd_dist.Serve_dist.wp_proof`,
+# `etcd_dist.Client_Put_dist.wp_proof`, `etcd_dist.Client_Get_dist.wp_proof`), retired by #24's switch
+# and S2's proofs.
+#
+# BASELINE INCOMPLETE (2026-11-24): written by hand without a build. Only the five interim axioms are
+# listed; the rest of the trust base (the single-process member's and client's, as
+# etcd-all-single-process.txt's) is added by the first run of
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/putget-dist.txt --check --update
+#
+# after a build of the putget-dist cone.
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/etcd/dist/putget/TopLevelRobustness\.lean$
+axiom etcd_dist.Client_Get_dist.wp_proof
+axiom etcd_dist.Client_Put_dist.wp_proof
+axiom etcd_dist.Serve_dist.wp_proof
+axiom etcd_dist.etcdAddrRaw
+axiom etcd_dist.etcdAddr_set

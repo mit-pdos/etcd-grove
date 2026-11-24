@@ -477,7 +477,7 @@ theorem startCluster.wp_proof
       iframe #
       isplitr
       · isplitr
-        · iapply ownSlice_nil
+        · iexists 0; iapply noProxyOptsAt_nil
         ipureintro
         refine ⟨Hpl, ?_⟩
         simp

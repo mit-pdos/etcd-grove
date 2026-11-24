@@ -784,6 +784,10 @@ sequenced on #28).
   invariant and its address set to `etcdSvc γE id`; returns each member's `memberSvcShare` and the clients'
   persistent `clientSvcFacts` (every member's `kvRegsPub` and publication invariant). `putget_start` is its
   one-member case (not yet rewritten as its corollary: it lives in the putget skeleton, `putgetGF`).
+  (2026-11-24, `notes/putget-dist-plan.md` §12) Restated over the interim vocabulary (`S2Interim.lean`):
+  per member `envPub_start` and `etcdAddr_set`; `memberSvcShare` holds `etcdAddrAt`, `clientSvcFacts` each
+  member's `etcdAddrAt` and publication invariant; no slot map (inside `etcdAddrAt`'s interpretation), so
+  `cluster_svc_start_list` is gone.
 - (b) `etcdstart/AllocN.lean`: `clusterFacts` (persistent: `memberBoot_of`'s six persistent arguments),
   `memberSlice` (a member's exclusive part, today with `nodeBoot`), `memberBoot_of_slice` (a member's boot step),
   `clusterAllocN` (the cluster's part: `newServerNames_allocL` + `srvClusterBoot_alloc`, returning the facts, the

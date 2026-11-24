@@ -55,7 +55,7 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
     iframe #
     isplitr
     · isplitr
-      · iapply ownSlice_nil
+      · iexists 0; iapply noProxyOptsAt_nil
       ipureintro
       refine ⟨?_, ?_⟩
       · exact plainEndpoints_singleton _ Hpe
@@ -65,7 +65,14 @@ theorem newUserClient.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)
     iframe #
     ipureintro; exact ⟨Htb, Hsz⟩
   iapply HΦ
-  iexact Hcl
+  -- (2026-11-24) the client's configuration (`New`'s post) is not this spec's
+  icases Hcl with (⟨%Hcerr, #Hnc, #Htok, -⟩ | %Hcfail)
+  · ileft
+    isplitr
+    · ipureintro; exact Hcerr
+    iframe Hnc Htok
+  · iright
+    ipureintro; exact Hcfail
 
 end proof
 

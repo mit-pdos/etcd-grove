@@ -27,8 +27,9 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- `newClient(&cfg)` of a configuration `New` accepts (`clientCfgOk`: plain endpoints `eps`,
 ...), given the package's variables (no watch-server facts, D19f): the client (`isNewClient`:
-connected to `eps`, the retry interceptor installed, its `KV` and `Watcher` over the connection),
-or an error (the dial's) and `nil`. -/
+connected to `eps`, the retry interceptor installed, its `KV` and `Watcher` over the connection)
+with its configuration `cfg` (the `cfg` field, read-only; 2026-11-24, for `clientNoProxy`), or an
+error (the dial's) and `nil`. -/
 abbrev newClient.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (p : Loc) (cfg : go_etcd_io.etcd.client.v3.Config) (eps : List GoString) (V : WEnv GF)
     (P : GoString → IProp GF),
@@ -39,7 +40,8 @@ abbrev newClient.spec : Prop :=
       clientAuthPre cfg eps P }}
     (App (Val (@! go_etcd_io.etcd.client.v3.newClient)) (Val #p))
   {{ (cl : Loc) (err : GoInterface), RET (PairV #cl #err);
-      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientTokAt cl eps P) ∨
+      (⌜err = GoInterface.nil⌝ ∗ isNewClient cl eps V ∗ clientTokAt cl eps P ∗
+        clientF cl go!"cfg" ↦□ cfg) ∨
       ⌜err ≠ GoInterface.nil ∧ cl = null⌝ }}
 
 end spec

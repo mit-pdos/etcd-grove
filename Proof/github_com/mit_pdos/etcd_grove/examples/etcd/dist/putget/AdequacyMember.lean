@@ -1,13 +1,13 @@
 /- Lean-first (no Rocq counterpart).
 
-# `etcd/dist/putget`: the member machine's boot, against phase 7 S2's draft names (`notes/putget-dist-plan.md`, section 10)
+# `etcd/dist/putget`: the member machine's boot, over the interim cross-machine axioms (`notes/putget-dist-plan.md`, sections 10 and 12)
 
 `member_boot`: the member machine's boot program (`putget.initialize' #()`, then `putget.Member(peer, client)`)
 is safe from the member's share of the distributed start (`memberShare` at `Pub = putgetPub`) and its whole
 start (`DistBootWpSL`: its files' and listeners' start resources, no package initialized, its main thread's
-token, the logic's bounds with at least `srvLevelK` receipts), under S2's names (`S : S2Draft`) and the named
-hypotheses `MemberBootHyps`. Linked: `Member.wp_proof` at its callees' linked results (`etcdstart`'s `Link`,
-`zap.NewNop`'s, `time.Sleep`'s), `putget`'s `wp_initialize'`.
+token, the logic's bounds with at least `srvLevelK` receipts), under the named hypotheses `MemberBootHyps`.
+Linked: `Member.wp_proof` at its callees' linked results (`etcdstart`'s `Link`, `zap.NewNop`'s,
+`time.Sleep`'s, and the trust-boundary axiom `etcd_dist.Serve_dist.wp_proof`), `putget`'s `wp_initialize'`.
 
 The steps: the file extension's start (`etcdNetFs_start`); the member's WAL area from its machine's files
 (`wp_walAreas`, over `MemberFiles`: `FsInit` and `etcdWalAreasInit` of its data directory); the package's
@@ -28,6 +28,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.ServeDist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.holdForever
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.PkgTable
@@ -84,9 +85,9 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
       ⊢ etcdstart.premises (GF := putgetGF) (hG := putgetHeapAt hG lctx) name peer client n id ctxs
           boot)
     (σm : state) (Hm : MemberFiles σm)
-    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : S2Draft putgetGF) (γE : GName) :
+    [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (γE : GName) :
     DistBootWpSL srvLevelK (2 ^ 28 - 1) (bootMember peer client) σm
-      (memberShare S client γE id (putgetPub S)) := by
+      (memberShare client γE id putgetPub) := by
   intro hG hGG hL hlo hrb hT
   obtain ⟨G', ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   simp only at hGG hL
@@ -123,10 +124,11 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   (try wp_auto)
   -- `putget.Member(peer, client)`
   ihave #Hpr := Hprem (2 ^ 28) (by decide) hG
-  ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩ S
+  ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
-      (holdForever.wp_proof time.Sleep.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
-      S peer client id ctxs boot γE (putgetPub S) Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
+      (holdForever.wp_proof time.Sleep.wp_proof) etcd_dist.Serve_dist.wp_proof
+      mvcc.api.mvccApi_names_nonempty_law_holds
+      peer client id ctxs boot γE putgetPub Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
       (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hdd Hwa Hshare]
   · iframe; iframe #

@@ -495,3 +495,69 @@ out, so:
   (`Proof/.../examples/etcd/dist/AddrPlain.lean`, pure: `Net.parseAddr`'s pieces through `Net.splitBy`/`Net.decNat`);
   `MemberBootHyps` loses it. What is left of `MemberBootHyps`: `names` (with `prom-registry`) and `dataDir` (with the fs
   redesign, #15).
+
+## 12. The interim cross-machine axioms (2026-11-24, branch `dist-putget-interim/2026-11-24`)
+
+**Why.** Phase 7 S2 (#24) is not done: the address fact (`grpcAddrAt a (etcdSvc γE mid)`) needs etcd's
+table, whose entries need the messages' wire bytes (`ProtoWire.enc`, #24's O3/O7: no protobuf encoder or
+codec law in Lean), and the cross-machine proofs of `Server.Serve`/`Invoke` are S2's. The owner wanted
+`putget_safe` first, over interim trust-boundary axioms that S2 retires. Design:
+`s2-interim/axioms.md` and `s2-interim/client-plan.md` (coordinator-E's job directory); adversarial
+review: `s2-interim/review.md` (the `axiom` skill; Go evidence `review-go/proxyrogue/`).
+
+**The axioms** (five; `etc/tcb-baseline.txt`, collection `etc/tcb-collections/putget-dist.txt`):
+
+| # | Axiom | File | Asserts |
+|---|---|---|---|
+| A1 | `etcd_dist.etcdAddrRaw` (`etcdAddrAt := □ etcdAddrRaw`) | `Proof/.../etcd/dist/S2Interim.lean` | the address `a` serves etcd's KV calls for the member `mid` publishing at `γE` (opaque; intended interpretation #24's `∃ σ, depSlotsCtx ∗ grpcAddrAt a (etcdSvc γE mid)`) |
+| A2 | `etcd_dist.etcdAddr_set` | same | the start sets an unset address (`addrUnset a`, spent) to A1 |
+| A3 | `etcd_dist.Serve_dist.wp_proof` | `Spec`/`Proof/.../etcd/dist/ServeDist.lean` | `etcdstart.Serve(s, a)` of a started member whose view is published at `γE`, at an address set by A2, returns and starts no stuck or panicking thread |
+| A4 | `etcd_dist.Client_Put_dist.wp_proof` | `.../ClientPutDist.lean` | `cli.Put` of a no-proxy client of `[ep]` before it knows the view: on `nil`, a published view, a putget invariant at it, the put's flag |
+| A5 | `etcd_dist.Client_Get_dist.wp_proof` | `.../ClientGetDist.lean` | `cli.Get` of that client at the published view: on `nil`, a reply whose first value is the put's |
+
+The rest of the vocabulary is defined and proved (no `sorry`): `EnvView` (the KV state variable's name,
+countable), `envPubHalf`, `envAt`, `envPubInv` (#24's §1.3 over `dghostVar`), `envPub_start`,
+`env_publish`, `envAt_agree`, `envAt_pub`, `putGetInv_st`.
+
+**The review's findings and their fixes.**
+- **F1 (high; a real panic): a proxy variable reroutes A4/A5's calls.** grpc-go v1.84 dials through an HTTP
+  `CONNECT` proxy named by `HTTPS_PROXY` unless `WithNoProxy` (or a custom dialer) is set, and clientv3 sets
+  neither; `TestProxyRogue` (a raw-`net` rogue proxy) made the real `putget.Client` panic while A2/A4 proved it
+  could not. **Fixed by option (a)** (the owner's decision): `etcdstart.NewClients` passes
+  `DialOptions: []grpc.DialOption{grpc.WithNoProxy()}` (`TestWithNoProxyFix`: no `CONNECT`).
+  - grpc's `WithNoProxy` translated from the model (`Code/google_golang_org/grpc.toml`), its spec
+    (`grpcDialOptIs o .noProxy`, a new descriptor of `InvDial.lean`, which sets `useProxy` false) proved over
+    the body (`Proof/google_golang_org/grpc/WithNoProxy.lean`). `grpc.NewClient`'s axiom is stated over the
+    descriptors: it now covers dials with `WithNoProxy` too (the model reads no proxy variable, so its claim is
+    the same with or without it, and true of grpc-go only with it).
+  - `clientCfgOk` takes the configuration's dial options as `WithNoProxy()`'s, none or more
+    (`noProxyOptsAt`); `dial` appends them last (`dialOk_noProxy`, `unaryIcsOf_noProxy`,
+    `credsOfDial_noProxy`); `New`'s and `newClient`'s posts give the client's `cfg` field.
+  - `etcdstart.NewClients`/`NewClient` give `clientNoProxy cl` (the client's configuration's dial options are
+    `WithNoProxy()`'s, at least one), and A4/A5 take it: they speak only of clients with no proxy dial path.
+  - The single-process examples' statements are unchanged; their proofs change by a pattern or a line (the
+    callers of `clientCfgOk`, `New` and `NewClient(s)`).
+- **F2 (high; the `sorry`'d `envAt_pub` was inconsistent).** It opened a non-timeless invariant without a later.
+  Now `envAt_pub … ={E}=∗ ▷ □ Pub ν`, and A4's deposit is `□ ∀ ν, envAt γE ν ={⊤}=∗ ▷ ∃ γr γf, …` (weaker for
+  the caller, so A4 is stronger; true of the interpretation: the member takes steps between reading the
+  deposit from the slot and firing it).
+- **F3 (low):** `γE` is bound before the mask premise in `env_publish`/`envAt_pub`.
+- **F4 (low, docstrings):** A3 claims only the connections A4/A5 make (no other program can dial `a`); A2's
+  docstring says that a program may listen at `a` before it, and that such a listener can never accept.
+- **F5 (low):** A3's docstring records S2's obligation: the served member's id is `memberUp`'s (`mid = id`).
+
+**A statement fix found on the way.** A machine's boot program must return `()` (`Net.DistBootWpSL`), and
+`putget.Client` returns a `bool`; `bootClient` now discards it (`Client(client) ;; ()`, as `cmd/client`,
+which only prints it). Without this the client's boot was unprovable.
+
+**Where it stands.** `putget_safe_of_hyps (HM : … MemberBootHyps) : putget_safe.spec` (proved over the five
+axioms); `MemberBootHyps` is `names` (until `prom-registry`) and `dataDir` (until the fs redesign), so the
+plain `theorem putget_safe` waits for them. `S2Draft.lean` and `S2Holds` are gone; D7's `cluster_svc_start`
+(`dist/ClusterStart.lean`) is stated over the new vocabulary. Not lean-checked locally (no build on this
+machine): the first VM build is the check.
+
+**Retirement.** #24's switch: `etcdAddrRaw` is deleted and `etcdAddrAt` becomes
+`∃ σ, depSlotsCtx ∗ grpcAddrAt a (etcdSvc γE mid)` (so `etcdAddr_set` is `depSlots_alloc` then
+`grpc_addr_set`); `EnvView` gains #24's fields; A5 is `kvRegsPub_at` and `client_Get_own`; A4 needs the
+pub-form put `client_Put_pub` (a proved lemma to write); A3 waits for S2's `Serve` proof (and its `mid = id`
+obligation). Then the axioms are theorems with the same statements.

@@ -13,7 +13,8 @@ theorem etcdstart.NewClient.wp_proof (wp_NewClients : etcdstart.NewClients.spec)
             isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗ zapLoggerOk lg -∗
               (▷
                   ∀ cl err,
-                    (⌜err = GoInterface.nil⌝ ∗ isNewClient cl [addr] V ∗ clientTokAt cl [addr] fun x => iprop(False)) ∨
+                    (⌜err = GoInterface.nil⌝ ∗
+                          isNewClient cl [addr] V ∗ (clientTokAt cl [addr] fun x => iprop(False)) ∗ clientNoProxy cl) ∨
                         ⌜err ≠ GoInterface.nil ∧ cl = null⌝ -∗
                       Φ (intoVal cl, intoVal err)) -∗
                 WP

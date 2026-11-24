@@ -38,7 +38,7 @@ theorem New.wp_proof (wp_New : clientv3.New.spec (GF := GF) (hG := hG)) :
   wp_auto
   wp_apply (wp_New cfg eps V P) $$ [] as %cl %err Hr
   · iframe #
-  icases Hr with (⟨%He, #Hnc, #Htok⟩ | ⟨%He, %Hcl⟩)
+  icases Hr with (⟨%He, #Hnc, #Htok, -⟩ | ⟨%He, %Hcl⟩)
   · subst He
     iapply wp_fupd
     wp_auto

@@ -56,8 +56,13 @@ theorem Client.dial.wp_proof
       credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG))
     (wp_WithPerRPCCredentials : grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG)) :
     Client.dial.spec (GF := GF) (hG := hG) := by
-  intro c cfg cr sl rb esl eps atb P
+  intro c cfg cr sl rb esl eps atb P n
   wp_start as ⟨#Hc, #Hcfg, #Hdo, #Hatb, #Htb, #Heps, #Hesl, %Hplain, #Hds, Hrb⟩
+  -- (2026-11-24, `notes/putget-dist-plan.md` §12) the caller's options, `WithNoProxy()`'s
+  iunfold noProxyOptsAt, dialOptsAt at Hdo
+  icases Hdo with ⟨%osu, #Hdo, #Hdod⟩
+  ihave %Hlu := (BigSepL2.bigSepL2_length (Φ := fun _ o d => grpcDialOptIs (GF := GF) o d)
+    (l1 := osu) (l2 := List.replicate n GrpcDialOpt.noProxy)) $$ Hdod
   obtain ⟨ep, rest, rfl⟩ : ∃ ep rest, eps = ep :: rest := by
     cases eps with
     | nil => exact absurd rfl Hplain.1
@@ -118,9 +123,21 @@ theorem Client.dial.wp_proof
       iexists pc
       iframe Hpc
       ipureintro; rfl
-  wp_apply wp_slice_append_dfrac (V := GoInterface) o1' os1' DFrac.discard cfg.DialOptions' []
+  wp_apply wp_slice_append_dfrac (V := GoInterface) o1' os1' DFrac.discard cfg.DialOptions' osu
     DFrac.discard $$ [$Hos1' $Ho1c' $Hdo] as %o2 ⟨#Ho2, Ho2c, -⟩
   · ipureintro; exact DFrac.valid_discard
+  -- the dial's options: etcd's, then the caller's (`WithNoProxy()`'s)
+  ihave #Hdo2 : dialOptsAt (GF := GF) o2 (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+      [GrpcDialOpt.transportCreds, GrpcDialOpt.streamInterceptor si,
+        GrpcDialOpt.unaryInterceptor ic] ++ ex ++ List.replicate n GrpcDialOpt.noProxy) $$ []
+  · iunfold dialOptsAt
+    iexists os1' ++ osu
+    iframe Ho2
+    iapply (BigSepL2.bigSepL2_append (l1b := osu) (l2b := List.replicate n GrpcDialOpt.noProxy)
+      (Or.inr Hlu)).2
+    isplitl []
+    · iexact Hex
+    · iexact Hdod
   ihave %Hlen := ownSlice_len _ _ _ $$ Hesl
   rw [ite_eq_left (by simp at Hlen; word)]
   wp_apply wp_load_slice_index esl (sint.Z (W64 0)) (ep :: rest) DFrac.discard ep (by decide) $$ [$Hesl]
@@ -168,21 +185,24 @@ theorem Client.dial.wp_proof
     rw [credsOfDial_append, credsOfDial_append, credsOfDial_append]
     unfold kaOpts
     split <;> simp [GrpcDialOpt.credsOf]
+  -- (2026-11-24) the caller's `WithNoProxy()`'s add none
+  have Hcr' : credsOfDial (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
+      [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ ex ++
+      List.replicate n .noProxy) = credsOfDial ex := by
+    rw [credsOfDial_append, credsOfDial_noProxy, List.append_nil]; exact Hcr
   icases Hexc with (%Hex0 | ⟨%pc, %Hex1, #Hpc⟩)
   all_goals first | subst Hex0 | subst Hex1
   · have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
-        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ []) rb := by
-      rw [List.append_nil]; exact Hdok1
+        [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ [] ++
+        List.replicate n .noProxy) rb := by
+      rw [List.append_nil]; exact dialOk_noProxy _ rb n Hdok1
     wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
       as %conn %err Hres
     · isplitr
-      · iunfold dialOptsAt
-        iexists _
-        iframe Ho2
-        simp only [List.append_nil]; iexact Hex
+      · iexact Hdo2
       isplitr
       · ipureintro; exact Hpre
-      rw [Hcr, credsOfDial_nil]
+      rw [Hcr', credsOfDial_nil]
       iapply BigSepL.bigSepL_nil.2; itrivial
     iapply HΦ
     icases Hres with (⟨%Herr, #Hconn, #Hcc⟩ | %Herr)
@@ -190,9 +210,10 @@ theorem Client.dial.wp_proof
       isplitr
       · ipureintro; exact Herr
       have Hics : unaryIcsOf (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
-          [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ []) = [ic] := by
-        rw [List.append_nil, List.append_assoc, unaryIcsOf_kaOpts]; rfl
-      rw [Hcr, Hics, credsOfDial_nil] at *
+          [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++ [] ++
+          List.replicate n .noProxy) = [ic] := by
+        rw [unaryIcsOf_noProxy, List.append_nil, List.append_assoc, unaryIcsOf_kaOpts]; rfl
+      rw [Hcr', Hics, credsOfDial_nil] at *
       isplitl []
       · unfold isEtcdConnG
         iexists ic
@@ -203,18 +224,15 @@ theorem Client.dial.wp_proof
       ipureintro; exact Herr
   · have Hdok : dialOk (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
         [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++
-        [GrpcDialOpt.perRPCCreds pc]) rb :=
-      dialOk_perRPCCreds _ rb pc Hdok1
+        [GrpcDialOpt.perRPCCreds pc] ++ List.replicate n .noProxy) rb :=
+      dialOk_noProxy _ rb n (dialOk_perRPCCreds _ rb pc Hdok1)
     wp_apply wp_NewClient tgt o2 _ rb etcdScheme (ep :: rest) anyRes (tokMdOk P) Hdok $$ [$Hgrpc $Hrb]
       as %conn %err Hres
     · isplitr
-      · iunfold dialOptsAt
-        iexists _
-        iframe Ho2
-        simp only [List.append_nil]; iexact Hex
+      · iexact Hdo2
       isplitr
       · ipureintro; exact Hpre
-      rw [Hcr, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]]
+      rw [Hcr', show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]]
       iapply BigSepL.bigSepL_singleton.2
       iexact Hpc
     iapply HΦ
@@ -224,9 +242,9 @@ theorem Client.dial.wp_proof
       · ipureintro; exact Herr
       have Hics : unaryIcsOf (kaOpts cfg ++ [GrpcDialOpt.resolvers [rb]] ++
           [.transportCreds, .streamInterceptor si, .unaryInterceptor ic] ++
-          [GrpcDialOpt.perRPCCreds pc]) = [ic] := by
-        rw [unaryIcsOf_perRPCCreds, List.append_assoc, unaryIcsOf_kaOpts]; rfl
-      rw [Hcr, Hics, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]] at *
+          [GrpcDialOpt.perRPCCreds pc] ++ List.replicate n .noProxy) = [ic] := by
+        rw [unaryIcsOf_noProxy, unaryIcsOf_perRPCCreds, List.append_assoc, unaryIcsOf_kaOpts]; rfl
+      rw [Hcr', Hics, show credsOfDial [GrpcDialOpt.perRPCCreds pc] = [pc] by simp [GrpcDialOpt.credsOf]] at *
       isplitl []
       · unfold isEtcdConnG
         iexists ic

@@ -661,3 +661,14 @@ The remaining baseline and the two generated admissions have not been discharged
 | axiom | verdict | reason |
 |---|---|---|
 | `slices.Concat.wp_proof` (`Proof/slices/Concat.lean`) | **false**; **fixed** (`fix-slices-concat/2026-11-22`) | No premise, but Go sums the lengths and panics ("len out of range") once the sum overflows `int`, before `Grow`; aliased inputs reach it (`examples/premisefix/concatlen`). Now takes `(xss.map List.length).sum < 2 ^ 63` (exact: Go's check fires iff the total is `≥ 2 ^ 63`), the string instance of PR #670's theorem. `collectReasonsAndErrors` discharges it through `Dec.depth` (ledger 2026-11-22). |
+
+### The interim cross-machine axioms of `putget_safe` (2026-11-24; `notes/putget-dist-plan.md` §12; review `s2-interim/review.md`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `etcd_dist.etcdAddrRaw` (A1) | sound | An opaque predicate; its only source is A2. Intended interpretation #24's `∃ σ, depSlotsCtx ∗ grpcAddrAt a (etcdSvc γE mid)`. |
+| `etcd_dist.etcdAddr_set` (A2) | sound | Spends `addrUnset a` (`netPend a ∅`, the address token, `netLisTok a`), so at most one address fact per address, and no verified program can dial or accept at `a` but through A3-A5. True of the interpretation (`depSlots_alloc`, `grpc_addr_set`). |
+| `etcd_dist.Serve_dist.wp_proof` (A3) | sound | One member per `(γE, mid)` (`envAt_agree`, `memberUp` owns the KV state); the docstring claims only the calls of A4/A5 (F4); S2's obligation `mid = id` recorded (F5). |
+| `etcd_dist.Client_Put_dist.wp_proof` (A4) | **false as first designed** (F1: `HTTPS_PROXY` reroutes the calls, `TestProxyRogue`); **fixed**: `clientNoProxy` in the pre (`grpc.WithNoProxy()` in `etcdstart.NewClients`, `TestWithNoProxyFix`); deposit under a `▷` (F2) | The deposit is consulted only at a view published at `γE`, whose `putGetInv` is pinned to the member's KV state variable. |
+| `etcd_dist.Client_Get_dist.wp_proof` (A5) | **false as first designed** (F1); **fixed** as A4 | A4's argument; the flag at `1` is the invariant's. |
+| `grpc.NewClient.wp_proof` (domain widened: the descriptor `.noProxy`) | ok | `WithNoProxy` only sets `useProxy` false; the model reads no proxy variable, so the axiom's claim is unchanged for the model and true of grpc-go only with the option. |
