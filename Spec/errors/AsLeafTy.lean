@@ -48,7 +48,9 @@ abbrev errors.AsLeafTy.spec : Prop :=
     _root_.Perennial.errors.AsTarget T →
     _root_.Perennial.errors.isLeafError ii →
     go.typeSetContains ii.ty T = false →
-    (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T) →
+    (go.isInterfaceType (underlying T) = false → underlying ii.ty ≠ underlying T ∧
+      (_root_.Perennial.errors.undecidedKind (underlying T) = false ∨
+        go.kindOf (underlying ii.ty) ≠ go.kindOf (underlying T))) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ l ↦ v }}
       (App (App (Val (@! _root_.Perennial.errors.As)) (Val #(GoInterface.ok ii)))
         (Val #(interface.mkOk (go.PointerType T) #l)))

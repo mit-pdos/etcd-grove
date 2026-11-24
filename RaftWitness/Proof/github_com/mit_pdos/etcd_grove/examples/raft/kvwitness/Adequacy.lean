@@ -181,6 +181,9 @@ def pkgInitTable : List (GoString × IProp GF) :=
 def getIsPkgInit (s : GoString) : IProp GF :=
   ((pkgInitTable (GF := GF)).lookup s).getD iprop(True)
 
+-- the table's lookups, one per imported package (Perennial reflect-s05's errors imports
+-- internal/reflectlite and internal/abi: past the default budget)
+set_option maxHeartbeats 800000 in
 theorem getIsPkgInit_kv :
     GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvwitness (getIsPkgInit (GF := GF)) := by
   repeat' (first | exact True.intro | apply And.intro | rfl)
