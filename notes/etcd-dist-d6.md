@@ -349,3 +349,36 @@ change made on this branch yet.
   (b) `snapDirIs p γd` (trusted, `snap/Defs.lean`) carries the token's name, allocated by `snapDirOwn`'s update;
   (c) `E`'s key type `Option w64` (`none` the token), changing raft's `snapLocal` type. Recommendation (b): one
   trusted line next to the one changed, no signature ripple.
+
+**T6 decisions, round 3 (2026-11-24, the lead's delegation; each with its one-line why):**
+1. *The crash token's name: an existential handle, not `snapDirIs`.* (b) as approved turned out impossible
+   without an axiom: a persistent `snapDirIs p γd` duplicates its `∃ γk`, so two copies need not agree on `γk`,
+   and agreement needs a cell at a name known from `γd` (none: `γd`'s map type is raft's). Decision: the
+   user-facing handle becomes `snapDirInvH sd γd img Rm := ∃ γk, inv snapDirN (snapDirInvK sd γd γk img Rm)`,
+   `snapDirInvK`'s body `snapDirIs ∗ (body ∨ crashed L ∗ token γk)`; `snapDir_init` returns the handle and
+   `token γk` (the crash frame's `Keep`), which owns its own copy of the same `inv`. Why: the crash law opens the
+   `inv` named in `Keep` (same `γk`, so its token refutes the crashed side), and a handle of another generation
+   is a different proposition (the body is at the ambient generation), so no stale handle can be used. Cost: the
+   text `inv snapDirN (snapDirInv …)` becomes `snapDirInvH …` at 25 sites (19 files, 7 of them `Spec/`, four
+   axioms' statements among them: a renaming of the same claim).
+2. *Durability: `E` = saved and durable* (approved). Representation: `M ∩ E` files `fileAtDur`, `M \ E` pending.
+   `fileAtDur path D` = `fileAtF` with (i) the name's claim history committed (`osCommitLb h.next`, the shared
+   mode's committed prefix, `TreeCommit.lean`) and (ii) the bytes durable (every `ByteG` a `durB`, size bounds
+   collapsed). (ii) needs a durable variant of bbolt's sealed `fileHoldsM` (`Spec/go_etcd_io/bbolt/Api.lean`,
+   `fileHoldsMDef` in `Inv/FileImg.lean`): `fileHoldsMDur i D ⊢ fileHoldsM i D`, a new law in bbolt's API
+   (`etc/api/bbolt.txt`), outside T6's package. Why not avoid it: without durable bytes a surviving file's bytes
+   may be any mix of candidates, which is no bbolt image, so the law cannot give `fileAt` at `L'`.
+3. *`snapDir_take` becomes `|NC={⊤}=>`* (`inv_nc_acc` on `snapDirInvK`), its two callers use `wp_ncfupd`.
+
+**Status: implementation not started on this branch.** (2) adds a law to bbolt's API and (1) touches 19 files;
+both are best done together with the law's proof, by the helper that writes it, since the exact shape of
+`fileAtDur` is decided by what `crashRest_take_runs_keep`/`RegionCrashed` let that proof conclude. The law's
+statement (with (1)'s names): from `Keep := inv snapDirN (snapDirInvK sd γd γk img Rm) ∗ token γk` at `L`,
+`crashed L`, `□ (∀ j, Rm j ={⊤}=∗ Rm' j)`, `osSharedInv L R`, `crashRest Q L L' D true V'` and the new
+generation's claims on the directory's names, `={⊤}=∗ ∃ γk' D', Keep at L' (with `img`, `Rm'`) ∗ crashRest …
+(D' ++ D) …`. Proof plan: open the old `inv` (token refutes the crashed side), take the body, close with
+`crashed L ∗ token γk`; per file of `M` take its runs from `crashRest` (`osCrash_take_runs_keep`): a `M ∩ E` file
+is durable so it survives whole (`FileCrashedR` + durable bytes), its name kept (`RegionCrashed` with the
+committed bound); a `M \ E` file survives whole or not at all (bytes durable, entry maybe), its name then free;
+rebuild `fileAt`/`fileFree` at `L'` from the claims (`crashRest_treeS'`'s `osShared L'`), `E` kept (`γd`
+persists), `Rm'` from `Rm`, allocate the new `inv` and token.
