@@ -5,13 +5,16 @@ proved as paxos's: from the deployment's start (the registry, the addresses unse
 remote's slot map with the client addresses' call budgets, its pending library over the abstract
 state, every machine's share), and each machine's boot from its share: its generated initializer's
 spec and its `main`'s (`Mains.lean`) over the links (`Link.lean`)
-at the premises `LibHyps` and `JsonHyps` of its heap.
+at the premises `LibHyps` and `JsonHyps` of its heap; a client's or server's boot is its first
+run (`BootCmdsLinked.lean`), which returns encoding/json's fresh registry (`codecFresh`) for its
+`main` (`RegisterJSON()`).
 -/
 module
 
 public import Dsverify.Spec.github_com.tangledbytes.go_vsr.examples.vsrnet.TopLevelRobustness
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Link
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Start
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.BootCmdsLinked
 public import Net.Statement.DistBridge
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.orch.PkgTable
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.orch.Init
@@ -89,6 +92,29 @@ theorem wp_boot [hG : HeapGS .hasLC GF] [sem : go.Semantics]
   · iframe
   ipureintro; rfl
 
+/-- A command's boot program, from its first-run boot (`BootCmdsLinked.lean`: from the empty
+package state, it returns the boot resource `R`) and a spec of its `main` with precondition
+`P ∗ R` (dsv-epaxos's). -/
+theorem wp_bootR [hG : HeapGS .hasLC GF] [sem : go.Semantics]
+    (init : val) (main pkg : GoString) [IsPkgInit (IProp GF) pkg] (getIs : GoString → IProp GF)
+    (R : IProp GF)
+    (Hinit : {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
+        (App (Val init) (Val #()))
+      {{ RET #(); ownInitializing getIs ∗ isPkgInit (PROP := IProp GF) pkg ∗ R }})
+    (P : IProp GF)
+    (Hf : {{ isPkgInit (PROP := IProp GF) pkg ∗ P ∗ R }}
+        (App (Val (@! main)) (Val #()))
+      {{ RET #(); True }}) :
+    ⊢ P -∗ ownGoState ∅ -∗ WP (boot init main) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} := by
+  iintro HP Hgs
+  unfold boot
+  wp_apply Hinit $$ [Hgs] as ⟨-, #Hpkg, HR⟩
+  · iexact Hgs
+  wp_pures
+  wp_apply Hf $$ [HP HR]
+  · iframe
+  ipureintro; rfl
+
 end boot
 
 theorem range6 : List.range 6 = [0, 1, 2, 3, 4, 5] := rfl
@@ -157,15 +183,16 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit
-          (cmd.client0.wp_initialize' _ cmd.client0.getIsPkgInit_wf) (clientShare (G := G') (ρ := ρ) γ 0)
+      iapply wp_bootR cmd.client0.initialize' cmd.client0.main _ cmd.client0.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.client0.wp_boot
+          (clientShare (G := G') (ρ := ρ) γ 0)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
             iunfold clientShare at HP
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client0.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn] HΦ
+            iapply (cmd.client0.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 2, hm =>
@@ -173,15 +200,16 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit
-          (cmd.client1.wp_initialize' _ cmd.client1.getIsPkgInit_wf) (clientShare (G := G') (ρ := ρ) γ 1)
+      iapply wp_bootR cmd.client1.initialize' cmd.client1.main _ cmd.client1.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.client1.wp_boot
+          (clientShare (G := G') (ρ := ρ) γ 1)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
             iunfold clientShare at HP
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client1.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn] HΦ
+            iapply (cmd.client1.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 3, hm =>
@@ -189,15 +217,16 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.client2.initialize' cmd.client2.main _ cmd.client2.getIsPkgInit
-          (cmd.client2.wp_initialize' _ cmd.client2.getIsPkgInit_wf) (clientShare (G := G') (ρ := ρ) γ 2)
+      iapply wp_bootR cmd.client2.initialize' cmd.client2.main _ cmd.client2.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.client2.wp_boot
+          (clientShare (G := G') (ρ := ρ) γ 2)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
             iunfold clientShare at HP
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client2.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn] HΦ
+            iapply (cmd.client2.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 4, hm =>
@@ -205,15 +234,16 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.client3.initialize' cmd.client3.main _ cmd.client3.getIsPkgInit
-          (cmd.client3.wp_initialize' _ cmd.client3.getIsPkgInit_wf) (clientShare (G := G') (ρ := ρ) γ 3)
+      iapply wp_bootR cmd.client3.initialize' cmd.client3.main _ cmd.client3.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.client3.wp_boot
+          (clientShare (G := G') (ρ := ρ) γ 3)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
             iunfold clientShare at HP
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client3.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn] HΦ
+            iapply (cmd.client3.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 5, hm =>
@@ -221,15 +251,16 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.client4.initialize' cmd.client4.main _ cmd.client4.getIsPkgInit
-          (cmd.client4.wp_initialize' _ cmd.client4.getIsPkgInit_wf) (clientShare (G := G') (ρ := ρ) γ 4)
+      iapply wp_bootR cmd.client4.initialize' cmd.client4.main _ cmd.client4.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.client4.wp_boot
+          (clientShare (G := G') (ρ := ρ) γ 4)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
             iunfold clientShare at HP
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client4.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn] HΦ
+            iapply (cmd.client4.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 6, hm =>
@@ -237,15 +268,16 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.client5.initialize' cmd.client5.main _ cmd.client5.getIsPkgInit
-          (cmd.client5.wp_initialize' _ cmd.client5.getIsPkgInit_wf) (clientShare (G := G') (ρ := ρ) γ 5)
+      iapply wp_bootR cmd.client5.initialize' cmd.client5.main _ cmd.client5.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.client5.wp_boot
+          (clientShare (G := G') (ρ := ρ) γ 5)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
             iunfold clientShare at HP
             icases HP with ⟨#Hc, #Hv, #Hs, #Hr, Hn, #Ha, #Hb⟩
             ihave #HnP : pkg.network.netProtos (GF := remoteGF) γ $$ [Hv]
             · unfold pkg.network.netProtos; iexact Hv
-            iapply (cmd.client5.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn] HΦ
+            iapply (cmd.client5.wp_main (ρ := ρ) (EtcdGrove.dsvvr.wp_Client hL hJ) γ) $$ [Hn Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 7, hm =>
@@ -253,11 +285,11 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit
-          (cmd.server1.wp_initialize' _ cmd.server1.getIsPkgInit_wf) (srvShare (G := G') γ 1)
+      iapply wp_bootR cmd.server1.initialize' cmd.server1.main _ cmd.server1.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.server1.wp_boot (srvShare (G := G') γ 1)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
-            iapply (cmd.server1.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP] HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
+            iapply (cmd.server1.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 8, hm =>
@@ -265,11 +297,11 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit
-          (cmd.server2.wp_initialize' _ cmd.server2.getIsPkgInit_wf) (srvShare (G := G') γ 2)
+      iapply wp_bootR cmd.server2.initialize' cmd.server2.main _ cmd.server2.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.server2.wp_boot (srvShare (G := G') γ 2)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
-            iapply (cmd.server2.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP] HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
+            iapply (cmd.server2.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 9, hm =>
@@ -277,11 +309,11 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit
-          (cmd.server3.wp_initialize' _ cmd.server3.getIsPkgInit_wf) (srvShare (G := G') γ 3)
+      iapply wp_bootR cmd.server3.initialize' cmd.server3.main _ cmd.server3.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.server3.wp_boot (srvShare (G := G') γ 3)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
-            iapply (cmd.server3.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP] HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
+            iapply (cmd.server3.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 10, hm =>
@@ -289,11 +321,11 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit
-          (cmd.server4.wp_initialize' _ cmd.server4.getIsPkgInit_wf) (srvShare (G := G') γ 4)
+      iapply wp_bootR cmd.server4.initialize' cmd.server4.main _ cmd.server4.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.server4.wp_boot (srvShare (G := G') γ 4)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
-            iapply (cmd.server4.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP] HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
+            iapply (cmd.server4.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
     | 11, hm =>
@@ -301,11 +333,11 @@ theorem vr_remote_robust : vr_remote_robust.spec := by
       dsimp only
       simp only [Nat.reduceEqDiff, ↓reduceIte]
       iintro HP Hgs
-      iapply wp_boot cmd.server5.initialize' cmd.server5.main _ cmd.server5.getIsPkgInit
-          (cmd.server5.wp_initialize' _ cmd.server5.getIsPkgInit_wf) (srvShare (G := G') γ 5)
+      iapply wp_bootR cmd.server5.initialize' cmd.server5.main _ cmd.server5.getIsPkgInit
+          (encoding.json.codecFresh (GF := remoteGF)) cmd.server5.wp_boot (srvShare (G := G') γ 5)
           (by
-            iintro %Φ ⟨#Hpkg, HP⟩ HΦ
-            iapply (cmd.server5.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP] HΦ
+            iintro %Φ ⟨#Hpkg, HP, Hfr⟩ HΦ
+            iapply (cmd.server5.wp_main (EtcdGrove.dsvvr.wp_Server hL hJ) γ) $$ [HP Hfr] HΦ
             iframe #
             iframe) $$ HP Hgs
   · simp only [system]

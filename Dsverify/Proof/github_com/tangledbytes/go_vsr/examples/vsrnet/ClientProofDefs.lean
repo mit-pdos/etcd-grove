@@ -75,14 +75,15 @@ theorem Op_svcOp (wp_Op : Op.spec (GF := GF) (hG := hG)) (γ : Names) (c : Nat) 
 
 /-- `Client(c)`: client machine `c`; it never returns. Its share of the start: the configuration
 addresses' and go-vsr addresses' protocols, the ghost layer's invariants, client `c + 1`'s request
-counter, and its address serving the far side's store. -/
+counter, and its address serving the far side's store; and encoding/json's fresh registry
+(`codecFresh`, from the machine's boot). -/
 abbrev Client.spec : Prop :=
   ∀ (γ : Names) (c : Nat), c < 6 →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ confProtos (G := hG.goose_globalGS) γ ∗
       pkg.network.netProtos γ ∗ sysInv (G := hG.goose_globalGS) γ ∗
       regInv (G := hG.goose_globalGS) γ ∗ nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗
       remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD c []) ∗
-      ⌜ρ.bud (clientAddrs.getD c []) = some 24⌝ }}
+      ⌜ρ.bud (clientAddrs.getD c []) = some 24⌝ ∗ encoding.json.codecFresh (GF := GF) }}
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Client)) (Val #(W64 (c : Int))))
   {{ RET #(); False }}
 

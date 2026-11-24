@@ -3,14 +3,16 @@ The vr kit's small functions both machine kinds call (`kit.go`; notes/dsv-vr.md)
 go-vsr addresses, `VsrWire.addrs`), `logger()` (`slog.New(slog.DiscardHandler)`, over its callees' specs
 `log.slog.New.spec` and `log.slog.DiscardHandler.load_spec`, `Dsverify/Spec/log/slog/Logger.lean`), and
 `kit_frameDecoderSet`: the hook is set for good, `vsrwire`'s package fact (the kit links
-`vsrwire`). One copy each (`RegisterJSON()` is jsongen's now: the premise
-`RegisterJSON.codecSet_spec`, `JsonHyps.lean`) (the client's `MkClientProof.lean` and the server's `ServerProof.lean`
-had their own).
+`vsrwire`), and `RegisterJSON()` (jsongen's: `json.SetCodec(&json.Codec{jsonMarshal,
+jsonUnmarshal, jsoncodec.Scan})`, over the main tree's `SetCodec.spec`, from encoding/json's fresh
+registry `codecFresh`, a machine's boot resource: `BootLinked.lean`). One copy each (the client's
+`MkClientProof.lean` and the server's `ServerProof.lean` had their own).
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.ConfDefs
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.JsonHyps
+public import Spec.encoding.json.Codec.SetCodec
 public import Dsverify.Spec.log.slog.Logger
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Wire.Addrs
 public import Net.Spec.net.Dial
@@ -42,6 +44,46 @@ variable [package_sem' : github_com.tangledbytes.go_vsr.examples.vsrnet.Assumpti
 local notation "kpkg" => pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet
 
 set_option goose.wp.extras true
+
+/-- `RegisterJSON()`: from encoding/json's fresh registry (`codecFresh`: no codec registered yet,
+the registry's mutex), the kit's codec registered for good (`codecSet`). -/
+abbrev RegisterJSON.spec : Prop :=
+  {{ isPkgInit (PROP := IProp GF) kpkg ∗ encoding.json.codecFresh (GF := GF) }}
+    (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.RegisterJSON)) (Val #()))
+  {{ RET #(); encoding.json.codecSet (GF := GF) }}
+
+theorem RegisterJSON.wp_proof (wp_SetCodec : encoding.json.SetCodec.spec (GF := GF) (hG := hG)) :
+    RegisterJSON.spec (GF := GF) (hG := hG) := by
+  wp_start as Hfr
+  iunfold encoding.json.codecFresh at Hfr
+  icases Hfr with ⟨#Hmu, Hun⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  wp_auto
+  ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$a0»
+  iStructNamed «$a0»
+  ipersist Marshal
+  ipersist Unmarshal
+  ipersist Scan
+  wp_apply wp_SetCodec (encoding.json.kitFn go!"jsonMarshal") (encoding.json.kitFn go!"jsonUnmarshal")
+    _ $$ [Hun]
+  · isplitr
+    · iexact Hmu
+    isplitl [Hun]
+    · iexact Hun
+    isplitr
+    · unfold encoding.json.codecFnsWith
+      isplitr
+      · iexact Marshal
+      isplitr
+      · iexact Unmarshal
+      · iexact Scan
+    · ipureintro; exact Hnn
+  iintro #Hcs
+  wp_auto
+  iapply HΦ
+  unfold encoding.json.codecSet
+  iexact Hcs
 
 /-- The hook is set for good: `vsrwire`'s package fact (the kit links `vsrwire`). -/
 theorem kit_frameDecoderSet :

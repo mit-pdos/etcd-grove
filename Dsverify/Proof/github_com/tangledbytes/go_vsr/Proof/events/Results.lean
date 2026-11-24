@@ -3,9 +3,10 @@ Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/events/Results.lean (l
 notes/dsv-vr.md): over any `GF`, on the net extension.
 -/
 /-
-The results of `events`: one theorem per spec of `Spec/events.lean`, over the `encoding/json`
-hypotheses (`Proof/events/LibHyps.lean`) and the kit's codec hypothesis `vsrnet.codecOk`
-(`Spec/json.lean`), taken as arguments. Not here:
+The results of `events`: one theorem per spec of `Spec/events.lean`, over the main tree's
+`encoding/json` specs (`Unmarshal.spec`, proved; `NewEncoder.spec`, `Encoder.Encode_conn.spec`,
+premises) and the kit's JSON facts `vsrnet.codecOk` (`Spec/json.lean`), taken as arguments. Not
+here:
 * `events.newDecoder.spec` and `events.Decoder.Decode_frame.spec`: the hub states them as
   hypotheses (`json.NewDecoder`, `Decoder.Decode` of the model's opaque decoder; the lab proved
   them of its own, `jsonstream`); `Decode_frame.spec` is an argument of `vsrwire`'s results;
@@ -58,16 +59,14 @@ variable [encoding.json.EncoderRep GF]
 
 theorem events.Event.ToWriter.wp
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
-    (wp_Encode : encoding.json.Encoder.Encode_conn.kitSpec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
+    (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.ToWriter.spec (GF := GF) (hG := hG) :=
   events.Event.ToWriter.wp' wp_NewEncoder wp_Encode codec_ok
 
 theorem events.Event.FromDecoder.wp
     (wp_Decode_frame : events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal : encoding.json.Unmarshal.kitSpec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
+    (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.FromDecoder.spec (GF := GF) (hG := hG) :=
   events.Event.FromDecoder.wp' wp_Decode_frame wp_Unmarshal codec_ok

@@ -13,18 +13,19 @@ this says porcupine accepts every history, under every fault the net extension a
 
 **Premises** (visible, each at the bundle `remoteGF`, for every machine's heap `heapAt G L` and the
 start's `NetProtoGS`; every package initializer is proved: `encoding/json`'s the main tree's, J1 of
-mit-pdos/etcd-grove#24, `log/slog`'s from the model's code):
+mit-pdos/etcd-grove#24, and its first run on a machine (the registry fresh, `BootLinked.lean`),
+`log/slog`'s from the model's code), each true of the code (the argument is at each statement):
 * the model's `*Decoder` and `*Encoder` representations, any (`encoding.json.DecoderRep`,
   `EncoderRep`: data classes, no instance anywhere);
 * `LibHyps` (`examples/vsrnet/LibHyps.lean`): `connReaderOk` (a connection is an `io.Reader` for
   any buffer: notes/dsv-vr.md finding 5; it waits on Perennial's readatleast-prefix,
   mit-pdos/perennial#688); `log/slog`'s specs are proved from the model;
-* **`JsonHyps`** (`examples/vsrnet/JsonHyps.lean`), the `encoding/json` interface: `Unmarshal`,
-  `NewEncoder`, `Encoder.Encode` on a connection, `NewDecoder`/`Decode` of a frame, the kit's
-  codec's correctness (`codecOk`) and its registration (`RegisterJSON.codecSet_spec`). **Pending
-  jsongen and the main tree's `encoding/json` (J1, J2): `RegisterJSON.codecSet_spec` is false of
-  today's placeholder `RegisterJSON` (empty), so until jsongen's codec replaces it, `JsonHyps` has
-  no instance and the statement says nothing.**
+* **`JsonHyps`** (`examples/vsrnet/JsonHyps.lean`), the `encoding/json` interface (#24 J3):
+  `NewEncoder`, `Encoder.Encode_conn` (the main tree's statements), `NewDecoder`/`Decode` of a
+  frame (over the dispatch `unmarshalVia`; the main tree has no `Decoder` spec yet), the kit's
+  registered codec's correctness for the values the dispatch sends it (`registeredCodecOk`) and
+  the 14 named types' own generated methods' (`TypeCodecs`, the main tree's `typeCodecOk`).
+  `Unmarshal`, `SetCodec` are the main tree's proofs and `RegisterJSON()` is proved from the boot.
 Proved in `Dsverify/Proof/github_com/tangledbytes/go_vsr/examples/vsrnet/TopLevelRobustness.lean`.
 -/
 module

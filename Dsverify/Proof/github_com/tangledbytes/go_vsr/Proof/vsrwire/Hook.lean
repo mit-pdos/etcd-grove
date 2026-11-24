@@ -2,8 +2,9 @@
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/vsrwire/Hook.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension. What changed: `dec.Decode(&f)` is the hub's
 hypothesis `events.Decoder.Decode_frame.spec` (the lab proved it of its model's decoder,
-`jsonstream.wp_Decode_frame`), taken as an argument; it asks for the codec (`codecSet`,
-`kitCodecOk F`), which the frame decoder's precondition gives.
+`jsonstream.wp_Decode_frame`), taken as an argument; it asks for the codec registered
+(`codecSet`) and the dispatch at the frame (`unmarshalVia`, the frame type's own method), which the
+frame decoder's precondition gives (`codecSet`, `kitCodecOk F`).
 -/
 /-
 The G1 hook: `decodeFrame` is a frame decoder (`events.frameDecOk`; what `FromDecoder`'s proof
@@ -49,11 +50,13 @@ theorem examples.vsrwire.decodeFrame.wp'
   wp_func_call
   wp_call
   wp_auto
+  ihave #Hvia := encoding.json.kitCodecOk_unmarshalVia F examples.vsrwire.Frame.ty f_ptr
+    (by simp [encoding.json.kitTypes]) (by go_type_set) $$ HokF
   wp_apply wp_Decode_frame F γ dec f_ptr (zero_val examples.vsrwire.Frame) rfl $$ [Hrs f]
     as %err Hpost
   · iframe; isplit
     · iexact Hset
-    · iexact HokF
+    · iexact Hvia
   icases Hpost with ⟨Hrs, Hpost⟩
   cases err with
   | ok e =>

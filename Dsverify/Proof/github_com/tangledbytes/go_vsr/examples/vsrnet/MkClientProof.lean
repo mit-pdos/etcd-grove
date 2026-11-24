@@ -52,12 +52,12 @@ set_option goose.wp.extras true
 theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
     (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
     (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
-    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG))
+    (wp_RegisterJSON : RegisterJSON.spec (GF := GF) (hG := hG))
     (wp_NewReal : pkg.time.NewReal.spec (GF := GF) (hG := hG))
     (wp_clientNew : pkg.client.New.spec (GF := GF) (hG := hG)) :
     mkClient.spec (GF := GF) (hG := hG) := by
   intro γ c sl cf hc
-  wp_start as ⟨#Hsl, #Hcf, #Hprotos, #HsysI, #HregI, Hnext, #Hkit⟩
+  wp_start as ⟨#Hsl, #Hcf, #Hprotos, #HsysI, #HregI, Hnext, #Hkit, Hfr⟩
   ihave #Hfd := kit_frameDecoderSet $$ []
   · iPkgInit
   unfold confOk
@@ -70,7 +70,8 @@ theorem mkClient.wp_proof (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG :=
   ihave #Htp : isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.pkg.time $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_RegisterJSON_set as #Hcs
+  wp_apply wp_RegisterJSON $$ [Hfr] as #Hcs
+  · iframe
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   have h12 : VsrWire.addrs.length = 12 := rfl
   have hb : 0 ≤ sint.Z (W64 1 + W64 (c : Int)) ∧ sint.Z (W64 1 + W64 (c : Int)) < sint.Z sl.len := by

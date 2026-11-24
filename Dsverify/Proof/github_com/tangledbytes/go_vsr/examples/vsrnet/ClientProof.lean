@@ -59,7 +59,7 @@ theorem Client.wp_proof
     (wp_Codec : Codec.spec (GF := GF) (hG := hG)) :
     Client.spec (GF := GF) (hG := hG) := by
   intro γ c hc
-  wp_start as ⟨#Hcp, #Hnp, #HsysI, #HregI, Hnext, #Hra, %Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #HsysI, #HregI, Hnext, #Hra, %Hbud, Hfr⟩
   ihave #Hrp : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote $$ []
   · iPkgInit
@@ -76,7 +76,7 @@ theorem Client.wp_proof
   wp_apply (wp_waitConf γ cfgs
     (DFrac.own 1) (W64 1 + W64 (c : Int)) (by word)) $$ [Hcfgs] as %cf ⟨-, #Hcf⟩
   · iframe; iframe #
-  wp_apply (wp_mkClient γ c asl cf hc) $$ [Hnext] as %x Hres
+  wp_apply (wp_mkClient γ c asl cf hc) $$ [Hnext Hfr] as %x Hres
   · iframe; iframe #
   wp_apply wp_ClientAddrs as %casl Hcasl
   ihave %Hal := ownSlice_len _ _ _ $$ Hcasl

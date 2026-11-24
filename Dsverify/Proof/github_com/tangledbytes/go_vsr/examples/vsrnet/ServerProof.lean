@@ -9,7 +9,8 @@ notes/dsv-vr.md), ported from dsverify-lab `examples/vr/proof/VsrProof/Top/{Serv
   the start gives it to every server machine, N being chosen later by the orchestrator, as the lab).
   No address token: the net extension's `addrTok` is the pure `addrOk`, which `addrProto` holds.
 * The kit's codec registered (`encoding.json.codecSet`, the lab's `registerJSON`) comes from
-  `RegisterJSON()`'s call by the JSON premise `RegisterJSON.codecSet_spec` (`JsonHyps.lean`). The
+  `RegisterJSON()`'s call (`RegisterJSON.spec`, `KitLib.lean`), from the machine's boot resource
+  `codecFresh`. The
   frame-decoder hook set (`events.frameDecoderSet`) and `network.ErrNoConn`'s value are the
   package facts of `vsrwire` (which the kit links) and `network` (`kit_frameDecoderSet`,
   `Conf.lean`).
@@ -84,7 +85,7 @@ theorem runReplica.wp_proof
     (wp_New : log.slog.New.spec (GF := GF) (hG := hG))
     (wp_Discard : log.slog.DiscardHandler.load_spec (GF := GF) (hG := hG))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG))
-    (wp_RegisterJSON_set : RegisterJSON.codecSet_spec (GF := GF) (hG := hG))
+    (wp_RegisterJSON : RegisterJSON.spec (GF := GF) (hG := hG))
     (wp_NewTCP : pkg.network.NewTCP.spec (GF := GF) (hG := hG))
     (wp_TCP_Run : pkg.network.TCP.Run.spec (GF := GF) (hG := hG))
     (wp_Recv : pkg.network.TCP.Recv.spec (GF := GF) (hG := hG))
@@ -96,7 +97,7 @@ theorem runReplica.wp_proof
     (wp_Submit : pkg.replica.Replica.Submit.spec (GF := GF) (hG := hG)) :
     runReplica.spec (GF := GF) (hG := hG) := by
   intro γ i n h r hconf hi sl
-  wp_start as ⟨#Hsl, #Hprotos, #HsysI, #HregI, Hrep, #Hsize⟩
+  wp_start as ⟨#Hsl, #Hprotos, #HsysI, #HregI, Hrep, #Hsize, Hfr⟩
   ihave #Hfd := kit_frameDecoderSet $$ []
   · iPkgInit
   have hk := codec_ok
@@ -110,7 +111,8 @@ theorem runReplica.wp_proof
   have hlen : sint.Z sl.len = 12 := by
     have := Hslen.1; simp [VsrWire.addrs] at this; word
   wp_auto
-  wp_apply wp_RegisterJSON_set as #Hset
+  wp_apply wp_RegisterJSON $$ [Hfr] as #Hset
+  · iframe
   have hix : 0 ≤ sint.Z (W64 6 + W64 ((i + 1 : Nat) : Int)) ∧
       sint.Z (W64 6 + W64 ((i + 1 : Nat) : Int)) < sint.Z sl.len := by
     rw [hlen]; constructor <;> word
@@ -210,7 +212,7 @@ theorem Server.wp_proof
   subst hex
   have hi5 : i < 5 := by omega
   rw [hi_eq]
-  wp_start as Hsh
+  wp_start as ⟨Hsh, Hfr⟩
   iunfold srvShare at Hsh
   rw [Nat.add_sub_cancel]
   icases Hsh with ⟨#Hprotos, #Hcps, #HsysI, #HregI, Hrep⟩
@@ -231,7 +233,7 @@ theorem Server.wp_proof
     iapply fupd_wp
     imod ownSlice_persist _ _ _ $$ Hsl with #Hsl
     imodintro
-    wp_apply (wp_runReplica γ i n h r hconf hin sl) $$ [Hrep] as %hf
+    wp_apply (wp_runReplica γ i n h r hconf hin sl) $$ [Hrep Hfr] as %hf
     · iframe; iframe #
     exact hf.elim
   · wp_for

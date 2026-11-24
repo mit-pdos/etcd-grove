@@ -1,10 +1,10 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/events/FromDecoder.lean (lab master
 915f964; notes/dsv-vr.md): over any `GF`, on the net extension; the hook's lock is the hub's
-`hookLockInvFull`. What changed: `Unmarshal` is the hypothesis `encoding.json.Unmarshal.kitSpec`
-(`Proof/events/LibHyps.lean`; the lab proved it of its model) and the kit's codec the hypothesis
-`vsrnet.codecOk` (`Spec/json.lean`; the lab's theorem `codec_ok`), both at the kit's codec
-`vsrnet.jsonCodec`; the frame decoder's own codec is the spec's (any instance `C`). It proves the
+`hookLockInvFull`. What changed: `Unmarshal` is the main tree's `encoding.json.Unmarshal.spec`
+(proved, #24 J2/J3: by the dispatch `unmarshalVia`, here each payload type's own
+`JSONModelUnmarshal`, `events.payload_via`) and the kit's JSON facts `vsrnet.codecOk`
+(`Spec/json.lean`; the lab's theorem `codec_ok`), at the kit's contract `vsrnet.jsonCodec`; the frame decoder's own codec is the spec's (any instance `C`). It proves the
 hub's `events.Event.FromDecoder.spec` directly (the lab's `wp_FromDecoder'` and its wrapper in
 `Results.lean` in one).
 -/
@@ -15,7 +15,10 @@ value (`vsrnet.dec_payload`) and stored as `ev`'s event.
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.events.LibHyps
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.events
+public import Spec.encoding.json.Codec.NewEncoder
+public import Spec.encoding.json.Codec.Unmarshal
+public import Spec.encoding.json.Codec.Encoder__Encode_conn
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrwire.Hook
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
 public import Perennial.Spec.sync.Mutex__Lock
@@ -42,6 +45,16 @@ variable [net.Assumptions] [net.FieldAssumptions] [π : NetProtoGS] [encoding.js
 variable [encoding.json.Assumptions] [C : models_lab.jsoncodec.JsonCodec GF]
 
 set_option goose.wp.extras true
+
+/-- `Unmarshal` into a message's zero payload: the payload type's own `JSONModelUnmarshal` (#24
+J3), from the kit's facts. -/
+theorem events.payload_via (F : List w8 → Bool → w64 × w64) (m : Msg) (p : Loc) :
+    encoding.json.kitCodecOk (GF := GF) F ⊢
+      encoding.json.unmarshalVia C F
+        (interface.mkOk (go.GoType.PointerType (events.payloadTy m)) #p) := by
+  cases m <;> simp only [events.payloadTy] <;>
+    exact encoding.json.kitCodecOk_unmarshalVia F _ p (by simp [encoding.json.kitTypes])
+      (by go_type_set)
 
 /-- `getFrameDecoder()` with the hook set: `decodeFrame`. -/
 theorem events.wp_getFrameDecoder :
@@ -72,12 +85,11 @@ theorem events.wp_getFrameDecoder :
   iapply HΦ
   ipureintro; exact Hk
 
-/-- `events.Event.FromDecoder.spec`, over the hypotheses `Unmarshal.kitSpec` (at the kit's codec),
-`vsrnet.codecOk` and `Decoder.Decode_frame.spec` (what the hook's `decodeFrame` calls). -/
+/-- `events.Event.FromDecoder.spec`, over `Unmarshal.spec` (the main tree's), `vsrnet.codecOk` and
+`Decoder.Decode_frame.spec` (what the hook's `decodeFrame` calls). -/
 theorem events.Event.FromDecoder.wp'
     (wp_Decode_frame : events.Decoder.Decode_frame.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal : encoding.json.Unmarshal.kitSpec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
+    (wp_Unmarshal : encoding.json.Unmarshal.spec (GF := GF) (hG := hG))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.FromDecoder.spec (GF := GF) (hG := hG) := by
   intro F γ ev dec e0
@@ -126,14 +138,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -170,14 +183,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -214,14 +228,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -258,14 +273,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -302,14 +318,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -346,14 +363,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -390,14 +408,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -437,14 +456,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -484,14 +504,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -528,14 +549,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1
@@ -572,14 +594,15 @@ theorem events.Event.FromDecoder.wp'
         · iexact Hset
         unfold events.payloadZero
         iexact v
+      ihave #Hvia := events.payload_via (C := examples.vsrnet.jsonCodec) examples.vsrnet.scanF _ v_ptr $$ Hok
       simp only [events.payloadTy]
-      wp_apply wp_Unmarshal examples.vsrnet.scanF data _ _ _ _ $$ [Hdata Hdep]
-        as %err Hpost2
+      wp_apply wp_Unmarshal examples.vsrnet.jsonCodec examples.vsrnet.scanF data _ _ _ _
+        $$ [Hdata Hdep] as %err Hpost2
       · iframe
-        isplitr
-        · iexact Hset
-        iexact Hok
-      icases Hpost2 with ⟨Hdata, (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)⟩
+        iexact Hvia
+      icases Hpost2 with ⟨Hdata, Hret⟩
+      iunfold encoding.json.unmarshalRet at Hret
+      icases Hret with (⟨%Hvalid, %ok, %Hok', ⟨%Hok1, Hpay⟩⟩ | ⟨⟨%Hnv, -⟩, -⟩)
       rotate_left
       · exact absurd (examples.vsrnet.encPayload_valid _ hm (by have := Hdl.1; word)) Hnv
       subst Hok1

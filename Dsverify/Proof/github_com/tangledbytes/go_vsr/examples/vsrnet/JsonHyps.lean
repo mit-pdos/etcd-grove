@@ -3,37 +3,39 @@
 main tree"): every premise the kit's proof takes about `encoding/json` and the kit's JSON codec, in
 one place. Nothing else in the kit's proof states a JSON premise; the machines' proofs take these as
 arguments and `Link.lean` passes `JsonHyps`' fields. The package `encoding/json` is the main tree's
-(the model, J1/J2 of mit-pdos/etcd-grove#24; its initializer is proved).
+(the model, J1/J2/J3 of mit-pdos/etcd-grove#24; its initializer is proved, and so is its first run
+on a machine, which leaves the registry fresh: `BootLinked.lean`). Proved, not premises: the main
+tree's `Unmarshal.spec` (`Unmarshal.wp`) and `SetCodec.spec` (`SetCodec.wp`), and the kit's
+`RegisterJSON()` (`KitLib.lean`, from the boot's `codecFresh`).
 
 * Data (no instance anywhere; universally quantified at the statement): the model's `*Decoder`
   and `*Encoder` representations, the main tree's `encoding.json.DecoderRep GF` and
   `encoding.json.EncoderRep GF` (`Proof/encoding/json/Registry.lean`).
-* `JsonHyps` (a `Prop`), its fields:
-  - `Unmarshal`, `Encode_conn`: `encoding.json.{Unmarshal, Encoder.Encode_conn}.kitSpec`
-    (`Proof/events/LibHyps.lean`): the lab's, at the kit's registered codec (`codecSet ∗
-    kitCodecOk F`). The main tree's `Unmarshal.spec` (proved, J2) and `Encoder.Encode_conn.spec`
-    take `unmarshalVia`/`marshalVia` instead, whose codec route is `codecSetWith` (with the
-    registry's mutex) and whose per-type route is the type's own methods, for every contract `J`;
-    moving onto them changes these premises other than by removal (notes/dsv-vr.md).
-  - `NewEncoder`: the main tree's `encoding.json.NewEncoder.spec`
-    (`Spec/encoding/json/Codec/NewEncoder.lean`), the same statement as vr's was.
+* `JsonHyps` (a `Prop`), its fields, each true of the code as it stands (the argument is each
+  statement's docstring):
+  - `NewEncoder`, `Encode_conn`: **the main tree's statements** `encoding.json.NewEncoder.spec`
+    (`Spec/encoding/json/Codec/NewEncoder.lean`) and `encoding.json.Encoder.Encode_conn.spec`
+    (`Spec/encoding/json/Codec/Encoder__Encode_conn.lean`: `enc.Encode(v)` on a connection, by the
+    dispatch `marshalVia J F v`, for every contract `J`), not yet proved there (`EncoderRep` is
+    still a class).
   - `newDecoder`, `Decode_frame`: `pkg.events.{newDecoder, Decoder.Decode_frame}.spec`
     (`Spec/events.lean`): `json.NewDecoder` over a connection and `Decoder.Decode` of a
-    `vsrwire.Frame`, stated at go-vsr's stream (`events.rstream` over `DecoderRep`). The main tree
-    has no `NewDecoder`/`Decode` spec yet.
-  - `codecOk`: `vsrnet.codecOk` (`Spec/json.lean`): the kit's generated codec functions
-    (`jsonMarshal`, `jsonUnmarshal`, jsongen's) meet the kit's `JsonCodec`, `jsoncodec.Scan`
-    computes `scanF`: the proof of jsongen's output for the kit's types (the lab's ~8k lines).
-  - `RegisterJSON`: `vsrnet.RegisterJSON.codecSet_spec` (below): the kit's `RegisterJSON()` leaves
-    the codec registered (`codecSet`). **Not true of today's code**: its precondition does not
-    exclude a codec already registered (then `SetCodec` panics); the main tree's `SetCodec.spec`
-    needs `codecUnset` and the registry's mutex from the deployment's boot.
+    `vsrwire.Frame` (over the dispatch `unmarshalVia` at the frame), stated at go-vsr's stream
+    (`events.rstream` over `DecoderRep`). The main tree has no `NewDecoder`/`Decode` spec yet.
+  - `codec`: `vsrnet.registeredCodecOk` (`Spec/json.lean`): the kit's registered codec
+    (`jsonMarshal`, `jsonUnmarshal`, jsongen's, for the unnamed roots) meets
+    `codecPart vsrnet.jsonCodec`, and `jsoncodec.Scan` computes `scanF` (`codecOkWith`).
+  - `types`: `vsrnet.TypeCodecs` (`Spec/json.lean`): the 14 named types' own `JSONModel*` methods
+    (jsongen's same-package mode) meet `vsrnet.jsonCodec` (`typeCodecOk`), one field per type.
 -/
 module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.Base
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.events.LibHyps
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.events
+public import Spec.encoding.json.Codec.NewEncoder
+public import Spec.encoding.json.Codec.Unmarshal
+public import Spec.encoding.json.Codec.Encoder__Encode_conn
 
 @[expose] public section
 
@@ -59,26 +61,19 @@ variable [field_sem : net.FieldAssumptions]
 variable [π : NetProtoGS]
 variable [encoding.json.DecoderRep GF] [encoding.json.EncoderRep GF]
 
-/-- **JSON premise** (see the file header): the kit's `RegisterJSON()` registers its codec. False
-of the code (jsongen's `SetCodec(&json.Codec{jsonMarshal, jsonUnmarshal, jsoncodec.Scan})`): the
-precondition does not exclude a codec already registered, and then `SetCodec` panics; the main
-tree's `SetCodec.spec` takes `codecUnset` and the registry's mutex, a boot resource. -/
-abbrev RegisterJSON.codecSet_spec : Prop :=
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet }}
-    (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.RegisterJSON)) (Val #()))
-  {{ RET #(); encoding.json.codecSet (GF := GF) }}
-
 /-- **The kit's JSON premises**, one `Prop` (see the file header). -/
 structure JsonHyps : Prop where
-  Unmarshal : encoding.json.Unmarshal.kitSpec (GF := GF) (hG := hG)
-    (jc := examples.vsrnet.jsonCodec)
   NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG)
-  Encode_conn : encoding.json.Encoder.Encode_conn.kitSpec (GF := GF) (hG := hG)
-    (jc := examples.vsrnet.jsonCodec)
+  Encode_conn : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG)
   newDecoder : pkg.events.newDecoder.spec (GF := GF) (hG := hG)
   Decode_frame : pkg.events.Decoder.Decode_frame.spec (GF := GF) (hG := hG)
-  codecOk : examples.vsrnet.codecOk (GF := GF) (hG := hG)
-  RegisterJSON : RegisterJSON.codecSet_spec (GF := GF) (hG := hG)
+  codec : examples.vsrnet.registeredCodecOk (GF := GF) (hG := hG)
+  types : examples.vsrnet.TypeCodecs (GF := GF) (hG := hG)
+
+/-- The kit's JSON facts (`vsrnet.codecOk`: what the proofs take), from the premises. -/
+theorem JsonHyps.codecOk (j : JsonHyps (GF := GF) (hG := hG)) :
+    examples.vsrnet.codecOk (GF := GF) (hG := hG) :=
+  examples.vsrnet.codecOk_of j.codec j.types
 
 end hyps
 

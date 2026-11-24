@@ -4,7 +4,8 @@ The vr kit's links (notes/dsv-vr.md; the kit's top-level `Link`, namespace `Etcd
 proofs `Conf`, `ModelProof`, `CodecProof`, `KitProof`, `MkClientProof`, `OpProof`, the packages'
 `Results.lean`, remote's `Link.lean`, `Net/`'s net proofs), over the library hypotheses that remain
 (`LibHyps`: `connReaderOk`, finding 5; `JsonHyps`
-(`JsonHyps.lean`): every `encoding/json` premise); remote's `Check` and `ServeClient` are remote's proofs.
+(`JsonHyps.lean`): every `encoding/json` premise); remote's `Check` and `ServeClient` are remote's proofs,
+the main tree's `Unmarshal` and `SetCodec` its proofs (`Proof/encoding/json/Results.lean`).
 -/
 module
 
@@ -31,6 +32,7 @@ public import Net.Proof.net.Conn__Close
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.examples.vsrnet.LibHyps
 public import Dsverify.Proof.log.slog.Logger
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
+public import Proof.encoding.json.Results
 
 @[expose] public section
 
@@ -76,8 +78,8 @@ theorem wp_Server (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
     (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof
       net.Conn.Close.wp_proof h.conn_readerOk)
     (runReplica.wp_proof log.slog.New.wp_proof log.slog.DiscardHandler.load_proof j.codecOk
-      j.RegisterJSON
-      (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame j.Unmarshal j.codecOk))
+      (RegisterJSON.wp_proof encoding.json.SetCodec.wp)
+      (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp j.codecOk))
       (pkg.network.TCP.Run.wp log.slog.Debug.wp_proof j.newDecoder)
       pkg.network.TCP.Recv.wp
       examples.vsrkv.New.wp examples.vsrkv.Store.Handle_value.wp
@@ -104,9 +106,9 @@ theorem wp_Client (h : LibHyps (GF := GF) (hG := hG)) (j : JsonHyps (GF := GF) (
     (waitConf.wp_proof net.Listen.wp_proof net.Listener.Accept.wp_proof net.Conn.Write.wp_proof
       net.Conn.Close.wp_proof h.conn_readerOk)
     (mkClient.wp_proof
-      (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame j.Unmarshal
+      (pkg.network.NewTCP.wp (pkg.events.Event.FromDecoder.wp j.Decode_frame encoding.json.Unmarshal.wp
         j.codecOk))
-      log.slog.New.wp_proof log.slog.DiscardHandler.load_proof j.RegisterJSON
+      log.slog.New.wp_proof log.slog.DiscardHandler.load_proof (RegisterJSON.wp_proof encoding.json.SetCodec.wp)
       pkg.time.NewReal.wp pkg.client.New.wp)
     Codec.wp_proof
 

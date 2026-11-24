@@ -90,17 +90,18 @@ abbrev runReplica.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ VsrWire.addrs ∗
       VsrWire.protos (G := hG.goose_globalGS) γ ∗ sysInv (G := hG.goose_globalGS) γ ∗
       regInv (G := hG.goose_globalGS) γ ∗ repOwn (G := hG.goose_globalGS) γ i VsrModel.initRep ∗
-      fact (G := hG.goose_globalGS) γ (.size n) }}
+      fact (G := hG.goose_globalGS) γ (.size n) ∗ encoding.json.codecFresh (GF := GF) }}
     (App (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.runReplica))
       (Val #(W64 ((i + 1 : Nat) : Int)))) (Val #sl)) (Val #(confOf n h r)))
   {{ RET #(); False }}
 
 /-- **`Server(id)`**: server machine `id` (`1 ≤ id ≤ 5`, machine `NC + id`), given the start's
-share (`srvShare`); it never returns. -/
+share (`srvShare`) and encoding/json's fresh registry (`codecFresh`, from the machine's boot);
+it never returns. -/
 abbrev Server.spec : Prop :=
   ∀ (γ : Names) (id : w64), 1 ≤ uint.nat id ∧ uint.nat id ≤ 5 →
   {{ isPkgInit (PROP := IProp GF) kpkg ∗
-      srvShare (G := hG.goose_globalGS) γ (uint.nat id) }}
+      srvShare (G := hG.goose_globalGS) γ (uint.nat id) ∗ encoding.json.codecFresh (GF := GF) }}
     (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.Server)) (Val #id))
   {{ RET #(); False }}
 

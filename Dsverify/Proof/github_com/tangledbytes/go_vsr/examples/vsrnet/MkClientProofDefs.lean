@@ -74,7 +74,7 @@ abbrev mkClient.spec : Prop :=
       confOk (G := hG.goose_globalGS) γ cf ∗ pkg.network.netProtos γ ∗
       sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
       nextReq (G := hG.goose_globalGS) γ (c + 1) 1 ∗
-      encoding.json.kitCodecOk vsrnet.scanF }}
+      encoding.json.kitCodecOk vsrnet.scanF ∗ encoding.json.codecFresh (GF := GF) }}
     (App (App (App (Val (@! github_com.tangledbytes.go_vsr.examples.vsrnet.mkClient)) (Val #sl))
       (Val #cf)) (Val #(W64 (c : Int))))
   {{ (x : Loc), RET #x; sysRes γ c (interface.mkOk (go.GoType.PointerType Sys.ty) #x) 1 }}

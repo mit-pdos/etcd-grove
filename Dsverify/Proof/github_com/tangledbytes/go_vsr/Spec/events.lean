@@ -305,12 +305,27 @@ abbrev events.newDecoder.spec : Prop :=
 
 /-- `dec.Decode(&f)` into a `vsrwire.Frame` with a nil `Data` (the hook `vsrwire` installs calls
 it on a `Frame{}`; codec-3, D5), on a decoder of `γ`'s stream: the next frame, a valid
-message's type and payload bytes, or an error. -/
+message's type and payload bytes, or an error. Over the main tree's dispatch (#24 J3): a codec
+registered (`codecSet`: `Decode` takes the registered codec's `Scan` to read the next value,
+`getCodec`) and `unmarshalVia` at `&f` (the contract the instance gives; `*vsrwire.Frame` has
+`JSONModelUnmarshal`, so its method, and `jsoncodec.Scan` computes `F`).
+
+A premise while the main tree has no `Decoder` spec (`Code/encoding/json.toml` translates neither
+`NewDecoder` nor `Decode`). True of the model's `Decode` (`v2_stream.go`) at the kit's contract
+`vsrnet.jsonCodec`: a sticky error is returned again (`decErr`); else `readValue` reads up to the
+end of the next value with the registered codec's `Scan` (`jsoncodec.Scan`), fetching from the
+connection (`recvTok`), so the value read is whitespace and the next line's `encEvent m` of a
+message `γ`'s stream has (`rstreamAt`), or a read error is returned and kept; then the frame's
+`JSONModelUnmarshal` decodes it, which `unmarshalAt` (inside `unmarshalVia`) says meets
+`vsrnet.jsonCodec`'s `decP` frame case: `Frame{typeOf m, data}`, `data` a fresh slice of
+`encPayload m`. -/
 abbrev events.Decoder.Decode_frame.spec : Prop :=
   ∀ (F : List w8 → Bool → w64 × w64) (γ : VsrGhost.Names) (dec p : Loc)
     (fr : examples.vsrwire.Frame), fr.Data' = slice.nil →
   {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.json ∗
-      encoding.json.codecSet (GF := GF) ∗ encoding.json.kitCodecOk F ∗
+      encoding.json.codecSet (GF := GF) ∗
+      encoding.json.unmarshalVia inferInstance F
+        (interface.mkOk (go.GoType.PointerType examples.vsrwire.Frame.ty) #p) ∗
       events.rstream γ dec ∗ p ↦ fr }}
     (App (Val (dec @!! go.GoType.PointerType encoding.json.Decoder.ty @!! go!"Decode"))
       (Val #(interface.mkOk (go.GoType.PointerType examples.vsrwire.Frame.ty) #p)))

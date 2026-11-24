@@ -63,11 +63,112 @@ theorem vsrnet.enc_eq : @models_lab.jsoncodec.JsonCodec.enc _ _ (vsrnet.jsonCode
 theorem vsrnet.dec_eq : @models_lab.jsoncodec.JsonCodec.dec _ _ (vsrnet.jsonCodec (GF := GF)) =
     vsrnet.decP := rfl
 
-/-- **Hypothesis statement** (the lab's theorem `codec_ok`): the kit's codec functions meet
-`vsrnet.jsonCodec`, and `jsoncodec.Scan` computes `scanF`. -/
+end codec
+
+section premises
+attribute [local instance] vsrnet.jsonCodec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
+variable [encoding.json.Assumptions]
+
+/-- **Premise** (#24 J3; the lab's theorem `codec_ok`, for the registered codec's share): the kit's
+registered codec (`examples/vsrnet/json_gen.go`'s `jsonMarshal`, `jsonUnmarshal`, jsongen's for
+the unnamed roots `[]log.Log` and the frame struct) meets `codecPart vsrnet.jsonCodec`, and
+`jsoncodec.Scan` computes `scanF`.
+
+True of the code: `codecPart` keeps only the values the dispatch sends to the codec, whose types
+have no `JSONModel*` method. Of `encP`'s cases that leaves the `[]log.Log` (the `*events.Event`
+case has `JSONModelMarshalPtr`), of `decP`'s the `*[]log.Log` (`*vsrwire.Frame` and the payloads
+`*events.<T>` have `JSONModelUnmarshal`); `jsonMarshal` encodes a `[]log.Log` of plain operations
+as encoding/json does, which is `log.encLogs es` (jsongen's generated test `json_gen_test.go`
+compares the codec with real encoding/json; `encLogs` is the lab's proved encoding of the same
+values), and `jsonUnmarshal` decodes `encLogs es` (ids below `2^64`, plain operations) into a
+nil `*[]log.Log` as a fresh slice of `es`. `scanOk scanF scanFn`: `models.lab/jsoncodec.Scan` is
+the lab's scanner, whose Lean function `VsrJson.scanF` the lab proved it computes
+(`Proof/jsoncodec/Scan*.lean`, ported). -/
+def vsrnet.registeredCodecOk : Prop :=
+  ⊢ encoding.json.codecOkWith (jc := encoding.json.codecPart (vsrnet.jsonCodec (GF := GF)))
+      vsrnet.scanF (encoding.json.kitFn go!"jsonMarshal") (encoding.json.kitFn go!"jsonUnmarshal")
+
+/-- **Premise** (#24 J3, one field per type of `encoding.json.kitTypes`): the methods jsongen
+generated into each kit type's own package (`JSONModelMarshal`, `JSONModelMarshalPtr`,
+`JSONModelUnmarshal`) meet `vsrnet.jsonCodec`, the scanner `scanF` (the main tree's
+`typeCodecOk`).
+
+True of the code: `typeCodecOk J F T` constrains a method only where `J` gives a deposit for
+its value (`marshalAt`/`unmarshalAt` take `J.enc v Ψ`/`J.dec bs ptr Ψ` first). `vsrnet.jsonCodec`
+(`encP`, `decP`) gives one for: a `*events.Event` of a message with plain strings (encoded,
+never an error, as `VsrWire.encEvent m`: `jenc_Event` writes `{"@type":N,"data":…}` with the
+payload by `jencAny`, a `Logs` by its `MarshalJSON`, i.e. `json.Marshal([]Log)` through the
+registered codec, which `encP`'s `codecSet` registers and `registeredCodecOk` covers: real
+encoding/json's output, which jsongen's same-package tests (`json_model_gen_test.go`, run by
+`jsonmodel_forks.py`) compare it with, and which `encEvent` is); a `*vsrwire.Frame` holding a
+nil `Data`, on whitespace and a line's value (decoded as `Frame{typeOf m, encPayload m}`, the
+raw payload in a fresh slice); a `*events.<T>` zero payload, on `encPayload m` (decoded as `m`'s
+payload, its numbers below `2^64` (`MsgBound`), a `Logs` through its `UnmarshalJSON`, i.e. the
+registered codec). Every other method/value pair has no deposit (the value types `T`, `*T`
+marshalled for `T ≠ Event`, `*Event` unmarshalled, `log.Logs` at all), so its part holds
+trivially. -/
+structure vsrnet.TypeCodecs : Prop where
+  event : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.Event.ty
+  request : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.Request.ty
+  reply : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.Reply.ty
+  prepare : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.Prepare.ty
+  prepareOK : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.PrepareOK.ty
+  commit : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.Commit.ty
+  startViewChange : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.StartViewChange.ty
+  doViewChange : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.DoViewChange.ty
+  startView : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.StartView.ty
+  getState : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.GetState.ty
+  newState : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.NewState.ty
+  heartbeat : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.events.Heartbeat.ty
+  frame : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    vsrwire.Frame.ty
+  logs : ⊢ encoding.json.typeCodecOk (GF := GF) vsrnet.jsonCodec vsrnet.scanF
+    pkg.log.Logs.ty
+
+/-- The kit's JSON facts at the kit's codec and scanner (what the proofs take; the lab's theorem
+`codec_ok`), from the two premises: `vsrnet.codecOk_of`. -/
 def vsrnet.codecOk : Prop := ⊢ encoding.json.kitCodecOk (GF := GF) vsrnet.scanF
 
-end codec
+theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
+    (ht : vsrnet.TypeCodecs (GF := GF)) : vsrnet.codecOk (GF := GF) := by
+  unfold vsrnet.codecOk encoding.json.kitCodecOk
+  ihave #Hc := hc
+  isplitr
+  · iexact Hc
+  imodintro
+  iintro %T %hT
+  simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, or_false] at hT
+  rcases hT with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+  · iapply ht.event
+  · iapply ht.request
+  · iapply ht.reply
+  · iapply ht.prepare
+  · iapply ht.prepareOK
+  · iapply ht.commit
+  · iapply ht.startViewChange
+  · iapply ht.doViewChange
+  · iapply ht.startView
+  · iapply ht.getState
+  · iapply ht.newState
+  · iapply ht.heartbeat
+  · iapply ht.frame
+  · iapply ht.logs
+
+end premises
 
 section facts
 attribute [local instance] vsrnet.jsonCodec

@@ -2,7 +2,8 @@
 The vr kit's twelve commands' `main`s (`examples/vsrnet/cmd/*`, notes/dsv-vr.md), each its kit
 function on its constant, from the kit functions' specs (`Orch.spec`, `Client.spec`,
 `Server.spec`), as paxos's `Mains.lean`. Each `wp_main`'s precondition is its function's, which the
-start (`Start.lean`) gives.
+start (`Start.lean`) gives, and, for a client or a server, encoding/json's fresh registry
+(`codecFresh`, which the machine's boot returns: `BootCmdsLinked.lean`).
 -/
 module
 
@@ -87,14 +88,14 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (0 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 0 []) ∗
-        ⌜ρ.bud (clientAddrs.getD 0 []) = some 24⌝ }}
+        ⌜ρ.bud (clientAddrs.getD 0 []) = some 24⌝ ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Client γ 0 (by decide) $$ [Hnext] as %hf
+  wp_apply wp_Client γ 0 (by decide) $$ [Hnext Hfr] as %hf
   · iframe #
     iframe
   exact hf.elim
@@ -120,14 +121,14 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (1 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 1 []) ∗
-        ⌜ρ.bud (clientAddrs.getD 1 []) = some 24⌝ }}
+        ⌜ρ.bud (clientAddrs.getD 1 []) = some 24⌝ ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Client γ 1 (by decide) $$ [Hnext] as %hf
+  wp_apply wp_Client γ 1 (by decide) $$ [Hnext Hfr] as %hf
   · iframe #
     iframe
   exact hf.elim
@@ -153,14 +154,14 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (2 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 2 []) ∗
-        ⌜ρ.bud (clientAddrs.getD 2 []) = some 24⌝ }}
+        ⌜ρ.bud (clientAddrs.getD 2 []) = some 24⌝ ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Client γ 2 (by decide) $$ [Hnext] as %hf
+  wp_apply wp_Client γ 2 (by decide) $$ [Hnext Hfr] as %hf
   · iframe #
     iframe
   exact hf.elim
@@ -186,14 +187,14 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (3 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 3 []) ∗
-        ⌜ρ.bud (clientAddrs.getD 3 []) = some 24⌝ }}
+        ⌜ρ.bud (clientAddrs.getD 3 []) = some 24⌝ ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Client γ 3 (by decide) $$ [Hnext] as %hf
+  wp_apply wp_Client γ 3 (by decide) $$ [Hnext Hfr] as %hf
   · iframe #
     iframe
   exact hf.elim
@@ -219,14 +220,14 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (4 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 4 []) ∗
-        ⌜ρ.bud (clientAddrs.getD 4 []) = some 24⌝ }}
+        ⌜ρ.bud (clientAddrs.getD 4 []) = some 24⌝ ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Client γ 4 (by decide) $$ [Hnext] as %hf
+  wp_apply wp_Client γ 4 (by decide) $$ [Hnext Hfr] as %hf
   · iframe #
     iframe
   exact hf.elim
@@ -252,14 +253,14 @@ theorem wp_main (wp_Client : vsrnet.Client.spec (GF := GF) (hG := hG)) (γ : Nam
         sysInv (G := hG.goose_globalGS) γ ∗ regInv (G := hG.goose_globalGS) γ ∗
         nextReq (G := hG.goose_globalGS) γ (5 + 1) 1 ∗
         remoteAddr (Gg := hG.goose_globalGS) (kvR γ.gn) (clientAddrs.getD 5 []) ∗
-        ⌜ρ.bud (clientAddrs.getD 5 []) = some 24⌝ }}
+        ⌜ρ.bud (clientAddrs.getD 5 []) = some 24⌝ ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud⟩
+  wp_start as ⟨#Hcp, #Hnp, #Hsys, #Hreg, Hnext, #Hra, #Hbud, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Client γ 5 (by decide) $$ [Hnext] as %hf
+  wp_apply wp_Client γ 5 (by decide) $$ [Hnext Hfr] as %hf
   · iframe #
     iframe
   exact hf.elim
@@ -281,14 +282,14 @@ variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server1 ∗
-        srvShare (G := hG.goose_globalGS) γ 1 }}
+        srvShare (G := hG.goose_globalGS) γ 1 ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as Hsh
+  wp_start as ⟨Hsh, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ (W64 1) (by decide) $$ [Hsh] as %hf
+  wp_apply wp_Server γ (W64 1) (by decide) $$ [Hsh Hfr] as %hf
   · rw [show uint.nat (W64 1) = 1 from rfl]
     iframe #
     iframe
@@ -311,14 +312,14 @@ variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server2 ∗
-        srvShare (G := hG.goose_globalGS) γ 2 }}
+        srvShare (G := hG.goose_globalGS) γ 2 ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as Hsh
+  wp_start as ⟨Hsh, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ (W64 2) (by decide) $$ [Hsh] as %hf
+  wp_apply wp_Server γ (W64 2) (by decide) $$ [Hsh Hfr] as %hf
   · rw [show uint.nat (W64 2) = 2 from rfl]
     iframe #
     iframe
@@ -341,14 +342,14 @@ variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server3 ∗
-        srvShare (G := hG.goose_globalGS) γ 3 }}
+        srvShare (G := hG.goose_globalGS) γ 3 ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as Hsh
+  wp_start as ⟨Hsh, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ (W64 3) (by decide) $$ [Hsh] as %hf
+  wp_apply wp_Server γ (W64 3) (by decide) $$ [Hsh Hfr] as %hf
   · rw [show uint.nat (W64 3) = 3 from rfl]
     iframe #
     iframe
@@ -371,14 +372,14 @@ variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server4 ∗
-        srvShare (G := hG.goose_globalGS) γ 4 }}
+        srvShare (G := hG.goose_globalGS) γ 4 ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as Hsh
+  wp_start as ⟨Hsh, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ (W64 4) (by decide) $$ [Hsh] as %hf
+  wp_apply wp_Server γ (W64 4) (by decide) $$ [Hsh Hfr] as %hf
   · rw [show uint.nat (W64 4) = 4 from rfl]
     iframe #
     iframe
@@ -401,14 +402,14 @@ variable [encoding.json.DecoderRep GF]
 
 theorem wp_main (wp_Server : vsrnet.Server.spec (GF := GF) (hG := hG)) (γ : Names) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet.cmd.server5 ∗
-        srvShare (G := hG.goose_globalGS) γ 5 }}
+        srvShare (G := hG.goose_globalGS) γ 5 ∗ encoding.json.codecFresh (GF := GF) }}
       (App (Val (@! main)) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as Hsh
+  wp_start as ⟨Hsh, Hfr⟩
   ihave #Hkp : (isPkgInit (PROP := IProp GF) pkg_id.github_com.tangledbytes.go_vsr.examples.vsrnet) $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply wp_Server γ (W64 5) (by decide) $$ [Hsh] as %hf
+  wp_apply wp_Server γ (W64 5) (by decide) $$ [Hsh Hfr] as %hf
   · rw [show uint.nat (W64 5) = 5 from rfl]
     iframe #
     iframe

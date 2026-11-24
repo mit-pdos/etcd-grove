@@ -1,10 +1,10 @@
 /-
 Ported from dsverify-lab examples/vr/proof/VsrProof/Proof/events/ToWriter.lean (lab master 915f964;
 notes/dsv-vr.md): over any `GF`, on the net extension. What changed: `NewEncoder` and `Encode` are
-the hypotheses `encoding.json.NewEncoder.spec`, `encoding.json.Encoder.Encode_conn.kitSpec`
-(`Proof/events/LibHyps.lean`; the lab proved them of its model), and the kit's codec is the
-hypothesis `vsrnet.codecOk` (`Spec/json.lean`; the lab's theorem `codec_ok`), all at the kit's
-codec `vsrnet.jsonCodec`.
+the main tree's statements `encoding.json.NewEncoder.spec`, `encoding.json.Encoder.Encode_conn.spec`
+(premises; the lab proved them of its model), the latter by the dispatch `marshalVia` (#24 J3: the
+event's own `JSONModelMarshalPtr`), and the kit's JSON facts are `vsrnet.codecOk` (`Spec/json.lean`;
+the lab's theorem `codec_ok`), at the kit's contract `vsrnet.jsonCodec`.
 -/
 /-
 `ev.ToWriter(w)`: `json.NewEncoder(w).Encode(ev)` over the connection's writer (`wstream`), with
@@ -13,7 +13,10 @@ the write failed. The given codec and scanner (`kitCodecOk F`) are not needed.
 -/
 module
 
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.events.LibHyps
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.events
+public import Spec.encoding.json.Codec.NewEncoder
+public import Spec.encoding.json.Codec.Unmarshal
+public import Spec.encoding.json.Codec.Encoder__Encode_conn
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Spec.json
 
 @[expose] public section
@@ -43,12 +46,10 @@ variable [encoding.json.EncoderRep GF]
 set_option goose.wp.extras true
 
 /-- `events.Event.ToWriter.spec`, for any codec instance `C` (unused: the kit's is used), over
-the hypotheses `NewEncoder.spec`, `Encoder.Encode_conn.kitSpec` (at the kit's codec) and
-`vsrnet.codecOk`. -/
+`NewEncoder.spec`, `Encoder.Encode_conn.spec` (the main tree's) and `vsrnet.codecOk`. -/
 theorem events.Event.ToWriter.wp'
     (wp_NewEncoder : encoding.json.NewEncoder.spec (GF := GF) (hG := hG))
-    (wp_Encode : encoding.json.Encoder.Encode_conn.kitSpec (GF := GF) (hG := hG)
-      (jc := examples.vsrnet.jsonCodec))
+    (wp_Encode : encoding.json.Encoder.Encode_conn.spec (GF := GF) (hG := hG))
     (codec_ok : examples.vsrnet.codecOk (GF := GF) (hG := hG)) :
     events.Event.ToWriter.spec (GF := GF) (hG := hG) := by
   intro F γ ev m w
@@ -65,13 +66,14 @@ theorem events.Event.ToWriter.wp'
     · iPkgInit
     · iframe Hset; iexact Hev
   icases Hfacts with #Hfacts
-  wp_apply wp_Encode examples.vsrnet.scanF enc _ w cn s a (VsrWire.protoOf γ) W _
-    $$ [Henc Htok Hdep] as %err Hpost
+  ihave #Hvia := encoding.json.kitCodecOk_marshalVia (jc := examples.vsrnet.jsonCodec)
+    examples.vsrnet.scanF events.Event.ty ev (by simp [encoding.json.kitTypes]) (by go_type_set)
+    $$ Hok
+  wp_apply wp_Encode examples.vsrnet.jsonCodec examples.vsrnet.scanF enc _ w cn s a
+    (VsrWire.protoOf γ) W _ $$ [Henc Htok Hdep] as %err Hpost
   · iframe
     isplitr
-    · iexact Hset
-    isplitr
-    · iexact Hok
+    · iexact Hvia
     isplitr
     · iexact Hc
     iintro %bs %hbs
