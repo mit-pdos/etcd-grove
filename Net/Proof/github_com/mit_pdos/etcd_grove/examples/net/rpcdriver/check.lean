@@ -34,11 +34,11 @@ variable [π : NetProtoGS]
 theorem check.wp_proof (wp_isFailMsg : isFailMsg.spec (GF := GF) (hG := hG)) :
     check.spec (GF := GF) (hG := hG) := by
   intro pa pr id dsl data fail err
-  wp_start as ⟨#Hf, #Hstr, Ha, Hd, %Hfail, Hout⟩
+  wp_start as ⟨#Hf, #Hstr, Hout⟩
   iunfold drvFacts at Hf
   icases Hf with ⟨-, %f, #Hrg, #Hrf⟩
   iunfold callOutcome at Hout
-  icases Hout with (⟨%He, %dsl', Hr, Hd'⟩ | ⟨%msg, %He⟩ | %He)
+  icases Hout with (⟨%He, Ha, Hd, %dsl', Hr, Hd'⟩ | ⟨%msg, %He, Ha⟩ | %He)
   · -- a success: the method's reply to this request
     obtain ⟨rfl, rfl⟩ := He
     wp_auto
