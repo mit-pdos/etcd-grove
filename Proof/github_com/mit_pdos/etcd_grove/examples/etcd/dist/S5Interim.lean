@@ -6,8 +6,9 @@
 etcd's peer handler, dialed by the other members' rafthttp and leasehttp round trippers) is set by the deployment's
 start to the opaque peer protocols `httpPeerSvc` (`httpAddrAt a`), as S2's interface sets a client address to
 grpc's opaque `grpcCliPI`/`grpcSrvPI` (`grpcAddrAt`). With it:
-* `http_addr_set` is a theorem (`addr_set_proto`), and `S5Draft`'s fields hold (`s5Interim`, `s5Holds`): the
-  skeleton's and `putgetk`'s named hypothesis `S5Holds` is discharged;
+* `http_addr_set` is a theorem (`addr_set_proto`). `S5Draft`'s unindexed `httpAddrAt` is not instantiated: the
+  protocol is indexed by the cluster and the member (`httpPeerSvc cl id`), so `S5Draft` must gain those indices
+  before its fields are these (`notes/etcd-dist-plan.md` §16.3);
 * the member-side axioms are `NewServer_dist` (`etcdserver.NewServer` with the network across machines),
   `NewPeerHandler_dist` and `PeerServe_dist` (etcd's peer handler served on the member's peer listener);
 * `noProxyEnv`: the member's process has no HTTP proxy variable set (four `osEnvIs k ""`), which `NewServer_dist`
@@ -24,7 +25,7 @@ the one-process start hands out beside `addrUnset`.) Defined here: no axiom.
 module
 
 public import GooseLang.Ext.Net.Proto
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.S5Draft
+public import Spec.go_etcd_io.raft.v3.Api
 public import Proof.os.EnvIs
 
 @[expose] public section
@@ -46,8 +47,12 @@ open Iris Iris.BI Net
 requests of etcd's peer API, from a member of the deployment's cluster) and the acceptor's (`.2`, what etcd's peer
 handler served by net/http writes back). Its intended reading, S5's: the HTTP protocols of etcd's peer API, each
 request carrying raft's message invariant (the in-process network's `raftProto`). Opaque so that no program but the
-member-side axioms writes or learns anything of such a connection. -/
-opaque httpPeerSvc {GF : BundledGFunctors} : Proto GF × Proto GF := (fun _ _ => iprop(True), fun _ _ => iprop(True))
+member-side axioms writes or learns anything of such a connection. **Indexed by the cluster's raft names `cl` and the
+address's member `id`** (the 2026-11-24 review of `NewServer_dist`: unindexed, a second ghost cluster with the same
+configuration could use the same addresses, and a duplicate member panics raft, `tocommit out of range`): an address is
+set once (`addrUnset` is spent), so only one cluster's members, and only the member `id`, are at it. -/
+opaque httpPeerSvc {GF : BundledGFunctors} (cl : go_etcd_io.raft.v3.Cluster) (id : w64) :
+    Proto GF × Proto GF := (fun _ _ => iprop(True), fun _ _ => iprop(True))
 
 section addr
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [GoGlobalContext]
@@ -55,34 +60,24 @@ variable {GF : BundledGFunctors} [Gg : GooseGlobalGS .hasLC GF] [π : NetProtoGS
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
 
-/-- **The peer address `a` serves etcd's peer API** (persistent, no heap): `a`'s protocols are `httpPeerSvc`'s. -/
-def httpAddrAt (a : GoString) : IProp GF :=
-  addrProto (Gg := Gg) a (httpPeerSvc (GF := GF)).1 (httpPeerSvc (GF := GF)).2
+/-- **The peer address `a` is member `id`'s of the cluster `cl` and serves etcd's peer API** (persistent, no heap):
+`a`'s protocols are `httpPeerSvc cl id`'s. -/
+def httpAddrAt (cl : go_etcd_io.raft.v3.Cluster) (id : w64) (a : GoString) : IProp GF :=
+  addrProto (Gg := Gg) a (httpPeerSvc (GF := GF) cl id).1 (httpPeerSvc (GF := GF) cl id).2
 
-instance httpAddrAt_persistent (a : GoString) : Persistent (httpAddrAt (Gg := Gg) a) := by
+instance httpAddrAt_persistent (cl : go_etcd_io.raft.v3.Cluster) (id : w64) (a : GoString) :
+    Persistent (httpAddrAt (Gg := Gg) cl id a) := by
   unfold httpAddrAt; infer_instance
 
 /-- **The start law**: the deployment's start sets an unset address (`addrUnset a`, spent) to serve etcd's peer
 API (`addr_set_proto`). -/
-theorem http_addr_set (E : CoPset) (a : GoString) :
-    ⊢ regCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗ httpAddrAt (Gg := Gg) a := by
+theorem http_addr_set (E : CoPset) (cl : go_etcd_io.raft.v3.Cluster) (id : w64) (a : GoString) :
+    ⊢ regCtx (Gg := Gg) -∗ addrUnset (Gg := Gg) a ={E}=∗ httpAddrAt (Gg := Gg) cl id a := by
   iintro #Hreg Hu
   unfold httpAddrAt
   iapply addr_set_proto E a _ _ $$ Hreg Hu
 
-/-- `S5Draft`'s fields, defined. -/
-def s5Interim : S5Draft GF where
-  httpAddrAt := httpAddrAt (Gg := Gg)
-  httpAddrAt_persistent := httpAddrAt_persistent
-  http_addr_set := http_addr_set
-
 end addr
-
-/-- **`S5Holds`, a theorem** (the skeleton's and `putgetk`'s named hypothesis; see the file header). -/
-theorem s5Holds (GF : BundledGFunctors) [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
-    [GoGlobalContext] : S5Holds GF := by
-  intro _ _
-  exact ⟨s5Interim⟩
 
 /-! ## No HTTP proxy -/
 

@@ -35,8 +35,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.Assump
 abbrev NewPeerHandler_dist.spec : Prop :=
   ∀ (lg s : Loc) (γn : NetNames GF) (id : w64) (τ : SrvTr GF) (on : Bool) (E : apply.AEnv GF)
     (ρ : ReqNames),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp ∗
-      zapLoggerOk lg ∗ srvNetMember γn s id τ ∗ isServerReqM on s E ρ }}
+  {{ zapLoggerOk lg ∗ srvNetMember γn s id τ ∗ isServerReqM on s E ρ }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.NewPeerHandler)) (Val #lg))
       (Val #(interface.mkOk (go.GoType.PointerType EtcdServer.ty) #s : GoInterface)))
   {{ (h : GoInterface), RET #h; peerHandlerOf h s }}

@@ -9,8 +9,9 @@ else, the rest is its text verbatim):
 * the network's names `γn` are no binder: the post gives them (`∃ γn`, with `γn.N = srvNet γ` and `γn.dir = dir`,
   what the premise fixed before), as `StartMember_dist.spec` (`putgetk`) does;
 * `netHttpOk γn id` (the in-process streams' registry, every other member's host registered with raft's protocol
-  through the single-process `http.reserve`) is replaced by `httpAddrAt a` (`S5Interim.lean`: the deployment's
-  start set `a` to etcd's peer protocols) for every other peer's address `a` in the directory;
+  through the single-process `http.reserve`) is replaced by `httpAddrAt γ.cl pid a` (`S5Interim.lean`: the deployment's
+  start set `a` to etcd's peer protocols of the cluster `γ.cl` and member `pid`) for every other peer `pid`'s address
+  `a` in the directory;
 * `noProxyEnv` (this process has no HTTP proxy variable set; the program's check, `os.Getenv.specEnv`) is added.
 -/
 module
@@ -27,7 +28,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
+open Iris Iris.BI Net go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
@@ -205,7 +206,7 @@ abbrev NewServer.specG_dist [π : Net.NetProtoGS] (on cmp : Bool) : Prop :=
       -- `γn.dir = dir`): every other peer's address in the directory set to etcd's peer protocols (the start's
       -- `http_addr_set`), and no HTTP proxy in this process (the program's check, `noProxyEnv`)
       "#Hpeers" ∷ (□ ∀ (pid : w64) (a : GoString), ⌜pid ∈ γ.vs ∧ pid ≠ id ∧ go!"http://" ++ a ∈ dir pid⌝ -∗
-        etcd_dist.httpAddrAt (Gg := hG.goose_globalGS) a) ∗
+        etcd_dist.httpAddrAt (Gg := hG.goose_globalGS) γ.cl pid a) ∗
       "#Hnoproxy" ∷ etcd_dist.noProxyEnv ∗
       -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
       -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
