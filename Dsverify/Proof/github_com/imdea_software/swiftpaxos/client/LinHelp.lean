@@ -185,7 +185,6 @@ theorem strW_inj : ∀ {xs ys : List w64}, strW xs = strW ys → xs = ys
   | x :: xs, [], h => by
     have := congrArg List.length h
     simp [strW, List.flatMap_cons, strW1_length] at this
-    omega
   | x :: xs, y :: ys, h => by
     simp only [strW, List.flatMap_cons] at h
     obtain ⟨h1, h2⟩ := List.append_inj h (by rw [strW1_length, strW1_length])
