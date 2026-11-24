@@ -36,7 +36,7 @@ variable [π : NetProtoGS]
 abbrev Server.ServeHTTP.spec : Prop :=
   ∀ (s : Loc) (γs : GName) (C : CodecSpec GF) (W : RpcWorld GF) (a : GoString) (cn : Nat)
     (rp req : Loc) (D : IProp GF),
-  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServer s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
+  {{ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗ isServerAny s γs ∗ srvServes γs C W a ∗ srvEnv ∗ codecSet C ∗
       globalAddr net.rpc.connected ↦□ connectedStatus ∗ ⌜W.hs a ≠ [] ∧ W.hsAns a = connectAns⌝ ∗
       net.http.reqHead req go!"CONNECT" ∗
       net.http.hijackOk rp cn a (reqProto (Gg := hG.goose_globalGS) W a)

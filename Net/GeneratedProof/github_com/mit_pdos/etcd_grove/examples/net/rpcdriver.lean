@@ -8,6 +8,7 @@ public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.rpc
 public import Net.GeneratedProof.net
 public import Net.GeneratedProof.net.http
 public import Net.GeneratedProof.net.rpc
+public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Net.Code.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver

@@ -62,6 +62,10 @@ public import Net.Proof.net.rpc.Client__Close
 public import Net.Proof.net.rpc.Client__send
 public import Net.Proof.net.rpc.Client__Go
 public import Net.Proof.net.rpc.Client__Call
+public import Net.Proof.net.rpc.Client__CloseClosed
+public import Net.Proof.net.rpc.Client__sendClosed
+public import Net.Proof.net.rpc.Client__GoClosed
+public import Net.Proof.net.rpc.Client__CallClosed
 public import Net.Proof.net.rpc.newClientCodec
 public import Net.Proof.net.rpc.Client__input
 public import Net.Proof.net.rpc.NewClientWithCodec
@@ -92,6 +96,15 @@ public import Net.Proof.net.rpc.Server__Register
 public import Net.Proof.net.rpc.Server__RegisterName
 public import Net.Proof.net.rpc.Register
 public import Net.Proof.net.rpc.RegisterName
+public import Net.Proof.net.rpc.NewServerOwned
+public import Net.Proof.net.rpc.Server__registerFresh
+public import Net.Proof.net.rpc.Server__RegisterFresh
+public import Net.Proof.net.rpc.Server__RegisterNameFresh
+public import Net.Proof.net.rpc.RegisterFresh
+public import Net.Proof.net.rpc.RegisterNameFresh
+public import Net.Proof.net.rpc.Server__registerNone
+public import Net.Proof.net.rpc.Server__RegisterNone
+public import Net.Proof.net.rpc.RegisterNone
 public import Net.Proof.go.token.IsExported
 public import Net.Proof.net.rpc.Server__sendResponse
 public import Net.Proof.net.rpc.service__call
@@ -187,6 +200,18 @@ theorem Client.Go.wp : Client.Go.spec (GF := GF) (hG := hG) := Client.Go.wp_proo
 
 theorem Client.Call.wp : Client.Call.spec (GF := GF) (hG := hG) := Client.Call.wp_proof Client.Go.wp
 
+theorem Client.Close.wp_closed : Client.Close.spec_closed (GF := GF) (hG := hG) :=
+  Client.Close.wp_proof_closed sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.Close.wp
+
+theorem Client.send.wp_closed : Client.send.spec_closed (GF := GF) (hG := hG) :=
+  Client.send.wp_proof_closed sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Call.done.wp
+
+theorem Client.Go.wp_closed : Client.Go.spec_closed (GF := GF) (hG := hG) :=
+  Client.Go.wp_proof_closed Client.send.wp_closed
+
+theorem Client.Call.wp_closed : Client.Call.spec_closed (GF := GF) (hG := hG) :=
+  Client.Call.wp_proof_closed Client.Go.wp_closed
+
 theorem Client.input.wp [errors.Assumptions] : Client.input.spec (GF := GF) (hG := hG) :=
   Client.input.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock clientCodec.ReadResponseHeader.wp
     clientCodec.ReadResponseBody.wp Call.done.wp
@@ -260,6 +285,28 @@ theorem Register.wp [errors.Assumptions] [go.token.Assumptions] :
 theorem RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
     RegisterName.spec (GF := GF) (hG := hG) := RegisterName.wp_proof Server.RegisterName.wp
 
+theorem NewServer.wp_owned : NewServer.spec_owned (GF := GF) (hG := hG) := NewServer.wp_proof_owned
+
+theorem Server.register.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Server.register.spec_fresh (GF := GF) (hG := hG) :=
+  Server.register.wp_proof_fresh sync.Mutex.wp_Lock sync.Mutex.wp_Unlock getCodec.wp
+    go.token.IsExported.wp
+
+theorem Server.Register.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Server.Register.spec_fresh (GF := GF) (hG := hG) :=
+  Server.Register.wp_proof_fresh Server.register.wp_fresh
+
+theorem Server.RegisterName.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Server.RegisterName.spec_fresh (GF := GF) (hG := hG) :=
+  Server.RegisterName.wp_proof_fresh Server.register.wp_fresh
+
+theorem Register.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    Register.spec_fresh (GF := GF) (hG := hG) := Register.wp_proof_fresh Server.Register.wp_fresh
+
+theorem RegisterName.wp_fresh [errors.Assumptions] [go.token.Assumptions] :
+    RegisterName.spec_fresh (GF := GF) (hG := hG) :=
+  RegisterName.wp_proof_fresh Server.RegisterName.wp_fresh
+
 theorem Server.sendResponse.wp : Server.sendResponse.spec (GF := GF) (hG := hG) :=
   Server.sendResponse.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.getResponse.wp
     Server.freeResponse.wp serverCodec.WriteResponse.wp
@@ -285,6 +332,17 @@ theorem Server.ServeConn.wp [errors.Assumptions] : Server.ServeConn.spec (GF := 
 
 theorem log.Println.wp [log.Assumptions] : _root_.Perennial.log.Println.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.log.Println.wp_proof
+
+theorem Server.register.wp_none [errors.Assumptions] [go.token.Assumptions] [log.Assumptions] :
+    Server.register.spec_none (GF := GF) (hG := hG) :=
+  Server.register.wp_proof_none getCodec.wp go.token.IsExported.wp log.Println.wp
+
+theorem Server.Register.wp_none [errors.Assumptions] [go.token.Assumptions] [log.Assumptions] :
+    Server.Register.spec_none (GF := GF) (hG := hG) :=
+  Server.Register.wp_proof_none Server.register.wp_none
+
+theorem Register.wp_none [errors.Assumptions] [go.token.Assumptions] [log.Assumptions] :
+    Register.spec_none (GF := GF) (hG := hG) := Register.wp_proof_none Server.Register.wp_none
 
 theorem Server.Accept.wp [errors.Assumptions] [log.Assumptions] :
     Server.Accept.spec (GF := GF) (hG := hG) :=
@@ -359,6 +417,10 @@ end Perennial
 #print axioms Perennial.net.rpc.Client.send.wp
 #print axioms Perennial.net.rpc.Client.Go.wp
 #print axioms Perennial.net.rpc.Client.Call.wp
+#print axioms Perennial.net.rpc.Client.Close.wp_closed
+#print axioms Perennial.net.rpc.Client.send.wp_closed
+#print axioms Perennial.net.rpc.Client.Go.wp_closed
+#print axioms Perennial.net.rpc.Client.Call.wp_closed
 #print axioms Perennial.net.rpc.Client.input.wp
 #print axioms Perennial.net.rpc.NewClientWithCodec.wp
 #print axioms Perennial.net.rpc.NewClient.wp
@@ -379,6 +441,15 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.RegisterName.wp
 #print axioms Perennial.net.rpc.Register.wp
 #print axioms Perennial.net.rpc.RegisterName.wp
+#print axioms Perennial.net.rpc.NewServer.wp_owned
+#print axioms Perennial.net.rpc.Server.register.wp_fresh
+#print axioms Perennial.net.rpc.Server.Register.wp_fresh
+#print axioms Perennial.net.rpc.Server.RegisterName.wp_fresh
+#print axioms Perennial.net.rpc.Register.wp_fresh
+#print axioms Perennial.net.rpc.RegisterName.wp_fresh
+#print axioms Perennial.net.rpc.Server.register.wp_none
+#print axioms Perennial.net.rpc.Server.Register.wp_none
+#print axioms Perennial.net.rpc.Register.wp_none
 #print axioms Perennial.net.rpc.Server.sendResponse.wp
 #print axioms Perennial.net.rpc.service.call.wp
 #print axioms Perennial.net.rpc.Server.readRequestHeader.wp

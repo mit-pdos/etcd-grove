@@ -210,10 +210,25 @@ def respChain : List Loc → Loc → IProp GF
   | [], p => iprop(⌜p = null⌝)
   | r :: rs, p => iprop(⌜p = r⌝ ∗ ∃ v : net.rpc.Response, r ↦ v ∗ respChain rs v.next')
 
-/-- `mapLock`'s invariant: the services map, and the ghost map `γ` equal to it. -/
-def svcMapInv (γ : GName) (s : Loc) : IProp GF :=
+/-- The registry's owner's share of the services map `M` in mode `o`: none (`none`, no owner), or,
+for an owner `γf` (`some γf`), the element of `γf` of every name taken, whose authority (`svcOwn`)
+the owner keeps: so the owner knows which names are free. -/
+def svcOwnIn (o : Option GName) (M : GMap GoString Loc) : IProp GF :=
+  match o with
+  | none => iprop(True)
+  | some γf => iprop([∗map] nm ↦ _sv ∈ M,
+      ghostMapElem (K := GoString) (V := Unit) γf nm (DFrac.own 1) ())
+
+/-- `mapLock`'s invariant in the registry mode `o`: the services map, the ghost map `γ` equal to
+it, and the owner's share of it (`svcOwnIn`). -/
+def svcMapInvO (γ : GName) (o : Option GName) (s : Loc) : IProp GF :=
   iprop(∃ (smp : Loc) (M : GMap GoString Loc), structFieldRef net.rpc.Server go!"serviceMap" s ↦ smp ∗
-    smp ↦$ M ∗ ghostMapAuth γ 1 M)
+    smp ↦$ M ∗ ghostMapAuth γ 1 M ∗ svcOwnIn o M)
+
+/-- The owner `γf`'s knowledge of the names taken in the registry (exclusive): the authority
+whose elements `mapLock`'s invariant holds, one per name taken (`svcOwnIn`). -/
+def svcOwn (γf : GName) (R : GMap GoString Unit) : IProp GF :=
+  iprop(ghostMapAuth γf 1 R)
 
 /-- `reqLock`'s invariant. -/
 def reqFreeInv (s : Loc) : IProp GF :=
@@ -225,15 +240,49 @@ def respFreeInv (s : Loc) : IProp GF :=
   iprop(∃ (fr : Loc) (rs : List Loc), structFieldRef net.rpc.Server go!"freeResp" s ↦ fr ∗
     respChain rs fr)
 
-/-- `s` is a server with the registry `γ` (persistent; see the file header). -/
-def isServer (s : Loc) (γ : GName) : IProp GF :=
+/-- `s` is a server with the registry `γ` in the mode `o` (persistent; see the file header): no
+owner (`none`), or an owner `γf` (`some γf`, `svcOwn γf`), who knows which names are free. -/
+def isServerO (s : Loc) (γ : GName) (o : Option GName) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗
-    sync.isMutex (structFieldRef net.rpc.Server go!"mapLock" s) (svcMapInv γ s) ∗
+    sync.isMutex (structFieldRef net.rpc.Server go!"mapLock" s) (svcMapInvO γ o s) ∗
     sync.isMutex (structFieldRef net.rpc.Server go!"reqLock" s) (reqFreeInv s) ∗
     sync.isMutex (structFieldRef net.rpc.Server go!"respLock" s) (respFreeInv s))
 
+instance isServerO_persistent (s : Loc) (γ : GName) (o : Option GName) :
+    Persistent (isServerO (GF := GF) s γ o) := by
+  unfold isServerO; infer_instance
+
+/-- `s` is a server with the registry `γ`, no owner (persistent; see the file header). -/
+def isServer (s : Loc) (γ : GName) : IProp GF := isServerO s γ none
+
 instance isServer_persistent (s : Loc) (γ : GName) : Persistent (isServer (GF := GF) s γ) := by
   unfold isServer; infer_instance
+
+/-- `s` is a server with the registry `γ`, in some mode (persistent): what serving needs. -/
+def isServerAny (s : Loc) (γ : GName) : IProp GF :=
+  iprop(∃ o : Option GName, isServerO s γ o)
+
+instance isServerAny_persistent (s : Loc) (γ : GName) : Persistent (isServerAny (GF := GF) s γ) := by
+  unfold isServerAny; infer_instance
+
+theorem isServerAny_sync (s : Loc) (γ : GName) :
+    isServerAny (GF := GF) s γ ⊢ isPkgInit (PROP := IProp GF) pkg_id.sync := by
+  unfold isServerAny isServerO
+  iintro ⟨%o, #Hsync, -⟩
+  iexact Hsync
+
+theorem isServer_any (s : Loc) (γ : GName) : isServer (GF := GF) s γ ⊢ isServerAny s γ := by
+  unfold isServer isServerAny
+  iintro #H
+  iexists none
+  iexact H
+
+theorem isServerO_any (s : Loc) (γ : GName) (o : Option GName) :
+    isServerO (GF := GF) s γ o ⊢ isServerAny s γ := by
+  unfold isServerAny
+  iintro #H
+  iexists o
+  iexact H
 
 /-- The package's `DefaultServer` holds, for good, a server with the registry `γ` (persistent):
 what the package-level `Register`, `RegisterName` (and `ServeConn`, `HandleHTTP`, ...) run on. -/
@@ -242,6 +291,37 @@ def defaultServer (γ : GName) : IProp GF :=
 
 instance defaultServer_persistent (γ : GName) : Persistent (defaultServer (GF := GF) γ) := by
   unfold defaultServer; infer_instance
+
+/-- The package's `DefaultServer` holds, for good, a server with the registry `γ` owned by `γf`
+(persistent): the owner of `svcOwn γf` registers fresh names on it (`Register.spec_fresh`). -/
+def defaultServerO (γ γf : GName) : IProp GF :=
+  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ isServerO s γ (some γf))
+
+instance defaultServerO_persistent (γ γf : GName) :
+    Persistent (defaultServerO (GF := GF) γ γf) := by
+  unfold defaultServerO; infer_instance
+
+/-- The package's `DefaultServer` holds, for good, a server with the registry `γ`, in some mode
+(persistent): what serving on it needs. -/
+def defaultServerAny (γ : GName) : IProp GF :=
+  iprop(∃ s : Loc, globalAddr net.rpc.DefaultServer ↦□ s ∗ isServerAny s γ)
+
+instance defaultServerAny_persistent (γ : GName) : Persistent (defaultServerAny (GF := GF) γ) := by
+  unfold defaultServerAny; infer_instance
+
+theorem defaultServer_any (γ : GName) : defaultServer (GF := GF) γ ⊢ defaultServerAny γ := by
+  unfold defaultServer defaultServerAny
+  iintro ⟨%s, #Hs, #H⟩
+  iexists s
+  iframe Hs
+  iapply isServer_any $$ H
+
+theorem defaultServerO_any (γ γf : GName) : defaultServerO (GF := GF) γ γf ⊢ defaultServerAny γ := by
+  unfold defaultServerO defaultServerAny
+  iintro ⟨%s, #Hs, #H⟩
+  iexists s
+  iframe Hs
+  iapply isServerO_any $$ H
 
 /-- The service `name` of the registry `γ` is a `*service` whose methods meet `S`, for good
 (persistent). -/

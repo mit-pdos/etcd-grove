@@ -17,6 +17,7 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
+	"strings"
 	"sync"
 
 	"github.com/goose-lang/primitive"
@@ -89,14 +90,9 @@ func Server() {
 // driver's, so that none is one of net/rpc's own error messages.
 var failMsgs = []string{"driver: no such key", "driver: not leader", "driver: x"}
 
-// isFailMsg says whether m is one of the method's messages (failMsgs).
+// isFailMsg says whether m is marked as one of the method's messages (failMsgs: "driver: ...").
 func isFailMsg(m string) bool {
-	for _, f := range failMsgs {
-		if m == f {
-			return true
-		}
-	}
-	return false
+	return strings.HasPrefix(m, "driver: ")
 }
 
 // dial connects to the server, over raw TCP or over HTTP at random.
@@ -153,7 +149,7 @@ func check(a *service.Args, r *service.Reply, err error) {
 		reached("call-success")
 		return
 	}
-	// Section server-error: a rpc.ServerError carrying one of the method's messages is this
+	// Section server-error: a rpc.ServerError carrying a message marked as the method's is this
 	// request's own answer: the method ran on it and failed with that message. (net/rpc's own
 	// errors are ServerErrors too, e.g. a request whose body was cut short; their messages are
 	// net/rpc's, never the method's.)

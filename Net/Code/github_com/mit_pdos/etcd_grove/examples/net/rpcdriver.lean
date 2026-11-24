@@ -6,6 +6,7 @@ public import Net.Code.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.ser
 public import Net.Code.net.rpc
 public import Net.Code.net
 public import Net.Code.net.http
+public import Perennial.Code.strings
 public import Perennial.Code.sync
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Golang.Defn
@@ -1722,7 +1723,7 @@ noncomputable def rpcCall_r0_Echo.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- below is a random number in [0, n) (0 if n is 0).
 
-    go: rpcdriver.go:45:6 -/
+    go: rpcdriver.go:46:6 -/
 noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -1749,7 +1750,7 @@ noncomputable def below.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Server (after the program's Register of the codec) registers the service, then serves it over raw TCP and over HTTP. It returns only if it
     cannot listen.
 
-    go: rpcdriver.go:57:6 -/
+    go: rpcdriver.go:58:6 -/
 noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -1844,46 +1845,27 @@ noncomputable def Server.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Svc.ty)))) (Pair (Var "svc") (Var "$r0"))))))))
   (Val #())))
 
-/-- isFailMsg says whether m is one of the method's messages (failMsgs).
+/-- isFailMsg says whether m is marked as one of the method's messages (failMsgs: "driver: ...").
 
-    go: rpcdriver.go:93:6 -/
+    go: rpcdriver.go:94:6 -/
 noncomputable def isFailMsg.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc go.string))) (Var "m"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Val #false)
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "m"))
+  (Let "$a1" (Val #(go!"driver: "))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.HasPrefix []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GlobalVarAddr failMsgs))) (Val #())))
-  (Let "f" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
-  (App (App (Val (slice.forRange go.string)) (Var "$range"))
-  (Lam "$key"
-  (Lam "$value"
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "m")) (App (Val (GoInstruction (GoLoad go.string))) (Var "f")))))
-  (Let "$r0" (Val #true)
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
-  (App (Val doExecute)
-  (Val #())))))
-  (App (Val doExecute)
-  (Var "$key")))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "f") (Var "$value")))))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
 
 /-- dial connects to the server, over raw TCP or over HTTP at random.
 
-    go: rpcdriver.go:103:6 -/
+    go: rpcdriver.go:99:6 -/
 noncomputable def dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty)))) (Val #())))
@@ -1926,7 +1908,7 @@ noncomputable def dial.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.net.rpc.Client.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
-/-- go: rpcdriver.go:117:19 -/
+/-- go: rpcdriver.go:113:19 -/
 noncomputable def counter.take.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
@@ -1959,7 +1941,7 @@ noncomputable def counter.take.impl [GooseExts] [GoGlobalContext] : val :=
 /-- randomArgs is a request with a fresh id, a random payload and, at random, an error to answer
     with.
 
-    go: rpcdriver.go:127:6 -/
+    go: rpcdriver.go:123:6 -/
 noncomputable def randomArgs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ids"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service.Args.ty)))) (Val #())))
@@ -2011,7 +1993,7 @@ noncomputable def randomArgs.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- check is what the client relies on from one call's outcome, given its request.
 
-    go: rpcdriver.go:140:6 -/
+    go: rpcdriver.go:136:6 -/
 noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "r"
@@ -2092,7 +2074,7 @@ noncomputable def check.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- callOn makes calls on the connection c, from random workers, with Call or Go at random.
 
-    go: rpcdriver.go:175:6 -/
+    go: rpcdriver.go:171:6 -/
 noncomputable def callOn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ids"
@@ -2203,7 +2185,7 @@ noncomputable def callOn.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Client (after the program's Register of the codec) dials the server a random number of times, makes random calls on each connection and
     checks every outcome, then closes the connection.
 
-    go: rpcdriver.go:206:6 -/
+    go: rpcdriver.go:202:6 -/
 noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Seq (App (Val exceptionDo)
@@ -2298,12 +2280,13 @@ noncomputable def Client.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver where
-  pkgImportedPkgs := [pkg_id.errors, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service, pkg_id.net.rpc, pkg_id.net, pkg_id.net.http, pkg_id.sync, pkg_id.github_com.goose_lang.primitive]
+  pkgImportedPkgs := [pkg_id.errors, pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.service, pkg_id.net.rpc, pkg_id.net, pkg_id.net.http, pkg_id.strings, pkg_id.sync, pkg_id.github_com.goose_lang.primitive]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2338,6 +2321,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.net.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -2452,6 +2437,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_rpc_Assumption : _root_.Perennial.net.rpc.Assumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
@@ -2497,6 +2483,7 @@ attribute [instance] Assumptions.rpcNotModelled_instance
   Assumptions.import_rpc_Assumption
   Assumptions.import_net_Assumption
   Assumptions.import_http_Assumption
+  Assumptions.import_strings_Assumption
   Assumptions.import_sync_Assumption
   Assumptions.import_primitive_Assumption
 
