@@ -92,8 +92,8 @@ def nestRun : w64 → w64 → Bool → List w8 → w64
   | d, m, false, c :: r =>
     if c = 34#8 then nestRun d m true r
     else if c = 91#8 ∨ c = 123#8 then
-      nestRun (d + 1) (if uint.Z (d + 1) > uint.Z m then d + 1 else m) false r
-    else if c = 93#8 ∨ c = 125#8 then nestRun (d - 1) m false r
+      nestRun (d + W64 1) (if uint.Z (d + W64 1) > uint.Z m then d + W64 1 else m) false r
+    else if c = 93#8 ∨ c = 125#8 then nestRun (d - W64 1) m false r
     else nestRun d m false r
 
 /-- A plain string's contents leave `Nesting` in the string. -/
