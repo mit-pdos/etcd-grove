@@ -37,6 +37,8 @@ etcd's peer protocols (`httpAddrAt pa`), `pl` a listener open at `pa` (`netListe
 abbrev PeerServe_dist.spec : Prop :=
   ∀ [π : NetProtoGS] (pl h : GoInterface) (pa : GoString) (s : Loc) (γn : NetNames GF) (id : w64)
     (τ : SrvTr GF) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames),
+  -- `pa` is the member's own peer address (its directory entry; review of 2026-11-24)
+  go!"http://" ++ pa ∈ γn.dir id →
   {{ httpAddrAt (Gg := hG.goose_globalGS) pa ∗ netListenerOpen pl pa ∗ peerHandlerOf h s ∗
       srvNetMember γn s id τ ∗ isServerReqM on s E ρ ∗
       ([∗list] _x ∈ List.replicate http.httpProcSlots (), srvServeRes γn τ) }}

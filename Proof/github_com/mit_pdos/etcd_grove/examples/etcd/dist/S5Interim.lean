@@ -16,7 +16,10 @@ grpc's opaque `grpcCliPI`/`grpcSrvPI` (`grpcAddrAt`). With it:
 The protocols are opaque: no proof can establish `httpPeerSvc`'s dialer protocol of any bytes, nor its acceptor
 protocol, so no program but the member-side axioms' (the transport inside `NewServer_dist`, the server inside
 `PeerServe_dist`) writes on a connection to a peer address; a program holding `httpAddrAt a` may dial, listen
-(`listen_au`) and accept at `a`, and can write nothing there. Defined here: no axiom.
+(`listen_au`) and accept at `a`, and can write nothing there through the net extension. (Two other routes reach a
+peer address, found by the 2026-11-24 review, `notes/etcd-dist-plan.md` §16.3: the names-only
+`leasehttp.RenewHTTP` axiom, any URL; and the single-process HTTP registry, `httpProtoFree`/`http.reserve`, which
+the one-process start hands out beside `addrUnset`.) Defined here: no axiom.
 -/
 module
 
@@ -110,13 +113,12 @@ section handler
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-include hG in
 /-- The trusted text of `peerHandlerOf` (opaque, no law). -/
-opaque peerHandlerRaw (h : GoInterface) (s : Loc) : IProp GF := iprop(True)
+opaque peerHandlerRaw (hh : HeapGS HasLC.hasLC GF) (h : GoInterface) (s : Loc) : IProp GF := iprop(True)
 
 /-- **`h` is etcd's peer handler of the server `s`** (persistent, of one process): what
 `etcdhttp.NewPeerHandler(lg, s)` returned (`NewPeerHandler_dist`), what `PeerServe_dist` serves. -/
-def peerHandlerOf (h : GoInterface) (s : Loc) : IProp GF := iprop(□ peerHandlerRaw (hG := hG) h s)
+def peerHandlerOf (h : GoInterface) (s : Loc) : IProp GF := iprop(□ peerHandlerRaw hG h s)
 
 instance peerHandlerOf_persistent (h : GoInterface) (s : Loc) :
     Persistent (peerHandlerOf (hG := hG) h s) := by

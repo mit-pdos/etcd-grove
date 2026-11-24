@@ -31,12 +31,11 @@ section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
-include hG in
-/-- The trusted text of `osEnvIs` (opaque, no law; see the file header). Its body is never unfolded. -/
-opaque osEnvRaw (key v : GoString) : IProp GF := iprop(True)
+/-- The trusted text of `osEnvIs` (opaque, no law; see the file header). Its body is never unfolded; it takes the process's `HeapGS` explicitly. -/
+opaque osEnvRaw (h : HeapGS hlc GF) (key v : GoString) : IProp GF := iprop(True)
 
 /-- **This process's environment maps `key` to `v`** (persistent; see the file header). -/
-def osEnvIs (key v : GoString) : IProp GF := iprop(□ osEnvRaw (hG := hG) key v)
+def osEnvIs (key v : GoString) : IProp GF := iprop(□ osEnvRaw hG key v)
 
 instance osEnvIs_persistent (key v : GoString) : Persistent (osEnvIs (hG := hG) key v) := by
   unfold osEnvIs; infer_instance
