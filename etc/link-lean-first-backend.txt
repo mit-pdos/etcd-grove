@@ -49,8 +49,8 @@ os_Getenv:
 strings_ToLower:
 verify_Verify: verify_IsVerificationEnabled
 zap_Error:
-zap_Logger__Fatal:
-zap_Logger__Panic:
+zap_Logger__Fatal: pool_Pool__Get os_Exit
+zap_Logger__Panic: pool_Pool__Get
 zap_NewNop:
 zap_String:
 zap_Stack:
@@ -157,7 +157,13 @@ zap_Duration:
 zap_Int64:
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 go_humanize_Bytes:
 snapshot__UnsafeRange: bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
 snapshot__UnsafeForEach: unsafeForEach
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Get:
+os_Exit: syscall_Exit
+syscall_Exit:
+pool_Pool__Put:

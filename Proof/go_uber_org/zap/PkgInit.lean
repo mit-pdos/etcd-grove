@@ -11,6 +11,8 @@ public import GeneratedProof.go_uber_org.zap.internal
 public import GeneratedProof.go_uber_org.zap.internal.stacktrace
 public import GeneratedProof.go_uber_org.zap.internal.bufferpool
 public import GeneratedProof.go_uber_org.zap.buffer
+public import GeneratedProof.go_uber_org.zap.internal.exit
+public import GeneratedProof.go_uber_org.multierr
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.io
 public import Perennial.Proof.runtime.Base
@@ -25,6 +27,8 @@ public import Perennial.Proof.bytes
 public import Perennial.Proof.math
 public import Proof.os.PkgInit
 public import Proof.net.url.PkgInit
+public import Spec.go_uber_org.zap.Defs
+public import Spec.go_uber_org.zap.internal.pool.Defs
 
 @[expose] public section
 
@@ -92,15 +96,50 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.za
 
 end go_uber_org.zap.internal.bufferpool
 
+-- zap's `internal/exit` (zap-z2, 2026-11-23: `zapcore.WriteThenFatal`'s hook calls its `With`)
+namespace go_uber_org.zap.internal.exit
+
+/-- `internal/exit`: `_exit` holds `os.Exit` for good (`var _exit = os.Exit`; only the test helpers
+`Stub`/`WithStub`/`Unstub`, not translated, write it). -/
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.internal.exit :=
+  define_is_pkg_init iprop(typedPointsto (globalAddr go_uber_org.zap.internal.exit._exit)
+    (functions _root_.Perennial.os.Exit []) DFrac.discard)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.internal.exit :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.zap.internal.exit
+
+-- `multierr` (zap-z2, 2026-11-23: zapcore's `CheckedEntry.Write` names its `Append`)
+namespace go_uber_org.multierr
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.multierr :=
+  define_is_pkg_init iprop(True)
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.multierr :=
+  build_get_is_pkg_init_wf
+
+end go_uber_org.multierr
+
 namespace go_uber_org.zap.zapcore
 
 /-- `zapcore`: `DefaultClock` holds a fixed `systemClock` (prove-initleft, 2026-11-21: zap's
-`NewNop`, which zap's initializer runs for `_globalL`, loads it; until then `True`). -/
+`NewNop`, which zap's initializer runs for `_globalL`, loads it; until then `True`), and `_cePool` a
+fixed pool of owned entries (`EtcdGrove.zapcore.pooledEntry`; zap-z2, 2026-11-23: `CheckedEntry.Write`
+returns its entry there, `After` takes a fresh one from it). -/
+abbrev isInit : IProp GF :=
+  iprop((∃ c : go_uber_org.zap.zapcore.systemClock,
+    typedPointsto (globalAddr go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard) ∗
+    (∃ pce : Loc, typedPointsto (globalAddr go_uber_org.zap.zapcore._cePool) pce DFrac.discard ∗
+      EtcdGrove.zap.internal.pool.isPool (V := Loc)
+        (go.GoType.PointerType go_uber_org.zap.zapcore.CheckedEntry.ty) pce EtcdGrove.zapcore.pooledEntry))
+
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
-  define_is_pkg_init iprop(∃ c : go_uber_org.zap.zapcore.systemClock,
-    typedPointsto (globalAddr go_uber_org.zap.zapcore.DefaultClock) c DFrac.discard)
+  define_is_pkg_init isInit
 instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_uber_org.zap.zapcore :=
   build_get_is_pkg_init_wf
+
+theorem isInit_access :
+    isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore ⊢ isInit (GF := GF) := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.go_uber_org.zap.zapcore
 
 end go_uber_org.zap.zapcore
 

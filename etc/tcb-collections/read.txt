@@ -9,4 +9,3 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/read/(Link|Results)\.lean$
 axiom context.WithValue.wp_proof
 axiom rand.Int31.wp_proof
-axiom zapcore.CheckedEntry.Write.wp_proof

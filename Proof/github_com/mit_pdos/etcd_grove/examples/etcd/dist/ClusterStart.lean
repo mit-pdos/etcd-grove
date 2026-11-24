@@ -96,7 +96,7 @@ theorem cluster_svc_start_list (S : S2Draft GF) (Pub : w64 → S.EnvView → IPr
     · iapply BigSepL.bigSepL_cons.2
       iframe #
 
-/-- **The start for a list of members** (upamanyus's §1.3 steps 1-4, for `k` members): the slot map
+/-- **The start for a list of members** (the plan's §1.3 steps 1-4, for `k` members): the slot map
 allocated once, then `cluster_svc_start_list`. -/
 theorem cluster_svc_start (S : S2Draft GF) (Pub : w64 → S.EnvView → IProp GF)
     (ms : List (GoString × w64)) :

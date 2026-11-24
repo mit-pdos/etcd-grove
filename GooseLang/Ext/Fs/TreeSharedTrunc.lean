@@ -371,12 +371,9 @@ theorem wp_osOpenTruncSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
   icases osPathS_callKey R d dq j $$ Hp with ⟨Hp, %hkd⟩
   iapply wp_fs_stepMX "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h0 Hw Ht
-  unfold treeCtx
-  icases Ht with ⟨Htr, Hcm⟩
-  icases Htr with (Htr | Htr)
-  · iexfalso; iapply legacy_callS_excl st k s0 (child d b) q $$ Hk Htr
-  unfold treeShared
-  icases Htr with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
+  icases (treeCtx_eq _ _).1 $$ Ht with ⟨Htr, Hcm⟩
+  unfold treeCtxT
+  icases Htr with ⟨%Γdf, %Γc, %Γg, %hns, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
   unfold osSharedInv
   imod inv_acc (osShN_sub hE') $$ Hsi with ⟨Hi, Hclose⟩
@@ -435,7 +432,7 @@ theorem wp_osOpenTruncSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
   have hframe : TreeFrame (st.metaEnd k) (truncSt (st.metaEnd k) i f) :=
     treeFrame_stampFile _ i _ f hf0
   have hw1 : FsTreeWf (truncSt (st.metaEnd k) i f) := hframe.wf (fsTreeWf_metaEnd hw k)
-  have hc1 : TreeCohS (truncSt (st.metaEnd k) i f) s1 Γdf (GMap.delete k Γc) Γg :=
+  have hc1 : TreeCohS (truncSt (st.metaEnd k) i f) Γdf (GMap.delete k Γc) Γg :=
     (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl rfl
   obtain ⟨-, hres⟩ := hres
   rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
@@ -459,18 +456,18 @@ theorem wp_osOpenTruncSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
     iexists Γb1, Γm1, <[fd := openFd i fl]> Γf1, Γt1
     isplitl [Hw]
     · iexact Hw
-    isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-    · try unfold treeCtx
+    isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+    · iapply (treeCtx_eq _ _).2
       isplitr [Hcm]
       rotate_left
       · iapply commitRes_grow (gooseOsGS (L := L)) (st := st)
           (st' := (truncSt (st.metaEnd k) i f).setProc { (truncSt (st.metaEnd k) i f).proc with
             fds := <[fd := openFd i fl]> (truncSt (st.metaEnd k) i f).proc.fds })
           (commitGrows_of_eq rfl) $$ Hcm
-      iright
+      try unfold treeCtxT
       simp only [truncSt, OsState.stampFile, OsState.metaEnd, OsState.setProc]
-      try unfold treeShared
-      iexists V0, s1, Γdf, GMap.delete k Γc, Γg
+      iexists Γdf, GMap.delete k Γc, Γg
+      try unfold callResS
       iframe
       ipureintro
       exact ⟨fsTreeWf_addFd hw1 hdfn, hc1.congr rfl rfl rfl rfl rfl⟩
@@ -487,16 +484,16 @@ theorem wp_osOpenTruncSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
       iexists Γb, Γm, Γf, Γt
       isplitl [Hw]
       · unfold osWorld; iexact Hw
-      isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-      · try unfold treeCtx
+      isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+      · iapply (treeCtx_eq _ _).2
         isplitr [Hcm]
         rotate_left
         · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := st.metaEnd k)
             (commitGrows_of_eq rfl) $$ Hcm
-        iright
+        try unfold treeCtxT
         simp only [OsState.metaEnd]
-        try unfold treeShared
-        iexists V0, s1, Γdf, GMap.delete k Γc, Γg
+        iexists Γdf, GMap.delete k Γc, Γg
+        try unfold callResS
         iframe
         ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
       iapply wp_value'
@@ -518,16 +515,16 @@ theorem wp_osOpenTruncSQ (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) 
       iexists Γb1, Γm1, Γf1, Γt1
       isplitl [Hw]
       · iexact Hw
-      isplitl [HAd Hd HAdf HAc Has Hadfs Hacs Hcr HAg Hgr Hcm]
-      · try unfold treeCtx
+      isplitl [Has Hadfs Hacs Hcr HAg Hgr Hcm]
+      · iapply (treeCtx_eq _ _).2
         isplitr [Hcm]
         rotate_left
         · iapply commitRes_grow (gooseOsGS (L := L)) (st := st) (st' := truncSt (st.metaEnd k) i f)
             (commitGrows_of_eq rfl) $$ Hcm
-        iright
+        try unfold treeCtxT
         simp only [truncSt, OsState.stampFile, OsState.metaEnd]
-        try unfold treeShared
-        iexists V0, s1, Γdf, GMap.delete k Γc, Γg
+        iexists Γdf, GMap.delete k Γc, Γg
+        try unfold callResS
         iframe
         ipureintro; exact ⟨hw1, hc1⟩
       iapply wp_value'

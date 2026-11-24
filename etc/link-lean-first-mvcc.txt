@@ -23,7 +23,7 @@ generation__walk:
 # (axioms; `Logger.Fatal` has one too, which no verified function reaches).
 zap_Int64:
 zap_String:
-zap_Logger__Panic:
+zap_Logger__Panic: pool_Pool__Get
 keyIndex__Less:
 keyIndex__isEmpty: generation__isEmpty
 keyIndex__findGeneration:
@@ -75,7 +75,7 @@ proto_Marshal:
 zap_Error:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Error: zap_Logger__check zapcore_CheckedEntry__Write
 store__Write: newMetricsTxnWrite
 storeTxnWrite__put: treeIndex__Get traceutil_Trace__Step NewRevBytes RevToBytes proto_Marshal treeIndex__Put zap_Error zap_Logger__Error
@@ -302,3 +302,7 @@ restoreChunk: proto_Unmarshal isTombstone
 restoreIntoIndex: keyIndex__put keyIndex__tombstone keyIndex__restore keyIndex__restoreTombstone treeIndex__KeyIndex treeIndex__Insert BytesToRev isTombstone verify_Verify zap_Error zap_Logger__Warn
 # (restore plan R2) setupMetricsReporter: the five reporters, each under its lock (mvccInit's reportVar).
 store__setupMetricsReporter:
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Get:
+pool_Pool__Put:

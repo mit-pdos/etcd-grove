@@ -1,0 +1,7 @@
+# (zap-z2, 2026-11-23) `With` and its variable `_exit = os.Exit` (what `zapcore.WriteThenFatal`'s
+# `OnWrite` calls, `zap.Logger.Fatal`); the test stubs (`Stub`, `WithStub`, `StubbedExit`) names only.
+translate = ["!*", "With", "_exit"]
+imports = ["!*", "os"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

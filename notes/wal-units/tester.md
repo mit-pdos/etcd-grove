@@ -1382,3 +1382,7 @@ extension of the trust boundary, the user's decision). The success and `UFail` p
 **Axioms** of `etcd_wal_crash_safety_bounded`: 18 before, 24 after (all already in the trust base, reached through
 the initializer): `prometheus.NewGauge.wp_proof`, `prometheus.NewHistogram.wp_proof`, `strings.ToLower.wp_proof`,
 `internal.runtime.sys.opaqueInitsOk`, `runtime.initFuncsOk`, `runtime.opaqueInitsOk`. None removed.
+
+**Merged with lean `b0a063163c`** (Perennial `b3f2fc485`; 2026-11-24): `Adequacy.lean` taken from lean (fs-single-view:
+`fsSQ_crash_adequacy`, `tGen` with `osShared`) and the changes above reapplied; generated files regenerated. With
+fs-single-view on lean, the closed `etcd_wal_safe` wrapper is unblocked (not started).

@@ -97,6 +97,7 @@ concurrentReadTx__UnsafeRange: @
 readTx__RLock: @
 readTx__RUnlock: @
 readTx__UnsafeRange: @
+readTx__UnsafeForEach: @
 batchTxBuffered__LockInsideApply: @
 batchTxBuffered__LockOutsideApply: @
 batchTxBuffered__UnsafeSeqPut: @
@@ -214,9 +215,14 @@ EtcdServer__Logger:
 Notifier__Notify:
 ServerConfig__ElectionTimeout:
 AlarmStore__Get:
-# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8): `restore` is
-# the trust boundary (names-only).
-AlarmStore__restore:
+# (D22 receiver epochs, S7c) the alarm store recovered in place (`applySnapshot`, S8); (prove-ps2-v3alarm,
+# 2026-11-24) `restore` with its body (the trust boundary until then), over schema's alarm backend, with
+# its bodies, over the backend's specs (the read through `readTx`: the idle-read law, backend/IdleRead.lean)
+schema_alarmBackend__CreateAlarmBucket: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__unsafeGetAllAlarms: readTx__UnsafeForEach schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_alarmBackend__GetAllAlarms: backend__ReadTx readTx__RLock readTx__RUnlock schema_alarmBackend__unsafeGetAllAlarms
+schema_alarmBackend__ForceCommit: backend__ForceCommit
+AlarmStore__restore: schema_alarmBackend__CreateAlarmBucket schema_alarmBackend__GetAllAlarms schema_alarmBackend__ForceCommit
 AlarmStore__Recover: AlarmStore__restore
 # (the trust boundary, continued)
 RaftCluster__Members: Member__Clone sort_Sort MembersByID__Len MembersByID__Less MembersByID__Swap
@@ -225,7 +231,7 @@ errors_IsStatusErr:
 go_humanize_Bytes:
 # (2026-11-20) zap's leveled methods are proved over the unexported `Logger.check` (the trust boundary)
 zap_Logger__check:
-zapcore_CheckedEntry__Write:
+zapcore_CheckedEntry__Write: pool_Pool__Put
 zap_Logger__Debug: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Logger__Warn: zap_Logger__check zapcore_CheckedEntry__Write
 zap_Uint64:
@@ -264,7 +270,7 @@ IsEmptySnap: @
 SetLogger: @
 zap_Duration:
 zap_Time:
-zap_Logger__Fatal:
+zap_Logger__Fatal: pool_Pool__Get os_Exit
 # (2026-10-31, #3) the raft loop's snapshot `Ready`: `CloneSnapshot`, `ApplySnapshot` (raft's; `Append` through
 # NodeApiLink's `srvApi_wp_MemAppend`)
 proto_CloneSnapshot: @
@@ -367,8 +373,17 @@ EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 # auth-mediation M2 (2026-11-20): the other member operations, over the names-only callees taken as
 # contracts (`MemberContracts.lean`), and `json.Marshal`'s trust-boundary specs
-json_MarshalMember:
-json_MarshalConfigChangeContext:
+# (#24 J2, 2026-11-23) proved over the encoding/json model's `Marshal` (its per-type dispatch) and
+# membership's generated `JSONModelMarshal` methods (jsongen, `json_model_gen.go`), over jsoncodec's
+# proved encoders (`Net/Proof/models_lab/Results.lean`)
+membership_jenc_S_string: =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp
+membership_jenc_Member: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+membership_jenc_ConfigChangeContext: membership_jenc_S_string =_root_.Perennial.models_lab.jsoncodec.AppendString.wp =_root_.Perennial.models_lab.jsoncodec.AppendRaw.wp =_root_.Perennial.models_lab.jsoncodec.AppendUint.wp =_root_.Perennial.models_lab.jsoncodec.AppendBool.wp
+Member__JSONModelMarshal: membership_jenc_Member
+Member__JSONModelMarshalPtr: membership_jenc_Member
+ConfigChangeContext__JSONModelMarshal: membership_jenc_ConfigChangeContext
+json_MarshalMember: =_root_.Perennial.encoding.json.Marshal.wp Member__JSONModelMarshal
+json_MarshalConfigChangeContext: =_root_.Perennial.encoding.json.Marshal.wp ConfigChangeContext__JSONModelMarshal
 EtcdServer__AddMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__UpdateMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalMember
 EtcdServer__promoteMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum json_MarshalConfigChangeContext
@@ -566,9 +581,14 @@ version_Cluster: v3_NewVersion v3_Version__Major v3_Version__Minor =_root_.Peren
 prometheus_GaugeVec__With:
 etcdserver_tickToDur:
 EtcdServer__adjustTicks: EtcdServer__Logger RaftCluster__Members EtcdServer__MemberID types_ID__String zap_String zap_Int etcdserver_tickToDur zap_Logger__Info raftNode__advanceTicks =_root_.Perennial.time.wp_After
-EtcdServer__publishV3:
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the member's publication over its body
+EtcdServer__publishV3: EtcdServer__MemberID EtcdServer__Logger EtcdServer__raftRequest types_ID__String membership_RaftCluster__ID zap_String zap_Duration zap_Error zap_Logger__Info zap_Logger__Warn =_root_.Perennial.fmt.wp_Sprintf =_root_.Perennial.strings.wp_Join
 EtcdServer__purgeFile: EtcdServer__Logger
-monitorFileDescriptor:
+# (prove-ps2-srvgoroutines, 2026-11-24, etcd-grove#42) the file descriptor monitor over its body: etcd's
+# `runtime.FDUsage`/`FDLimit` over their trusted models (TrustedCode/go_etcd_io/etcd/pkg/v3/runtime.lean)
+runtime_FDUsage:
+runtime_FDLimit:
+monitorFileDescriptor: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop runtime_FDUsage runtime_FDLimit zap_Logger__Warn zap_Error zap_Uint64
 EtcdServer__monitorClusterVersions:
 EtcdServer__monitorStorageVersion:
 EtcdServer__monitorKVHash:
@@ -972,7 +992,7 @@ rafthttp_messageDecoder__decode: rafthttp_messageDecoder__decodeLimit
 rafthttp_messageDecoder__decodeLimit: binary_ReadUint64 proto_UnmarshalPb
 rafthttp_messageEncoder__encode: proto_SizePb binary_WriteUint64 pbutil_MustMarshalMessage
 # (2026-10-24, rafthttp stage 7d) the snapshot sender
-rafthttp_createSnapBody: snap_Message__fields rafthttp_messageEncoder__encode =_root_.Perennial.EtcdGrove.bytes.Buffer.Write.wp_proof io_MultiReader
+rafthttp_createSnapBody: snap_Message__fields rafthttp_messageEncoder__encode =_root_.Perennial.EtcdGrove.bytes.Buffer.Write.wp_linked io_MultiReader
 rafthttp_snapshotSender__post: rafthttp_checkPostResponse =http.WithContext_ok =http.ReadAll_any_ok =http.respReadAny_of_ok httputil_GracefulClose =_root_.Perennial.time.wp_AfterFunc context_WithCancelBackground =_root_.Perennial.context.wp_Background
 rafthttp_snapshotSender__send: rafthttp_snapshotSender__post rafthttp_createSnapBody rafthttp_createPostRequest rafthttp_urlPicker__pick rafthttp_urlPicker__unreachable rafthttp_peerStatus__activate rafthttp_peerStatus__deactivate snap_Message__fields snap_Message__CloseWithError raftpb_Message__GetTo SnapshotMetadata__GetIndex types_ID__String go_humanize_Bytes zap_Logger__Info zap_Logger__Warn zap_String zap_Uint64 zap_Error prometheus_CounterVec__WithLabelValues prometheus_GaugeVec__WithLabelValues prometheus_HistogramVec__WithLabelValues errors_Is =rafthttp.netErrNotRemoved_ok =_root_.Perennial.time.wp_Now =_root_.Perennial.time.wp_Since time_Duration__Seconds
 rafthttp_peer__sendSnap: rafthttp_snapshotSender__send
@@ -1125,3 +1145,9 @@ path_lazybuf__string:
 # auth store's `WithRoot` its inner goroutines call
 auth_authStore__WithRoot:
 EtcdServer__revokeExpiredLeases: EtcdServer__GoAttach EtcdServer__Logger EtcdServer__ensureLeadership EtcdServer__MemberID EtcdServer__LeaseRevoke auth_authStore__WithRoot zap_Uint64 zap_String zap_Error zap_Logger__Warn
+# (zap-z2, 2026-11-23) zap's pool `Get`/`Put`, `os.Exit` and `syscall.Exit` (what `CheckedEntry.Write`,
+# `Logger.Panic` and `Logger.Fatal`, proved over zap's code, call)
+pool_Pool__Put:
+pool_Pool__Get:
+os_Exit: syscall_Exit
+syscall_Exit:

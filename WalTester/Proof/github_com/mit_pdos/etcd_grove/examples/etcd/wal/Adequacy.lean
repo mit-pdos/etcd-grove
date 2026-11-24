@@ -3,22 +3,23 @@
 # The WAL tester's crash adequacy (U7, step 3 of `notes/wal-units/tester.md`'s handoffs)
 
 The boot program `bootWal area orDir` (initialize the package, then `Main(area, orDir)`) run with crashes
-over the Linux file extension, every generation in the shared mode from its start
-(`fsSQ_crash_adequacyShared`), under the semantics `tExtsSem`: the file system does not fail (`tSQ`, no
+over the Linux file extension, every generation with the tree's shared view (`osShared`)
+(`fsSQ_crash_adequacy`), under the semantics `tExtsSem`: the file system does not fail (`tSQ`, no
 I/O error and no lock or mapping error on any file or path, the etcd examples' `etcdSQ`) and every crash
 keeps no CRC collision in the WAL's images (`tQ`, the WAL's `W1`, `walInv_crash`'s premise).
 
-A generation's precondition (`tGenPre`): its package state empty, and either the first boot's facts on
-the tree (no WAL, no oracle file) or what the previous generation's crash left (`TCrashed`). Its WP:
-`tBoot0`/`tBootCrash` from the shared mode's resources (`osShared`) give `TBoot`, which is the program's
-part `TRun` (`Main.spec`'s precondition) and the crash tokens; the crash frame is `tester_crash`.
+A generation's precondition (`tGen`: the cells' invariant, the tree's shared view `osShared` at some
+history `V`, and `tGenPre`): its package state empty, and either the first boot's facts on the tree (no
+WAL, no oracle file) or what the previous generation's crash left (`TCrashed`). Its WP:
+`tBoot0`/`tBootCrash` from `osShared` give `TBoot`, which is the program's part `TRun` (`Main.spec`'s
+precondition) and the crash tokens; the crash frame is `tester_crash`, which builds the next
+generation's `osShared` (`crashRest_treeS`, from the old generation's `osSharedInv`).
 
 `etcd_wal_crash_safety_bounded` is not the closed theorem (the user's hard stop): it takes, as a
 hypothesis, the spec no proof discharges yet (`TOpen`: `proto.UnmarshalWalRecordE`, whose error post
 `proto.UnmarshalPb.spec` does not give). The package initializer is proved (2026-11-24, `wal-open`): each
 generation allocates its own registration rights for the WAL's metric IDs (`tRegQsOk`, route (b) of
-prom-registry) and runs the generated `wp_initialize'` (`InitLinked.lean`, `PkgTable.lean`).
-The model's other laws are discharged (`walPb_laws`,
+prom-registry) and runs the generated `wp_initialize'` (`InitLinked.lean`, `PkgTable.lean`). The model's other laws are discharged (`walPb_laws`,
 `LawsHsMarshal`, `LawsHsPb`: `CloneHsLaw` and `WalHsOwn.unmarshal` over `proto.Clone`'s and
 `proto.Unmarshal`'s trust-boundary specs).
 -/
@@ -29,7 +30,7 @@ public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.B
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.Crash
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.InitLinked
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.PkgTable
-public import GooseLang.Ext.Fs.AdequacyShared
+public import GooseLang.Ext.Fs.AdequacyS
 public import GooseLang.Ext.Fs.NoIoErr
 public import GooseLang.Ext.Fs.NoMapLockErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Laws
@@ -121,6 +122,11 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 def tGenPre [G : GooseGlobalGS .hasLC GF] (e : TEnv) (L : GooseLocalGS GF) (V : Hist) : IProp GF :=
   iprop(ownGoState (hG := L.goose_go_stateGS) ∅ ∗ (⌜tFirst e V⌝ ∨ TCrashed (L := L) e V))
 
+/-- **A generation's precondition, with the file extension's resources** (`fsSQ_crash_adequacy`'s
+`P`): the cells' invariant, the tree's shared view at some history `V` and `tGenPre`. -/
+def tGen [G : GooseGlobalGS .hasLC GF] (e : TEnv) (L : GooseLocalGS GF) : IProp GF :=
+  iprop(osInv (L := L) ∗ ∃ V : Hist, osShared (L := L) e.R V ∗ tGenPre e L V)
+
 end adequacy
 
 section gen
@@ -142,23 +148,22 @@ theorem tOwnInitializing_of_empty (getInit : GoString → IProp GF) :
   iapply BigSepM.bigSepM_empty.2
   itrivial
 
-/-- **A generation of the tester** (`fsSQ_crash_adequacyShared`'s `Hwp`, at the area's roots): from the
-shared mode's resources and the generation's precondition, the boot (`tBoot0` or `tBootCrash`), the boot
+/-- **A generation of the tester** (`fsSQ_crash_adequacy`'s `Hwp`, at the area's roots): from the
+generation's precondition (`tGen`), the boot (`tBoot0` or `tBootCrash`), the boot
 program's WP (the package's `wp_initialize'`, from the generation's registration rights, allocated afresh,
 `tRegQsOk`; then `Main.spec`), and the crash frame (`tester_crash`). -/
 theorem tGen_wp (hAbs : AbsDiskGpreS GF) (wp_Main : Main.spec (GF := GF) (hG := hG))
     (e : TEnv) (hR : RootsOk e.R) (hr : (e.area, e.jr) ∈ e.R) (ho : (e.orDir, e.jo) ∈ e.R)
     (hne : e.jo ≠ e.jr) (hf : e.orFile.Ok) (hpaths : tWalPathsOk e.area) (hfs : tWalFsOk e.area)
-    (hrb : ReceiptBoundLe GF (2 ^ 62)) (V : Hist) :
-    ⊢ osInv (L := hG.goose_localGS) -∗ tGenPre e hG.goose_localGS V -∗
-      osShared (L := hG.goose_localGS) e.R V -∗ threadTok ={⊤}=∗
+    (hrb : ReceiptBoundLe GF (2 ^ 62)) :
+    ⊢ tGen e hG.goose_localGS -∗ threadTok ={⊤}=∗
       WP (bootWal e.area e.orDir) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} ∗
       ∀ (L' : GooseLocalGS GF) (V' : Hist), crashed (hC := hG.goose_localGS.goose_crashGS) -∗
         osInv (L := L') -∗
         crashRest tQ (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] false V' -∗
-        ownGoState (hG := L'.goose_go_stateGS) ∅ ={⊤}=∗
-        ∃ V'' : Hist, osTree (L := L') (DFrac.own 1) e.R V'' ∗ tGenPre e L' V'' := by
-  iintro #Hos Hpre Hsh -
+        ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗ tGen e L' := by
+  unfold tGen
+  iintro ⟨#Hos, %V, Hsh, Hpre⟩ -
   unfold tGenPre
   icases Hpre with ⟨Hgs, Hc⟩
   unfold osShared
@@ -196,11 +201,13 @@ theorem tGen_wp (hAbs : AbsDiskGpreS GF) (wp_Main : Main.spec (GF := GF) (hG := 
     · iframe
     ipureintro; rfl
   · -- after a crash: the tester's crash obligation
-    iintro %L' %V' Hcrd #Hos' Hcr Hgs'
+    iintro %L' %V' Hcrd #Hos' Hcr Hgs' -
     imod tester_crash hAbs tQ (fun _ _ h => h) hG.goose_localGS L' W e γ V' ho
       $$ Hinv Hok Hdd Hdi Hwt Hdt Hcrd Hcr with ⟨Htree, Hc⟩
     imodintro
+    iframe Hos'
     iexists V'
+    iunfold osShared at Htree
     iframe Htree Hgs'
     iright
     iexact Hc
@@ -308,27 +315,28 @@ theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   have hR : RootsOk e.R := hRe ▸ Hinit.2.2.2.1
-  refine fsSQ_crash_adequacyShared (GF := GF) tSQ tQ (noIoErr_noMapLockErr_keeps tIo tIo) N T
+  refine fsSQ_crash_adequacy (GF := GF) tSQ tQ (noIoErr_noMapLockErr_keeps tIo tIo) N T
     (bootWal e.area e.orDir) σ g (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit
-    (fun L V => tGenPre e L V) ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
+    (fun L => tGen e L) ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
   · -- the first generation: the tree as on disk
     intro hG _ _ _
-    rw [Hpkgs]
-    iintro #Hos - Hgs
+    rw [Hpkgs, hRe]
+    iintro #Hos - Hsh Hgs
     imodintro
-    unfold tGenPre
-    iframe Hgs
+    unfold tGen tGenPre
+    iframe Hos
+    iexists ((extLocal fsExt σ.world).fs.treeDur, [])
+    iframe Hsh Hgs
     ileft; ipureintro; exact Hfirst
   · -- every generation
-    intro hG HN _ Hlctx' V
+    intro hG HN _ Hlctx'
     rw [Hlctx] at Hlctx'
     obtain ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
     subst Hlctx'
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     have hrb : ReceiptBoundLe GF (2 ^ 62) := ⟨by rw [HN]; omega⟩
-    rw [hRe]
     exact tGen_wp hAbs (tMain_linked (Hopen hG)) e hR hr ho hne hf hpaths (tWalFsOk_of e.area hfit)
-      hrb V
+      hrb
 
 end bounded
 

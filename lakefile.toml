@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineD
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "47ec64a9d6230f18104bfbfd22432523cf81187c"
+rev = "b3f2fc48513a9f8c0ad3028670441a1511a975f6"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -78,6 +78,16 @@ globs = ["PorcupineDag.+"]
 [[lean_lib]]
 name = "SpecPlan"
 globs = ["SpecPlan.+"]
+
+# kitlibs-check's validation (notes/dsv-kitlibs-check.md, etc/kitlibs-check.py): dsverify challenge statements
+# over an agent-declared `KitLibs` class, generated from paxos's and rabia's statements, with
+# `KitLibs` classes and non-vacuity instances (rabia's equal to its landed premises; `rabiabad`, two
+# fields kitlibs-check must refuse). Not a default target, and nothing imports it: its modules declare
+# the kits' statement names. Under etc/ (etc/kitlibs-check-test/lean/), out of the import tiers' tree.
+[[lean_lib]]
+name = "KitLibsCheckTest"
+srcDir = "etc/kitlibs-check-test/lean"
+globs = ["KitLibsCheckTest.+"]
 
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest
