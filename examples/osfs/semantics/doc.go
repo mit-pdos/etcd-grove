@@ -113,6 +113,9 @@
 //
 //	premise_sector_whole.go       WAL sectors come back whole        SectorWhole, valAt (a known limitation)
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
+//	premise_w1.go                 no torn WAL frame passes the reader W1 (wal/W1.lean), etcdCQ (FsExts.lean)
+//	                              (etcd's crash theorems; pending    AsOfOne, AsOfW, W1Sat
+//	                              review, D6 Q2, 2026-11-24)
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
 //	                              + OFD lock requests, dir reads     IoCovers "OfdLock"/"DirReadNext",

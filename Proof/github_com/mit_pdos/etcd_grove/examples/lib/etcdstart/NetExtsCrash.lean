@@ -4,7 +4,7 @@
 
 `etcdNetExts` (`NetExts.lean`: `[idIssueExt, fsExt at etcdFsSem, netExt]`) with a crash interpretation,
 for deployments whose machines crash and restart (`notes/etcd-dist-plan.md` §12): the file extension's
-at `etcdFsSem` (`Fs.fs_crash_interpS etcdSQ True`: `etcdFsSem`'s crash is `OsCrash ∧ True`), the net
+at `etcdFsSem` (`Fs.fs_crash_interpS etcdSQ etcdCQ`: `etcdFsSem`'s crash is `OsCrash ∧ etcdCQ`, the WAL's `W1`), the net
 extension's (`Net.net_crash_interp`: nothing), and **any** crash interpretation `C` of the issue record
 (D4b designs the one the proofs will use: the record keyed by incarnation). Over it, `DistCrashAdequacy.lean`'s
 general corollary applies (`robust_of_dist_crash_adequacy_etcdNet`): the crash resources split into the file extension's
@@ -40,7 +40,7 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 the file extension's at `etcdFsSem`, the net extension's. -/
 @[reducible] def etcdNetExtsCrashInterp
     (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp) : GooseCrashInterp :=
-  ⟨(C, Fs.fs_crash_interpS etcdSQ (fun _ _ => True), Net.net_crash_interp, ⟨⟩)⟩
+  ⟨(C, Fs.fs_crash_interpS etcdSQ etcdCQ, Net.net_crash_interp, ⟨⟩)⟩
 
 /-- The issue record's crash resources of the generations `L` and `L'`, under `C`. -/
 def etcdIdCrashRest (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp)
@@ -49,17 +49,17 @@ def etcdIdCrashRest (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_in
     (extLocalGS idIssueExt (L := L)) (extLocalGS idIssueExt (L := L'))
 
 /-- **The crash resources of `etcdNetExts` split** as `robust_of_dist_crash_adequacy_fs` asks: the file extension's
-(crash premise `True`) and the issue record's (`etcdIdCrashRest C`); the net extension's are `emp`. -/
+(crash premise `etcdCQ`) and the issue record's (`etcdIdCrashRest C`); the net extension's are `emp`. -/
 theorem etcdNet_crashStart_split (C : @ExtCrashInterp idIssueExt idIssue_semantics idIssue_interp)
     {GF : BundledGFunctors} (L L' : GooseLocalGS GF) :
     letI := etcdNetExtsCrashInterp C
     extsCrashStart L L' ⊢
-      Fs.osCrashStart (fun _ _ => True) (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗
+      Fs.osCrashStart etcdCQ (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗
         etcdIdCrashRest C L L' :=
   by
     letI := etcdNetExtsCrashInterp C
     show iprop(etcdIdCrashRest C L L' ∗
-      (Fs.osCrashStart (fun _ _ => True) (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗
+      (Fs.osCrashStart etcdCQ (Fs.gooseOsGS (L := L)) (Fs.gooseOsGS (L := L')) ∗
         (iprop(emp) ∗ iprop(emp)))) ⊢ _
     iintro ⟨Hi, Hf, -⟩
     isplitl [Hf]
@@ -93,7 +93,7 @@ theorem robust_of_dist_crash_adequacy_etcdNet (C : @ExtCrashInterp idIssueExt id
       ⊢ ([∗list] a ∈ addrs, Net.addrUnset a) ={⊤}=∗
         ∃ (Pc : Nat → GooseLocalGS GF → IProp GF) (Ps : Nat → IProp GF),
           ⌜∀ (i : Nat) (m : Expr × state), crashing[i]? = some m →
-            Net.CrashBootWpG (fun _ _ => True) (etcdIdCrashRest C) lo bound m.1 (Pc i)⌝ ∗
+            Net.CrashBootWpG etcdCQ (etcdIdCrashRest C) lo bound m.1 (Pc i)⌝ ∗
           ⌜∀ (j : Nat) (m : Expr × state), stable[j]? = some m →
             Net.DistBootWpSL lo bound m.1 m.2 (Ps j)⌝ ∗
           ([∗list] i ↦ m ∈ crashing, ∀ L : GooseLocalGS GF,
@@ -104,7 +104,7 @@ theorem robust_of_dist_crash_adequacy_etcdNet (C : @ExtCrashInterp idIssueExt id
           [∗list] j ↦ _m ∈ stable, Ps j) :
     Robust crashing stable g threads bound :=
   letI := etcdNetExtsCrashInterp C
-  Net.robust_of_dist_crash_adequacy_fs (GF := GF) (fun _ _ => True) (etcdIdCrashRest C)
+  Net.robust_of_dist_crash_adequacy_fs (GF := GF) etcdCQ (etcdIdCrashRest C)
     (etcdNet_crashStart_split C) addrs crashing stable g threads bound lo hlo Hnd Hok
     (etcdNetExts_crashInitP g crashing stable Hfs) Hstart
 

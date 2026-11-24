@@ -133,7 +133,7 @@ of `EtcdBootNC`): at `etcd_robust.spec`'s premises, over `etcdNetExts` with D4b'
 the issue record (`etcdNetExtsCrashInterpD4b`), the start update from the deployment's addresses unset to
 - for each member `i`, a precondition `Pc i` of its generations (D6's `memberPc C cfg id`, at the names
   `C` the update allocates: chosen inside the update, since it names them), with its boot program safe in
-  every generation (`Net.CrashBootWpG` at the crash premise `True`, `etcdFsSem`'s, and the issue record's
+  every generation (`Net.CrashBootWpG` at `etcdFsSem`'s crash premise `etcdCQ`, the WAL's `W1`, and the issue record's
   crash rest `idIssueCrashStart`) and its first generation's `Pc i L` from the file start resources and
   the empty package state, and
 - for each stable machine `j` (orchestrators, then client machines), a share `Ps j` with its boot
@@ -152,7 +152,7 @@ def EtcdBootC : Prop :=
       ⊢ ([∗list] a ∈ d.addrs, Net.addrUnset a) ={⊤}=∗
         ∃ (Pc : Nat → GooseLocalGS etcdDistGF → IProp etcdDistGF) (Ps : Nat → IProp etcdDistGF),
           ⌜∀ (i : Nat) (m : Expr × state), (servers d σs)[i]? = some m →
-            Net.CrashBootWpG (fun _ _ => True) (etcdIdCrashRest idIssue_crash_interp) srvLevelK
+            Net.CrashBootWpG etcdCQ (etcdIdCrashRest idIssue_crash_interp) srvLevelK
               (2 ^ 28 - 1) m.1 (Pc i)⌝ ∗
           ⌜∀ (j : Nat) (m : Expr × state), (clients d σc ++ nodeMachines d σn)[j]? = some m →
             Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 (Ps j)⌝ ∗
@@ -177,7 +177,7 @@ def EtcdBootCBad : Prop :=
     ∀ [GooseGlobalGS .hasLC etcdDistGF], srvLevelK ≤ receiptBound etcdDistGF →
       receiptBound etcdDistGF ≤ 2 ^ 28 - 1 →
       (∀ (i : Nat) (m : Expr × state), (servers d σs)[i]? = some m →
-        Net.CrashBootWpG (fun _ _ => True) (etcdIdCrashRest idIssue_crash_interp) srvLevelK
+        Net.CrashBootWpG etcdCQ (etcdIdCrashRest idIssue_crash_interp) srvLevelK
           (2 ^ 28 - 1) m.1 (fun _ => (iprop(True) : IProp etcdDistGF))) ∧
       ∀ (j : Nat) (m : Expr × state), (clients d σc ++ nodeMachines d σn)[j]? = some m →
         Net.DistBootWpSL srvLevelK (2 ^ 28 - 1) m.1 m.2 (iprop(True) : IProp etcdDistGF)
