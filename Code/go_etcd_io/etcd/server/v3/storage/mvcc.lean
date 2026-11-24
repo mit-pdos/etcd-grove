@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Code.cmp
-public import Code.hash
+public import Perennial.Code.hash
 public import Code.hash.crc32
 public import Perennial.Code.slices
 public import Perennial.Code.sync

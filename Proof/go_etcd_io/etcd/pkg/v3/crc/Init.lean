@@ -10,7 +10,7 @@ variable).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit
-public import Proof.hash.Init
+public import Perennial.Proof.hash.Link
 public import Proof.hash.crc32.Init
 
 @[expose] public section
