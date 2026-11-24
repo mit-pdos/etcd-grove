@@ -12,7 +12,6 @@ module
 
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.FrameDec
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Vacuous
-public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.LogsJson
 public import Net.Spec.models_lab.jsoncodec.String
 public import Net.Spec.models_lab.jsoncodec.QuotedUint
 

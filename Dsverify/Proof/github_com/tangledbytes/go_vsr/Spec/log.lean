@@ -189,6 +189,18 @@ abbrev log.Logs.MarshalJSON.spec : Prop :=
   {{ (b : GoSlice), RET (PairV #b #(interface.nil : GoInterface)); log.ownLogs sl dq es ∗
       b ↦* log.encLogs es ∗ ownSliceCap w8 b (DFrac.own 1) }}
 
+/-- A `*[]log.Log` goes to the registered codec (no `JSONModelUnmarshal`). -/
+theorem log.logs_unmarshalsByCodec (p : Loc) :
+    encoding.json.unmarshalsByCodec
+      (interface.mkOk (go.GoType.PointerType (go.GoType.SliceType log.Log.ty)) #p) := by
+  simp only [encoding.json.unmarshalsByCodec, interface.mkOk]
+  go_type_set
+
+/-- The registered codec's route is persistent (registered for good). -/
+instance log.codecRoute_persistent (J : models_lab.jsoncodec.JsonCodec GF)
+    (F : List w8 → Bool → w64 × w64) : Persistent (encoding.json.codecRoute (GF := GF) J F) := by
+  unfold encoding.json.codecRoute; infer_instance
+
 /-- `l.UnmarshalJSON(data)` (`l` a `*Logs`; `json.Unmarshal(data, &logs)`, then `*l = logs`), on
 the encoding of some entries `es`, valid by `F`, with the registered codec's route at contract `J`
 (`codecRoute J F`: `Unmarshal` of a `*[]log.Log` goes to the codec) and `J`'s deposit for a nil

@@ -27,18 +27,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantics]
 variable [package_sem : log.Assumptions] [encoding.json.Assumptions]
 
-/-- A `*[]log.Log` goes to the registered codec (no `JSONModelUnmarshal`). -/
-theorem log.logs_unmarshalsByCodec (p : Loc) :
-    encoding.json.unmarshalsByCodec
-      (interface.mkOk (go.GoType.PointerType (go.GoType.SliceType log.Log.ty)) #p) := by
-  simp only [encoding.json.unmarshalsByCodec, interface.mkOk]
-  go_type_set
-
-/-- The registered codec's route is persistent (registered for good). -/
-instance log.codecRoute_persistent (J : models_lab.jsoncodec.JsonCodec GF)
-    (F : List w8 → Bool → w64 × w64) : Persistent (encoding.json.codecRoute (GF := GF) J F) := by
-  unfold encoding.json.codecRoute; infer_instance
-
 set_option goose.wp.extras true
 
 theorem log.Logs.UnmarshalJSON.wp_proof

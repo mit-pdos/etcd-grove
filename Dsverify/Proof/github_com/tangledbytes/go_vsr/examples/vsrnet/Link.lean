@@ -36,6 +36,7 @@ public import Proof.encoding.json.Results
 public import Net.Proof.models_lab.Results
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.Registered
 public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.vsrnetjson.PayloadDec
+public import Dsverify.Proof.github_com.tangledbytes.go_vsr.Proof.log.LogsJson
 
 @[expose] public section
 
