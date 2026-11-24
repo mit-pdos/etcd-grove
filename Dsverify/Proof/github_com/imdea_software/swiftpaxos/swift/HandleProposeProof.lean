@@ -469,7 +469,7 @@ theorem swift.Replica.handlePropose.wp_proof (RC : Loc → w32 → IProp netDist
     pkg_id.github_com.imdea_software.swiftpaxos.client $$ []
   · iPkgInit
   wp_bind (App (App (App (Val (@! swift.resolvePreaccept)) (Val _)) (Val _)) (Val _))
-  iapply (swift.wp_resolvePreaccept c.γ c.k _ x _ (D0.map ofCmdId) DFrac.discard
+  iapply (swift.wp_resolvePreaccept c.γ c.k _ x _ (D0.map ofCmdId)
     iprop(swift.epochTok c.γe qe (b, b) ∗
       swift.rowTok c.γo b (toCmdId x) (some D0, some P0, rv.2.2) ∗
       sp.preacc c.γ c.r b (toCmdId x) D0 ∗ sp.pathIs c.γ c.r b (toCmdId x) P0)) $$ [Het Htok]

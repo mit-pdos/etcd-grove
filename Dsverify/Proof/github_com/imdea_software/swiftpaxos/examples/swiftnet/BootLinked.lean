@@ -122,29 +122,9 @@ theorem boot_cmap :
   · ipureintro; exact isPanic_intoVal ()
   is_pkg_init_finish
 
-omit hk in
-/-- `NewGhost()` (GHOST): a new ghost, its mutex at its zero value, its prophecy fresh. -/
-theorem client_wp_NewGhost :
-    {{ True }} (App (Val (@! github_com.imdea_software.swiftpaxos.client.NewGhost)) (Val #()))
-    {{ (g : Loc), RET #g; ∃ (p : proph_id) (pvs : List val), ⌜g ≠ null⌝ ∗
-        structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"p" g ↦ p ∗
-        structFieldRef github_com.imdea_software.swiftpaxos.client.Ghost go!"mu" g ↦
-          (zero_val sync.Mutex) ∗ proph p pvs }} := by
-  wp_start as -
-  wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_NewProph as %pvs %p Hp
-  ihave %Hnn := typedPointsto_not_null _ _ _ $$ «$r0»
-  iStructNamed «$r0»
-  iapply HΦ
-  iexists p, pvs
-  iframe
-  ipureintro; exact Hnn
-
 set_option hygiene false in
 local macro "client_pre_G" : tactic => `(tactic| (
-  wp_apply wp_GlobalAlloc (V := Loc) github_com.imdea_software.swiftpaxos.client.nodeGhost (go.GoType.PointerType github_com.imdea_software.swiftpaxos.client.Ghost.ty) as H_nodeGhost
-  try wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_initialize' _ (wf_github_com_goose_lang_primitive hk) $$ Hown as ⟨Hown, #Hc0⟩
+  wp_apply wp_GlobalAlloc (V := github_com.goose_lang.primitive.ProphId) github_com.imdea_software.swiftpaxos.client.nodeProph github_com.goose_lang.primitive.ProphId.ty as H_nodeProph
   try wp_auto
   wp_apply github_com.imdea_software.swiftpaxos.rpc.wp_initialize' _ (wf_github_com_imdea_software_swiftpaxos_rpc hk) $$ Hown as ⟨Hown, #Hc1⟩
   try wp_auto
@@ -155,9 +135,7 @@ local macro "client_pre_G" : tactic => `(tactic| (
 
 set_option hygiene false in
 local macro "client_pre_R" : tactic => `(tactic| (
-  wp_apply wp_GlobalAlloc (V := Loc) github_com.imdea_software.swiftpaxos.client.nodeGhost (go.GoType.PointerType github_com.imdea_software.swiftpaxos.client.Ghost.ty) as H_nodeGhost
-  try wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_initialize' _ (wfO_github_com_goose_lang_primitive hk bootSR (by decide)) $$ Hown as ⟨Hown, #Hc0⟩
+  wp_apply wp_GlobalAlloc (V := github_com.goose_lang.primitive.ProphId) github_com.imdea_software.swiftpaxos.client.nodeProph github_com.goose_lang.primitive.ProphId.ty as H_nodeProph
   try wp_auto
   wp_apply github_com.imdea_software.swiftpaxos.rpc.wp_initialize' _ (wfO_github_com_imdea_software_swiftpaxos_rpc hk bootSR (by decide)) $$ Hown as ⟨Hown, #Hc1⟩
   try wp_auto
@@ -178,6 +156,8 @@ local macro "client_post" : tactic => `(tactic| (
   try wp_auto
   wp_apply github_com.imdea_software.swiftpaxos.replica.defs.wp_initialize' _ (wf_github_com_imdea_software_swiftpaxos_replica_defs hk) $$ Hown as ⟨Hown, #Hc14⟩
   try wp_auto
+  wp_apply github_com.goose_lang.primitive.wp_initialize' _ (wf_github_com_goose_lang_primitive hk) $$ Hown as ⟨Hown, #Hc0⟩
+  try wp_auto
   wp_apply github_com.google.uuid.wp_initialize' _ (wf_github_com_google_uuid hk) $$ Hown as ⟨Hown, #Hc15⟩
   try wp_auto
   wp_apply time.wp_initialize' _ (wf_time hk) $$ Hown as ⟨Hown, #Hc16⟩
@@ -190,7 +170,7 @@ local macro "client_post" : tactic => `(tactic| (
   try wp_auto
   wp_apply errors.wp_initialize' _ (wf_errors hk) $$ Hown as ⟨Hown, #Hc20⟩
   try wp_auto
-  wp_apply client_wp_NewGhost as %g ⟨%p, %pvs, %Hgn, Hgp, Hgmu, Hpr⟩
+  wp_apply github_com.goose_lang.primitive.wp_NewProph as %pvs %p Hpr
   try wp_auto))
 
 set_option maxHeartbeats 4000000 in
@@ -209,7 +189,7 @@ theorem init_client :
   wp_apply net.rpc.wp_initialize' _ (wf_net_rpc hk) $$ Hown as ⟨Hown, #H13⟩
   try wp_auto
   client_post
-  iclear Hgp Hgmu Hpr H_nodeGhost
+  iclear Hpr H_nodeProph
   iframe Hown
   is_pkg_init_finish
 
@@ -236,15 +216,14 @@ theorem boot_client :
         as ⟨Hown, #H13, Hrb⟩
   try wp_auto
   client_post
-  imod (typedPointsto_dfractional _ _).dfractional_persist $$ H_nodeGhost with #HnG
-  imod (typedPointsto_dfractional _ _).dfractional_persist $$ Hgp with #Hgp
+  imod (typedPointsto_dfractional _ _).dfractional_persist $$ H_nodeProph with #HnP
   imodintro
   iframe Hown Hrb
-  isplitl [Hpr Hgmu]
+  isplitl [Hpr]
   · iunfold client.ghostFresh
-    iexists g, p, pvs
-    iframe HnG Hgp Hpr Hgmu
-    ipureintro; exact Hgn
+    iunfold client.prophFresh
+    iexists p, pvs
+    iframe HnP Hpr
   is_pkg_init_finish
 
 set_option maxHeartbeats 8000000 in

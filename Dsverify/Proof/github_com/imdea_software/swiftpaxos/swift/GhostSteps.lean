@@ -2,11 +2,13 @@
 Ported from dsverify-lab examples/swiftpaxos/proof/Proof/swift/GhostSteps.lean (lab master 915f964, run swift-n2nofast-1; notes/dsv-swiftpaxos.md).
 -/
 /-
-L2 (notes/prove-s2-e.md, item 4): the specs of the swift package's ghost step resolvers
-(fork db37a86, swift/ghost.go): each builds its event's words (`sp.encP e`) and resolves them on
-the node's ghost (`client.GhostStep`); the caller's update runs at the last word with the node's
-half of its future words (`sp.predPre` / `sp.predPost`, Steps.lean). A site proof calls the
-resolver with its step lemma (a `swift.*_stepD`) inside the update.
+L2 (notes/prove-s2-e.md, item 4; notes/proph-swiftpaxos.md): the specs of the swift package's
+prophecy-only resolvers (etc/proph-patches/dsv-swiftpaxos, `resolveX` in swift/recovery.go): each
+builds its event's string (`sp.strW (sp.encP e)`) and resolves the node's prophecy once with it,
+inside the node prophecy's invariant (`client.wp_resolveNode`), where the caller's update runs
+with the node's half of its future words (`sp.predPre` / `sp.predPost`, Steps.lean), at
+`⊤ ∖ ↑client.nodeProphN`. A site proof calls the resolver with its step lemma (a `swift.*_stepD`
+at that mask) inside the update.
 -/
 module
 
@@ -32,10 +34,12 @@ attribute [local instance] netShaExts netShaExtsSemantics netShaExtsInterp
 section defs
 variable [GoGlobalContext] [G : GooseGlobalGS .hasLC netDistGF] [π : NetProtoGS]
 
-/-- **A site's ghost update** at replica node `k`'s step `e`: with the node's half of its future
-words starting with `e`'s, give back the rest and `Q`. -/
-def swift.ghostUpd (γ : sp.Names) (k : Nat) (e : sp.PEv) (Q : IProp netDistGF) : IProp netDistGF :=
-  iprop(∀ W' : List w64, sp.predPre γ k (some (e, W')) ={⊤}=∗ sp.predPost γ k (some (e, W')) ∗ Q)
+/-- **A site's update at a resolution** at replica node `k`'s step `e`: with the node's half of
+its future words starting with `e`'s, give back the rest and `Q`, inside the node prophecy's
+invariant (`⊤ ∖ ↑client.nodeProphN`). -/
+def swift.resolveUpd (γ : sp.Names) (k : Nat) (e : sp.PEv) (Q : IProp netDistGF) : IProp netDistGF :=
+  iprop(∀ W' : List w64, sp.predPre γ k (some (e, W')) ={⊤ \ ↑client.nodeProphN}=∗
+    sp.predPost γ k (some (e, W')) ∗ Q)
 
 end defs
 
@@ -46,35 +50,26 @@ variable [swift.Assumptions] [client.Assumptions]
 
 set_option goose.wp.extras true
 
-/-- From a site's update to `GhostStep`'s (the words' bound `PEvWf e`). -/
-theorem swift.ghostUpd_step (γ : sp.Names) (k : Nat) (e : sp.PEv) (Q : IProp netDistGF)
-    (he : sp.PEvWf e) :
-    swift.ghostUpd γ k e Q ⊢
-      ∀ W' : List w64, ghostMapElem γ.pred (sp.PNode.rep k) (DFrac.own (1 : Qp).half)
-        (sp.encP e ++ W') ={⊤}=∗
-        ghostMapElem γ.pred (sp.PNode.rep k) (DFrac.own (1 : Qp).half) W' ∗ Q := by
-  iintro Hupd %W' Hw
-  iunfold swift.ghostUpd at Hupd
+/-- **A replica's resolution** of its event `e` (the string `s` of `e`'s words), with a site's
+update. -/
+theorem swift.wp_resolveStep (γ : sp.Names) (k : Nat) (p : proph_id) (e : sp.PEv) (he : sp.PEvWf e)
+    (Q : IProp netDistGF) (Φ : val → IProp netDistGF) (s : List w8)
+    (hs : s = sp.strW (sp.encP e)) :
+    inv client.nodeProphN (client.nodeLockR γ (sp.PNode.rep k) p) ∗ swift.resolveUpd γ k e Q ∗
+      (Q -∗ Φ #()) ⊢
+    WP (ResolveProph (Val #p) (Val #(interface.mkOk go.string #s))) {{ Φ }} := by
+  subst hs
+  rw [show (#(interface.mkOk go.string #(sp.strW (sp.encP e))) : val) = sp.encE e from rfl]
+  iintro ⟨#Hi, Hupd, HΦ⟩
+  iapply (client.wp_resolveNode γ (sp.PNode.rep k) p e he Q Φ)
+  iframe Hi HΦ
+  iintro %W' Hw
+  iunfold swift.resolveUpd at Hupd
   simp only [sp.predPre_some, sp.predPost_some]
   imod Hupd $$ %W' [Hw] with ⟨Hp, HQ⟩
   · iframe Hw; ipureintro; exact he
   imodintro
   iframe
-
-/-- `client.GhostStep(ws)` on a fresh slice of `e`'s words, from a site's update. -/
-theorem swift.ghostStep_slice (γ : sp.Names) (k : Nat) (e : sp.PEv) (Q : IProp netDistGF)
-    (he : sp.PEvWf e) (sl : GoSlice) (Φ : val → IProp netDistGF) :
-    isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
-      client.nodeGhostOk γ (sp.PNode.rep k) ∗ sl ↦* sp.encP e ∗ swift.ghostUpd γ k e Q ∗
-      (Q -∗ Φ #()) ⊢
-    WP (App (Val (@! client.GhostStep)) (Val #sl)) {{ Φ }} := by
-  iintro ⟨#Hpkg, #Hok, Hsl, Hupd, HΦ⟩
-  imod ownSlice_persist $$ Hsl with #Hsl
-  iapply (SwiftKitDeps.ghostStep (hG := hG) γ (sp.PNode.rep k) e sl Q) $$ [Hupd]
-  · iframe Hpkg Hok Hsl
-    iapply (swift.ghostUpd_step γ k e Q he) $$ Hupd
-  inext
-  iexact HΦ
 
 theorem swift.bal_lt (b : w32) : sp.bal b < 2 ^ 31 := by
   unfold sp.bal; have := BitVec.toInt_lt (x := b); simp at this; omega
@@ -90,262 +85,6 @@ theorem swift.setWidth_w32w (n : w32) : BitVec.setWidth 64 n = sp.w32w n := by
 theorem swift.bal_wf (b : w32) : sp.PEvWf (.newBallot (sp.bal b)) := by
   show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega
 
-/-- `ghostNewBallot(b)`. -/
-theorem swift.wp_ghostNewBallot (γ : sp.Names) (k : Nat) (b : w32) (Q : IProp netDistGF) :
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
-      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
-      swift.ghostUpd γ k (.newBallot (sp.bal b)) Q }}
-    (App (Val (@! swift.ghostNewBallot)) (Val #b))
-  {{ RET #(); Q }} := by
-  wp_start as ⟨#Hok, %Hb, Hupd⟩
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) (sp.encP (.newBallot (sp.bal b)))
-  wp_auto
-  isplitl []
-  · ipureintro
-    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
-    simp [sp.encP, sp.natW, sp.bal, h]
-    rfl
-  iintro %sp_ ⟨Hl, -⟩
-  wp_auto
-  wp_bind (App (Val (@! client.GhostStep)) (Val _))
-  iapply (swift.ghostStep_slice γ k _ Q (swift.bal_wf b) _ _)
-  iframe Hpkg2 Hok Hl Hupd
-  iintro HQ
-  wp_auto
-  iapply HΦ
-  iexact HQ
-
-/-- `ghostTakeSync(b)`. -/
-theorem swift.wp_ghostTakeSync (γ : sp.Names) (k : Nat) (b : w32) (Q : IProp netDistGF) :
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
-      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
-      swift.ghostUpd γ k (.takeSync (sp.bal b)) Q }}
-    (App (Val (@! swift.ghostTakeSync)) (Val #b))
-  {{ RET #(); Q }} := by
-  wp_start as ⟨#Hok, %Hb, Hupd⟩
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) (sp.encP (.takeSync (sp.bal b)))
-  wp_auto
-  isplitl []
-  · ipureintro
-    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
-    simp [sp.encP, sp.natW, sp.bal, h]
-    rfl
-  iintro %sp_ ⟨Hl, -⟩
-  wp_auto
-  wp_bind (App (Val (@! client.GhostStep)) (Val _))
-  iapply (swift.ghostStep_slice γ k (.takeSync (sp.bal b)) Q
-    (by show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega) _ _)
-  iframe Hpkg2 Hok Hl Hupd
-  iintro HQ
-  wp_auto
-  iapply HΦ
-  iexact HQ
-
-/-- `ghostAccept(b, id)`. -/
-theorem swift.wp_ghostAccept (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId)
-    (Q : IProp netDistGF) :
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
-      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
-      swift.ghostUpd γ k (.accept (sp.bal b) (toCmdId x)) Q }}
-    (App (App (Val (@! swift.ghostAccept)) (Val #b)) (Val #x))
-  {{ RET #(); Q }} := by
-  wp_start as ⟨#Hok, %Hb, Hupd⟩
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) (sp.encP (.accept (sp.bal b) (toCmdId x)))
-  wp_auto
-  isplitl []
-  · ipureintro
-    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
-    simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, swift.setWidth_w32w]
-    rfl
-  iintro %sp_ ⟨Hl, -⟩
-  wp_auto
-  wp_bind (App (Val (@! client.GhostStep)) (Val _))
-  iapply (swift.ghostStep_slice γ k (.accept (sp.bal b) (toCmdId x)) Q
-    (by show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega) _ _)
-  iframe Hpkg2 Hok Hl Hupd
-  iintro HQ
-  wp_auto
-  iapply HΦ
-  iexact HQ
-
-/-- `ghostCommit(b, id)`. -/
-theorem swift.wp_ghostCommit (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId)
-    (Q : IProp netDistGF) :
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
-      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
-      swift.ghostUpd γ k (.commit (sp.bal b) (toCmdId x)) Q }}
-    (App (App (Val (@! swift.ghostCommit)) (Val #b)) (Val #x))
-  {{ RET #(); Q }} := by
-  wp_start as ⟨#Hok, %Hb, Hupd⟩
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) (sp.encP (.commit (sp.bal b) (toCmdId x)))
-  wp_auto
-  isplitl []
-  · ipureintro
-    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
-    simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, swift.setWidth_w32w]
-    rfl
-  iintro %sp_ ⟨Hl, -⟩
-  wp_auto
-  wp_bind (App (Val (@! client.GhostStep)) (Val _))
-  iapply (swift.ghostStep_slice γ k (.commit (sp.bal b) (toCmdId x)) Q
-    (by show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega) _ _)
-  iframe Hpkg2 Hok Hl Hupd
-  iintro HQ
-  wp_auto
-  iapply HΦ
-  iexact HQ
-
-/-- `ghostId(ws, id)`: the id's two words appended. -/
-theorem swift.wp_ghostId (sl : GoSlice) (l : List w64) (x : swift.CommandId) :
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      sl ↦* l ∗ ownSliceCap w64 sl (DFrac.own 1) }}
-    (App (App (Val (@! swift.ghostId)) (Val #sl)) (Val #x))
-  {{ (s' : GoSlice), RET #s'; s' ↦* (l ++ sp.idW (toCmdId x)) ∗ ownSliceCap w64 s' (DFrac.own 1) }} := by
-  wp_start as ⟨Hsl, Hcap⟩
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) (sp.idW (toCmdId x))
-  wp_auto
-  isplitl []
-  · ipureintro
-    simp [sp.idW, toCmdId, swift.setWidth_w32w]
-    rfl
-  iintro %lp ⟨Hl, -⟩
-  wp_auto
-  wp_apply wp_slice_append $$ [Hsl Hcap Hl] as %s' ⟨Hs, Hc, -⟩
-  · iframe
-  iapply HΦ
-  iframe
-
-/-- `ghostIds(ws, ids)`: the list's length, then each id's words. -/
-theorem swift.wp_ghostIds (sl : GoSlice) (l : List w64) (isl : GoSlice) (L : List swift.CommandId)
-    (dq : DFrac) :
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      sl ↦* l ∗ ownSliceCap w64 sl (DFrac.own 1) ∗ isl ↦*{dq} L }}
-    (App (App (Val (@! swift.ghostIds)) (Val #sl)) (Val #isl))
-  {{ (s' : GoSlice), RET #s'; s' ↦* (l ++ sp.listW sp.idW (L.map toCmdId)) ∗
-      ownSliceCap w64 s' (DFrac.own 1) ∗ isl ↦*{dq} L }} := by
-  wp_start as ⟨Hsl, Hcap, Hisl⟩
-  ihave %Hlen := ownSlice_len $$ Hisl
-  wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) [W64 (L.length : Int)]
-  wp_auto
-  isplitl []
-  · ipureintro
-    have : isl.len = W64 (L.length : Int) := by have := Hlen.1; word
-    rw [this]
-  iintro %lp ⟨Hl, -⟩
-  wp_auto
-  wp_apply wp_slice_append $$ [Hsl Hcap Hl] as %s1 ⟨Hs, Hc, -⟩
-  · iframe
-  wp_auto
-  ihave IH : iprop(∃ (n : w64) (s2 : GoSlice) (iv : swift.CommandId),
-      "i" ∷ i_ptr ↦ n ∗ "id" ∷ id_ptr ↦ iv ∗ "ws" ∷ ws_ptr ↦ s2 ∗
-      "Hs" ∷ s2 ↦* (l ++ [W64 (L.length : Int)] ++
-        (L.take (sint.Z n).toNat).flatMap (fun y => sp.idW (toCmdId y))) ∗
-      "Hc" ∷ ownSliceCap w64 s2 (DFrac.own 1) ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (L.length : Int)⌝) $$ [i id ws Hs Hc]
-  · iexists _, _, _
-    iframe
-    isplitl [Hs]
-    · simp; iexact Hs
-    ipureintro; exact ⟨by word, by word⟩
-  wp_for IH
-  wp_if_destruct
-  · have hlt : sint.Z n < sint.Z isl.len := by
-      first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
-    have Hlt : (sint.Z n).toNat < L.length := by have := Hlen.1; word
-    obtain ⟨y, Hy⟩ : ∃ y, L[(sint.Z n).toNat]? = some y := ⟨_, List.getElem?_eq_getElem Hlt⟩
-    rw [ite_eq_left ⟨Hn.1, hlt⟩]
-    wp_apply wp_load_slice_index isl (sint.Z n) L dq y Hn.1 $$ [Hisl] as Hisl
-    · iframe; ipureintro; exact Hy
-    wp_apply swift.wp_ghostId $$ [Hs Hc] as %s3 ⟨Hs, Hc⟩
-    · iframe
-    wp_for_post
-    iframe
-    iexists _, _, _
-    iframe
-    isplitl [Hs]
-    · have Hsucc : (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 := by word
-      rw [Hsucc, List.take_succ, Hy]
-      simp only [Option.toList_some, List.flatMap_append, List.flatMap_singleton,
-        List.append_assoc]
-      iexact Hs
-    ipureintro; exact ⟨by word, by word⟩
-  · have hge : ¬ sint.Z n < sint.Z isl.len := by
-      first | exact Hif | exact fun h => absurd (go.intoVal_inj Hif) (by simp [h])
-    have hk : (sint.Z n).toNat = L.length := by have := Hlen.1; word
-    try rw [if_pos (by simp [hge])]
-    try wp_auto
-    iapply HΦ
-    iframe
-    rw [hk, List.take_of_length_le (Nat.le_refl _)] at *
-    simp [sp.listW, List.flatMap_map]
-    iexact Hs
-
-theorem swift.encP_preaccept (b : Nat) (x : sp.CmdId) (D : List sp.CmdId) :
-    sp.encP (.preaccept b x D) =
-      [W64 5, sp.natW b] ++ sp.idW x ++ sp.listW sp.idW D := by
-  simp [sp.encP]
-
-/-- `ghostPreaccept(b, id, dep)`. -/
-theorem swift.wp_ghostPreaccept (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId)
-    (dsl : GoSlice) (D : List swift.CommandId) (dq : DFrac) (Q : IProp netDistGF) :
-  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
-      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗ dsl ↦*{dq} D ∗
-      swift.ghostUpd γ k (.preaccept (sp.bal b) (toCmdId x) (D.map toCmdId)) Q }}
-    (App (App (App (Val (@! swift.ghostPreaccept)) (Val #b)) (Val #x)) (Val #dsl))
-  {{ RET #(); dsl ↦*{dq} D ∗ Q }} := by
-  wp_start as ⟨#Hok, %Hb, Hd, Hupd⟩
-  ihave %Hlen := ownSlice_len $$ Hd
-  try wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) [W64 5, sp.natW (sp.bal b)]
-  try wp_auto
-  isplitl []
-  · ipureintro
-    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
-    simp [sp.natW, sp.bal, h]
-    rfl
-  iintro %lp ⟨Hl, Hc⟩
-  try wp_auto
-  wp_apply swift.wp_ghostId $$ [Hl Hc] as %s1 ⟨Hs, Hc⟩
-  · iframe
-  try wp_auto
-  wp_apply swift.wp_ghostIds $$ [Hs Hc Hd] as %s2 ⟨Hs, Hc, Hd⟩
-  · iframe
-  try wp_auto
-  wp_bind (App (Val (@! client.GhostStep)) (Val _))
-  iapply (swift.ghostStep_slice γ k (.preaccept (sp.bal b) (toCmdId x) (D.map toCmdId)) Q
-    ⟨by have := swift.bal_lt b; omega, by simp only [List.length_map]; rw [Hlen.1]; word⟩ _ _)
-  rw [swift.encP_preaccept]
-  iframe Hpkg2 Hok Hs Hupd
-  iintro HQ
-  try wp_auto
-  iapply HΦ
-  iframe
-
 theorem swift.setWidth_w8w (n : w8) : BitVec.setWidth 64 n = sp.w8w n := by
   apply BitVec.eq_of_toNat_eq
   simp only [BitVec.toNat_setWidth, sp.w8w]
@@ -354,129 +93,269 @@ theorem swift.setWidth_w8w (n : w8) : BitVec.setWidth 64 n = sp.w8w n := by
     simp only [W64, BitVec.toNat_ofInt]; omega]
   omega
 
-/-- `ghostCmd(ws, c)`: the command's op, key, value length and bytes appended. -/
-theorem swift.wp_ghostCmd (sl : GoSlice) (l : List w64) (c : sp.Cmd) (vs : GoSlice) (dq : DFrac) :
+/-- `resolveAccept(b, id)`. -/
+theorem swift.wp_resolveAccept (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId)
+    (Q : IProp netDistGF) :
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
-      sl ↦* l ∗ ownSliceCap w64 sl (DFrac.own 1) ∗ vs ↦*{dq} c.val }}
-    (App (App (Val (@! swift.ghostCmd)) (Val #sl)) (Val #(state.Command.mk c.op c.key vs)))
-  {{ (s' : GoSlice), RET #s'; s' ↦* (l ++ sp.cmdW c) ∗ ownSliceCap w64 s' (DFrac.own 1) ∗
-      vs ↦*{dq} c.val }} := by
-  wp_start as ⟨Hsl, Hcap, Hv⟩
-  ihave %Hlen := ownSlice_len $$ Hv
+      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
+      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
+      swift.resolveUpd γ k (.accept (sp.bal b) (toCmdId x)) Q }}
+    (App (App (Val (@! swift.resolveAccept)) (Val #b)) (Val #x))
+  {{ RET #(); Q }} := by
+  wp_start as ⟨#Hok, %Hb, Hupd⟩
+  iunfold client.nodeGhostOk at Hok
+  iunfold client.nodeGhostB at Hok
+  icases Hok with ⟨#Hreg, %p, #Hp, #Hi⟩
+  simp only [client.nodeVar]
   wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) [sp.w8w c.op, c.key, W64 (c.val.length : Int)]
+  simp only [sp.strW1_eval]
+  wp_method_call
   wp_auto
-  isplitl []
-  · ipureintro
-    have : vs.len = W64 (c.val.length : Int) := by have := Hlen.1; word
-    rw [this]
-    simp [sp.w8w]
-    rfl
-  iintro %lp ⟨Hl, -⟩
+  wp_method_call
   wp_auto
-  wp_apply wp_slice_append $$ [Hsl Hcap Hl] as %s1 ⟨Hs, Hc, -⟩
-  · iframe
-  try wp_auto
-  ihave IH : iprop(∃ (n : w64) (s2 : GoSlice) (bv : w8),
-      "i" ∷ i_ptr ↦ n ∗ "b" ∷ b_ptr ↦ bv ∗ "ws" ∷ ws_ptr ↦ s2 ∗
-      "Hs" ∷ s2 ↦* (l ++ [sp.w8w c.op, c.key, W64 (c.val.length : Int)] ++
-        (c.val.take (sint.Z n).toNat).map sp.w8w) ∗
-      "Hc" ∷ ownSliceCap w64 s2 (DFrac.own 1) ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (c.val.length : Int)⌝) $$ [i b ws Hs Hc]
-  · iexists _, _, _
-    iframe
-    isplitl [Hs]
-    · simp; iexact Hs
-    ipureintro; exact ⟨by word, by word⟩
-  wp_for IH
-  wp_if_destruct
-  · have hlt : sint.Z n < sint.Z vs.len := by
-      first | exact Hif | exact of_decide_eq_true (go.intoVal_inj Hif)
-    have Hlt : (sint.Z n).toNat < c.val.length := by have := Hlen.1; word
-    obtain ⟨y, Hy⟩ : ∃ y, c.val[(sint.Z n).toNat]? = some y := ⟨_, List.getElem?_eq_getElem Hlt⟩
-    try rw [ite_eq_left ⟨Hn.1, hlt⟩]
-    wp_apply wp_load_slice_index vs (sint.Z n) c.val dq y Hn.1 $$ [Hv] as Hv
-    · iframe; ipureintro; exact Hy
-    try wp_auto
-    wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-      (Val (LiteralValueV _)))
-    iapply wp_slice_literal (V := w64) (t := go.uint64) [sp.w8w y]
-    wp_auto
-    isplitl []
-    · ipureintro; simp [sp.w8w]; try rfl
-    iintro %lq ⟨Hq, -⟩
-    wp_auto
-    wp_apply wp_slice_append $$ [Hs Hc Hq] as %s3 ⟨Hs, Hc, -⟩
-    · iframe
-    wp_for_post
-    iframe
-    iexists _, _, _
-    iframe
-    isplitl [Hs]
-    · have Hsucc : (sint.Z (n + W64 1)).toNat = (sint.Z n).toNat + 1 := by word
-      rw [Hsucc, List.take_succ, Hy]
-      simp only [Option.toList_some, List.map_append, List.map_cons, List.map_nil,
-        List.append_assoc]
-      iexact Hs
-    ipureintro; exact ⟨by word, by word⟩
-  · have hge : ¬ sint.Z n < sint.Z vs.len := by
-      first | exact Hif | exact fun h => absurd (go.intoVal_inj Hif) (by simp [h])
-    have hk : (sint.Z n).toNat = c.val.length := by have := Hlen.1; word
-    try rw [if_pos (by simp [hge])]
-    try wp_auto
-    iapply HΦ
-    iframe
-    rw [hk, List.take_of_length_le (Nat.le_refl _)] at *
-    simp [sp.cmdW, sp.wordsOf]
-    iexact Hs
+  wp_bind (ResolveProph _ _)
+  iapply (swift.wp_resolveStep γ k p (.accept (sp.bal b) (toCmdId x))
+    (by show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega) Q _ _ ?hs)
+  case hs =>
+    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
+    simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, sp.strW, sp.w32w]
+  iframe Hi Hupd
+  iintro HQ
+  wp_auto
+  iapply HΦ
+  iexact HQ
 
-theorem swift.encP_handle (b : Nat) (x : sp.CmdId) (c : sp.Cmd) :
-    sp.encP (.handle b x c) = [W64 4, sp.natW b] ++ sp.idW x ++ sp.cmdW c := by
-  simp [sp.encP]
+/-- `resolveNewBallot`. -/
+theorem swift.wp_resolveNewBallot (γ : sp.Names) (k : Nat) (b : w32) (Q : IProp netDistGF) :
+  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
+      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
+      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
+      swift.resolveUpd γ k (.newBallot (sp.bal b)) Q }}
+    (App (Val (@! swift.resolveNewBallot)) (Val #b))
+  {{ RET #(); Q }} := by
+  wp_start as ⟨#Hok, %Hb, Hupd⟩
+  iunfold client.nodeGhostOk at Hok
+  iunfold client.nodeGhostB at Hok
+  icases Hok with ⟨#Hreg, %p, #Hp, #Hi⟩
+  simp only [client.nodeVar]
+  wp_auto
+  simp only [sp.strW1_eval]
+  wp_method_call
+  wp_auto
+  wp_method_call
+  wp_auto
+  wp_bind (ResolveProph _ _)
+  iapply (swift.wp_resolveStep γ k p (.newBallot (sp.bal b)) (by show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega) Q _ _ ?hs)
+  case hs =>
+    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
+    simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, sp.strW, sp.w32w]
+  iframe Hi Hupd
+  iintro HQ
+  wp_auto
+  iapply HΦ
+  iexact HQ
 
-/-- `ghostHandle(b, id, c)`. -/
-theorem swift.wp_ghostHandle (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId)
+/-- `resolveTakeSync`. -/
+theorem swift.wp_resolveTakeSync (γ : sp.Names) (k : Nat) (b : w32) (Q : IProp netDistGF) :
+  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
+      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
+      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
+      swift.resolveUpd γ k (.takeSync (sp.bal b)) Q }}
+    (App (Val (@! swift.resolveTakeSync)) (Val #b))
+  {{ RET #(); Q }} := by
+  wp_start as ⟨#Hok, %Hb, Hupd⟩
+  iunfold client.nodeGhostOk at Hok
+  iunfold client.nodeGhostB at Hok
+  icases Hok with ⟨#Hreg, %p, #Hp, #Hi⟩
+  simp only [client.nodeVar]
+  wp_auto
+  simp only [sp.strW1_eval]
+  wp_method_call
+  wp_auto
+  wp_method_call
+  wp_auto
+  wp_bind (ResolveProph _ _)
+  iapply (swift.wp_resolveStep γ k p (.takeSync (sp.bal b)) (by show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega) Q _ _ ?hs)
+  case hs =>
+    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
+    simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, sp.strW, sp.w32w]
+  iframe Hi Hupd
+  iintro HQ
+  wp_auto
+  iapply HΦ
+  iexact HQ
+
+/-- `resolveCommit`. -/
+theorem swift.wp_resolveCommit (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId) (Q : IProp netDistGF) :
+  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
+      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
+      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗
+      swift.resolveUpd γ k (.commit (sp.bal b) (toCmdId x)) Q }}
+    (App (App (Val (@! swift.resolveCommit)) (Val #b)) (Val #x))
+  {{ RET #(); Q }} := by
+  wp_start as ⟨#Hok, %Hb, Hupd⟩
+  iunfold client.nodeGhostOk at Hok
+  iunfold client.nodeGhostB at Hok
+  icases Hok with ⟨#Hreg, %p, #Hp, #Hi⟩
+  simp only [client.nodeVar]
+  wp_auto
+  simp only [sp.strW1_eval]
+  wp_method_call
+  wp_auto
+  wp_method_call
+  wp_auto
+  wp_bind (ResolveProph _ _)
+  iapply (swift.wp_resolveStep γ k p (.commit (sp.bal b) (toCmdId x)) (by show sp.bal b < 2 ^ 64; have := swift.bal_lt b; omega) Q _ _ ?hs)
+  case hs =>
+    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
+    simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, sp.strW, sp.w32w]
+  iframe Hi Hupd
+  iintro HQ
+  wp_auto
+  iapply HΦ
+  iexact HQ
+
+/-- `resolveHandle(b, id, c)`. -/
+theorem swift.wp_resolveHandle (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId)
     (c : sp.Cmd) (vs : GoSlice) (dq : DFrac) (Q : IProp netDistGF) :
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
       isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
       client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗ vs ↦*{dq} c.val ∗
-      swift.ghostUpd γ k (.handle (sp.bal b) (toCmdId x) c) Q }}
-    (App (App (App (Val (@! swift.ghostHandle)) (Val #b)) (Val #x))
+      swift.resolveUpd γ k (.handle (sp.bal b) (toCmdId x) c) Q }}
+    (App (App (App (Val (@! swift.resolveHandle)) (Val #b)) (Val #x))
       (Val #(state.Command.mk c.op c.key vs)))
   {{ RET #(); vs ↦*{dq} c.val ∗ Q }} := by
   wp_start as ⟨#Hok, %Hb, Hv, Hupd⟩
   ihave %Hlen := ownSlice_len $$ Hv
-  try wp_auto
-  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.uint64))))
-    (Val (LiteralValueV _)))
-  iapply wp_slice_literal (V := w64) (t := go.uint64) [W64 4, sp.natW (sp.bal b)]
-  try wp_auto
-  isplitl []
-  · ipureintro
-    have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
-    simp [sp.natW, sp.bal, h]
-    rfl
-  iintro %lp ⟨Hl, Hc⟩
-  try wp_auto
-  wp_apply swift.wp_ghostId $$ [Hl Hc] as %s1 ⟨Hs, Hc⟩
-  · iframe
-  try wp_auto
-  wp_apply swift.wp_ghostCmd $$ [Hs Hc Hv] as %s2 ⟨Hs, Hc, Hv⟩
-  · iframe
-  try wp_auto
-  wp_bind (App (Val (@! client.GhostStep)) (Val _))
-  iapply (swift.ghostStep_slice γ k (.handle (sp.bal b) (toCmdId x) c) Q
-    ⟨by have := swift.bal_lt b; omega, by unfold sp.CmdWf; rw [Hlen.1]; word⟩ _ _)
-  rw [swift.encP_handle]
-  iframe Hpkg2 Hok Hs Hupd
-  iintro HQ
-  try wp_auto
-  iapply HΦ
-  iframe
+  iunfold client.nodeGhostOk at Hok
+  iunfold client.nodeGhostB at Hok
+  icases Hok with ⟨#Hreg, %p, #Hp, #Hi⟩
+  simp only [client.nodeVar]
+  wp_auto
+  simp only [sp.strW1_eval]
+  obtain ⟨S0, hS0⟩ : ∃ S0 : List w8, S0 = [] ++ sp.strW1 (W64 4) ++ sp.strW1 (W64 (sint.Z b)) ++
+      sp.strW1 (W64 (uint.Z x.ClientId')) ++ sp.strW1 (W64 (uint.Z x.SeqNum')) ++
+      sp.strW1 (W64 (uint.Z c.op)) ++ sp.strW1 c.key ++ sp.strW1 vs.len := ⟨_, rfl⟩
+  rw [← hS0]
+  ihave IH : iprop(∃ (j : w64) (wv : w64),
+      "i" ∷ k_ptr ↦ j ∗ "w" ∷ w_ptr ↦ wv ∗
+      "s" ∷ s_ptr ↦ (S0 ++ sp.strW ((c.val.take (sint.Z j).toNat).map sp.w8w)) ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (c.val.length : Int)⌝) $$ [k w s]
+  · iexists _, _
+    iframe
+    isplitl [s]
+    · simp [sp.strW]; iexact s
+    ipureintro; exact ⟨by word, by word⟩
+  wp_for IH
+  wp_if_destruct
+  · have Hlt : (sint.Z j).toNat < c.val.length := by word
+    obtain ⟨y, Hy⟩ : ∃ y, c.val[(sint.Z j).toNat]? = some y := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    simp only [show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z vs.len from ⟨Hj.1, Hif⟩]
+    wp_apply wp_load_slice_index vs (sint.Z j) c.val dq y Hj.1 $$ [Hv] as Hv
+    · iframe Hv; ipureintro; exact Hy
+    simp only [sp.strW1_eval]
+    wp_for_post
+    iframe
+    iexists _, _
+    iframe
+    isplitl [s]
+    · have Hsucc : (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1 := by word
+      iExactEq s
+      rw [Hsucc, List.take_add_one, Hy]
+      simp [sp.strW, swift.setWidth_w8w]
+    ipureintro; exact ⟨by word, by word⟩
+  · have hj : (sint.Z j).toNat = c.val.length := by word
+    have hl : vs.len = W64 (c.val.length : Int) := by word
+    rw [hj, List.take_of_length_le (Nat.le_refl _)]
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    wp_bind (ResolveProph _ _)
+    iapply (swift.wp_resolveStep γ k p (.handle (sp.bal b) (toCmdId x) c) (⟨by have := swift.bal_lt b; omega, by unfold sp.CmdWf; rw [Hlen.1]; word⟩) Q _ _ ?hs)
+    case hs =>
+      have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
+      rw [hS0]
+      simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, sp.strW, sp.w32w, sp.cmdW, sp.wordsOf, sp.w8w, hl]
+    iframe Hi Hupd
+    iintro HQ
+    wp_auto
+    iapply HΦ
+    iframe
 
-/-- The node's claimed ghost from the descriptors' context. -/
+/-- `resolvePreaccept(b, id, dep)`. -/
+theorem swift.wp_resolvePreaccept (γ : sp.Names) (k : Nat) (b : w32) (x : swift.CommandId)
+    (dsl : GoSlice) (D : List swift.CommandId) (Q : IProp netDistGF) :
+  {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
+      isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.client ∗
+      client.nodeGhostOk γ (sp.PNode.rep k) ∗ ⌜0 ≤ sint.Z b⌝ ∗ dsl ↦*□ D ∗
+      swift.resolveUpd γ k (.preaccept (sp.bal b) (toCmdId x) (D.map toCmdId)) Q }}
+    (App (App (App (Val (@! swift.resolvePreaccept)) (Val #b)) (Val #x)) (Val #dsl))
+  {{ RET #(); dsl ↦*□ D ∗ Q }} := by
+  wp_start as ⟨#Hok, %Hb, #Hv, Hupd⟩
+  ihave %Hlen := ownSlice_len $$ Hv
+  iunfold client.nodeGhostOk at Hok
+  iunfold client.nodeGhostB at Hok
+  icases Hok with ⟨#Hreg, %p, #Hp, #Hi⟩
+  simp only [client.nodeVar]
+  wp_auto
+  simp only [sp.strW1_eval]
+  obtain ⟨S0, hS0⟩ : ∃ S0 : List w8, S0 = [] ++ sp.strW1 (W64 5) ++ sp.strW1 (W64 (sint.Z b)) ++
+      sp.strW1 (W64 (uint.Z x.ClientId')) ++ sp.strW1 (W64 (uint.Z x.SeqNum')) ++
+      sp.strW1 dsl.len := ⟨_, rfl⟩
+  rw [← hS0]
+  ihave IH : iprop(∃ (j : w64) (wv : w64),
+      "i" ∷ j_ptr ↦ j ∗ "w" ∷ w_ptr ↦ wv ∗
+      "s" ∷ s_ptr ↦ (S0 ++ sp.strW ((D.take (sint.Z j).toNat).flatMap (fun y => sp.idW (toCmdId y)))) ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ (D.length : Int)⌝) $$ [j w s]
+  · iexists _, _
+    iframe
+    isplitl [s]
+    · simp [sp.strW]; iexact s
+    ipureintro; exact ⟨by word, by word⟩
+  wp_for IH
+  wp_if_destruct
+  · have Hlt : (sint.Z j).toNat < D.length := by word
+    obtain ⟨y, Hy⟩ : ∃ y, D[(sint.Z j).toNat]? = some y := ⟨_, List.getElem?_eq_getElem Hlt⟩
+    simp only [show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z dsl.len from ⟨Hj.1, Hif⟩]
+    icases ownSlice_elem_acc (sint.Z j) y dsl DFrac.discard D Hj.1 Hy $$ Hv with ⟨#Hel, -⟩
+    iStructNamed Hel
+    have hbd : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z dsl.len := ⟨Hj.1, Hif⟩
+    wp_auto
+    simp only [hbd]
+    wp_auto
+    try (simp only [hbd]; wp_auto)
+    simp only [sp.strW1_eval]
+    wp_for_post
+    iframe
+    iexists _, _
+    iframe
+    isplitl [s]
+    · have Hsucc : (sint.Z (j + W64 1)).toNat = (sint.Z j).toNat + 1 := by word
+      iExactEq s
+      rw [Hsucc, List.take_add_one, Hy]
+      simp [sp.strW, sp.idW, toCmdId, sp.w32w]
+    ipureintro; exact ⟨by word, by word⟩
+  · have hj : (sint.Z j).toNat = D.length := by word
+    have hl : dsl.len = W64 (D.length : Int) := by word
+    rw [hj, List.take_of_length_le (Nat.le_refl _)]
+    wp_method_call
+    wp_auto
+    wp_method_call
+    wp_auto
+    wp_bind (ResolveProph _ _)
+    iapply (swift.wp_resolveStep γ k p (.preaccept (sp.bal b) (toCmdId x) (D.map toCmdId)) (⟨by have := swift.bal_lt b; omega, by simp only [List.length_map]; rw [Hlen.1]; word⟩) Q _ _ ?hs)
+    case hs =>
+      have h : (((sint.Z b).toNat : Nat) : Int) = sint.Z b := Int.toNat_of_nonneg Hb
+      rw [hS0]
+      simp [sp.encP, sp.natW, sp.bal, h, sp.idW, toCmdId, sp.strW, sp.w32w, sp.listW, hl, List.flatMap_map]
+    iframe Hi Hupd
+    iintro HQ
+    wp_auto
+    iapply HΦ
+    iframe Hv HQ
+
+/-- The node's claimed prophecy from the descriptors' context. -/
 theorem swift.DC.ctx_ng (c : swift.DC) : c.ctx ⊢ client.nodeGhostOk c.γ (sp.PNode.rep c.k) := by
   iintro #H
   iunfold swift.DC.ctx at H
@@ -485,7 +364,7 @@ theorem swift.DC.ctx_ng (c : swift.DC) : c.ctx ⊢ client.nodeGhostOk c.γ (sp.P
     -, -, -, -, -, -, -, -, -, -, -, -, -, #Hng⟩
   iexact Hng
 
-/-- The node's claimed ghost from the run loop's context. -/
+/-- The node's claimed prophecy from the run loop's context. -/
 theorem swift.runCtxD_ng (γ : sp.Names) (γc γm γl γw γv γe γo : GName) (sn : swift.StN)
     (γdl : GName) (rp : Loc) (N r k : Nat) :
     swift.runCtxD γ γc γm γl γw γv γe γo sn γdl rp N r k ⊢ client.nodeGhostOk γ (sp.PNode.rep k) := by
