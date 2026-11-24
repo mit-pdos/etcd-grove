@@ -118,6 +118,9 @@ theorem config.ServerConfig.VerifyBootstrap.wp_proof
     iapply HΦ
     ipureintro; left; simp
   try wp_auto
+  -- `c.InitialPeerURLsMap.String()` on the field's address: its value's method
+  try wp_method_call
+  try wp_auto
   wp_apply hStr cfg.InitialPeerURLsMap' m urls Hsum $$ [] as %s -
   · iframe #
   wp_if_destruct

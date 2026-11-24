@@ -88,9 +88,21 @@ theorem bootstrappedCluster.Finalize.wp_proof
     intro h
     rw [h] at h1
     simp at h1
-  try wp_auto
+  -- the records' fields (read below), and the configuration's
+  icases typedPointsto_not_null_dup _ _ _ $$ Hc with ⟨Hc, %Hcnn⟩
+  iStructNamedPrefix Hc "C"
+  icases typedPointsto_not_null_dup _ _ _ $$ Hs with ⟨Hs, %Hsnn⟩
+  iStructNamedPrefix Hs "S"
+  icases typedPointsto_not_null_dup _ _ _ $$ Hbk with ⟨Hbk, %Hbknn⟩
+  iStructNamedPrefix Hbk "K"
+  icases typedPointsto_not_null_dup _ _ _ $$ Hbw with ⟨Hbw, %Hbwnn⟩
+  iStructNamedPrefix Hbw "W"
+  wp_auto
+  ipersist cfg
+  ihave #Hcf := cfg
+  iStructNamedSuffix Hcf "F"
   -- `if !s.wal.haveWAL { c.cl.SetID(c.nodeID, c.cl.ID()) }`
-  rw [Hhw]
+  try rw [Hhw]
   try wp_auto
   wp_apply (hID bc.cl' (DFrac.own 1) _) $$ [$Hmpkg $Hcid] as Hcid
   icases membership.memAt_open bc.cl' 1 ms _ $$ Hmem0 with ⟨%mp, Hmf, Hmp, Hmems, Hmcl⟩
@@ -149,6 +161,22 @@ theorem bootstrappedCluster.Finalize.wp_proof
   (try wp_auto)
   wp_apply (hVMLC _ sl mls _) $$ [$Hmpkg $Hmls] as %err -
   (try wp_auto)
+  ihave Hc : (c ↦{dq} bc : IProp GF) $$ [Cremotes Ccl CnodeID]
+  · iapply typedPointsto_combine _ _ _ Hcnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  ihave Hs : (s ↦{dqs} sto : IProp GF) $$ [Sbackend Swal]
+  · iapply typedPointsto_combine _ _ _ Hsnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  ihave Hbk : (sto.backend' ↦{dqb} bk : IProp GF) $$ [KbeHooks Kbe Kci KbeExist Ksnapshot]
+  · iapply typedPointsto_combine _ _ _ Hbknn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  ihave Hbw : (sto.wal' ↦{dqw} bw : IProp GF) $$ [Wlg WhaveWAL Ww Wst Wents Wsnapshot Wmeta']
+  · iapply typedPointsto_combine _ _ _ Hbwnn
+    simp only [TypedPointsto.typedPointstoDef, Hhw]
+    iframe
   iapply HΦ
   isplitl [Hc]
   · iexact Hc

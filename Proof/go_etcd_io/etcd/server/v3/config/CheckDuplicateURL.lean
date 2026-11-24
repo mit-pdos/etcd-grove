@@ -161,9 +161,10 @@ theorem config.CheckDuplicateURL.wp_proof
         ileft
         isplitr
         · ipureintro; rfl
-        iframe
-        iexists _, _
-        iframe
+        isplitl
+        · iexists _, _
+          iframe
+        iexact Hvu
     iintro HQ -
     iNamed HQ
     (try wp_auto)

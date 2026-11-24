@@ -114,7 +114,9 @@ theorem membership.NewClusterFromURLsMap.wp_proof
       apply Hnz
       rw [List.mem_map]
       exact ⟨key, hkdom, h⟩
+    try rw [show membership.memberIDOf ((urls key).map membership.urlStrOf) token = (fm key).id from rfl]
     try simp only [hnz, decide_false, Bool.false_eq_true, ↓reduceIte]
+    try wp_auto
     (try wp_auto)
     wp_apply (wp_mapInsert (K := w64) (V := Loc) _ mpm ms (fm key).id mm) $$ [Hmap] as Hmap
     · iframe
@@ -169,6 +171,7 @@ theorem membership.NewClusterFromURLsMap.wp_proof
   iunfold membership.clusterOwned
   iexists lgc, rp, dp
   iframe
+  iframe #
 
 end proof
 

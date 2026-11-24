@@ -132,7 +132,7 @@ theorem bootstrapNewClusterNoWAL.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨Hosl, -⟩
   imod ownSlice_persist $$ Hosl with #Hosl
-  wp_apply (hNCU cfg.Logger' tok cfg.InitialPeerURLsMap' U.initMap U.initURLs osl f
+  wp_apply (hNCU cfg.Logger' tok cfg.InitialPeerURLsMap' U.initMap U.initURLs _ f
       cfg.MaxLearners' Hfips HU hnd' hnz' hsz hlen) $$ [] as %c ⟨%Hcnn, %ms, %ids, %Hids, Hcl⟩
   · iframe #
   try wp_auto

@@ -52,7 +52,7 @@ theorem membership.NewCluster.wp_proof
   iframe
   try iframe #
   isplitr
-  · ipureintro; exact ⟨fun _ => rfl, rfl⟩
+  · ipureintro; exact ⟨fun _ => rfl, by simp only [GMap.map_size_empty]⟩
   iapply BigSepM.bigSepM_empty.2; itrivial
 
 end proof
