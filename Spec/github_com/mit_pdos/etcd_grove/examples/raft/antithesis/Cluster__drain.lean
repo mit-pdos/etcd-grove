@@ -33,7 +33,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
 variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Assumptions]
 
-/-- See the file header. -/
+/-- See the file header. The view's `byE` is kept (2026-11-24: `Cluster.run`'s tick and proposal drains
+need the cause cell to stay nil). -/
 abbrev Cluster.drain.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)] (c : Loc) (γ : AntNames) (n : Loc) (j : Fin 3)
     (v : AntSim.NodeView) (net₀ : List Msg) (ps₁ : PState) (q : Qp),
@@ -41,7 +42,8 @@ abbrev Cluster.drain.spec : Prop :=
       antCluster c γ ∗ nodeRO γ n j ∗ nodeOwn c γ j n v (.loop net₀ ps₁) ∗ netAdder c γ q ∗
       threadTok }}
     (App (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"drain")) (Val #n)) (Val #v.byE))
-  {{ (v' : AntSim.NodeView), RET #(); nodeOwn c γ j n v' .drained ∗ netAdder c γ q ∗ threadTok }}
+  {{ (v' : AntSim.NodeView), RET #(); nodeOwn c γ j n v' .drained ∗ netAdder c γ q ∗ threadTok ∗
+      ⌜v'.byE = v.byE⌝ }}
 
 end spec
 
