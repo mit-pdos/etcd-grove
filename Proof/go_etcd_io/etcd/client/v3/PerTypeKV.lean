@@ -28,19 +28,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- **The store of a put request**: its key and value (`nil` if empty, as protobuf-go decodes
-them), its lease and flags. -/
-def putReqTree (o : OpFull) : VTree :=
-  .strct etcdserverpb.PutRequest.ty
-    [(go!"Key", go.GoType.SliceType go.byte), (go!"Value", go.GoType.SliceType go.byte),
-     (go!"Lease", go.int64), (go!"PrevKv", go.bool), (go!"IgnoreValue", go.bool),
-     (go!"IgnoreLease", go.bool)]
-    [bytesTree go.byte o.key, bytesTree go.byte o.val, .leaf #o.leaseID, .leaf #o.base.prevKV,
-     .leaf #o.ignoreValue, .leaf #o.ignoreLease]
-
 /-- **`pbPutRequest` with its store.** -/
 def pbPutRequestT : ProtoMsgT GF :=
-  { pbPutRequest with tree := putReqTree }
+  { pbPutRequest with }
 
 /-- **A put request fits a gRPC message** (rule 7's witness that `wireLen` is not the default). -/
 theorem pbPutRequestT_wireLen_ok : ∃ m, (pbPutRequestT (GF := GF)).wireLen m < grpcMsgMax :=
@@ -133,35 +123,9 @@ theorem pbPutRequestT_reqSat : (pbPutRequestT (GF := GF)).ReqSat := by
     exact hfin
   · ipureintro; trivial
 
-/-- **The store of a response header** (always present: the sender's is not nil). -/
-def hdrTree (h : HdrM) : VTree :=
-  .ptr etcdserverpb.ResponseHeader.ty (.strct etcdserverpb.ResponseHeader.ty
-    [(go!"ClusterId", go.uint64), (go!"MemberId", go.uint64), (go!"Revision", go.int64),
-     (go!"RaftTerm", go.uint64), (go!"LeaderId", go.uint64)]
-    [.leaf #h.clusterId, .leaf #h.memberId, .leaf #h.revision, .leaf #h.raftTerm, .leaf #h.leaderId])
-
-/-- **The store of a key-value** (`nil` key and value if empty). -/
-def kvTree (v : EtcdKv) : VTree :=
-  .ptr mvccpb.KeyValue.ty (.strct mvccpb.KeyValue.ty
-    [(go!"Key", go.GoType.SliceType go.byte), (go!"CreateRevision", go.int64),
-     (go!"ModRevision", go.int64), (go!"Version", go.int64),
-     (go!"Value", go.GoType.SliceType go.byte), (go!"Lease", go.int64)]
-    [bytesTree go.byte v.key, .leaf #v.createRev, .leaf #v.modRev, .leaf #v.version,
-     bytesTree go.byte v.value, .leaf #v.lease])
-
-/-- **The store of a range response**: its header, its key-values (`nil` if none), `More`,
-`Count`. -/
-def rangeRespTree (m : RangeRespM) : VTree :=
-  .strct etcdserverpb.RangeResponse.ty
-    [(go!"Header", go.GoType.PointerType etcdserverpb.ResponseHeader.ty),
-     (go!"Kvs", go.GoType.SliceType (go.GoType.PointerType mvccpb.KeyValue.ty)),
-     (go!"More", go.bool), (go!"Count", go.int64)]
-    [hdrTree m.hdr, sliceTree (go.GoType.PointerType mvccpb.KeyValue.ty) (m.kvs.map kvTree),
-     .leaf #m.more, .leaf #m.count]
-
 /-- **`pbRangeResponse` with its store.** -/
 def pbRangeResponseT : ProtoMsgT GF :=
-  { pbRangeResponse with tree := rangeRespTree }
+  { pbRangeResponse with }
 
 theorem treeWp_hdr (h : HdrM) (Φ : val → IProp GF) :
     (∀ p : Loc, hdrFull p h -∗ Φ #p) ⊢ treeWp (hdrTree h) Φ := by

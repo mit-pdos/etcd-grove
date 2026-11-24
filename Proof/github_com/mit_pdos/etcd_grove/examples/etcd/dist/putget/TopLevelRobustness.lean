@@ -104,7 +104,7 @@ variable [GoGlobalContext]
 def S2Holds : Prop :=
   ∀ [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS], Nonempty (S2Draft putgetGF)
 
-/-- **The deployment's start, against S2's names** (upamanyus's §1.3 steps 1-4): the slot map, `γE`
+/-- **The deployment's start, against S2's names** (the plan's §1.3 steps 1-4): the slot map, `γE`
 allocated, the publication invariant, the client address set to `etcdSvc` (spending its `addrUnset`), the
 member's and the client's shares. The peer address's `addrUnset` is unused (nothing listens there). -/
 theorem putget_start [G : GooseGlobalGS .hasLC putgetGF] [π : NetProtoGS] (S : S2Draft putgetGF)

@@ -1,6 +1,6 @@
 # The challenge's layout, its generators, and how to build and check
 
-The challenge is a Lean project (Lake) in etcd-grove's layout, depending on Perennial (branch `lean`,
+The challenge is a Lean project (Lake) in the layout below, depending on Perennial (branch `lean`,
 pinned in `lake-manifest.json`), with its dependencies already fetched and built: it needs no
 network, and has none. Lean's toolchain is the one `lean-toolchain` names; Go is the toolchain
 `etc/goose.py` pins (`GO_TOOLCHAIN`).

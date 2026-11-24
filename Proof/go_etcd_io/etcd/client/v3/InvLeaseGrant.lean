@@ -382,33 +382,22 @@ theorem isGrpcRpc_mono_with {Req Rep : ProtoMsg GF} (addr name : GoString) (P : 
   iintro ⟨#HP, #H⟩
   unfold isGrpcRpc
   iunfold isGrpcRpcMd at H
-  icases H with ⟨%γ, #Ha, #H⟩
-  iunfold isGrpcRpcAt at H
-  icases H with ⟨%c, %mh, %srv, #Hc, %Hin, #Hm⟩
-  unfold isGrpcRpcMd isGrpcRpcAt
-  iexists γ
-  iframe Ha
-  iexists c, mh, srv
-  iframe Hc
-  isplitr
-  · ipureintro; exact Hin
+  icases H with ⟨%a₀, %hX, %π, %σ, #Hr, #Hs⟩
+  unfold isGrpcRpcMd
+  iexists a₀, hX, π, σ
+  iframe Hr
+  iapply (grpcSvcAt_mono_upd (Gg := hG.goose_globalGS) a₀ name Req.wire Rep.wire
+    (GrpcSpec.md Spec) (GrpcSpec.md Spec')) $$ [] Hs
   imodintro
-  unfold grpcRunOkMd
-  iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
-  iframe
-  iunfold grpcSpecAt at HSpec
-  icases HSpec with ⟨%md, #Hmd, HSpec⟩
-  iunfold grpcSpecAt
-  iexists md
-  iframe Hmd
+  iintro %md %m %Φ %Ψe HS
+  imodintro
   simp only [GrpcSpec.md]
-  icases HSpec with ⟨HSpec, #HΨe⟩
+  icases HS with ⟨HS, #HΨe⟩
   iframe HΨe
   iapply (h m Φ)
   isplitl []
   · iexact HP
-  iexact HSpec
+  iexact HS
 
 /-- **A registration of `LeaseTimeToLive` at the revocable mode's spec is one at the old spec**,
 with a lower bound of the lessor's history to hand in. -/

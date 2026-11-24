@@ -1,7 +1,7 @@
 /-
-`context.WithCancel(context.TODO())` (`client/v3/client.go`'s `newClient`): the trust boundary
-(item 5). Perennial specifies `WithCancel` of an `isContext` parent only; `TODO()` is none (its
-`Done()` is `nil`). Lean-first (no Rocq counterpart).
+`context.WithCancel(context.TODO())` (`client/v3/client.go`'s `newClient`, item 5): proved in
+`Proof/context/WithCancelTodo.lean` over Perennial's `wp_WithCancel_TODO_of` (mit-pdos/perennial#670,
+whose `isParentCtx` admits `TODO()`; until 2026-11-24 an axiom). Lean-first (no Rocq counterpart).
 -/
 module
 

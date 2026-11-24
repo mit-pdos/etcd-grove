@@ -14,14 +14,10 @@ etcdstart_NewMember: @
 EtcdServer__Start: @
 v3rpc_Server: @
 net_Listen: =_root_.Perennial.net.Listen.wp_proof
-# (per-type stage B) `Serve` is the trusted model (`Server.Serve.impl := model.Serve`), proved over
-# its leaves' axioms (model-only names, `google.golang.org/grpc#model.*`)
-grpc_Server__Serve: model_Serve
-model_Serve: model_acceptRun model_acceptRunConns model_respond model_finishStream
-model_acceptRun:
-model_acceptRunConns:
-model_respond:
-model_finishStream:
+# (phase 7 S2's interface, 2026-11-24) `Serve` is a trust-boundary axiom over the right to serve a
+# service table (`grpcServeTok gs lis a Svc`); per-type stage B to then: the trusted model
+# `Server.Serve.impl := model.Serve`, proved over its leaves' axioms, retired
+grpc_Server__Serve:
 grpc_KeepaliveEnforcementPolicy:
 cluster3_holdToken:
 cluster3_StartMember: etcdstart_NewMember EtcdServer__Start net_Listen grpc_KeepaliveEnforcementPolicy v3rpc_Server grpc_Server__Serve cluster3_holdToken =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds

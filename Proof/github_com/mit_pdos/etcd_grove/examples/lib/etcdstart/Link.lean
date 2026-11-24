@@ -38,11 +38,6 @@ public import Proof.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGa
 public import Proof.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Proof.google_golang_org.grpc.Server__Serve
 public import Proof.maps.Copy
-public import Proof.google_golang_org.grpc.model.Serve
-public import Proof.google_golang_org.grpc.model.acceptRun
-public import Proof.google_golang_org.grpc.model.acceptRunConns
-public import Proof.google_golang_org.grpc.model.finishStream
-public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.strconv.FormatUint
 public import Proof.go_uber_org.zap.NewNop
@@ -194,29 +189,9 @@ theorem grpc.wp_KeepaliveEnforcementPolicy :
     EtcdGrove.grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.KeepaliveEnforcementPolicy.wp_proof
 
-theorem grpc.model.wp_acceptRun :
-    EtcdGrove.grpc.model.acceptRun.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.model.acceptRun.wp_proof
-
-theorem grpc.model.wp_acceptRunConns :
-    EtcdGrove.grpc.model.acceptRunConns.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.model.acceptRunConns.wp_proof
-
-theorem grpc.model.wp_respond :
-    EtcdGrove.grpc.model.respond.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.model.respond.wp_proof
-
-theorem grpc.model.wp_finishStream :
-    EtcdGrove.grpc.model.finishStream.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.model.finishStream.wp_proof
-
-theorem grpc.model.wp_Serve :
-    EtcdGrove.grpc.model.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.model.Serve.wp_proof grpc.model.wp_acceptRun grpc.model.wp_acceptRunConns grpc.model.wp_respond grpc.model.wp_finishStream
-
 theorem grpc.Server.wp_Serve :
     EtcdGrove.grpc.Server.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.Server.Serve.wp_proof grpc.model.wp_Serve
+  EtcdGrove.grpc.Server.Serve.wp_proof
 
 theorem wp_Serve [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.net.FieldAssumptions] :
     EtcdGrove.etcdstart.Serve.spec (GF := GF) (hG := hG) :=
