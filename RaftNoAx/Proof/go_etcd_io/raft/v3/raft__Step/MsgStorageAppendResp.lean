@@ -68,7 +68,7 @@ set_option maxHeartbeats 1000000 in
   excluded by the premise.
 
 The log is re-split (`logStableTo`) and the protocol sees nothing: `StepC.refl`. -/
-theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgStorageAppendResp_none {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) (R : StepG GF) :
@@ -84,7 +84,7 @@ theorem wp_Step_MsgStorageAppendResp_none (_P : raft.Step.Postulates (GF := GF) 
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -441,7 +441,7 @@ absorbed (`sat` when it is the pending snapshot). By the term, as without a snap
 
 The log is `ackSnapLog`'s, the rest of the state kept but the tracker, rebuilt at the snapshot's
 configuration (2026-10-28, stage U0: `appliedSnap` switches to it); the protocol sees nothing. -/
-theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) (hG := hG))
+theorem wp_Step_MsgStorageAppendResp_snap {nc : Bool} (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sv : SnapshotM) (ctx : List w8) (rs : List Loc) (ents : List EntryM) (R : StepG GF) :
@@ -465,7 +465,7 @@ theorem wp_Step_MsgStorageAppendResp_snap (_P : raft.Step.Postulates (GF := GF) 
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, some sv, ctx, rs⟩ ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents (some sv) ctx rs R }}
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents (some sv) ctx rs R nc }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface), RET #err;
         "Hphys" ∷ (∃ (prs : GMap w64 Loc) (pvs : GMap w64 Progress) (il : Bool),

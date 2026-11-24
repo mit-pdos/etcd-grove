@@ -20,14 +20,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `IsLocalMsg(msgt)`, a lookup in the table `isLocalMsg` (`util.go`). Only that it
-returns is specified (see `isMsgInArray.spec`). -/
+/-- `IsLocalMsg(msgt)`, a lookup in the table `isLocalMsg` (`util.go`): whether `msgt` is one of
+the local types (`localMsgTypes`, `Base.lean`). (Until 2026-11-24 only that it returns; #33 S4:
+`RawNode.Step`'s strengthened spec needs the answer, a network message not refused as local.) -/
 abbrev IsLocalMsg.spec : Prop :=
   ∀ (t : w32),
   0 ≤ sint.Z t →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
     (App (Val #(functions IsLocalMsg [])) (Val #t))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; ⌜b = decide (t ∈ localMsgTypes)⌝ }}
 
 end spec
 

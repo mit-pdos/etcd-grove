@@ -36,6 +36,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+/-- (2026-11-24, P-raft-1b) `handleSnapshot` queues one answer, no snapshot. -/
+private theorem handleSnapResult_outbox {id : w64} {s : NState} {m : MessageM} {sv : SnapshotM}
+    {cl : CSLists} {s' : NState} (H : HandleSnapResult id s m sv cl s') :
+    ∃ mm : Msg, s'.outbox = s.outbox ++ [mm] ∧ mm.ty ≠ .snap := by
+  unfold HandleSnapResult at H
+  rcases H with ⟨-, rfl⟩ | ⟨-, -, -, rfl⟩ | ⟨-, -, -, rfl⟩ <;>
+    exact ⟨_, rfl, by simp [appResp]⟩
+
 /-- By type. `MsgProp`: `Infof`, then `return ErrProposalDropped` (the global's
 points-to from `isInitialized_access`). `MsgApp`: `becomeFollower(m.Term, m.From)` with
 `m.Term = s.term`, then `handleAppendEntries` at the follower state. `MsgHeartbeat`: the
@@ -73,7 +81,7 @@ theorem stepCandidate.wp_proof
     stepCandidate.spec (GF := GF) (hG := hG) := by
   -- (Q8 stage 1, slice 8) the gated specs, each arm consuming its gates; a `MsgSnap` untraced
   have wp_raft_becomeFollowerU := raft.becomeFollower.untraced wp_raft_becomeFollower
-  intro c scfg r id s ml m ents sn rs sv cl G G' Gf G1 G2 k0 Hty Hterm Hrole Happ Hhb Hpvnw Hsnap
+  intro nc c scfg r id s ml m ents sn rs sv cl G G' Gf G1 G2 k0 Hty Hterm Hrole Happ Hhb Hpvnw Hsnap
     Hpinv Hidx' Hidx
   wp_start as H
   iNamed H
@@ -217,14 +225,13 @@ theorem stepCandidate.wp_proof
         iintro %to %mm %o %Hto %Hmm HG
         ispecialize Hgc $$ %pvs1 %to %mm %o %Hto %Hmm HG
         iapply hookGateOpt_congr _ _ r _ _ _ (by rfl) (by rfl) $$ Hgc
-      ihave #Hnosnap2 : TrNoSnap (GF := GF)
+      ihave #Hnosnap2 : NoSnapG (GF := GF) nc
           ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
             with prvals := pvs1 } : NState).gh.tr
           ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') }
             with prvals := pvs1 } : NState).logst $$ []
-      · rw [show ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs1 } : NState).gh = s.gh from rfl,
-          show TrNoSnap (GF := GF) s.gh.tr ({ becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs1 } : NState).logst = TrNoSnap s.gh.tr s.logst from rfl]
-        iexact Hnosnap
+      · iapply noSnapG_logst nc _ _ _ _ ?h1 ?h2 ?h3 $$ Hnosnap
+        all_goals rfl
       wp_apply wp_raft_bcastAppend c r id
         { becomeLeader id { s with votes := recordVote s.votes m.From' (!m.Reject') } with prvals := pvs1 }
         G' (by rfl)
@@ -541,7 +548,10 @@ theorem stepCandidate.wp_proof
       as %s' ⟨Hphys, %Hres⟩
     -- (2026-11-10, slice 14) untraced: the caller's resource ignores the outbox
     ihave HG : G s'.outbox $$ [HG]
-    · rw [Hidx Htr s'.outbox s.outbox]; iexact HG
+    · -- (2026-11-24, P-raft-1b) or, under the no-snapshot flag, kept by the answer, no snapshot
+      obtain ⟨mm, ho, hmm⟩ := handleSnapResult_outbox Hres
+      have ho : s'.outbox = s.outbox ++ [mm] := ho
+      iapply Hidx.step' Htr [mm] ho (fun _ => NoSnapL.single hmm) $$ HG
     iapply HΦ $$ %GoInterface.nil %s' %false %c
     iframe Hphys
     simp only [Bool.false_eq_true, ↓reduceIte]

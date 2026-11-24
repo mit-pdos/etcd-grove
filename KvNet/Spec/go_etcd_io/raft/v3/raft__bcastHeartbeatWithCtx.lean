@@ -76,7 +76,8 @@ abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
       (Val #ctx))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
-      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
+      -- (#33 S4) and no index, log term or entries (`sendHeartbeat` sets none)
+      ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl ∧ m.index = W64 0 ∧ m.logterm = W64 0 ∧ m.entries = []⌝ ∗
       ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
       G ({ sendMsgs s ms with prvals := pvs } : NState).outbox }}
 

@@ -51,6 +51,7 @@ module
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.Plog
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.TracedMsg
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.MaybeAppendIp
 
 @[expose] public section
 
@@ -108,7 +109,9 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
       -- (D19i part 1) the floor
       ls'.fl = ls.fl) ∧
      -- (D22 S-d3b) `offsetInProgress` moved back only by a truncation (`TruncAt`)
-     (uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress) ∧
+     -- (#33 S4) and exactly where (`maybeAppendIp`)
+     ((uint.Z ls'.inprogress < uint.Z ls.inprogress → TruncAt ls ents ls'.inprogress) ∧
+      ls'.inprogress = maybeAppendIp ls ents) ∧
      s' = sendMsgs { s with logst := ls' }
             [appResp id s dst false lastnewi (W64 0) (W64 0)])
   ∨

@@ -271,7 +271,7 @@ type switch's default arm runs `r.step(r, m)`:
 `recv` is the proposal itself when it is forwarded, and nothing otherwise. `LeadOk`
 (`Protocol/Model.lean`, from `ownRaftGhost`) is what makes the follower's forwarding
 `send` not self-addressed. -/
-theorem wp_Step_MsgProp
+theorem wp_Step_MsgProp {nc : Bool}
     -- (2026-10-29, stage U5) the four callee specs this branch uses, not `raft.Step.Postulates`:
     -- `raft.appliedTo` steps its automatic leave through this branch, so its proof cannot take
     -- the specs of `Step`'s other callees (`appliedTo` among them)
@@ -309,7 +309,7 @@ theorem wp_Step_MsgProp
         -- (2026-10-18, D19b stage 5) a time receipt, for `appendEntry`
         "#Hrc" ∷ ⧖ k0 ∗
         -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
-        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R ∗
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R nc ∗
         -- (2026-11-11, slice 23a) at a leader, the loan to the `Replicate` gate (`StepG.Tp`) from
         -- `appendEntry`'s receipt
         "HTp" ∷ (⌜s.role = .leader⌝ -∗ ⧖ (k0 + ents.length) -∗ R.Tp ents) }}
@@ -364,6 +364,7 @@ theorem wp_Step_MsgProp
   wp_auto
   iunfold stepGates at Hgates
   icases Hgates with ⟨Hgrecv, Hgpre, Hglow, Hgvresp, Hghup, Hgstep, %Hgok⟩
+  obtain ⟨Hgok, Hncal⟩ := Perennial.EtcdGrove.StepGOkN.split Hgok
   wp_apply wp_traceReceiveMessage c r id s ml _ _ _ ⟨m, _, _, _, _⟩ _
       (fun _ h => (by rw [Hty]; w32_ne : m.Type' ≠ MsgSnap) (mtypeOf_Snap _ h))
     $$ [Hphys Hm Hgrecv HG] as ⟨Hphys, Hm, HG⟩

@@ -465,7 +465,7 @@ theorem stepBundle_traced_localNoLine : stepBundle_traced.onG (GF := GF) (hG := 
         · -- a proposal forwarded to the leader: untraced, the family unchanged
           iintro %_ %out %hout HG
           unfold localF
-          rw [trFam_untraced s.gh.tr γ r id c bt _ Λ s.outbox out hout]
+          rw [trFam_untraced s.gh.tr γ r id c bt _ Λ s.outbox out (fun x hx => (hout x hx).1)]
           unfold trFam
           rw [htr]
           iapply trCapB_gateNone γd γ r id c bt _ _ Λ _ (fun _ _ _ h => h)

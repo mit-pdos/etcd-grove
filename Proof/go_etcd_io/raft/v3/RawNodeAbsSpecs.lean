@@ -18,7 +18,7 @@ predicate `R γ rn id rs ps qs ip` and a proposition `S` guarding the new post c
 Deviations from the design's table (§2.6 of the design): the pre is at any queue `qs` (not `[]`:
 the old `Step`, `Tick`, `Propose` specs allow a `Ready` outstanding), kept by those three; `Step` in
 the scope only for the harness's network types (`antStepTypes`; the old premises otherwise), a
-heartbeat response with no context;
+heartbeat response with no context, a sender among the voters (`errStepPeer`);
 `ProposeEnd` at the proposal message (`InputEnd.lean`'s form); `Ready`'s post at `pAccepted ps` (the
 read states cleared too, `acceptReady`'s `r.readStates = nil`) with the queue and `ReadyOut` guarded;
 `PIdle` without the id (unused); `ReadyOut` without the voters (2026-11-24: a response goes to
@@ -125,8 +125,11 @@ abbrev RawNode.Step.form (R : RaftNames → Loc → w64 → RNState → PState �
     (ml : Loc) (st : MsgSt),
   NetMsgOk id st →
   -- (#33 S3c) in the scope, a message of the harness's network, a heartbeat response with no
-  -- read-index context (`recvEnd_of_stepEnd_heartbeatResp`'s premise)
-  (S → st.msg.Type' ∈ antStepTypes ∧ (st.msg.Type' = MsgHeartbeatResp → st.ctx = [])) →
+  -- read-index context (`recvEnd_of_stepEnd_heartbeatResp`'s premise), from a voter (2026-11-24: a
+  -- response from a sender outside the progress map returns `errStepPeer` with the state unchanged,
+  -- not `RecvEnd`'s step-down to a higher term; notes/specs-only/ledger.md)
+  (S → st.msg.Type' ∈ antStepTypes ∧ (st.msg.Type' = MsgHeartbeatResp → st.ctx = []) ∧
+    st.msg.From' ∈ γ.reCfg) →
   uint.Z st.msg.Term' ≤ uint.Z rs.tc →
   (st.msg.Type' = MsgTimeoutNow → max (uint.Z rs.term) (uint.Z st.msg.Term') + 1 ≤ uint.Z rs.tc) →
   rs.flw = false →

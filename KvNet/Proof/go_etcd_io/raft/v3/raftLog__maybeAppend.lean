@@ -132,7 +132,8 @@ theorem raftLog.maybeAppend.wp_proof
     isplitr
     · ipureintro
       simp [plogMaybeAppend, Hnm]
-    ipureintro; exact ⟨rfl, id, SnpKeep.refl _, fun h => absurd h (Int.lt_irrefl _)⟩
+    ipureintro; exact ⟨rfl, id, SnpKeep.refl _, fun h => absurd h (Int.lt_irrefl _),
+      fun h => absurd h (by simp)⟩
   | true =>
     have Hm : PlogMatches ls.prev (ls.sents ++ ls.uents) a.prev' := of_decide_eq_true Hb.symm
     simp only [plogMaybeAppend, ite_eq_left Hm]
@@ -188,7 +189,9 @@ theorem raftLog.maybeAppend.wp_proof
       isplitr
       · ipureintro
         simp only [w64Min, _root_.and_self, ite_true, logStoreRec]
-      ipureintro; exact ⟨rfl, id, SnpKeep.refl _, fun h => absurd h (Int.lt_irrefl _)⟩
+      ipureintro
+      exact ⟨rfl, id, SnpKeep.refl _, fun h => absurd h (Int.lt_irrefl _),
+        fun _ => by unfold maybeAppendIp; rw [if_pos Hci0]⟩
     · -- a conflict at `ci = ents[k].Index = a.prev.index + 1 + k`
       have Hke := Hwf k e Hk
       have Hcine : e.Index' ≠ W64 0 := by intro Hc; rw [Hc] at Hke; word
@@ -303,14 +306,19 @@ theorem raftLog.maybeAppend.wp_proof
       ipureintro
       have Hk1 := logTruncateAppend_snpKeep ls (ents.drop k)
       rw [Hls1] at Hk1
-      refine ⟨Hsn1, fun _ => Hnu, Hk1, fun h => ?_⟩
-      -- (D22 S-d3b) a truncation: `offsetInProgress` back to the conflict's index
-      simp only at h ⊢
       have Hip1 : ls1.inprogress = logTruncInprogress ls e.Index' := by
         rw [← Hls1, Hdk]; rfl
-      rw [Hip1] at h ⊢
-      rw [logTruncInprogress_lt h]
-      exact ⟨Hcgt, e, List.mem_of_getElem? Hk, rfl, Hnm⟩
+      refine ⟨Hsn1, fun _ => Hnu, Hk1, fun h => ?_, fun _ => ?_⟩
+      · -- (D22 S-d3b) a truncation: `offsetInProgress` back to the conflict's index
+        simp only at h ⊢
+        rw [Hip1] at h ⊢
+        rw [logTruncInprogress_lt h]
+        exact ⟨Hcgt, e, List.mem_of_getElem? Hk, rfl, Hnm⟩
+      · -- (#33 S4) exactly `truncateAndAppend`'s at the conflict
+        simp only
+        rw [Hip1]
+        unfold maybeAppendIp
+        rw [Hcie, if_neg Hcine]
 
 end proof
 

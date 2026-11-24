@@ -16,6 +16,7 @@ public import KvNet.Proof.go_etcd_io.raft.v3.SnapshotHistory
 public import KvNet.Spec.go_etcd_io.raft.v3.StartNode
 public import KvNet.Proof.go_etcd_io.raft.v3.TracedApiDraft
 import all KvNet.Proof.go_etcd_io.raft.v3.TracedApiDraft
+import all KvNet.Proof.go_etcd_io.raft.v3.RawNodeStartSpec
 public import KvNet.Spec.go_etcd_io.raft.v3.setupNode
 public import KvNet.Spec.go_etcd_io.raft.v3.node__run
 public import KvNet.Proof.go_etcd_io.raft.v3.InvNodeRun

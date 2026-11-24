@@ -5530,3 +5530,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+
+## 2026-11-24: `RawNode.Step.form`'s scope premise, a sender among the voters (#33 S4, P-raft-3)
+
+- **Spec.** `RawNode.Step.form` (`Proof/go_etcd_io/raft/v3/RawNodeAbsSpecs.lean`), the strengthened triple's
+  scope premise `S → st.msg.Type' ∈ antStepTypes ∧ (st.msg.Type' = MsgHeartbeatResp → st.ctx = [])`, under which
+  the post is the exact `RecvEnd ps m ps'`.
+- **Defect.** False: a response (`MsgHeartbeatResp` with no context, a rejecting `MsgAppResp`/`MsgVoteResp`) from
+  a sender not in the progress map (`From = 99`) at a term `t' > ps.term`, `t' ≤ rs.tc`: `NetMsgOk` and
+  `isMessage` hold, but raft's `Step` guard `IsResponseMsg(m.Type) && !IsLocalMsgTarget(m.From) &&
+  r.trk.Progress[m.From] == nil` returns `errStepPeer` without stepping, so `ps' = ps`, while `RecvEnd` at
+  `m.term > ps.term` requires the step-down.
+- **Evidence.** Found proving `RawNode.Step.wp_absProof` (helper of the S4 lead): raft v3.7 `rawnode.go`,
+  `RawNode.Step`.
+- **Proposed change.** Add `st.msg.From' ∈ γ.reCfg` to the scope premise: in the scope the progress map's domain
+  is the configuration's ids, which contain the voters `γ.reCfg`, so the early return is refuted. The harness
+  supplies it from `NetFacts` (`m.src = nodeId i`) and `reCfg = voters3`. Not a raft bug: etcd never steps a
+  response from a non-member (its transport drops them), and the API form's `S := True` callers are the
+  harness's only.
+- **Decision.** Applied (branch `antithesis-s4`, the lead).
