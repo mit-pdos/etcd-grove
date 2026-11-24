@@ -8,7 +8,9 @@ master 915f964; notes/dsv-gryff.md).
 `wp_Index` over its own hand translation (`Harness/Code/strings_extra`, trusted code, not allowed
 here). Go's `strings.Index` has no precondition and returns the index of the first `sep` in `s`,
 `-1` if there is none: the class states exactly that for one-byte separators (true of Go's
-`stringslite.Index` → `IndexByteString`). A premise of `gryff_remote_robust`, never an instance.
+`stringslite.Index` → `IndexByteString`). A premise of `gryff_remote_robust`. Since Perennial
+`fce59af75` `strings.Index` is translated with its body and proved; the class has an axiom-free
+instance (`NonVacuityLinked.lean`, `stringsIndexHyp_holds`), so the premise can be discharged.
 -/
 module
 
