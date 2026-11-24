@@ -1,6 +1,10 @@
 /-
-Proof of `Net/Spec/net/http/conn__serve.lean`. WIP (S5 session 9): the plan, step by step, over the
-callees' specs taken as hypotheses (linked in `Net/Proof/net/http/Results.lean`). NOT LANDED.
+Proof of `Net/Spec/net/http/conn__serve.lean`, over the callees' specs taken as hypotheses (linked in
+`Net/Proof/net/http/Results.lean`). The connection's reader and its mutexes are made here (`crIs`,
+`connMuInv`, the `curReq` invariant); `readRequest`'s error (`reqErr`: never `errTooLarge`, an
+`*unsupportedTEError` or a `statusError`, `ServeLemmas.lean`) gets Go's `400` or no answer, then the
+connection is closed (`wp_conn_close`); its request goes to the handler with `hijackOk` (`hjPre`), which
+hijacks; either way the deferred calls (the context's cancel, the recover closure) end it.
 -/
 module
 
@@ -374,37 +378,33 @@ theorem conn.serve.wp_proof
     inext
     iintro ⟨Htok, Hdone⟩
     try wp_auto
-    sorry
-/-PLAN
-  -- 1. `with_defer_recover`; RemoteAddr (+ `TCPAddr.String`: `wp_net_AnyString`), store remoteAddr;
-  --    `WithValue(ctx, LocalAddrContextKey, LocalAddr())` (wp_WithValue; ctxBg grows by one).
-  -- 2. the two `connectionStater` assertions on a `*TCPConn` fail (TypeAssert2 to an interface).
-  -- 3. `WithCancel` (wp_WithCancelBg); store `c.cancelCtx`, persist it; `defer cancelCtx()`.
-  -- 4. `&connReader{conn: c, rwc: c.rwc}`: iStructNamed; ghost names (ph halves, bg token, r := hs);
-  --    `sync.init_Mutex` with `crInv` (cond nil, phase false: token); `crIs`; `crMain cr γ cn P Q c [] 0`.
-  --    curReq invariant (`inv curReqN (curReqInv c)`) from connNew's ownPointer; `crConnOk c`.
-  -- 5. `newBufioReader(c.r)`: a freshReader variant of `wp_newBufioReader` (pool: Reset gives it;
-  --    NewReader: unfold NewReaderSize/reset); `newBufioWriterSize(checkConnErrorWriter{c}, 4096)`.
-  -- 6. readHeaderTimeout (srvServe: 0; srvDflt ReadTimeout 0): no deadline; protocols(): Protocols nil,
-  --    TLSNextProto nil (lookup on a nil map), HTTP1 set, UnencryptedHTTP2 unset; `sync.init_Mutex` for
-  --    `c.mu` with `connMuInv c γh` (hijackedv false).
-  -- 7. `c.readRequest(ctx)` (wp_readRequest; c.bufr at 1); `c.r.remain != initialReadLimitSize()`
-  --    -> setState(StateActive) (`wp_setState`); shuttingDown: `Bool.Load` on srvServe's discarded false.
-  -- 8. error: `err == errTooLarge` false (`httpEnv_errTooLarge`: messages differ from io.EOF's,
-  --    ErrUnexpectedEOF's, "malformed HTTP "...; other types differ); isUnsupportedTEError false;
-  --    isCommonNetReadError: either way; statusError assertion false; `fmt.Fprintf(c.rwc, 400)`:
-  --    SprintfOut of a verb-free format is the format; the write through `sendTok` with `HQ400`
-  --    (`conn_streamWriterOk`/`write_acc`). Return: defers: cancel (cancelSpec), recover nil,
-  --    inFlightResponse nil, hijacked false -> c.close(): finalFlush (putBufioReader on rawReader,
-  --    `bufw.Flush()` on a raw writer: nothing to write, putBufioWriter), Conn.Close (`close_au`),
-  --    setState(StateClosed).
-  -- 9. success: persist c.bufr/c.bufw; split `req ↦ rrReqVal ...` (iStructNamed), persist Method and
-  --    RemoteAddr (`reqHead`), the rest `reqRest`; expectsContinue false and `Header.get("Expect")`
-  --    "" (empty map); `c.curReq.Store(w)` through the invariant (respNotify w from respNew);
-  --    bodyRemains(nil) false; startBackgroundRead; `hjPre` from respNew + fields; `hijackOk` by
-  --    wp_Hijack; the handler (`srvHandler`) returns threadTok and `hjDone`; `w.cancelCtx()`;
-  --    hijacked() true; releaseConn (crLeft); return: defers: cancel, recover nil, hijacked true.
-PLAN-/
+    iunfold context.cancelSpec at Hwcancel
+    wp_bind (App (Val #fw) (Val #()))
+    iapply Hwcancel
+    · imodintro; itrivial
+    inext
+    iintro -
+    try wp_auto
+    iunfold hjDone at Hdone
+    icases Hdone with ⟨Hγh2, Hleft, Hst, Hhd⟩
+    wp_apply wp_hijacked c γh true $$ [$Hsync $Hcmu $Hγh2] as Hγh2
+    try wp_auto
+    wp_apply wp_release «$r0_ptr» γ cn P (net.rpc.connectReq path) Z $$ [$Hcris $Hleft] as Hleft
+    try wp_auto
+    wp_for_post
+    iunfold context.cancelSpec at Hcancel
+    wp_bind (App (Val #cancel) (Val #()))
+    iapply Hcancel
+    · imodintro; itrivial
+    inext
+    iintro -
+    try wp_auto
+    wp_apply wp_recoverPanic $$ [$pnc] as pnc
+    try wp_auto
+    wp_apply wp_hijacked c γh true $$ [$Hsync $Hcmu $Hγh2] as Hγh2
+    try wp_auto
+    iapply HΦ
+    iexact Htok
 
 end proof
 
