@@ -592,3 +592,52 @@ porcupine replaces it).
   `Perennial.EtcdGrove.`; dups (`dups-ccf.py`): the 4 known false positives, none craq's; the
   landed `Spec/*/TopLevelRobustness.lean` and `etc/gen-init.py` equal origin/lean's;
   `etc/goose.py` differs from lean only by models-rpc-http's models-net lines.
+- **P13. Ninth agent (2026-11-24, from f3ecf63fc2): lean b3f2fc485, steps63, frames, non-vacuity.**
+  Merged `origin/lean` 5c7f7d2e59 (Perennial b3f2fc485, `/shared/perennial-b3f2fc485`; models-rpc-http,
+  net-rpc-rerr, rpc-defaultserver, prove-ps2-s5srv, kitgen/kitlibs-check landed): the Net/ conflicts
+  (mrh x lean integration fixes of P12) take lean's side (its landing merge did them); the notes'
+  duplicated mrh sections dropped (lean's own); gen-init rerun (twelve craqnet PkgTables). Merged
+  `origin/dsv-steps63` c7addffcdd (awaits kaashoek's approval).
+  * **rpc-defaultserver**: `RpcHttpServe` loses `defaultServer`/`defaultServer_persistent`/
+    `RegisterName`: `DefaultServer` is Net's `net.rpc.defaultServer γ` (in `rpcBootRes`, the server
+    proofs, `HandleHTTP`'s precondition), and `rpc.RegisterName` is Net's proved
+    `net.rpc.RegisterName.wp` (the server proofs take `net.rpc.RegisterName.spec`, Link passes the
+    proof). Nothing else of S5/rpc-defaultserver is a craq premise (net/http's `ListenAndServe`, the
+    mux and `rpc.HandleHTTP` are not in Net yet: `RpcHttpServe` keeps `muxOwner`, `muxHas`,
+    `HandleHTTP`, `ListenAndServe`).
+  * **net-rpc-rerr's `Client.Call.spec`** asks `sm.length + 16 ≤ maxFrameN` and the encoded
+    arguments `≤ maxFrameN` (1 GiB). `wp_Call_tag` (`Netrpc/Defs.lean`) takes `HS : ∀ bs, S M bs Φ ⊢
+    ⌜bs.length ≤ maxFrameN⌝` (the method's deposit bounds its encoding) and `Hsm` (auto: `simp`);
+    `nodeSpec_frame`/`coordSpec_frame` prove `HS` for every method from the deposits, with
+    `Craq/WireLen.lean` (each encoding's length; the strings of at most 2 bytes, `nodup_le2_length`).
+    The bounds the deposits now carry: **keys of at most 2 bytes** (`keyOk`, `Wire.lean`; the kit's
+    keys are "k0", "k1") and values shorter than 256 bytes (`kvOk`): `valsElem` carries `kvOk`
+    (the protocol's records: `craqWf`'s fourth conjunct, `assign` takes `kvOk k x`), so a Write's
+    and a store's items' keys are bounded; `nodeSpec`'s Commit/LatestVersion/Read deposits carry
+    `keyOk k`, Fwd/BackPropagate `reqKeysOk req` (a request's keys are a store's: `store_keysOk`
+    from the node's invariant, `reqKeysOk_of`; at most `1 + 256 + 256^2` entries, so ~1.2 MB);
+    `coordSpec`'s Write `kvOk k x`, RemoveNode `a.length < 256`; `craqCtx` adds `∀ b ∈ chain,
+    b.length < 256` (AddNode's and Update's addresses). The client interfaces (`isNodeClient`,
+    `isCoordClient`, `isNodeSvc`'s Read, `isCoordSvc`'s Write) take these as pure premises; the
+    store's `Commit` returns `keyOk k` (its item's `valsElem`), so `commit`/`sendCommitToPrev` have
+    it. The kit: `KIn`'s keys are `keyOk` (`inOk`; `Gen`'s keys are 2 bytes), the removals' are
+    server addresses (`serverAddrs_short`). Not a statement change.
+  * **Step bound** (dsv-steps63, notes/dsv-epaxos.md "Step bound 2^63"): the statement is
+    `DistDeploy … → Robust [] (system σ) g (2 ^ 31) (2 ^ 63)` (no `threads` binder); the proof calls
+    `robust_of_distProtoLisRBT … (2 ^ 31) (2 ^ 63)`.
+  * **strings.Cut/TrimLeft** (Net's `DialHTTP.wp` takes them as pending callee hypotheses until the
+    pin includes Perennial ed1955557, not in b3f2fc485): NOT statement premises. `Link.lean`'s
+    `StringsPending GF` class (fields `cut`, `trimLeft`: Perennial's `EtcdGrove.strings.Cut.spec`,
+    `TrimLeft.spec`) feeds `rpcClientSpecs`' `DialHTTP.wp sp.cut sp.trimLeft`; `wp_Server`,
+    `wp_Client`, the client factories take `[StringsPending GF]`; the top-level proof is
+    `craq_remote_robust_of_strings (hs : stringsPending.spec) : craq_remote_robust.spec`. **The
+    closed `craq_remote_robust` waits for the pin bump**: then it is
+    `craq_remote_robust_of_strings (fun => ⟨Perennial's Cut proof, TrimLeft proof⟩)` and
+    `StringsPending` can go.
+  * **Non-vacuity**: `examples/craqnet/NonVacuityLinked.lean` (test-only, no importer):
+    `nonvacuous_premises`, the statement's premises in its own form: `net.rpc`/`net.http`
+    `InitHyp` (theorems over local axioms `local_rpc_wp_init`/`local_http_wp_init`; the
+    inithyp-instances tool of math-rand-isinit walks a kit's own packages only), `LogHyp` (three
+    local axioms), `∃ rs` (`local_rpcHttpServe`: local opaque `local_muxOwner`/`local_muxHas`, local
+    axioms for persistence, `HandleHTTP`, `ListenAndServe`) with the eleven `RpcBoot`s (local axioms,
+    one per command). No unsatisfiable field.

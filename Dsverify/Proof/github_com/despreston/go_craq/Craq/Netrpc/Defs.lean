@@ -319,7 +319,9 @@ theorem nodeSpec_frame (hch : ∀ b ∈ ch, b.length < 256) (m : GoString) :
     nodeSpec γ ch a m args Φ ⊢ ⌜args.length ≤ net.rpc.maxFrameN⌝ := by
   have hm : ∀ md : MetaV, metaAddrsOk ch md →
       md.prev.length < 256 ∧ md.next.length < 256 ∧ md.tail.length < 256 := by
-    intro md ⟨h1, h2, h3⟩
+    intro md hmd
+    unfold metaAddrsOk at hmd
+    obtain ⟨h1, h2, h3⟩ := hmd
     have hb : ∀ b, b ∈ go!"" :: ch → b.length < 256 := by
       intro b hb; rcases List.mem_cons.1 hb with rfl | hb
       · decide
