@@ -1,7 +1,7 @@
 /-
 The proof of `KvNet/Spec/.../kvnet/Transport__enqueue.lean`: a `select` with a send case on the
 peer's queue and a default (Perennial's `wp_select_nonblocking`): the send case's update from the
-bag channel (`queue_nb_send_au`, the message's `qElem` going into the channel), the default
+bag channel (Perennial's `bag_nb_send_au_now`, the message's `qElem` going into the channel), the default
 `dropped` (the message kept by the caller's `qElem`, shared with the case by `∧`).
 -/
 module
@@ -48,7 +48,7 @@ theorem Transport.enqueue.wp_proof (wp_dropped : Transport.dropped.spec (GF := G
       · iexact Hisch
       unfold nonblockingSendAu
       isplit
-      · iapply queue_nb_send_au γq ch (qElem F pid) m $$ Hbag Hq
+      · iapply bag_nb_send_au_now γq ch (qElem F pid) m $$ Hbag Hq
         try wp_auto
         iapply HΦ
         itrivial

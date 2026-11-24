@@ -78,6 +78,7 @@ include h_After in
 of its callees' linked results (as `compactwatch`'s) and the named hypothesis of
 `clock.RealClock.After` (`time.After(d)`: a channel some time is sent on). -/
 theorem k8s_compactor.wp_Main [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_compactor.Main.spec (GF := GF) (hG := hG) :=
   k8s_compactor.Main.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartCompactingServer
@@ -88,7 +89,8 @@ theorem k8s_compactor.wp_Main [_root_.Perennial.net.FieldAssumptions]
 
 /-- `startCluster`'s callees linked (the k8s etcd3 driver's `wp_startCluster`, without its
 kubernetes client). -/
-theorem k8s_compactor.wp_startCluster [_root_.Perennial.net.FieldAssumptions] :
+theorem k8s_compactor.wp_startCluster [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
     k8s_compactor.startCluster.spec (GF := GF) (hG := hG) :=
   k8s_compactor.startCluster.wp_proof etcdstart.wp_Members etcdstart.wp_StartMembers
     etcdstart.wp_Serve cluster3.wp_StartBridge
@@ -102,7 +104,8 @@ include h_After in
 `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/compactor/MainPartition.lean`), under the semantic
 premises of its callees' linked results (`Main`'s, and the `k`-member cluster's) and the named
 hypothesis of `clock.RealClock.After`. -/
-theorem k8s_compactor.wp_MainPartition [_root_.Perennial.net.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
+theorem k8s_compactor.wp_MainPartition [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     k8s_compactor.MainPartition.spec (GF := GF) (hG := hG) :=
   k8s_compactor.MainPartition.wp_proof zap.NewNop.wp_proof k8s_compactor.wp_startCluster

@@ -172,46 +172,6 @@ def isPeers (F : KvFacts GF) (t : Loc) : IProp GF :=
 instance isPeers_persistent F t : Persistent (isPeers (GF := GF) F t) := by
   unfold isPeers; infer_instance
 
-/-- A nonblocking send of `v` on a bag channel, with `P v` (the select's send case: it fires only
-when the value fits in the buffer or a receiver waits). -/
-theorem queue_nb_send_au {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPointsto (GF := GF) V]
-    (γ : ChanNames) (ch : Loc) (P : V → IProp GF) (v : V) (Φ : IProp GF) :
-    ⊢ isChanBag γ ch P -∗ P v -∗ Φ -∗ nonblockingSendAuInner γ v Φ := by
-  rw [isChanBag_unseal]; unfold isChanBagDef nonblockingSendAuInner
-  iintro ⟨#Hch, #Hinv⟩ HP HΦ
-  iapply ncfupd_of_fupd
-  iinv Hinv with Hi Hclose
-  iapply fupd_mask_intro Std.LawfulSet.empty_subset
-  iintro Hmask
-  inext
-  unfold chanBagInv
-  icases Hi with ⟨%s, Hoc0, Hi⟩
-  iexists s
-  iframe Hoc0
-  rcases s with buff | _ | _ | _ | _ | _ | _
-  all_goals dsimp only
-  case Buffered =>
-    iintro Hoc
-    imod Hmask with -
-    imod Hclose $$ [Hoc Hi HP] with -
-    · inext; iexists .Buffered (buff ++ [v])
-      dsimp only
-      iframe Hoc
-      iapply BigSepL.bigSepL_append.2
-      iframe Hi
-      iapply BigSepL.bigSepL_singleton.2
-      iexact HP
-    imodintro
-    iexact HΦ
-  case RcvPending =>
-    iintro Hoc
-    imod Hmask with -
-    imod Hclose $$ [Hoc HP] with -
-    · inext; iexists .SndCommit v; iframe
-    imodintro
-    iexact HΦ
-  all_goals first | itrivial | (iexfalso; iexact Hi)
-
 end defs
 
 end raft_kvnet

@@ -1,0 +1,8 @@
+# Project dsv-craq's go-craq store package (etc/goose.py; notes/dsv-craq.md): all of it but
+# Encode and DecodeMany, gob's encoder and decoder, which only the bolt store (not ported) calls;
+# so no import of encoding/gob.
+translate = ["*", "!Encode", "!DecodeMany"]
+imports = ["*", "!encoding/gob", "!bytes"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
