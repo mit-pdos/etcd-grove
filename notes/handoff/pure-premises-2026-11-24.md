@@ -114,3 +114,9 @@ Per-packet resume notes of the helpers (their last state, logs named there are o
   kvdurable's NV tests take minutes and time out under load. k8s/all's `TestMain` fails locally with
   "failed to create WAL" (pre-existing).
 - **`etc/api-check.py` takes one `etc/api/*.txt` per call.**
+
+## Pickup (2026-11-24, second machine)
+- premise-witness: merged origin/lean `366ab8486d` (55 more commits) as `603e7a78b8`; VM build of
+  `Robustness.PremiseSat Robustness.FsStart` + all 24 `*TopLevelWitness` modules: exit 0, 5351 jobs, no
+  `sorry` outside GeneratedProof (pre-existing). Nothing needed fixing. Source gates (api, import-all,
+  tier, premise-witness --check) ok. Land-queue request sent through the pickup report (not queued here).
