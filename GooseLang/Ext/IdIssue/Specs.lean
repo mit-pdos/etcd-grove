@@ -90,7 +90,7 @@ def idIssueCtx (hL : IdIssueGS GF) (M : IdIssueState) : IProp GF :=
 theorem idIssue_local_init (hPre : IdIssueGpreS GF) (M : IdIssueState) :
     ⊢@{IProp GF} |==> ∃ hL : IdIssueGS GF, idIssueCtx hL M ∗ iprop(True) := by
   letI := hPre.idIssuePreAllG
-  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Loc)) with ⟨%γ, H⟩
+  imod (ghost_map_alloc_empty (GF := GF) (K := w64) (V := Option Loc)) with ⟨%γ, H⟩
   imodintro
   iexists (⟨hPre.idIssuePreAllG, γ⟩ : IdIssueGS GF)
   unfold idIssueCtx
@@ -143,7 +143,7 @@ theorem idIssue_ghost_step (hL : IdIssueGS GF) (M : IdIssueState) (id : w64) (g 
           by_cases hi : id = i
           · simp only [hi, ite_true] at h ⊢; exact h
           · simp only [hi, ite_false] at h ⊢; exact Hsub i v h
-      · iintro -; iunfold idIssueFragAt idIssueElemAt; iexact He
+      · iintro -; iunfold idIssueFragAt; iunfold idIssueElemAt; iexact He
     | some v' =>
       have hg' : v' = some g := by
         have := Hsub id v' hg
