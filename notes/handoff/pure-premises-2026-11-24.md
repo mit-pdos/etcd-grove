@@ -120,3 +120,38 @@ Per-packet resume notes of the helpers (their last state, logs named there are o
   `Robustness.PremiseSat Robustness.FsStart` + all 24 `*TopLevelWitness` modules: exit 0, 5351 jobs, no
   `sorry` outside GeneratedProof (pre-existing). Nothing needed fixing. Source gates (api, import-all,
   tier, premise-witness --check) ok. Land-queue request sent through the pickup report (not queued here).
+
+State after the pickup (2026-11-24 ~18:10Z). Every packet branch merged `premise-witness` `378b5e9ac8`
+(lean `366ab8486d`, Perennial pin `2cadd30c2`); goose `--check` of each changed project and
+`gen-init --check` pass at the new pin (`PERENNIAL_DIR`= a Perennial worktree at `2cadd30c2`);
+PkgTable merge conflicts (P3, P4/P5) resolved by rerunning `gen-init`.
+
+| Branch | Head | Built (VM) | Axioms | NV (rerun here) |
+|---|---|---|---|---|
+| P2 `premise-kvN-range` | `10319e40b3` | 13 leaves (kv, kvreconf, kvdurable, noax, KvNet kvnet): exit 0 | (unchanged statements' theorems) | kvdurable: MainN(0),(1001) return; MainN(1),(2),(3),(2) pass porcupine; the 5th run (k=3) **stalled** 78 min in `lintest.RunLin2`'s WaitGroup (clients never finish; no panic) until the 90 m timeout. noax: MainN(1),(2),(3),(3) pass (see the report for the last run). kv/kvreconf: passed on the old machine |
+| P6 `premise-leaseexpiryN-range` | `ae3f0ce26d` | TopLevelRobustness + Results: exit 0 (10766 jobs) | = `etc/tcb-collections/leaseexpiryN-single-process.txt` (210 + 3 std) | `TestMainRange`, `TestMainRun`: pass |
+| P1 `premise-tracecheck-nodes` (**trusted**) | `285c4859a2` | full `lake build`: exit 0 (28068 jobs; only `sorry`: MemstorageApi:92, as on lean) | `tcb-report --check`: matches `etc/tcb-baseline.txt` (331, 0 sorries) | `TestMainRandomNodes` (`-tags with_tla`, in its own module): sizes 1..5 ×3 pass TLC; `TestConfChangeWireVectors` pass |
+| P4/P5 `premise-etcd-params` | `d9e4df44d2` | both TopLevelRobustness/Results, cluster3.Link, 5 Results leaves: exit 0 (12721 jobs) | = `etc/tcb-collections/{etcd,k8s}-all-single-process.txt` | etcd `TestParamsOk`, `TestMainCheckedRun` (`ETCDALL_CHECKED=1`, 32 s); k8s `TestParamsOk` (run in `examples/k8s/all`, its own module) |
+| P3 `premise-mvcc-mainat` | `3693cd70fa` | LstatAnyS, RootClaim, StartFiles, both MainAt/TopLevelRobustness/TopLevelWitness/Results: exit 0 (6810 jobs) | `mvccrand_robust`, `mvccfull_robust`: identical to lean's (46 each); LstatAnyS/RootClaim lemmas: Lean's 3 standard axioms only | mvccfull `TestMainAt`: pass (2242 s); mvccrand: passed on the old machine |
+
+P4/P5 fixes: the "unknown tactic" was not reproduced (ParamsOk's local macros work); real errors were
+`mulBelow` (wp_auto already resolves `b == 0` when `b` is substituted: split with `wp_if_destruct`
+first, then rewrite the result), missing `Decidable` instances for `etcdCountsOk`/`k8sCountsOk`, and
+k8s ParamsOk's two `omega`s (kernel deep recursion; replaced by `Int.add_lt_of_lt_sub_left`,
+`Int.lt_sub_left_of_add_lt`). P3 fixes: names moved on lean (`slashB`, `NameOk` unqualified,
+`List.dropLast_concat_getLast`, `List.pairwise_singleton`), loop conditions arriving as
+`#(decide P) = #true` (`go.intoVal_inj`), and mvccfull `MainAt`'s kernel check (~9 min,
+`maxHeartbeats 0`, commented in the file).
+
+Pitfalls found here: `by_contra` does not exist (no Mathlib): `Classical.byContradiction`. `word` on
+mvccfull's 12002-name context fails ("unknown free variable"): state arithmetic as small lemmas.
+Never write out `FilePaths`' slice `s ↦* names.map …` in mvccfull: a second instance path makes the
+kernel time out; let `wp_load_slice_index` take `_` from `Hs`. Fast iteration without a build slot:
+copy a module to an untracked `scratch/X.lean` (drop `module`/`public`/`@[expose]`) and run
+`VMLAKE_KEY=… vmlake env lean scratch/X.lean`; delete scratch before gates (tier-check reads it).
+`tracecheck`, `kvdurablenoax`, `k8s/all` are Go modules of their own: run `go test` inside them.
+
+Next: Upamanyu's review of P1 (trusted), P2, P6, P3, P4/P5 (statement changes; messages in the
+pickup report); land-queue of premise-witness (untrusted). Then step 5 (Fs witnesses for osfs, kvnet,
+etcd `HWal`, `etcd_wal_safe`; P7). Open question for the raft lead: kvdurable's intermittent
+liveness stall at k=3 (twice now, on two machines).
