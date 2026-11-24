@@ -52,14 +52,21 @@ def system [GoGlobalContext] (σs σc : state) : List (Expr × state) :=
 `HTTPAddr`). -/
 def rpcAddrs : List GoString := [go!"127.0.0.1:7211", go!"127.0.0.1:7212"]
 
-/-- The statement's step bound, `2 ^ 30 - 1`: net/http's mux (`DefaultServeMux`'s `RWMutex`, whose
-reader-slot pools hold at most `2 ^ 30` readers: net/http's first initialization's
-`threadBound GF ≤ 2 ^ 30`) and Net's net/rpc server (`Server.ServeCodec.spec`, its wait group's
-`int32` counter: `threadBound GF ≤ 2 ^ 31`) bound the machine's threads, and the deployment bridge
-bounds the threads by the step count (`threadBound = receiptBound + 1`). (Until 2026-11-24
-`2 ^ 31 - 1`, as the net/rpc kits; lowered with the mux's reader slots,
-`notes/axiom-review/net-http-interim.md`.) -/
-def rpcStepBound : Nat := 2 ^ 30 - 1
+/-- The statement's thread bound, `2 ^ 30`: every machine keeps fewer than `2 ^ 30` live threads
+(`Robust`'s `threads`). net/http's mux (`DefaultServeMux`'s `RWMutex`, whose reader-slot pools hold at
+most `2 ^ 30` readers: net/http's first initialization's `threadBound GF ≤ 2 ^ 30`) needs it; Net's
+net/rpc server (`Server.ServeCodec.spec`, its wait group's `int32` counter) needs only
+`threadBound GF ≤ 2 ^ 31`. The bridge (`robust_of_distBootIT`, over Perennial's
+`goose_dist_adequacy_below`) gives each machine `threadBound GF = rpcThreads`. -/
+def rpcThreads : Nat := 2 ^ 30
+
+/-- The statement's step bound, `2 ^ 63 - 1`: executions of fewer than `2 ^ 63 - 1` steps. The bridge
+runs an execution of `n` steps at `n + 1` receipts, and net/rpc's client (`NewClientWithCodec.spec`,
+under `Dial`/`DialHTTP`) needs `receiptBound GF ≤ 2 ^ 64`, which keeps its `uint64` sequence numbers
+distinct; the lower `2 ^ 63 - 1` follows the dsverify kits' `2 ^ 63`. (Until 2026-11-24 the bridge bounded the threads by the step count,
+`threadBound = receiptBound + 1`, and the step bound was the thread bound's, `2 ^ 30 - 1`, before that
+`2 ^ 31 - 1`.) -/
+def rpcSteps : Nat := 2 ^ 63 - 1
 
 end github_com.mit_pdos.etcd_grove.examples.net.rpcdriver
 end Perennial

@@ -4,7 +4,7 @@
 
 `rpcdriver_robust`, stated in
 `Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/rpcdriver/TopLevelRobustness.lean`, through the
-all-stable bridge with the main thread's token (`robust_of_distBootI`,
+all-stable bridge with the main thread's token and `Robust`'s thread bound (`robust_of_distBootIT`,
 `Net/Statement/DistBridgeExts.lean`, at `netExts`). The start: the net protocol library's registry
 (`netProto_alloc`), the rpc world's connection registry and the request ids' ghost map (`γid`), and
 the server's two listeners' protocols (`rpcLisP_set`, from the addresses unset: an exact listener's
@@ -63,8 +63,8 @@ theorem addrUnset_lisUnset (a : GoString) (h : addrOk a = true) :
 end start
 
 theorem rpcdriver_robust : rpcdriver_robust.spec := by
-  intro _ lctx sem srv_sem cli_sem field_sem _ σs σc g threads
-  refine robust_of_distBootI (GF := netGF) rpcAddrs (system σs σc) g threads rpcStepBound
+  intro _ lctx sem srv_sem cli_sem field_sem _ σs σc g
+  refine robust_of_distBootIT (GF := netGF) rpcAddrs (system σs σc) g rpcThreads rpcSteps
     (fun hg hl => ⟨extsInitgP_of_init ⟨net_init_compat, trivial⟩ hg,
       fun m hm => extsInitP_of_init ⟨net_init_compat, trivial⟩ (hl m hm)⟩) ?_
   intro G hrb
@@ -108,8 +108,8 @@ theorem rpcdriver_robust : rpcdriver_robust.spec := by
     dsimp only at hGG hctx
     subst hGG hctx
     letI hG : HeapGS .hasLC netGF := ⟨G', L⟩
-    have hTb : threadBound netGF ≤ 2 ^ 30 := by unfold rpcStepBound at hrb'; omega
-    have hRb : receiptBound netGF ≤ 2 ^ 64 := by unfold rpcStepBound at hrb'; omega
+    have hTb : threadBound netGF ≤ 2 ^ 30 := by unfold rpcThreads at hT; omega
+    have hRb : receiptBound netGF ≤ 2 ^ 64 := by unfold rpcSteps at hrb'; omega
     match i, hm with
     | 0, hm =>
       cases hm

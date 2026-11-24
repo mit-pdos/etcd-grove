@@ -1,7 +1,7 @@
 # rpcdriver (examples/net/rpcdriver, notes/library-drivers.md): net/rpc's driver, the executable
 # specification of what the proofs rely on from net/rpc, in the part Net/: its top-level robustness
 # theorem `rpcdriver_robust` (Net/Proof/.../net/rpcdriver/TopLevelRobustness.lean: two machines,
-# Robust [] under DistDeploy for fewer than rpcStepBound = 2^30 - 1 steps). The library is done when
+# Robust [] under DistDeploy, rpcThreads = 2^30 threads, rpcSteps = 2^63 - 1 steps). The library is done when
 # this collection is empty but for the models' trusted claims and the net extension's semantics.
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/rpcdriver.txt            what it rests on

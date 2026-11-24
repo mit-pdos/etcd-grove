@@ -53,8 +53,14 @@ the models (`-tags netmodel`, the GOROOT farm of `models/goroot.py`).
 Statement (2026-11-24): `rpcdriver_robust.spec`
 (`Net/Spec/github_com/mit_pdos/etcd_grove/examples/net/rpcdriver/TopLevelRobustness.lean`): the
 two machines (`system σs σc`, `TopLevelDefs.lean`), neither crashing, deployed at `rpcAddrs`
-(`DistDeploy`), are `Robust []` for fewer than `rpcStepBound = 2 ^ 30 - 1` steps (lowered from
-`2 ^ 31 - 1` after S5's review: net/http's mux takes reader slots, `threadBound ≤ 2 ^ 30`). No premise
+(`DistDeploy`), are `Robust [] … rpcThreads rpcSteps`: every execution of fewer than `rpcSteps =
+2 ^ 63 - 1` steps along which each machine keeps fewer than `rpcThreads = 2 ^ 30` live threads
+(net/http's mux takes reader slots, `threadBound ≤ 2 ^ 30`; net/rpc's server needs `≤ 2 ^ 31`).
+Restated 2026-11-24 on review: the thread bound is `Robust`'s own, separate from the steps, through
+`Net.robust_of_distBootIT` (`Net/Statement/DistBridgeExts.lean`, over Perennial's
+`goose_dist_adequacy_below`, as dsv-steps63's kits, 70406b8fd3); before, the bridge tied the threads
+to the steps (`threadBound = receiptBound + 1`) and the statement was `∀ threads, Robust [] … threads
+rpcStepBound` with `rpcStepBound = 2 ^ 30 - 1` (first `2 ^ 31 - 1`, lowered after S5's review). No premise
 but the deployment's start and the programs' typing facts. Proved 2026-11-24 over four interim
 axioms (`etc/tcb-collections/rpcdriver.txt`): `net.rpc.wp_init_first`, `net.http.wp_init_first`
 (first-run initializers, L2 step 6), `net.http.Handle.wp_proof`, `net.http.Serve.wp_proof_rpc`
