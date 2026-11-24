@@ -1298,11 +1298,7 @@ def respcElem (γs : StreamNames) (Dn : Nat → v3rpc.WatchRespM → IProp GF) (
   iprop(∃ (m : v3rpc.WatchRespM) (L : List v3rpc.WatchRespM),
     v3rpc.watchRespRecv p m ∗ Dn k.toNat m ∗ v3rpc.downLbW γs (L ++ [m]) ∗ ⌜L.length = k.toNat⌝)
 
-instance streamNames_countable : Pos.Countable StreamNames :=
-  .ofInjective (fun s => Pos.Countable.encode (s.up, s.upRcv, s.down, s.upEnd, s.downRcv, s.downEnd,
-    s.aux))
-    (by rintro ⟨a, b, c, d, e, f, g⟩ ⟨a', b', c', d', e', f', g'⟩ h; have h := Pos.encode_inj h;
-        simp_all)
+-- (SW1) `StreamNames`' countable instance is grpc's (`StreamNames.countable`, `InvGrpcCall.lean`).
 
 /-- **An epoch of `run`** (D25): the gRPC stream it opened, the first position of `respc` its
 responses take, the name of its count of responses forwarded (a mono nat, `serveWatchClient`'s).
