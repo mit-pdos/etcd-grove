@@ -647,6 +647,25 @@ premise widened to any `From` for an unstamped `MsgProp` (with `RawNode.Step`'s)
 `form` (the message's entries owned, their `entTk`s, as `fwdP`), and `ProposeEnd`'s forward at
 `src := if m.src = 0 then id else m.src`.
 
+
+### 2.7 Proof-phase changes (S4, P-raft-3, 2026-11-24)
+
+- **Where the strengthened proofs live.** The layout check lets a function's proof file expose only
+  `<F>.wp_proof`, so `RawNode.<F>.wp_absProof` is in a sibling defs module `RawNode__<F>Abs.lean`
+  (it takes its callees' specs as hypotheses, as a `wp_proof` does; no layout exception), and
+  `RawNode__<F>.lean`'s `wp_proof` is `spec_of_abs (wp_absProof …)` with its old hypotheses, so
+  `Link.lean` is unchanged. The six `spec_of_abs` are in `RawNodeSpecOfAbs.lean`; the two
+  entailments, `ownRawNodeAt_intro` and the facts the proofs read out are in `RawNodeAtLemmas.lean`.
+  Done: `HasReady` (statement as written).
+- **`Ready`'s queue clause is not provable as stated.** `qs' = ps.outbox.filter (·.dst = id)` needs
+  the order of the self-addressed messages in the protocol outbox to be their order in
+  `msgsAfterAppend`, but the struct relates the two only up to permutation (`outboxRel`, and
+  `ownRaftPhysReady`'s `outboxRelP`: `o ≡ₚ absList as1 ++ absList as2`). Smallest correct change:
+  `qs' ≡ₚ ps.outbox.filter (·.dst = id)` (`AdvanceEnd` then steps them in the queue's order, which
+  the client knows only as a permutation of those). Pinning the order needs `outboxRel` (an
+  `InvRaftPhys` invariant every step proof keeps) strengthened. Not changed yet: the harness side
+  decides.
+
 ---
 
 ## 3. The refinement
