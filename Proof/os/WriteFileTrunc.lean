@@ -39,7 +39,7 @@ theorem os.WriteFile.wp_proofTruncS (wp_Close : os.File.Close.spec (GF := GF) (h
   wp_apply os.OpenFile.wp_truncS d b (W64 1 ||| W64 64 ||| W64 512) perm R j i N dq dqn h qc
       (by simp only [OpenFlagsOk, O_CREAT, O_TRUNC, O_CLOEXEC]; decide) (by decide) hb hN hi
       $$ [Hp Hn Hperm Htr] as %f %err ⟨Hp, Hn, Hperm, Htr, Hr⟩
-  · iframe; isplitl [] <;> iassumption
+  · iframe; (repeat' isplitl []) <;> iassumption
   ihave Htr := trFile_false i _ $$ Htr
   icases Hr with (⟨%fd, ⟨%herr, %hfd⟩, Hf, Ho, Hfd⟩ | ⟨%herr, -⟩)
   · subst herr

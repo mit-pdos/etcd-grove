@@ -28,7 +28,7 @@ first non-empty one, joined with `/`, cleaned; `""` if all are empty (`path.join
 `filepath.Join` is `path.Join`). -/
 abbrev filepath.Join.spec : Prop :=
   ∀ (sl : GoSlice) (es : List GoString) (dq : DFrac),
-  (es.map List.length).sum + es.length < 2 ^ 62 →
+  (es.map List.length).sum + es.length ≤ _root_.Perennial.strings.joinMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.path.filepath ∗ sl ↦*{dq} es }}
     (App (Val (@! _root_.Perennial.path.filepath.Join)) (Val #sl))
   {{ (r : GoString), RET #r; ⌜r = path.joinModel es⌝ ∗ sl ↦*{dq} es }}

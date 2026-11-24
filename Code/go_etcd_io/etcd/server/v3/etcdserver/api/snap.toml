@@ -5,7 +5,7 @@
 # `Transport.SendSnapshot` looks up the peer it names.
 # (2026-11-19) `Message`'s `CloseNotify` and `CloseWithError` with their bodies (their specs proved
 # over `msgIs`'s definition, `Proof/.../snap/Defs.lean`).
-translate = ["!*", "Message.GetTo", "Message.CloseNotify", "Message.CloseWithError",
+translate = ["!*", "New", "Message.GetTo", "Message.CloseNotify", "Message.CloseWithError",
   # (prove-errinits, 2026-11-19) the package variables: an `errors.New` error and the metrics
   "ErrNoDBSnapshot", "snapMarshallingSec", "snapSaveSec", "snapFsyncSec", "snapDBSaveSec",
   "snapDBFsyncSec",
@@ -13,7 +13,9 @@ translate = ["!*", "Message.GetTo", "Message.CloseNotify", "Message.CloseWithErr
   # proved by `etc/gen-init.py` over `MustRegister`'s spec with the names' registration rights
   "init.0"]
 imports = ["!*", "errors", "io", "github.com/prometheus/client_golang/prometheus",
-  "go.etcd.io/raft/v3/raftpb"]
+  "go.etcd.io/raft/v3/raftpb",
+  # (claim #34 stage 4) `New`'s `zap.NewNop`
+  "go.uber.org/zap"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

@@ -34,7 +34,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumpt
 /-- See the file header. -/
 abbrev member.step.spec : Prop :=
   ∀ (W : WalGS GF) (e : TEnv) (γ : TGS) (m lg : Loc) (o : TOracle) (qp : Qp),
-  m ≠ null → e.orFile.Ok → tWalPathsOk e.area →
+  m ≠ null → e.orFile.Ok → tWalPathsOk e.area → PathFits (tWalDir e.area) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       memLive W e γ m (1 : Qp).half o ∗ zapLoggerOk lg ∗
       m.[member, go!"lg"] ↦ lg ∗ m.[member, go!"walDir"] ↦ tWalDir e.area ∗

@@ -136,7 +136,7 @@ theorem Main.wp_proof
   wp_apply (wp_StartServer N go!"leaseexpiry" go!"127.0.0.1:23986" go!"127.0.0.1:23976" lg
       (LogEntry.toEntries boot 0) ctxs (leaseexpiryDir id) id γ ρ E₀ Φs γn .revocable Htb Hrb48
       HrbN HwbN hvs hrule hboot hblen hγn1 hγn2 Hdirok
-      (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) Haf Hbuq
+      (by simp [leaseexpiryDir, dirOne]) (rafthttp.bootCfg_dirOne id _) (by decide) (by decide) (by decide) (by decide) Haf Hbuq
       Hdbo) $$ [Htok Hmb Hfresh]
     as %srv %err Hr
   · iframe; iframe #

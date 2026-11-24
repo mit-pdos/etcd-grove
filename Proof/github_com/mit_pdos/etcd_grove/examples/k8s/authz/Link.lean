@@ -276,7 +276,7 @@ theorem authorizer.ConditionsAwareDecisionUnion.wp_ContainsUnconditionalAllowOrD
 
 theorem slices.wp_ContainsFunc :
     EtcdGrove.slices.ContainsFunc.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.slices.ContainsFunc.wp_proof
+  EtcdGrove.slices.ContainsFunc.wp_proof _root_.Perennial.slices.wp_ContainsFunc
 
 theorem authorizer.ConditionsAwareDecisionUnion.wp_hasConditionalAuthorizerName :
     EtcdGrove.authorizer.ConditionsAwareDecisionUnion.hasConditionalAuthorizerName.spec (GF := GF) (hG := hG) :=

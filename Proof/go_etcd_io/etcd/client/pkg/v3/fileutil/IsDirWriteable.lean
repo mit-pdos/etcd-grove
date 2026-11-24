@@ -43,7 +43,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
   · ipureintro; rfl
   iintro %jsl ⟨Hjsl, -⟩
   (try wp_auto)
-  wp_apply wp_Join _ [dir, go!".touch"] _ (by simp; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
+  wp_apply wp_Join _ [dir, go!".touch"] _ (by simp [_root_.Perennial.strings.joinMax]; omega) $$ [$Hjsl] as %pth ⟨%hpth, -⟩
   rw [join_child hclean touch_nameOk] at hpth
   subst hpth
   (try wp_auto)
@@ -53,12 +53,14 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
   wp_apply wp_string_to_bytes ([] : GoString) as %sl ⟨Hsl, -⟩
   (try wp_auto)
   wp_apply wp_WriteFile dir go!".touch" sl (DFrac.own 1) _ R J dq hJ qc touch_nameOk hnone
-    $$ [Hp Hperm Hn Hsl] as %err ⟨Hp, Hperm, -, %o, %hok, Hout, Htr⟩
+    $$ [Hp Hperm Hn Hsl] as %err ⟨#Hfe, Hp, Hperm, -, %o, %hok, Hout, Htr⟩
   · iframe; isplitl [] <;> iassumption
   cases err with
   | ok e =>
     (try wp_auto)
     iapply HΦ
+    isplitr
+    · iexact Hfe
     iframe
     rcases o with _ | ⟨x, s, i⟩
     · dsimp only [crOut]
@@ -89,12 +91,14 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable.wp_proof
     wp_apply wp_Remove dir go!".touch" J i R dq h1 (1 : Qp).half (1 : Qp).half qc
         (rmFileOut J go!".touch" i h1 (DFrac.own (1 : Qp).half)) touch_nameOk hcur
         (Qp.half_add_half 1) $$ [Hp Hperm Hq Hau]
-      as %e ⟨Hp, Hperm, %o', %hok', HQ, Hout⟩
-    · iframe; isplitl [] <;> iassumption
+      as %e ⟨#Hfe', Hp, Hperm, %o', %hok', HQ, Hout⟩
+    · iframe; (repeat' isplitl []) <;> (first | iassumption | iPkgInit)
     icases os.rmFileOut_join J _ i h1 o' $$ [HQ Hout] with ⟨%h', Hn, %hc⟩
     · iframe
     (try wp_auto)
     iapply HΦ
+    isplitr
+    · iexact Hfe'
     iframe Hp Hperm
     iexists h'
     iframe Hn
