@@ -5,7 +5,7 @@
 `raft_tracecheck_robust`, stated in
 `RaftTla/Spec/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/TopLevelRobustness.lean`,
 from the example's closed theorem (`Results.lean`), whose premises are `Robust`'s: an execution of
-`n + 4 ≤ 2^61` steps along which fewer than `2^31` threads are live (`RealNstepsBelow`).
+`n + 6 ≤ 2^61` steps along which fewer than `2^31` threads are live (`RealNstepsBelow`).
 -/
 module
 
