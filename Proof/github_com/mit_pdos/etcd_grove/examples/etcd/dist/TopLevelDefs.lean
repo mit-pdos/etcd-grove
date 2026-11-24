@@ -99,7 +99,7 @@ def Deployment.nodeList (d : Deployment) : List (Workload × Nat × GoString) :=
 
 /-- A workload whose proof needs that no lease expires (`AuthLease`, `LeaseCatchup`). -/
 def Workload.needsNoExpiry (w : Workload) : Bool :=
-  w.kind == W64 6 || w.kind == W64 8
+  decide (w.kind = W64 6 ∨ w.kind = W64 8)
 
 /-- PLACEHOLDER (open question Q5): **etcd's member id**, as `membership.NewMember` computes it: the
 first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs concatenated with the cluster
