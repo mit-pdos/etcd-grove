@@ -91,7 +91,7 @@ theorem antSim_init : antSim_init.stmt := by
       rw [h0, hv0, hbt]; rfl
   · intro m hm; cases hm
   · intro n
-    obtain ⟨⟨hterm, hvote, _, hrole, _, hout, hbase, hlog, hcommit, _⟩, hdel, ⟨hqs, hpend, hce⟩, htold⟩ :=
+    obtain ⟨⟨hterm, hvote, _, hrole, _, hout, hbase, hlog, hcommit, _⟩, hdel, ⟨hqs, hpend, hce⟩, htold, hcause⟩ :=
       hV n
     refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, hout, hbase, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_, ?_, ?_⟩
     · change (List.replicate cfg3.server.length (0 : Int))[n.val]! = _
@@ -119,7 +119,9 @@ theorem antSim_init : antSim_init.stmt := by
     · intro h; rw [hrole] at h; cases h
     · rw [hpend]; intro q hq; cases hq
     · rw [hqs]; intro q hq; cases hq
-    · rw [htold]; intro h; cases h
+    · refine ⟨?_, ?_⟩
+      · rw [htold]; intro h; cases h
+      · rw [hcause]; intro m h; cases h
   · intro G hG
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · intro l hl; cases hl

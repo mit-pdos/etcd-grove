@@ -191,11 +191,13 @@ def QsOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) (q : Msg) : Prop :=
       { voter := nameOf (nodeId n), term := uint.Z v.ps.term, cand := nameOf (nodeId n) } ∈ S.votes))
 
 /-- C1, C2 and the drain's facts for node `n`: its pending messages (`PendOk`), its queued
-self-messages (`QsOk`), and, once its drain's `recv` is reported, `pending[n]` (B 201). -/
-def NodeOk (S : AntCheck.State) (n : Fin 3) (v : NodeView) : Prop :=
+self-messages (`QsOk`), once its drain's `recv` is reported, `pending[n]` (B 201), and the message
+its drain handles was sent (an acknowledgement's `send` reads its `Sendable`, kept by C4). -/
+def NodeOk (S : AntCheck.State) (net : List Msg) (n : Fin 3) (v : NodeView) : Prop :=
   DurableIs S n v ∧ LeaderPart S n v ∧ CandPart S n v ∧
   (∀ q ∈ v.pend, PendOk (nodeId n) v q) ∧ (∀ q ∈ v.qs, QsOk S n v q) ∧
-  (v.told = true → ∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)])
+  (v.told = true → ∃ m, v.cause = some m ∧ S.pending[n.val]! = [msgOf m (nodeId n)]) ∧
+  (∀ m, v.cause = some m → m ∈ net)
 
 /-! ## C3: the binding's own invariants -/
 
@@ -262,7 +264,7 @@ def NetOk (S : AntCheck.State) (net : List Msg) : Prop :=
 set_option linter.iris.dupNamespace false in
 /-- **The refinement relation** (§3.2: C1-C4). -/
 def AntSim (S : AntCheck.State) (V : Fin 3 → NodeView) (net : List Msg) : Prop :=
-  Shape S ∧ BindingOk S ∧ NetOk S net ∧ ∀ n : Fin 3, NodeOk S n (V n)
+  Shape S ∧ BindingOk S ∧ NetOk S net ∧ ∀ n : Fin 3, NodeOk S net n (V n)
 
 /-! ## C5: raft's global facts -/
 

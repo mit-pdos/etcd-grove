@@ -98,15 +98,15 @@ theorem antSim_recv : antSim_recv.stmt := by
     obtain ⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11, sh12, sh13, sh14⟩ := hsh
     refine ⟨⟨sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8, sh9, sh10, sh11,
       by simpa [recvS] using sh12, sh13, sh14⟩, hb, hn, fun k => ?_⟩
-    obtain ⟨d1, d2, d3, d4, d5, d6⟩ := hno k
+    obtain ⟨d1, d2, d3, d4, d5, d6, d7⟩ := hno k
     by_cases hk : k = j
     · subst hk
       simp only [setV, ite_true]
-      refine ⟨d1, d2, d3, d4, d5, fun _ => ⟨m, hcause, ?_⟩⟩
+      refine ⟨d1, d2, d3, d4, d5, fun _ => ⟨m, hcause, ?_⟩, d7⟩
       change (S1.pending.set k.val [msgOf m (nodeId k)])[k.val]! = _
       exact get!_set_self _ (by rw [sh12]; exact k.isLt)
     · simp only [setV, hk, ite_false]
-      refine ⟨d1, d2, d3, d4, d5, fun ht => ?_⟩
+      refine ⟨d1, d2, d3, d4, d5, fun ht => ?_, d7⟩
       obtain ⟨m', hm1, hm2⟩ := d6 ht
       refine ⟨m', hm1, ?_⟩
       change (S1.pending.set j.val [msgOf m (nodeId j)])[k.val]! = _

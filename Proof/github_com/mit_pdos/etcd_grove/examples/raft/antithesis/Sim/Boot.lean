@@ -131,8 +131,8 @@ theorem antSim_boot : antSim_boot.stmt := by
       · change (S1.undo.set n.val none)[j.val]! = some p at hp
         rw [get!_set_ne _ _ (fun h => hj (Fin.ext h))] at hp
         exact hb3 j p hp
-    · obtain ⟨d1, d2, d3, d4, d5, d6⟩ := hno j
-      refine ⟨d1, d2, d3, d4, d5, fun ht => ?_⟩
+    · obtain ⟨d1, d2, d3, d4, d5, d6, d7⟩ := hno j
+      refine ⟨d1, d2, d3, d4, d5, fun ht => ?_, d7⟩
       by_cases hj : j = n
       · subst hj; rw [htold] at ht; cases ht
       · obtain ⟨m, hm1, hm2⟩ := d6 ht

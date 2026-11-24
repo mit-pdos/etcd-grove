@@ -162,7 +162,8 @@ fresh nodes (`pInit`), the checker is at a state related to them, with no messag
 are certified by any `G` that has the empty log. -/
 abbrev antSim_init.stmt : Prop :=
   ∀ V : Fin 3 → NodeView,
-    (∀ n, PInit (V n).ps ∧ (V n).delivered = [] ∧ (V n).Idle ∧ (V n).told = false) →
+    (∀ n, PInit (V n).ps ∧ (V n).delivered = [] ∧ (V n).Idle ∧ (V n).told = false ∧
+      (V n).cause = none) →
     ∃ S, Prefix cfg3 [] S ∧ AntSim S V [] ∧ ∀ G : RaftFacts, [] ∈ G.logs → GlobalOk S [] G
 
 /-- **`boot`** (`RunCluster`, B 162-194): a fresh node's `boot` report is taken (`Recovered` with term
@@ -205,13 +206,12 @@ abbrev antSim_ready.stmt : Prop :=
       AntSim S' (setV V n ((V n).afterReady ps₁ rd)) net ∧ GlobalOk S' net G
 
 /-- **`send`** (`drain`, B 510-593): the next message of the node's `Ready` is reported, then it is on
-the network. The message the drain handles was sent (the harness took it from the network). -/
+the network. -/
 abbrev antSim_send.stmt : Prop :=
   ∀ (S : AntCheck.State) (V : Fin 3 → NodeView) (net : List Msg) (evs : List AntCheck.Event)
     (G : RaftFacts) (n : Fin 3) (q : Msg) (rest : List Msg),
     Prefix cfg3 evs S → AntSim S V net → RaftLaws G → GlobalOk S net G →
-    (V n).pend = q :: rest → ((V n).byE = go!"recv" → (V n).told = true) →
-    (∀ m, (V n).cause = some m → m ∈ net) → MsgFacts G q →
+    (V n).pend = q :: rest → ((V n).byE = go!"recv" → (V n).told = true) → MsgFacts G q →
     ∃ S', Prefix cfg3 (evs ++ [evSend (nodeId n) (V n).byE q]) S' ∧
       AntSim S' (setV V n { V n with pend := rest }) (net ++ [q]) ∧ GlobalOk S' (net ++ [q]) G
 
