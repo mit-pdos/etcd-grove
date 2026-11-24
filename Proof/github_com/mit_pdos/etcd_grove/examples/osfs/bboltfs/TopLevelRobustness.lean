@@ -10,6 +10,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.TopLevelRobustness
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Results
+public import Robustness.CrashBelow
 
 @[expose] public section
 
@@ -43,10 +44,9 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 (`Spec/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/TopLevelRobustness.lean`). -/
 theorem bootCrashRobust : bootCrashRobust.spec := by
   intro lctx sem package_sem _ _ dir σ g Hinit Hdir Hnone
-  refine Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b hn Hsteps => ?_
-  exact bootCrashSafety dir σ g hf.1 hf.2.1 Hinit Hdir Hnone hf.2.2 n κs t2 σ2 b Hsteps
-    (fun k κs' ρ' b' hk hs => Nat.lt_of_lt_of_le
-      (RealCrashThreadsBelow.of_single hf.2.2 k κs' ρ' b' hk hs) (by omega))
+  refine Robustness.Robust.of_single_crashing_below fun hf n κs t2 σ2 b _ Hsteps => ?_
+  exact bootCrashSafety_bounded (GF := fsGF) (n + 1) (2 ^ 30) (Nat.le_refl _) σ g dir hf.1 hf.2.1
+    Hinit Hdir Hnone n κs t2 σ2 b Hsteps (by omega) hf.2.2
 
 end adequacy
 end osfs_bboltfs

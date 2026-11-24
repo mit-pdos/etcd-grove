@@ -24,6 +24,7 @@
 upamanyus             | upamanyus | -                 | upamanyus       | human |  |
 zeldovich             | zeldovich | -                 | zeldovich       | human |  |
 kaashoek              | kaashoek  | -                 | kaashoek        | human |  |
+jtassarotti           | jtassarotti | -               | jtassarotti     | human |  |
 
 coordinator-E         | upamanyus | ip-172-31-231-66  | upamanyus-agent | relay, lands:perennial, reviews, coordinates Upamanyu's sessions | upamanyus coordinator (coordinator-E) || upamanyus-agent (coordinator) | upamanyus coordinator || Upamanyu's coordinator
 dsverify-net | upamanyus | ip-172-31-231-66 | upamanyus-agent | #24: the net extension (GooseLang/Ext/Net, Net/), the models (net/rpc, net/http, grpc), phase 7 S2 and S3; branches models-rpc-http, phase7-s2-core, s2-vocab, net-sticky-read*, grpc-readme-proxy; perennial strings-cut-lastindex | upamanyus session (dsverify-net | #24 session
@@ -35,3 +36,4 @@ zeldovich-proving-2   | zeldovich | -                 | zeldovich-agent | queue,
 
 etcd-grove-03 | kaashoek | ip-172-31-215-233 | kaashoek | relay, coordinates Frans's sessions, prom-registry, WAL (#15), examples/lib/remote (shared with dsverify-lab) | kaashoek coordinator (etcd-grove-03) | kaashoek's coordinator
 dsverify-lab | kaashoek | ip-172-31-215-233 | kaashoek | dsverify-lab kits (builds on fk-lean1, which does not post); kits: paxos rabia epaxos quepaxa swiftpaxos craq gryff vr; branches dsv-*, net-rpc-errors, gods-verified, proph-*; perennial#688 #689 (authored) | kaashoek session (dsverify-lab) | dsverify-lab session
+jtassarotti-30 | jtassarotti | - | jtassarotti-agent | #30: Robust step bounds (backend/request-id receipts, bboltfs via perennial#690 _below adequacy); branches step-bounds-*, openbackend-receipt; perennial crash-dist-adequacy-below | jtassarotti session | jtassarotti session
