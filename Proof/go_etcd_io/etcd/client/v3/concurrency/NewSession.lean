@@ -45,7 +45,7 @@ local macro "newsession_rest" sid:term:max lid:term:max : tactic => `(tactic| (
         wp_apply Hcancel'
         · imodintro; itrivial
         (try wp_auto)
-        iapply HΦ; ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
+        iapply HΦ; iframe Hlt; ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
     · subst Herr
       icases Hka with ⟨%γk, #Hka⟩
       ihave #Hka' := Hka
