@@ -1,5 +1,13 @@
-# The durable state's Go functions are primitives: trusted models in terms of the durable-state
-# extension (GooseLang/Ext/Durable; TrustedCode/github_com/mit_pdos/etcd_grove/examples/lib/durable.lean).
+# The durable state's Go functions are the Go model of the [model] table (since 2026-11-24, Go-model
+# overlays S5, perennial#692; models/github.com/mit-pdos/etcd-grove/examples/lib/durable/model.go):
+# `Read` and `Write` call the primitive stubs `durableRead` and `durableWrite`, trusted models in
+# terms of the durable-state extension (GooseLang/Ext/Durable;
+# TrustedCode/github_com/mit_pdos/etcd_grove/examples/lib/durable.lean). Until then `Read` and `Write`
+# themselves were trusted, with the same models.
 translate = ["!*"]
 imports = ["!*"]
-trusted = ["Read", "Write"]
+trusted = ["durableRead", "durableWrite"]
+
+[model]
+dir = "models/github.com/mit-pdos/etcd-grove/examples/lib/durable"
+replaces = ["Read", "Write"]
