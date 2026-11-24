@@ -172,6 +172,9 @@ local macro "client_post" : tactic => `(tactic| (
   try wp_auto
   wp_apply errors.wp_initialize' _ (wf_errors hk) $$ Hown as ⟨Hown, #Hc20⟩
   try wp_auto
+  wp_func_call
+  wp_call
+  try wp_auto
   wp_apply github_com.goose_lang.primitive.wp_NewProph as %pvs %p Hpr
   try wp_auto))
 
@@ -302,8 +305,12 @@ theorem boot_swift :
   repeat (first
     | wp_apply errors.wp_New_errorString as %xE #EE
     | wp_auto
-    | (wp_func_lits; wp_auto)
-    | wp_apply github_com.goose_lang.primitive.wp_NewProph as %spvs %sp Hspr)
+    | (wp_func_lits; wp_auto))
+  wp_func_call
+  wp_call
+  try wp_auto
+  wp_apply github_com.goose_lang.primitive.wp_NewProph as %spvs %sp Hspr
+  try wp_auto
   imod (typedPointsto_dfractional _ _).dfractional_persist $$ H_snodeProph with #HsnP
   imod sync.init_Pool (globalAddr swift.fastAckPool)
       { noCopy' := zeroValDef, local' := null, localSize' := 0, victim' := null, victimSize' := 0,
