@@ -9,6 +9,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Srv
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.PbHardState
 public import Spec.google_golang_org.protobuf.proto.MarshalPb
+public import Proof.google_golang_org.protobuf.proto.MarshalPbNonNil
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.LawsHs
 
 @[expose] public section
 
@@ -73,6 +75,50 @@ instance's). -/
 theorem walSrvP_marshalHs (wp_Marshal : proto.MarshalPb.spec (GF := GF) (hG := hG)) :
     WalPbIn.MarshalHsLaw (walSrvP (GF := GF)) walSrvMr :=
   walRaftP_marshalHs wp_Marshal
+
+/-- **A canonical hard state marshals to its encoding, non-nil** (`walStMarsh`, P6), over the
+non-nil `Marshal` law (pending, `notes/wal-p6-handoff.md`). -/
+theorem walRaftP_marshSt (hnn : proto.MarshalPbNonNil.law (GF := GF) (hG := hG)) (hp : Loc)
+    (hs : HardStateM) (hn : hp ≠ null) :
+    hsRoC (GF := GF) hp (walHsCanon hs) ⊢ walStMarsh walRaftMr hp hs := by
+  iintro #Hro
+  unfold walStMarsh
+  iintro !> %Φ #Hpk HΦ
+  have hlen := walHsCanon_enc_len hs
+  wp_auto
+  have wpM := hnn pbHsC pbHsC_reg hp (walHsCanon hs) hn trivial
+    (by simp only [pbHsC_size, hsSize]; omega)
+  simp only [pbHsC_ty, pbHsC_roC, pbEncC_pbHsC] at wpM
+  wp_apply wpM $$ [] as %d ⟨Hd, -, %Hdn⟩
+  · iframe #
+  (try wp_auto)
+  simp only [walRaftMr]
+  iapply HΦ $$ Hd %Hdn
+
+/-- **`ZeroStLaw`** of the raftpb instance: a fresh zero hard state is canonical. -/
+theorem walRaftP_zeroSt (hnn : proto.MarshalPbNonNil.law (GF := GF) (hG := hG)) :
+    WalPbIn.ZeroStLaw (walRaftP (GF := GF)) walRaftMr := by
+  intro p E
+  iintro Hp
+  imod walRaftP_zeroC p E $$ Hp with ⟨#Hc, %hn⟩
+  have hc0 : walHsCanon hsZero = walHsC0 := by
+    unfold walHsCanon; rw [if_pos ⟨rfl, rfl, rfl⟩]
+  imodintro
+  isplitl
+  · simp only [walRaftP]
+    unfold walHsIn
+    iright
+    iexists walHsC0
+    iframe Hc
+    ipureintro
+    exact ⟨rfl, Or.inl ⟨rfl, rfl, rfl⟩⟩
+  · iapply walRaftP_marshSt hnn p hsZero hn
+    rw [hc0]; iexact Hc
+
+/-- **`ZeroStLaw`** of the server's instance. -/
+theorem walSrvP_zeroSt (hnn : proto.MarshalPbNonNil.law (GF := GF) (hG := hG)) :
+    WalPbIn.ZeroStLaw (walSrvP (GF := GF)) walSrvMr :=
+  walRaftP_zeroSt hnn
 
 end laws
 

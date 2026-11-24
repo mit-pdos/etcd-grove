@@ -155,3 +155,14 @@ that change `h.H` re-prove it (`walHandleIn_append`: a `Save` needs `sp ≠ null
 its nil check; `SaveSnapshot` keeps the disjunct; `Create`: only snapshots; `ReadAll`: `CloneStLaw`
 gives a non-nil clone). In progress in `WAL__Save.lean` (the `w.state == nil` join now carries
 `walStIn` and `sp' ≠ null`; the `len(ents) > 0` branch not yet written).
+
+**Implemented (2026-11-24, still uncompiled at this point):** `WalHS.stNil : Bool := false` (only `createHS`
+sets it); `walStIn P Mr sp hs nil` (`hsIn ∗ (sp ≠ null → walStMarsh) ∗ (nil = false → sp ≠ null)`) in the
+handle slot as `walStIn P Mr sp h.st h.stNil`, with `walStIn_null/_intro/_set/_nn`; `walHandleIn_stateNil`
+(`SaveHandle.lean`: back with a new flag); `Save` clears it at its nil check and keeps `hc.stNil = false`
+in the entries loop (`Hnil` in `HI`); the `len(ents) > 0` branch (`wp_join (Q := …) at next`, the
+inner `IsEmptyHardState` join at `walStIn hp2 (saveHS …)`), `saveState` otherwise. New hypotheses of
+`Save.wp_proof`: `wp_encodeState`, `wp_encodeStateNE`, `wp_marshal` (`MarshalHsLaw`), `hzst`
+(`ZeroStLaw`). Laws: `proto.MarshalPbNonNil.law` (`Proof/google_golang_org/protobuf/proto/
+MarshalPbNonNil.lean`), `walRaftP_zeroC` (`LawsHs`), `walRaftP_marshSt`/`walRaftP_zeroSt`/`walSrvP_zeroSt`
+(`LawsHsMarshal`). Still to do there: `ReadAll`'s provenance and `CloneStLaw` (above), the Links.
