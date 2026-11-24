@@ -45,8 +45,12 @@ theorem Node.restart.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) 
   try wp_auto
   -- the incarnation stopped: the start resource back
   iunfold stopLaw at Hstop
-  ihave Hstop1 := Hstop $$ %r %tv
-  wp_apply Hstop1 $$ [$Hpkg $Hstp] as HR
+  ihave #Hstop1 := Hstop $$ %r %tv
+  wp_bind (App (App (Val #(functions github_com.mit_pdos.etcd_grove.examples.raft.kvnet.stopIncarnation []))
+    (Val #r)) (Val #tv))
+  iapply Hstop1 $$ [$Hpkg $Hstp]
+  inext
+  iintro HR
   try wp_auto
   wp_apply wp_add sp (W64 23) (by decide) (by decide) $$ [$Hpkg $Hstats]
   try wp_auto
@@ -59,8 +63,12 @@ theorem Node.restart.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) 
   · inext
     iunfold nodeLockInv
     iexists r', tv', n'
-    iframe
-  try wp_auto
+    iframe Hr Ht Hstp'
+    isplitr
+    · iexact Hrn'
+    isplitr
+    · imodintro; iexact Hrep'
+    iexact Hn'
   iapply HΦ
   itrivial
 

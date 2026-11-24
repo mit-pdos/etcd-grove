@@ -49,6 +49,7 @@ theorem startNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (st
   ihave #Hstart' := Hstart
   iunfold startLaw at Hstart'
   ihave #Hstart1 := Hstart' $$ %sp %f
+  iapply wp_fupd
   wp_apply Hstart1 $$ [$Hpkg $HM $HR $Hstats' $Hctor] as %r %tv ⟨%n, #Hrn, #Hrep, #Hn, Hstp⟩
   -- the node, its mutex over the incarnation
   generalize «$r0_ptr» = nd
@@ -62,8 +63,14 @@ theorem startNode.wp_proof (F : KvFacts GF) (rep : Loc → w64 → IProp GF) (st
   · inext
     iunfold nodeLockInv
     iexists r, tv, n
-    iframe
+    iframe Hr Ht Hstp
+    isplitr
+    · iexact Hrn
+    isplitr
+    · imodintro; iexact Hrep
+    iexact Hn
   try wp_auto
+  imodintro
   iapply HΦ
   iunfold isNodeS
   iexists cfg, M, sp, f
