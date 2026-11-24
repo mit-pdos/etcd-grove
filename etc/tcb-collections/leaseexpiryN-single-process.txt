@@ -18,7 +18,6 @@ axiom Client.streamClientInterceptor.wp_proof
 axiom EtcdServer.leaseTimeToLive.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
-axiom EtcdServer.publishV3.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
