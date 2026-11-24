@@ -291,7 +291,7 @@ theorem readRequestLimit.wp_proof
   subst Herr
   ihave #Henv' := Henv
   iunfold httpEnv at Henv'
-  icases Henv' with ⟨#Hbufio, #Hio, #Hfmt, #Hstrconv, ⟨#Htok, #Hstrs, %ltl, #Htl⟩, %nb, #Hnb⟩
+  icases Henv' with ⟨#Hbufio, #Hio, #Hfmt, #Hstrconv, ⟨#Htok, #Hstrs, #Htl⟩, %nb, #Hnb⟩
   ihave #Hinit := _root_.Perennial.io.isInit_access $$ Hio
   icases Hinit with ⟨-, -, -, -, #HEOF, #HUEOF, -⟩
   unfold errors.newVar

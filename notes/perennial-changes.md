@@ -79,12 +79,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (2) `context.WithValue` has no body in Perennial's translation (and `Background()` is not an `isContext`),
   so net/http's `Serve` (`WithValue(baseCtx, ServerContextKey, s)`) and `conn.serve`
   (`WithValue(ctx, LocalAddrContextKey, ...)`) are stuck at that call.
+  (2026-11-24, S5 batch 10) Also: `WithCancel`'s Perennial specs (`WithCancel.spec`, `wp_WithCancel_gen`'s
+  `isParentCtx`) take a parent that is `Background()`/`TODO()` or an `isContext` (or a `*cancelCtx`).
+  A `*valueCtx` chain over `Background()` is neither (its `Done()` is `nil`, which no `isContextDone`
+  describes), yet it is what `conn.serve` cancels: `WithCancel(WithValue(WithValue(Background(),
+  ServerContextKey, s), LocalAddrContextKey, la))`. Both calls block `conn.serve` and `Serve`.
 - **Who needs it.** net/http's server (`Net/Proof/net/http/`, `notes/dsverify-net-port-plan.md`, phase 5.2).
 - **Workaround.** (1) `wp_NewCond_nn` (`Net/Proof/net/http/ConnReaderLemmas.lean`): Perennial's proof of
-  `NewCond` over the translated body, the allocation's non-null kept. (2) None yet (`conn.serve` not proved).
+  `NewCond` over the translated body, the allocation's non-null kept. (2) None yet (`conn.serve` not proved;
+  without a Perennial change it would take two pending hypotheses: `WithValue` of a pointer key returns a
+  `*valueCtx` with its three fields, and `WithCancel` of a `*valueCtx` chain over `Background()` gives
+  `isContext`/`isCancelCtxCtx` of the child and its cancel function).
 - **Proposed change.** (1) `NewCond.spec`'s post with `⌜c ≠ null⌝` (the proof has it). (2) `WithValue`
   translated with its body (its `reflectlite.TypeOf(key).Comparable()` check modelled) and a spec giving
-  `isContext` of a value context over `isContext` or `Background()`.
+  `isContext` of a value context over `isContext` or `Background()`; `isParentCtx` widened to a `*valueCtx`
+  chain over `Background()`/`TODO()` (`propagateCancel` returns at `Done() == nil`).
 ### `sort.Slice` is names-only: `mvcc.hashStorage.Store` stays an axiom (2026-11-23, ps2-crc32-merge, claim #18)
 
 - **Limitation.** Perennial proves `sort.Sort` (and `slices.Sort`/`SortFunc`) only for a `Less` that agrees with

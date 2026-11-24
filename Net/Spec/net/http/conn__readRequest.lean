@@ -19,7 +19,8 @@ taking the response's buffered writer from net/http's writer pools (`wPools`), a
   reading dead), and `c.lastMethod` `CONNECT`.
 
 Either way the buffered reader is raw again (`conn.serve` puts it back in its pool), and `c`'s other
-fields are as they were. Proved in `Net/Proof/net/http/conn__readRequest.lean`.
+fields are as they were (`c.bufr` taken at any fraction and given back: `conn.serve` clears it after an
+error). Proved in `Net/Proof/net/http/conn__readRequest.lean`.
 -/
 module
 
@@ -46,13 +47,13 @@ variable [π : NetProtoGS]
 abbrev conn.readRequest.spec : Prop :=
   ∀ (c s cr br : Loc) (γ : CrNames) (γh : GName) (t : Loc) (cn : Nat) (a : GoString)
     (la ra : GoInterface) (P Q : Proto GF) (Z : Nat → IProp GF) (path : List w8) (rmt lm : GoString)
-    (v : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+    (v : w64) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (dq : DFrac),
   c ≠ null → reqPath path → path.length ≤ 2 ^ 20 → lm ≠ go!"POST" →
   {{ httpEnv ∗ readEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.context ∗ srvConst s ∗ srvDflt s ∗ wPools ∗
       context.isContext ctx cd ∗ context.isCancelCtxCtx ctx cd ∗
       structFieldRef net.http.conn go!"server" c ↦□ s ∗
       structFieldRef net.http.conn go!"r" c ↦□ cr ∗
-      structFieldRef net.http.conn go!"bufr" c ↦□ br ∗
+      structFieldRef net.http.conn go!"bufr" c ↦{dq} br ∗
       structFieldRef net.http.conn go!"rwc" c ↦□
         interface.mkOk (go.GoType.PointerType net.TCPConn.ty) #t ∗
       structFieldRef net.http.conn go!"remoteAddr" c ↦□ rmt ∗
@@ -71,6 +72,7 @@ abbrev conn.readRequest.spec : Prop :=
       (Val #(interface.ok ctx)))
   {{ (w : Loc) (err : GoInterface), RET (PairV #w #err);
       ghostVar γh (1 : Qp).half false ∗ EtcdGrove.bufio.rawReader br ∗
+      structFieldRef net.http.conn go!"bufr" c ↦{dq} br ∗
       ((⌜err ≠ interface.nil⌝ ∗ structFieldRef net.http.conn go!"lastMethod" c ↦ lm ∗
           ∃ (γe : GName) (r : List w8), crHead cr γ γe cn P Q srvL c r ∗
             reqErr (crHeadErr γe) err) ∨

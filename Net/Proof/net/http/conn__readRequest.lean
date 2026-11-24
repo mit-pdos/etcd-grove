@@ -65,8 +65,8 @@ theorem conn.readRequest.wp_proof
     (wp_WReset : EtcdGrove.bufio.Writer.Reset.spec (GF := GF) (hG := hG))
     (wp_NewWriterSize : EtcdGrove.bufio.NewWriterSize.specRep (GF := GF) (hG := hG)) :
     conn.readRequest.spec (GF := GF) (hG := hG) := by
-  intro c s cr br γ γh t cn a la ra P Q Z path rmt lm v ctx cd hc hp hlen hlm
-  wp_start as ⟨#Henv, #Hrenv, #Hctxi, #Hsc, #Hsd, #Hpools, #Hctx, #Hcctx, #Hsrv, #Hr, #Hbufr, #Hrwc, #Hrmt,
+  intro c s cr br γ γh t cn a la ra P Q Z path rmt lm v ctx cd dq hc hp hlen hlm
+  wp_start as ⟨#Henv, #Hrenv, #Hctxi, #Hsc, #Hsd, #Hpools, #Hctx, #Hcctx, #Hsrv, #Hr, Hbufr, #Hrwc, #Hrmt,
     #Htls, #Hmu, Hγh, Hlm, #Hcr, #Hhl, #Hzl, #Hcok, #Hcrwc, #Hca, Hmain, Hfr⟩
   wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -146,7 +146,7 @@ theorem conn.readRequest.wp_proof
       word]
     try wp_auto
     iapply HΦ
-    iframe Hγh Hraw
+    iframe Hγh Hraw Hbufr
     ileft
     isplitr
     · ipureintro; exact Hne
@@ -285,7 +285,7 @@ theorem conn.readRequest.wp_proof
     exact absurd h (by decide)
   try wp_auto
   iapply HΦ
-  iframe Hγh Hraw
+  iframe Hγh Hraw Hbufr
   iright
   isplitr
   · ipureintro; rfl
