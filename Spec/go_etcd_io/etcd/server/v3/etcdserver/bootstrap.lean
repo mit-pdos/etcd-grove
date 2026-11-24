@@ -52,6 +52,8 @@ context derives them. -/
 abbrev bootstrap.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 60)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft) (N : Nat),
   bootGo.bootURLsPlain U →
+  -- (claim #34, stage 2, 2026-11-25) `bootstrapCluster`'s two new premises
+  crypto.fips140.GodebugFips140Off → bootGo.initMapOk U cfg.InitialClusterToken' →
   γ.vs = bootGo.ps U cfg.InitialClusterToken' →
   (∃ bl : List LogEntry, BootLog (bootGo.ps U cfg.InitialClusterToken')
     (bootGo.ctxs U cfg.InitialClusterToken') bl ∧ γ.boot = LogEntry.toEntries bl 0) →

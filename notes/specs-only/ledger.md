@@ -25,6 +25,27 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-25: bootstrapCluster, bootstrap -- two premises the new cluster's construction needs
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrapCluster.lean`, `bootstrapCluster.spec`, and
+  `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrap.lean`, `bootstrap.spec` (claim #34's stage-3 specs, which
+  stage 2 proves the first of). No `SpecPlan/` counterpart states the ids.
+- **Defect.** Too strong (false of Go at some configurations the premises admit): (1) `NewMember`'s
+  `computeMemberID` and `genID` call `crypto/sha1.Sum`, which panics when the run's `fips140` GODEBUG setting is
+  `only` (`fips140only.Enforced()`); (2) `NewClusterFromURLsMap` answers two entries of one id with
+  `fmt.Errorf("member exists with identical ID %v", m)`, formatting a `*Member` by reflection (`printValue`),
+  which Perennial's `fmt` model does not cover (the error itself is fine Go; the model is stuck there); and
+  `genID`'s `make([]byte, 8*len(ids))` and `sort.Sort` need a bound on the entries.
+- **Evidence.** `Perennial/Spec/crypto/sha1/Sum.lean` (its premise `crypto.fips140.GodebugFips140Off`);
+  `cluster.go:81-95` (the `%v` of `m`); `Perennial/Proof/fmt/Args.lean`'s `argOk` (no reflection).
+- **Proposed change.** Both specs take `crypto.fips140.GodebugFips140Off` (the owner's decision on SHA-1, plan
+  §7.7: an environment premise visible in the top-level statements) and `bootGo.initMapOk U token` (new,
+  `BootValues.lean`: the entries' `memberOf` ids distinct, at most `2^58` entries; a fact of the configuration,
+  decided by evaluation). `bootstrap.wp_proof` passes them on. The final stage's `bootPremise` bridge takes the
+  two facts per example.
+- **Decision.** Applied (claim #34 stage 2, branch `bootstrap-stage2/2026-11-25`; the owner's SHA-1 decision
+  covers (1); (2) is a fact of each example's configuration, no trust).
+
 ## 2026-11-23: rafthttp.NewRoundTripper -- the post doesn't say the round tripper is a `*http.Transport`, which `bootOk`'s Hprt needs
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/NewRoundTripper.lean`,

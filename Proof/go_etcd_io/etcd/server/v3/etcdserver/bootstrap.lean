@@ -92,7 +92,7 @@ theorem bootstrap.wp_proof
     (hInt : zap.Int'.spec (GF := GF) (hG := hG))
     (hWrap : fmt.ErrorfWrap.spec (GF := GF) (hG := hG)) :
     bootstrap.spec (GF := GF) (hG := hG) := by
-  intro _ _ cfg U γ N HU Hvs Hlog Hmem
+  intro _ _ cfg U γ N HU Hfips HiOk Hvs Hlog Hmem
   wp_start as ⟨%Hpure, #Hzlg, Hfg, Hvoff, #Hro, Hrauth, Hres⟩
   obtain ⟨Hcok, Hfresh, Hwb, Hdb⟩ := Hpure
   wp_auto
@@ -218,7 +218,7 @@ theorem bootstrap.wp_proof
   -- `bootstrapCluster(cfg, nil, prt)`
   wp_apply hInfo
   · iexact Hzlg
-  wp_apply (hClus cfg U bootstrap.anyNet prt Hfresh HU) as %c %cerr Hc
+  wp_apply (hClus cfg U bootstrap.anyNet prt Hfresh HU Hfips HiOk) as %c %cerr Hc
   · iframe #
   icases Hc with (%Hne | ⟨%Heq, %bc, Hc, %Hbc, Hcb⟩)
   · obtain ⟨ci, rfl⟩ : ∃ ci, cerr = GoInterface.ok ci := by
