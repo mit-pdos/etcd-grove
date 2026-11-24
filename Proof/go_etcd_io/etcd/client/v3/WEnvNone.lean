@@ -3,7 +3,8 @@
 environment a client that never watches passes to `etcdstart.NewClient.spec` (whose `V` is the
 caller's choice: the in-process examples pick `srvWEnv` of their member's watch server; a client on
 a machine of its own has no server's heap to pick it from). Null locations, `default` names, `False`
-predicates: nothing is assumed, and `client_Put_own`/`client_Get_own` discard the watcher conjunct.
+predicates (its model `EtcdModel.none`: every predicate `False`, so every law holds vacuously):
+nothing is assumed, and `client_Put_own`/`client_Get_own` discard the watcher conjunct.
 -/
 module
 
@@ -18,7 +19,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -30,7 +31,7 @@ variable [sem : go.Semantics]
 def apply.AEnv.none : apply.AEnv GF where
   kv := GoInterface.nil
   γ := default
-  γs := default
+  γs := ⟨default, default, default, default⟩
   Nx := fun _ => iprop(False)
   Pk := fun _ => iprop(False)
   f := func.nil
@@ -52,9 +53,35 @@ def v3rpc.WSrv.none : v3rpc.WSrv GF := ⟨null, apply.AEnv.none, null, default, 
 def v3rpc.SrvW.none : v3rpc.SrvW GF :=
   ⟨GoInterface.nil, default, nroot, fun _ => iprop(False), fun _ => iprop(False)⟩
 
+/-- **A model of etcd with every predicate `False`** (its laws hold vacuously). -/
+def EtcdModel.none : EtcdModel GF where
+  etcdState := fun _ _ _ => iprop(False)
+  etcdState_agree := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
+  etcdState_revs := by intros; iintro H; iexfalso; iexact H
+  etcdState_keys := by intros; iintro H; iexfalso; iexact H
+  etcdState_vals := by intros; iintro H; iexfalso; iexact H
+  etcdState_create_persist := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
+  etcdState_modrev_det := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
+  etcdState_modrev_persist := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
+  etcdReachedAt := fun _ => iprop(False)
+  etcdReachedAt_timeless := fun _ => inferInstance
+  etcdReadAt := fun _ => iprop(False)
+  etcdReadAt_persistent := fun _ => inferInstance
+  etcdReadAt_timeless := fun _ => inferInstance
+  etcdRevToken := fun _ => iprop(False)
+  etcdRevToken_excl := by intros; iintro ⟨H, -⟩; iexact H
+  EtcdStep := fun _ _ _ _ => iprop(False)
+  EtcdStep_persistent := fun _ _ _ _ => inferInstance
+  EtcdStep_timeless := fun _ _ _ _ => inferInstance
+  etcdStep_transfer := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
+  etcdStep_compose := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
+  etcdStep_restrict := by intros; iintro H; iexfalso; iexact H
+  etcdStep_delete_present := by intros; iintro ⟨H, -⟩; iexfalso; iexact H
+
 /-- **The placeholder watch environment** (see the file header). -/
 def client.WEnv.none : client.WEnv GF :=
-  client.srvWEnv v3rpc.WSrv.none v3rpc.SrvW.none default [] [] null null [] null default
+  ⟨v3rpc.WSrv.none, [], [], null, null, [], null, EtcdModel.none, fun _ => iprop(False),
+    fun _ => ([], v3rpc.WSrv.none), 0, default, v3rpc.SrvW.none, fun _ => v3rpc.SrvW.none⟩
 
 end defs
 
