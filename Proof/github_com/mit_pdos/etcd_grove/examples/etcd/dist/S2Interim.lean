@@ -43,6 +43,11 @@ structure EnvView where
   st : GName
 deriving DecidableEq, Inhabited
 
+/-- **The view a started member publishes** (its read names' KV state variable's name): what
+`Serve_dist` serves at (`ν = memberView ρ`, review 24's fix 2: an equation of the whole view, so that
+the axiom's statement does not change when `EnvView` gains #24's fields and `memberView` with it). -/
+abbrev memberView (ρ : ReqNames) : EnvView := ⟨ρ.rd.kv.st⟩
+
 instance EnvView.countable : Pos.Countable EnvView :=
   Pos.Countable.ofInjective (fun ν => Pos.Countable.encode ν.st) (fun a b h => by
     have h' : a.st = b.st := Pos.encode_inj h

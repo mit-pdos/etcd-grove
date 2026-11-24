@@ -31,8 +31,8 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 (see the axiom's docstring): from today's `Serve.spec` premises for a one-member start (the
 logger, the method sets, the quota, the thread and receipt bounds, `grpcRepliesFit`, `srvLevels`),
 the started member (`memberUp`, its member id `mid`), the address `a` set to serve etcd's KV calls
-for `(γE, mid)` (`etcdAddrAt`) and the member's view published at `γE` (`envAt γE ν` at its KV
-state variable's name), `Serve` returns. -/
+for `(γE, mid)` (`etcdAddrAt`) and the member's view published at `γE` (`envAt γE ν`, `ν` the
+member's own, `memberView ρ`), `Serve` returns. -/
 abbrev Serve_dist.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 28)]
     [π : NetProtoGS] (s : Loc) (a : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc) (γn : NetNames GF)
@@ -40,7 +40,7 @@ abbrev Serve_dist.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
       zapLoggerOk lg ∗
       ⌜v3rpc.ServerMethodSets ∧ apply.backendUnderQuota ∧ grpcRepliesFit ∧ srvLevels (GF := GF) ∧
-        ν.st = ρ.rd.kv.st⌝ ∗
+        ν = memberView ρ⌝ ∗
       etcdstart.memberUp s ρ E₀ lg γn mid ∗
       etcdAddrAt (Gg := hG.goose_globalGS) a γE mid ∗ envAt (Gg := hG.goose_globalGS) γE ν }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve)) (Val #s))

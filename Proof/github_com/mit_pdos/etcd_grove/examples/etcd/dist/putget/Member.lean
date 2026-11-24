@@ -89,14 +89,15 @@ theorem Member.wp_proof
   imod (EtcdGrove.client.putGetInv_alloc_log ρ.rd (kvModel ρ.rd.kv (bootEntries (LogEntry.toEntries boot 0)))
       go!"k" go!"v" ⊤) $$ Hetcd with ⟨%γf, #Hpg⟩
   -- the member's view published at `γE`, with `Pub` (from the invariant)
-  ihave #HP : □ Pub ⟨ρ.rd.kv.st⟩ $$ []
+  ihave #HP : □ Pub (etcd_dist.memberView ρ) $$ []
   · iunfold memberPubOk at Hpub
     imodintro
     ihave HPg := Hpub $$ %ρ.rd %γf Hpg
     iexact HPg
-  imod (etcd_dist.env_publish ⊤ γE CoPset.subseteq_top Pub ⟨ρ.rd.kv.st⟩) $$ Hhalf Hinv HP with #Hν
+  imod (etcd_dist.env_publish ⊤ γE CoPset.subseteq_top Pub (etcd_dist.memberView ρ)) $$ Hhalf Hinv HP
+    with #Hν
   -- `Serve(s, client)` on a member machine (`Serve_dist`)
-  wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id γE ⟨ρ.rd.kv.st⟩) $$ [Hup] as %serr -
+  wp_apply (wp_Serve_dist srv client ρ E₀ lg γn id γE (etcd_dist.memberView ρ)) $$ [Hup] as %serr -
   · iframe; iframe #
     ipureintro; exact ⟨Hms, Hbuq, Hrf, HLv, rfl⟩
   cases serr with

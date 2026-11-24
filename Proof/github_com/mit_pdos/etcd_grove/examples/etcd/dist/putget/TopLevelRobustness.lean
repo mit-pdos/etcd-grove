@@ -21,7 +21,8 @@ the bridge `robust_of_distBootIL` picks them). Over the interim cross-machine ax
 * the member's boot (`member_boot`, `AdequacyMember.lean`, proved): the in-process `Main.wp_proof`'s first
   half (`etcdstart.wp_StartServer1`, shared with it), the view published (`env_publish`), `Serve` on a
   member machine (`Serve_dist`), from the statement's `envVerifyOff` (`HEnvTok`) and the named
-  hypotheses `MemberBootHyps` (the metric names' rights, `dataDirFresh`);
+  hypothesis `MemberBootHyps` (`dataDirFresh`; the metric IDs' registration rights are allocated by each
+  machine's boot, prom-registry);
 * the client's boot (`client_boot`, `AdequacyClient.lean`, proved): the in-process second half, its
   `Put` learning the view (`Client_Put_dist`), its `Get` at it (`Client_Get_dist`).
 `putget_safe` itself (the plain name) is declared once `MemberBootHyps` is discharged.
@@ -128,8 +129,9 @@ end start
 is proved (`client_boot`), the bridge is proved (`putget_safe_of_boot`); the cross-machine steps are the
 interim axioms of `notes/putget-dist-plan.md` §12 (`etcd_dist.etcdAddrRaw`, `etcdAddr_set`,
 `Serve_dist`, `Client_Put_dist`, `Client_Get_dist`). The hypotheses: the member's start resources with
-no source yet (`MemberBootHyps`: the metric names' rights until `prom-registry`, `dataDirFresh` until
-the fs redesign). `theorem putget_safe : putget_safe.spec` follows once they are discharged. -/
+no source yet (`MemberBootHyps`: `dataDirFresh`, until the fs redesign or an interim start law; the
+metric IDs' registration rights are each machine's own, allocated in `member_boot`/`client_boot`,
+prom-registry). `theorem putget_safe : putget_safe.spec` follows once they are discharged. -/
 theorem putget_safe_of_hyps
     (HM : ∀ [GoGlobalContext] [GoLocalContext] [go.Semantics]
       [github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions], MemberBootHyps) :

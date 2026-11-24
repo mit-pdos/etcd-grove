@@ -32,14 +32,16 @@ the connections to `a`, each of which carries the calls of `Client_Put_dist`/`Cl
 claimed of other bytes). Every call that reaches a handler is one a client deposited under `a`'s
 protocol (the interpretation of `etcdAddrAt`): a unary call of etcd's KV table at `(γE, mid)`,
 whose spec is at the view published at `γE`. The member's view is that view
-(`ν.st = ρ.rd.kv.st`), and the member is `mid` (`memberUp`'s id), so every such call meets the
+(`ν = memberView ρ`), and the member is `mid` (`memberUp`'s id), so every such call meets the
 spec the member's handlers are proved against.
 
 Why it is true: today's `etcdstart.Serve.wp_proof` proves the same body in one process, through
 `grpc.start`/`grpc.serve` and the handlers' run contracts (`grpcRunOkMd`, on the member's own
 heap). What differs across machines is only how a call's deposit reaches the run, which is
-`a`'s protocol (`grpcCliP`/`grpcSrvP`, `InvGrpcWire.lean`) in place of `Invoke`'s and `acceptRun`'s
-pairing in one heap. The post is `True`: the member's proof only branches on the error.
+`a`'s protocol in place of `Invoke`'s and `acceptRun`'s pairing in one heap: on `lean`,
+`grpcAddrAt a Svc` sets `a`'s protocols to the opaque `grpcCliPI Svc`/`grpcSrvPI Svc`
+(`InvGrpcWire.lean`), whose intended reading is the defined `grpcCliP`/`grpcSrvP` (the model's
+bytes and the attempt's slot). The post is `True`: the member's proof only branches on the error.
 
 Retired in two steps. #24's switch defines `etcdAddrAt` (§1). S2's proofs then prove it:
 `Server.Serve` over the model and `grpcServes (etcdSvc γE mid)` from the handlers' contracts

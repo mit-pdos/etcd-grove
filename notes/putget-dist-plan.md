@@ -551,7 +551,8 @@ countable), `envPubHalf`, `envAt`, `envPubInv` (#24's §1.3 over `dghostVar`), `
 which only prints it). Without this the client's boot was unprovable.
 
 **Where it stands.** `putget_safe_of_hyps (HM : … MemberBootHyps) : putget_safe.spec` (proved over the five
-axioms); `MemberBootHyps` is `names` (until `prom-registry`) and `dataDir` (until the fs redesign), so the
+axioms); `MemberBootHyps` is `dataDir` (until the fs redesign; `names` went with prom-registry, merged here on
+2026-11-24: each machine's boot allocates its registration rights), so the
 plain `theorem putget_safe` waits for them. `S2Draft.lean` and `S2Holds` are gone; D7's `cluster_svc_start`
 (`dist/ClusterStart.lean`) is stated over the new vocabulary. Not lean-checked locally (no build on this
 machine): the first VM build is the check.
@@ -561,3 +562,14 @@ machine): the first VM build is the check.
 `grpc_addr_set`); `EnvView` gains #24's fields; A5 is `kvRegsPub_at` and `client_Get_own`; A4 needs the
 pub-form put `client_Put_pub` (a proved lemma to write); A3 waits for S2's `Serve` proof (and its `mid = id`
 obligation). Then the axioms are theorems with the same statements.
+
+**Second round (2026-11-24; reviews `s2-interim/review2.md` and `review24.md`).**
+- `names` was a `⊢` premise on an exclusive token (`namesFree`: it would prove a double `MustRegister` panic-free):
+  gone; prom-registry (`26dc7423c4`, queued) merged here, and `member_boot`/`client_boot` allocate their packages'
+  registration rights (`regKeys_alloc`, `PromRegGS`). `HNs` leaves `etcd_robust(_nocrash).spec` and the D9 skeleton.
+- `dataDir : ⊢ dataDirFresh (memberDataDir name)` has the same shape and stays a hypothesis for now: no real source
+  exists yet (the fs redesign, #15); the interim options are in the round's report, for the lead's decision.
+- `Serve_dist`'s view premise is `ν = memberView ρ` (`memberView ρ := ⟨ρ.rd.kv.st⟩`, `S2Interim.lean`): the axiom
+  does not change when `EnvView` grows.
+- `Serve_dist`'s docstring names `a`'s protocols as `lean`'s opaque `grpcCliPI`/`grpcSrvPI`, the defined
+  `grpcCliP`/`grpcSrvP` their intended reading.
