@@ -271,6 +271,7 @@ theorem k8s_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [k8s_io.apimachinery.pkg.runtime.schema.Assumptions] [k8s_io.apiserver.pkg.storage.Assumptions]
     [k8s_io.apiserver.pkg.storage.value.Assumptions]
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel] [_root_.Perennial.net.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC k8sGF, ContextReadErrs (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC k8sGF, ContextErrsClient (GF := k8sGF) (hG := k8sHeapAt hG lctx))
     (Hafter : ∀ hG : HeapGS .hasLC k8sGF,

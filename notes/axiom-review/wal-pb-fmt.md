@@ -178,6 +178,9 @@ Checkout reviewed: `/shared/etcd-grove-walns` (branch `wal-nostorageok`, `24829a
 `5dab16ec22dd9f2974dd2df3216cd0f28d48c344` (`lake-manifest.json`; fetched into the shared Perennial
 clone's object store to read it). Go: `go1.27.3 linux/amd64` (the `GO_TOOLCHAIN` of `etc/goose.py`).
 No build was run (as instructed); everything below is from the source text and Go programs.
+
+**Update 2026-11-24.** `fmt.SprintfWalName.wp_proof` is no longer an axiom: the real-`fmt` pin bump (Perennial
+`52d62e83c`, lean `af4fd74b00`) proved it over the corrected `Sprintf` model, so the finding below is resolved.
 Go programs: the review's scratch (not kept in the repository) (`model_test.go`: the Lean model transcribed,
 copied from `examples/stdlib/fmtwalname`; `extra_test.go`: new tests; `out.txt`: the output).
 

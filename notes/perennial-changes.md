@@ -4018,7 +4018,9 @@ The Grove pin is `0b791a28f`, the reviewed change cherry-picked onto Grove's pre
   `os.file.FieldAssumptions`/`os.fileStat.FieldAssumptions`, which every closed statement reaching `os`'s
   files binds separately (`mvccfull`, `mvccrand`, `bboltfs`, `walfs`, `crashlog`; since wal-nostorageok,
   2026-11-21, also `etcd_robust`/`etcd_safe`, `etcd_leaseexpiryN`, `k8s_robust`/`k8s_safe`, in place of the
-  premise `rnNewStorageOk`).
+  premise `rnNewStorageOk`; since the single-process renames, 2026-11-23, their `_single_process` names; and
+  `putget_safe`'s member boot `member_boot`, with `putget_safe_of_s2` taking them as its hypothesis `HOs` while
+  `putget_safe.spec` binds neither them nor `rnNewStorageOk`: to be settled by etcd-dist, 2026-11-24).
 - **Proposed (general).** A Goose configuration entry giving a trusted type's layout (field names and types),
   from which goose emits the same `get_f`/`set_f` fields into `T.TypeAssumptions`; the hand-written classes
   then go, and the closed statements lose the two binders. **Status.** Recorded only (option (B) of
