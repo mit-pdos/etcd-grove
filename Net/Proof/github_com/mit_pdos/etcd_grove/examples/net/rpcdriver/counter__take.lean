@@ -36,7 +36,7 @@ theorem counter.take.wp_proof : counter.take.spec (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hc, Hcred⟩
   iunfold isCtr at Hc
   icases Hc with ⟨#Hsync, %start, #Hmu⟩
-  wp_auto
+  try wp_auto
   wp_apply sync.Mutex.wp_Lock _ (ctrInv γid γb start c) $$ [$Hsync $Hmu] as ⟨Hlk, Hinv⟩
   iunfold ctrInv at Hinv
   icases Hinv with ⟨%n, %k, Hnext, Hauth, Htoks, %Hb⟩
@@ -46,7 +46,7 @@ theorem counter.take.wp_proof : counter.take.spec (GF := GF) (hG := hG) := by
   have hfresh : (issued start n).lookup (start + W64 n) = none :=
     issued_fresh start n n (Nat.le_refl n) (by unfold ctrBudget at Hb; omega)
   imod ghost_map_insert (start + W64 n) () hfresh $$ Hauth with ⟨Hauth, Htok⟩
-  wp_auto
+  try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ (ctrInv γid γb start c) $$ [$Hsync $Hmu $Hlk Hnext Hauth Htoks]
   · iunfold ctrInv
     iexists n + 1, k'
@@ -54,10 +54,12 @@ theorem counter.take.wp_proof : counter.take.spec (GF := GF) (hG := hG) := by
     rw [hnx]
     iframe Hnext Htoks
     isplitl [Hauth]
-    · iexact Hauth
+    · simp only [issued]
+      iexact Hauth
     ipureintro; omega
-  wp_auto
+  try wp_auto
   iapply HΦ
+  unfold idTok
   iexact Htok
 
 end proof

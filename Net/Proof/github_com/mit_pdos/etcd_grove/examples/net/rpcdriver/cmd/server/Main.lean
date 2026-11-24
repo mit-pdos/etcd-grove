@@ -5,7 +5,7 @@ then `Server()`.
 -/
 module
 
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootLinked
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootDefs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Register
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Server
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.server

@@ -14,7 +14,7 @@ module
 
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootTable
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.PkgInitFirst
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Defs
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootDefs
 public import Net.Proof.net.rpc.InitFirst
 public import Net.Proof.net.http.InitFirst
 public import Perennial.Proof.sync.Link
@@ -38,11 +38,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [sem : go.Semantic
 variable [package_sem : Assumptions] [net.FieldAssumptions]
 
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- A machine's boot resources: net/http's and net/rpc's first-run state, and the driver's
-variables. -/
-def bootRes : IProp GF :=
-  iprop(net.http.muxOwn (GF := GF) (hG := hG) (globalAddr net.http.defaultServeMux) [] ∗ net.rpc.rpcFirstRes (GF := GF) ∗ drvFacts)
 
 /-- A machine's empty package state is `ownInitializing` of any table. -/
 theorem ownInitializing_of_empty (g : GoString → IProp GF) :

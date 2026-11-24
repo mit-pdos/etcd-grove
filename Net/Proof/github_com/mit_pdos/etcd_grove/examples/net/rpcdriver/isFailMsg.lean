@@ -30,9 +30,10 @@ theorem isFailMsg.wp_proof (wp_HasPrefix : strings.HasPrefix.spec (GF := GF) (hG
     isFailMsg.spec (GF := GF) (hG := hG) := by
   intro m
   wp_start as #Hs
-  wp_auto
-  wp_apply wp_HasPrefix $$ Hs
-  wp_auto
+  try wp_auto
+  wp_apply wp_HasPrefix
+  try wp_auto
+  unfold driverMark
   iapply HΦ
   itrivial
 

@@ -5,7 +5,7 @@ then `Client()`.
 -/
 module
 
-public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootLinked
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.BootDefs
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Register
 public import Net.Spec.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.Client
 public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.rpcdriver.cmd.client
