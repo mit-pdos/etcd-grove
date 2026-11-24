@@ -47,6 +47,9 @@ abbrev bootstrapCluster.spec : Prop :=
   ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (H : http.HttpNet GF)
     (prt : GoInterface),
   bootCfgFresh cfg U → bootGo.bootURLsPlain U →
+  -- (claim #34, stage 2, 2026-11-25, the ledger's entry of that date) `crypto/sha1.Sum`'s environment
+  -- premise, and the initial cluster's ids distinct (`NewClusterFromURLsMap`'s)
+  crypto.fips140.GodebugFips140Off → bootGo.initMapOk U cfg.InitialClusterToken' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       zapLoggerOk cfg.Logger' ∗ bootCfgRO cfg U ∗ http.roundTripperOk H prt }}
     (App (App (App (Val (@! bootstrapCluster)) (Val #cfg)) (Val #(null : Loc))) (Val #prt))

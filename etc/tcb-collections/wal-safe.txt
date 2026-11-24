@@ -1,9 +1,9 @@
 # The WAL tester's top-level robustness result (`examples/etcd/wal`, notes/wal-units/tester.md):
 # `etcd_wal_safe` (WalTester/Spec/github_com/mit_pdos/etcd_grove/examples/etcd/wal/TopLevelRobustness.lean,
 # proved in WalTester/Proof/.../TopLevelRobustness.lean from `etcd_wal_crash_safety_bounded`), the
-# tester on one machine that crashes and restarts, over the per-byte Linux file extension. Its one open
-# hypothesis, `Hopen : TOpen` (`proto.UnmarshalWalRecordE.spec`), is a premise of the statement, not an
-# axiom: `#print axioms` does not show it.
+# tester on one machine that crashes and restarts, over the per-byte Linux file extension. Its statement
+# has no Hoare-triple premise: `proto.UnmarshalWalRecordE.spec` is the axiom
+# `proto.UnmarshalWalRecordE.wp_proof` (interim, retired by etcd-grove#37 S3).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/wal-safe.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/wal-safe.txt --check    against the lines below
@@ -28,6 +28,7 @@ axiom proto.MarshalAppendCachedRecord.wp_proof
 axiom proto.MarshalPb.wp_proof
 axiom proto.SizePb.wp_proof
 axiom proto.UnmarshalPb.wp_proof
+axiom proto.UnmarshalWalRecordE.wp_proof
 axiom snapEncC_ok
 axiom strings.ToLower.wp_proof
 axiom time.Time.Format.wp_proofBroken

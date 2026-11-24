@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Net.ManualProof.net.http
 public import GeneratedProof.bufio
 public import Perennial.GeneratedProof.context
 public import GeneratedProof.crypto.tls
