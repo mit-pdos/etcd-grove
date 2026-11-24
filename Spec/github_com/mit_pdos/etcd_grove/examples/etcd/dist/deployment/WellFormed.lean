@@ -4,8 +4,8 @@
 **The triple:** of a Go value `v` holding the deployment `d` (`deploymentRepr`, read-only),
 `WellFormed(v)` returns an error, `nil` only if `d.WellFormed` (`DeploymentDefs.lean`: `d` encodes a
 well-formed typed deployment). Soundness only: a well-formed deployment may be refused (it is not:
-`TestWellFormed`, but the spec does not say so). The member ids are `membership.NewMember`'s (an interim
-trust-boundary axiom: `memberId`). The fips140 setting off: `NewMember`'s premise.
+`TestWellFormed`, but the spec does not say so). The member ids are `membership.NewMember`'s (`memberId`, its proved
+spec). The fips140 setting off: `NewMember`'s premise.
 Lean-first (no Rocq counterpart); etcd_safe's deployment check (`notes/etcd-dist-plan.md`, D2).
 -/
 module

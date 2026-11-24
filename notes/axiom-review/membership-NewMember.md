@@ -1,5 +1,9 @@
 # `membership.NewMember.wp_proof` (interim, etcd-dist D2)
 
+**Retired by the proof** (2026-11-24): `computeMemberID` is translated with its body again (over Perennial's
+`hash`), and `NewMember.wp_proof` is a theorem (`computeMemberID`, `newMember`); `TopLevelDefs`'s `memberId` is
+the definition `membership.memberIdOf` (`MemberId.lean`). The review below is of the axiom as it was.
+
 Reviewed 2026-11-24 (branch `etcd-safe-wf/2026-11-24`), by the axiom's author with the `axiom` skill, as a
 short review: no counterexample project was built.
 

@@ -19,6 +19,7 @@ exist yet, so the boot programs `serverProg`/`clientProg` are placeholders.
 module
 
 public import Robustness.Statement
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MemberId
 public import GooseLang.Ext.Net.Impl
 public import GooseLang.Ext.Fs.Impl
 public import GooseLang.Ext.IdIssue.Impl
@@ -101,11 +102,11 @@ def Deployment.nodeList (d : Deployment) : List (Workload × Nat × GoString) :=
 def Workload.needsNoExpiry (w : Workload) : Bool :=
   decide (w.kind = W64 6 ∨ w.kind = W64 8)
 
-/-- PLACEHOLDER (open question Q5): **etcd's member id**, as `membership.NewMember` computes it: the
-first 8 bytes, big-endian, of the SHA-1 of the member's sorted peer URLs concatenated with the cluster
-token. In no premise but `BootFacts`'s; to be the Lean model of `membership.NewMember` (translated with
-its body, over Perennial's proved `crypto/sha1`). -/
-opaque memberId (peerURL : GoString) (token : GoString) : w64
+/-- **etcd's member id** of the member whose one peer URL is `peerURL`, in the cluster `token`: the Lean
+model of `computeMemberID`, single URL, no time (`membership.memberIdOf`: the first 8 bytes, big-endian,
+of the SHA-1 of the URL followed by the token). (2026-11-24: was opaque; now the definition
+`membership.NewMember`'s proved spec gives.) -/
+def memberId (peerURL : GoString) (token : GoString) : w64 := membership.memberIdOf peerURL token
 
 /-- The members' ids, in the members' order. -/
 def Deployment.ids (d : Deployment) : List w64 :=
