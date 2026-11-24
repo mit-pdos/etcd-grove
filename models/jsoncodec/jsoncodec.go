@@ -11,14 +11,12 @@
 // up (encoding/json accepts invalid UTF-8), nesting up to encoding/json's depth limit, and every
 // syntax error. It never panics.
 //
-// The encoders and the decoding of strings cover "plain" strings: only the bytes 0x20..0x7e other
-// than '"' and '\\' (no escape sequences, no non-ASCII bytes). Real encoding/json writes exactly
-// those bytes for a string of such bytes that has no '<', '>' or '&' (it escapes those three for
-// HTML). Where a string leaves the subset (encoding one that real encoding/json would escape;
-// decoding one with an escape sequence or a non-ASCII byte, which real encoding/json would
-// unescape or replace), these functions panic: the model is then stricter than Go, never more
-// permissive, and a proof must show such strings never reach them. A string that is only skipped
-// (an unknown member's, or inside a value decoded raw) may be any string.
+// The encoders write every string as real encoding/json does (AppendString: its escapes, U+FFFD for
+// invalid UTF-8). The decoding of strings covers "plain" strings: no escape sequences, no non-ASCII
+// bytes. Where a decoded string leaves the subset (an escape sequence or a non-ASCII byte, which
+// real encoding/json would unescape or replace), these functions panic: the model is then stricter
+// than Go, never more permissive, and a proof must show such strings never reach them. A string
+// that is only skipped (an unknown member's, or inside a value decoded raw) may be any string.
 //
 // The trusted claim: these functions are real encoding/json's (Go 1.27.3) within the subset;
 // tested against real encoding/json by jsoncodec_test.go and by each generated codec's test
@@ -56,11 +54,6 @@ func SkipSpace(b []byte, i uint64) uint64 {
 
 func isDigit(c byte) bool {
 	return '0' <= c && c <= '9'
-}
-
-// plainByte reports whether c may appear in a plain string's contents.
-func plainByte(c byte) bool {
-	return 0x20 <= c && c <= 0x7e && c != '"' && c != '\\'
 }
 
 // isHex reports whether c is a hexadecimal digit.
@@ -403,8 +396,8 @@ func (e *Error) Error() string {
 }
 
 // NotModelled is the value these functions (and the generated codec) panic with where real
-// encoding/json does something the model does not reproduce (a string outside the plain subset,
-// a type the codec does not know): the models' convention (models/README.md), so that a proof
+// encoding/json does something the model does not reproduce (decoding a string outside the plain
+// subset, a type the codec does not know): the models' convention (models/README.md), so that a proof
 // that the program does not panic shows it never gets there.
 type NotModelled string
 
@@ -421,20 +414,126 @@ func htmlByte(c byte) bool {
 	return c == '<' || c == '>' || c == '&'
 }
 
-// AppendString appends s as a JSON string, as real encoding/json does for a plain s (its bytes
-// in 0x20..0x7e, other than '"', '\\', '<', '>' and '&': written as they are, in quotes). It
-// panics for any other s (real encoding/json would escape or replace bytes: outside the model).
-func AppendString(b []byte, s string) []byte {
-	i := 0
-	for i < len(s) {
-		if !plainByte(s[i]) || htmlByte(s[i]) {
-			panic(NotModelled("json model: a string outside the model's plain subset"))
-		}
-		i++
+// hexDigits are the digits of a \u escape, in lower case as real encoding/json writes them
+// (jsonwire.appendEscapedUTF16).
+const hexDigits = "0123456789abcdef"
+
+// appendEscapedASCII appends the ASCII byte c (below 0x80) of a string's contents as real
+// encoding/json writes it (jsonwire.AppendQuote with v1's EscapeForHTML; escapeASCII,
+// appendEscapedASCII): '"' and '\\' after a backslash; \b, \f, \n, \r and \t; any other
+// control byte (below 0x20) and '<', '>', '&' as \u00xx; every other byte as it is.
+func appendEscapedASCII(b []byte, c byte) []byte {
+	if c == '"' || c == '\\' {
+		return append(b, '\\', c)
 	}
-	b1 := append(b, '"')
-	b2 := append(b1, s...)
-	return append(b2, '"')
+	if c == '\b' {
+		return append(b, '\\', 'b')
+	}
+	if c == '\f' {
+		return append(b, '\\', 'f')
+	}
+	if c == '\n' {
+		return append(b, '\\', 'n')
+	}
+	if c == '\r' {
+		return append(b, '\\', 'r')
+	}
+	if c == '\t' {
+		return append(b, '\\', 't')
+	}
+	if c < 0x20 || htmlByte(c) {
+		return append(b, '\\', 'u', '0', '0', hexDigits[c>>4], hexDigits[c&0xf])
+	}
+	return append(b, c)
+}
+
+// seqLenOf is the length of the valid UTF-8 sequence that starts with the bytes c, c1, c2, c3
+// (c of 0x80 or above; a byte past the end of the string is 0, which continues no sequence): 2, 3
+// or 4, or 1 if none does. unicode/utf8's first/acceptRanges tables: no overlong form, no
+// surrogate, nothing above U+10FFFF, nothing cut short.
+func seqLenOf(c byte, c1 byte, c2 byte, c3 byte) uint64 {
+	if c < 0xc2 || c > 0xf4 {
+		return 1
+	}
+	// the second byte's range
+	lo := byte(0x80)
+	hi := byte(0xbf)
+	if c == 0xe0 {
+		lo = 0xa0
+	} else if c == 0xed {
+		hi = 0x9f
+	} else if c == 0xf0 {
+		lo = 0x90
+	} else if c == 0xf4 {
+		hi = 0x8f
+	}
+	if c1 < lo || c1 > hi {
+		return 1
+	}
+	if c < 0xe0 {
+		return 2
+	}
+	if c2 < 0x80 || c2 > 0xbf {
+		return 1
+	}
+	if c < 0xf0 {
+		return 3
+	}
+	if c3 < 0x80 || c3 > 0xbf {
+		return 1
+	}
+	return 4
+}
+
+// seqLen is the length of the valid UTF-8 sequence starting at s[i], a byte of 0x80 or above:
+// 2, 3 or 4, or 1 if no valid sequence starts there (seqLenOf). It is the size
+// utf8.DecodeRuneInString(s[i:]) returns for such a byte (a size of 1 is its RuneError).
+func seqLen(s string, i uint64) uint64 {
+	n := uint64(len(s))
+	c1 := byte(0)
+	c2 := byte(0)
+	c3 := byte(0)
+	if i+1 < n {
+		c1 = s[i+1]
+	}
+	if i+2 < n {
+		c2 = s[i+2]
+	}
+	if i+3 < n {
+		c3 = s[i+3]
+	}
+	return seqLenOf(s[i], c1, c2, c3)
+}
+
+// AppendString appends s as a JSON string, as real encoding/json writes a string
+// (jsonwire.AppendQuote with v1's flags EscapeForHTML, EscapeForJS and AllowInvalidUTF8,
+// internal/jsonwire/encode.go): in quotes, each ASCII byte as appendEscapedASCII writes it; each
+// byte that starts no valid UTF-8 sequence replaced by U+FFFD (its three bytes); U+2028 and U+2029
+// as \u2028 and \u2029; every other valid sequence as it is. It never panics.
+func AppendString(b []byte, s string) []byte {
+	out := append(b, '"')
+	n := uint64(len(s))
+	i := uint64(0)
+	for i < n {
+		c := s[i]
+		if c < 0x80 {
+			out = appendEscapedASCII(out, c)
+			i++
+			continue
+		}
+		k := seqLen(s, i)
+		if k == 1 {
+			out = append(out, "\ufffd"...)
+		} else if k == 3 && c == 0xe2 && s[i+1] == 0x80 && s[i+2] == 0xa8 {
+			out = append(out, "\\u2028"...)
+		} else if k == 3 && c == 0xe2 && s[i+1] == 0x80 && s[i+2] == 0xa9 {
+			out = append(out, "\\u2029"...)
+		} else {
+			out = append(out, s[i:i+k]...)
+		}
+		i += k
+	}
+	return append(out, '"')
 }
 
 // AppendUint appends x in decimal.
