@@ -4567,3 +4567,16 @@ the hypotheses `h_Cut`/`h_TrimLeft` are deleted.
   or its proof lemmas: `⟦GoOp GoEquals (go.InterfaceType elems), (#i, #interface.nil)⟧ ⤳[under]
   #(decide (i = interface.nil))` and its mirror.
 - **Status.** Open.
+
+## `fmt.Fprintf.spec` hides which bytes reach `Write` (2026-11-24, phase 7 S5 batch 12)
+
+- **Limitation.** `fmt.Fprintf.spec`'s `fmt.writeSpec ii P Q` is quantified over every byte string the writer may
+  be given (`∀ sl bs Φ, P -∗ sl ↦* bs -∗ …`), not the one Fprintf formats (`SprintfOut format xs bs`), although
+  Perennial's proof knows it before calling `Write`. A writer that may only write some bytes (a connection end
+  under a protocol: net/http's `400` answer in `conn.serve`) cannot be given to Fprintf.
+- **Needed by.** `conn.serve.wp_proof` (`fmt.Fprintf(c.rwc, "HTTP/1.1 400 Bad Request…")`).
+- **Workaround here.** `wp_Fprintf_noVerb` (`Net/Proof/net/http/ServeLemmas.lean`): Fprintf of a format with no
+  `%` and no arguments writes the format; proved over Perennial's `fmt.wp_doPrintf`, `fmt.wp_printerBuf`,
+  `fmt.wp_retire` as `fmt.Fprintf.wp_proof` is (no new assumption).
+- **Proposed change.** `writeSpec` (or `Fprintf.spec`) gives the writer `⌜SprintfOut format xs bs⌝`.
+- **Status.** Open.
