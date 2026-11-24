@@ -48,8 +48,6 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
         fmtErrorOkOrNil err }} := by
   unfold os.ownOff
   wp_start as ⟨Hf, ⟨%inner, #Hfi, Ho⟩, Hsl⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hfi
   iStructNamed Hf2
   icases ownSlice_len sl _ ([] : List w8) $$ Hsl with %Hlen
@@ -57,21 +55,21 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
   icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
-  wp_auto
+  try wp_auto
   have hsl : sl.len = W64 0 := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z, List.length_nil] at h1 h2; word
   rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
-  wp_auto
+  try wp_auto
   rw [hsl, decide_eq_true (rfl : W64 0 = W64 0)]
-  wp_auto
+  try wp_auto
   wp_apply wp_ArbitraryInt as %e _
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
   · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
   by_cases he : e = W64 0
   · subst he
     rw [decide_eq_true (rfl : W64 0 = W64 0)]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hf Hsl
     isplitr
@@ -80,7 +78,7 @@ theorem os.File.Write.wp_empty (f : Loc) (fd : w64) (name : GoString) (dqf : DFr
     · iexists inner; iframe; iassumption
     iapply fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn0 as %pe #Hpe
     iapply HΦ
     iframe Hf Hsl
@@ -122,8 +120,6 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
         fmtErrorOkOrNil err }} := by
   unfold os.ownOff
   wp_start as ⟨#Hinv, Hf, ⟨%inner, #Hfi, Ho⟩, Hsl, Hosfd, Hm, Hbs, Hmc⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hfi
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
@@ -131,27 +127,27 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
   icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
-  wp_auto
+  try wp_auto
   have hsl : sl.len = W64 data.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
   rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sl.len = W64 0 by
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
-  wp_auto
+  try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
   · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, hsl]
+  try wp_auto
+  rw [hsl]
   try wp_auto
   have hsum : sint.Z (o + W64 (data.length : Int)) = o.toInt + data.length := by
     simp only [sint.Z]; word
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + W64 (data.length : Int)) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
   wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d m xs hwr h0 hle h63 hn hlo hxs
@@ -167,7 +163,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     subst hA
     rw [hEA rfl, show os.pwPostE m o.toNat data.length data.length data.length =
       pwPost m o.toNat data.length data.length from rfl]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hf Hsl Hosfd Hmc Hek
     ileft
@@ -177,7 +173,7 @@ theorem os.File.Write.wp_long (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) 
     · ipureintro; exact ⟨rfl, rfl, os.PwOutA.pwOut hout⟩
     iexists inner; iframe; iassumption
   | ok ie =>
-    wp_auto
+    try wp_auto
     wp_apply wp_ArbitraryInt as %x _
     iapply HΦ
     iframe Hf Hsl Hosfd Hmc Hek

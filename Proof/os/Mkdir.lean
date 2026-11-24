@@ -58,7 +58,7 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         iframe Hr
         iintro Hau
         subst he4
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm Hp [Hau Hn] HΦ
         ileft; iframe
       · iright
@@ -66,13 +66,14 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         isplitl [Hr]
         · dsimp only [mkOut]; iframe
         iintro HQ
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he)]
-        wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        try wp_auto
+        wp_apply os.wp_modelErrno
+        try wp_auto
+        wp_apply os.wp_modelPathError
         iapply HΦ
         iframe
         dsimp only [mkOut, mkNew]
@@ -90,24 +91,25 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
       · dsimp only [mkOut, mkEnt, osLogged]; iframe; iframe #; ipureintro; exact hst
       ihave Hnew : mkNew (some (x, s0, J)) $$ [HJ]
       · dsimp only [mkNew]; iexact HJ
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm Hp [HQ Hout Hnew] HΦ
         iright; iexists (x, s0, J); iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
-      wp_auto
+      try wp_auto
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe
         ipureintro; intro _; rfl
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
-      unfold os.model.pathError
-      wp_apply wp_errno
+      try wp_auto
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_modelPathError
       iapply HΦ
       iframe
       ipureintro; intro _; rfl
@@ -120,18 +122,19 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
       CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
     ihave Hout : mkOut j b h (DFrac.own q) (some (x, sx, J)) $$ [Hn]
     · dsimp only [mkOut, osLogged]; iframe; iframe #; ipureintro; exact hst
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       iapply IH $$ Hperm Hp [HQ Hout Hnew] HΦ
       iright; iexists (x, sx, J); iframe
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
-    wp_auto
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
-    wp_auto
-    unfold os.model.pathError
-    wp_apply wp_errno
+    try wp_auto
+    wp_apply os.wp_modelErrno
+    try wp_auto
+    wp_apply os.wp_modelPathError
     iapply HΦ
     iframe
     ipureintro; intro _; rfl

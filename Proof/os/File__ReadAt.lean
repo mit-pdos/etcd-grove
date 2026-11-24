@@ -72,13 +72,13 @@ local macro "readat_tail" : tactic => `(tactic| (
       wp_apply wp_slice_copy_of_len_zero b tmp htl0
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ %b %o %n %pre %cur %hk %hb' %ho' %hpre %hcl Hpre Hcur Hosfd Hm Hbs1 Hbs2 Hfd HΦ
       · rw [decide_eq_false he4]
-        wp_auto
+        try wp_auto
         have he0' : ¬ e = W64 0 := he0
         simp only [decide_eq_false he0', Bool.not_false]
-        wp_auto
+        try wp_auto
         wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
         ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
         ihave Hsl := hcomb cur $$ [Hpre Hcur]
@@ -106,18 +106,18 @@ local macro "readat_tail" : tactic => `(tactic| (
         simp; omega
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ %b %o %n %pre %_ %hk %hb' %ho' %hpre %(hc2l.trans hcl) Hpre Hcur Hosfd Hm Hbs1
           Hbs2 Hfd HΦ
       · rw [decide_eq_false he4]
-        wp_auto
+        try wp_auto
         by_cases he0 : e = W64 0
         · subst he0
           have hm0 : mm ≠ W64 0 := by
             intro h; rw [h, show sint.Z (W64 0) = 0 from rfl] at hmmZ; omega
-          wp_auto
+          try wp_auto
           rw [decide_eq_false hm0]
-          wp_auto
+          try wp_auto
           have hmmNat : sint.nat mm = k := by rw [hmm, hrl]; omega
           rw [if_pos ⟨by omega, by omega, Hbwf.2⟩]
           icases (ownSlice_split_all mm b (DFrac.own 1) _ ⟨by omega, by omega⟩).1 $$ Hcur
@@ -166,13 +166,13 @@ local macro "readat_tail" : tactic => `(tactic| (
             refine (bytesG_append _ _ _ _ _ _).1.trans ?_
             rw [List.length_take, Nat.min_eq_left (by omega)]) $$ [Hbs1 Hbs2]
           · iframe
-          wp_auto
+          try wp_auto
           rw [show b.len - mm = (slice.slice b w8 mm b.len).len from rfl]
           iapply IH $$ %(slice.slice b w8 mm b.len) %(o + mm) %(n + mm) %_ %_ %hk' %hb'' %ho''
             %hpre' %hcl' Hpre Hc2 Hosfd Hm Hbs1 Hbs2 Hfd HΦ
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
-          wp_auto
+          try wp_auto
           wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
           ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
           ihave Hsl := hcomb _ $$ [Hpre Hcur]
@@ -195,12 +195,10 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
   intro f fd name dqf sl vs off dq dqm dqb d m xs hrd hoff hend hin hxl
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl _ vs $$ Hsl with %Hlen
-  wp_auto
+  try wp_auto
   have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff
   rw [decide_eq_false h0]
@@ -245,7 +243,7 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
   clear hb ho hn hpre0 hcur0
   have hoffN : off.toNat < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond off; split at this <;> omega
-  wp_auto
+  try wp_auto
   iloeb as IH generalizing %b %o %n %pre %cur %hk %hb' %ho' %hpre %hcl Hpre Hcur Hosfd Hm Hbs1 Hbs2
     Hfd HΦ
   have hnN : n.toNat < 2 ^ 63 := by omega
@@ -277,7 +275,7 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
     rw [List.length_take, Nat.min_eq_left (by omega)]
   by_cases hl0 : b.len = W64 0
   · rw [decide_eq_true hl0]
-    wp_auto
+    try wp_auto
     have hc0 : cur.length = 0 := by rw [← hblN, hl0]; rfl
     ihave Hsl := hcomb cur $$ [Hpre Hcur]
     · iframe
@@ -296,14 +294,14 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
     · apply BitVec.eq_of_toNat_eq; rw [hnl]; simp only [W64]; rw [BitVec.toNat_ofInt]; omega
     · rw [hc', List.append_nil, hpre, hnl]; exact List.take_of_length_le (by simp [hxl])
   · rw [decide_eq_false hl0]
-    wp_auto
+    try wp_auto
     have hcpos : 0 < cur.length := by
       apply Nat.pos_of_ne_zero; intro h0; apply hl0
       apply BitVec.eq_of_toNat_eq; rw [hblN, h0]; rfl
     by_cases hmx : sint.Z (W64 1073741824) < sint.Z b.len
     · -- a buffer past `maxRW`: one `pread` of its first `maxRW` bytes
       rw [decide_eq_true hmx]
-      wp_auto
+      try wp_auto
       have hcbig : 1073741824 < cur.length := by
         rw [hblZ, show sint.Z (W64 1073741824) = 1073741824 from rfl] at hmx; omega
       have hdl : ((xs.drop n.toNat).take 1073741824).length =
@@ -317,6 +315,8 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
         rw [hoN]
         conv => lhs; rw [← List.take_append_drop 1073741824 (xs.drop n.toNat)]
         unfold osBytes; exact (bytesG_append _ _ _ _ _ _).1) $$ Hbs2
+      try wp_auto
+      wp_stub os.fsPRead.impl
       wp_apply wp_osPRead fd o (W64 1073741824) dq dqm dqb d m ((xs.drop n.toNat).take 1073741824)
         CoPset.subseteq_top hrd hoI hdl $$ Hinv Hosfd Hm Hbsa as %r %e %hre0 Hosfd Hm Hbsa
       ihave Hbs2 := (show osBytes (GF := GF) d.ino o.toNat dqb ((xs.drop n.toNat).take 1073741824) ∗
@@ -341,11 +341,13 @@ theorem os.File.ReadAt.wp_proof_long : os.File.ReadAt.specLong (GF := GF) (hG :=
             omega
       readat_tail
     · rw [decide_eq_false hmx]
-      wp_auto
+      try wp_auto
       have hdl : (xs.drop n.toNat).length = min b.len.toNat (m.size - o.toNat) := by
         rw [List.length_drop, hblN, hcl, hoN]; omega
       ihave Hbs2 := (show osBytes (GF := GF) d.ino (off.toNat + n.toNat) dqb (xs.drop n.toNat) ⊢
         osBytes d.ino o.toNat dqb (xs.drop n.toNat) by rw [hoN]) $$ Hbs2
+      try wp_auto
+      wp_stub os.fsPRead.impl
       wp_apply wp_osPRead fd o b.len dq dqm dqb d m (xs.drop n.toNat) CoPset.subseteq_top hrd hoI hdl
         $$ Hinv Hosfd Hm Hbs2 as %r %e %hre Hosfd Hm Hbs2
       ihave Hbs2 := (show osBytes (GF := GF) d.ino o.toNat dqb (xs.drop n.toNat) ⊢
@@ -447,12 +449,10 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
       %(fun he hr => held_empty_of rs rs' o n hsub (h2 he hr)) %(hP _ _ rfl) Hfd HP
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hbs, #Hacc, #Heof⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl _ vs $$ Hsl with %Hlen
-  wp_auto
+  try wp_auto
   have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff
   rw [decide_eq_false h0]
@@ -491,7 +491,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
   clear hb ho hn hpre0 hcur0
   have hoffN : off.toNat < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond off; split at this <;> omega
-  wp_auto
+  try wp_auto
   iloeb as IH generalizing %b %o %n %pre %cur %hk %hb' %ho' %hpl %hcl %hpv Hpre Hcur Hosfd Hbs Hfd HΦ
   have hnN : n.toNat < 2 ^ 63 := by omega
   have hoN : o.toNat = off.toNat + n.toNat := by rw [ho']; exact w64_add_toNat _ _ (by omega)
@@ -522,7 +522,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     rw [List.getElem?_append_left (by omega)]; exact hpv i bt hh h1 h2
   by_cases hl0 : b.len = W64 0
   · rw [decide_eq_true hl0]
-    wp_auto
+    try wp_auto
     have hc0 : cur.length = 0 := by rw [← hblN, hl0]; rfl
     ihave Hsl := hcomb cur $$ [Hpre Hcur]
     · iframe
@@ -535,14 +535,14 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     · ipureintro; exact ⟨hl, by omega, hx⟩
     ileft; ipureintro; exact .inl ⟨rfl, by omega⟩
   · rw [decide_eq_false hl0]
-    wp_auto
+    try wp_auto
     have hcpos : 0 < cur.length := by
       apply Nat.pos_of_ne_zero; intro h0; apply hl0
       apply BitVec.eq_of_toNat_eq; rw [hblN, h0]; rfl
     have hmx : ¬ (sint.Z (W64 1073741824) < sint.Z b.len) := by
       rw [hblZ, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
     rw [decide_eq_false hmx]
-    wp_auto
+    try wp_auto
     wp_apply hread o b.len _ hoI $$ Hinv Hacc Hosfd Hbs as %r %e %hre %hemp %hPe Hosfd Hbs
     wp_apply wp_string_to_bytes r as %tmp ⟨Htmp, -⟩
     by_cases hr0 : r = []
@@ -554,13 +554,13 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
       wp_apply wp_slice_copy_of_len_zero b tmp htl0
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ %b %o %n %pre %cur %hk %hb' %ho' %hpl %hcl %hpv Hpre Hcur Hosfd Hbs Hfd HΦ
       · rw [decide_eq_false he4]
-        wp_auto
+        try wp_auto
         by_cases he0 : e = W64 0
         · subst he0
-          wp_auto
+          try wp_auto
           ihave Hsl := hcomb cur $$ [Hpre Hcur]
           · iframe
           iapply HΦ
@@ -577,7 +577,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           exact hemp rfl hr0 i bt hh (by omega) (by omega)
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
-          wp_auto
+          try wp_auto
           wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
           ihave Hsl := hcomb cur $$ [Hpre Hcur]
           · iframe
@@ -600,18 +600,18 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
         simp; omega
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ %b %o %n %pre %_ %hk %hb' %ho' %hpl %(hc2l.trans hcl) %hpv Hpre Hcur Hosfd Hbs
           Hfd HΦ
       · rw [decide_eq_false he4]
-        wp_auto
+        try wp_auto
         by_cases he0 : e = W64 0
         · subst he0
           have hm0 : mm ≠ W64 0 := by
             intro h; rw [h, show sint.Z (W64 0) = 0 from rfl] at hmmZ; omega
-          wp_auto
+          try wp_auto
           rw [decide_eq_false hm0]
-          wp_auto
+          try wp_auto
           have hmmle : mm.toNat ≤ cur.length := by omega
           have hmmZ' : sint.Z mm = mm.toNat := by rw [hmmZ, hmmN]
           have hmmNat : sint.nat mm = mm.toNat := by rw [hmm, hmmN]
@@ -656,13 +656,13 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
                 if_pos (by omega)]
               rw [show i - off.toNat - n.toNat = i - o.toNat by omega]
               exact hre i bt hh (by omega) (by omega) (by omega)
-          wp_auto
+          try wp_auto
           rw [show b.len - mm = (slice.slice b w8 mm b.len).len from rfl]
           iapply IH $$ %(slice.slice b w8 mm b.len) %(o + mm) %(n + mm) %_ %_ %hk' %hb'' %ho''
             %hpl' %hcl' %hpv' Hpre Hc2 Hosfd Hbs Hfd HΦ
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
-          wp_auto
+          try wp_auto
           wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
           ihave Hsl := hcomb _ $$ [Hpre Hcur]
           · iframe

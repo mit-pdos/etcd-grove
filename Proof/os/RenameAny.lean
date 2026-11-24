@@ -36,15 +36,18 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     · rw [Nat.max_eq_left hle]; iexact Hlb1
   iclear Hlb0 Hlb1
   icases osCallPerm_child R d bt _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsLstatDir.impl
   wp_apply wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
+  -- PORT: which stub? (LstatDirS)
   wp_apply wp_osLstatDirS_mem R d bt j N (DFrac.own qd) (DFrac.own q) h t s0 1 hbt hN'
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %isDir %e %hd Hperm Hp Hn
   by_cases hd1 : isDir = 1
   · -- a directory at the target: Go's `EEXIST`, no `rename(2)`
     rw [decide_eq_true (show isDir = W64 1 from hd1)]
-    wp_auto
+    try wp_auto
     wp_apply (os.wp_linkError_ok _ _ _ _ (hd hd1).2)
     iintro %le #Hle
     iapply HΦ
@@ -55,7 +58,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     iframe Hn Hau
     ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
-  wp_auto
+  try wp_auto
   ihave HSt : iprop((osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q ∗
       osNames j N (DFrac.own q) h) ∨
     (∃ xs, Q (some xs) ∗ renDirOutA j J N bs bt h (DFrac.own q) lb (some xs)))
@@ -82,7 +85,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         iframe Hr
         iintro Hau
         subst he4
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm Hp [Hau Hn] HΦ
         ileft; iframe
       · iright
@@ -91,11 +94,11 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         · unfold renDirOutA logOut claimOut; iframe
           ipureintro; intro hc; cases hc
         iintro HQ
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he)]
-        wp_auto
+        try wp_auto
         wp_apply (os.wp_linkError_ok _ _ _ _ he)
         iintro %le #Hle
         iapply HΦ
@@ -121,17 +124,17 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
       ihave Hout : renDirOutA j J N bs bt h (DFrac.own q) lb (some (x, s0)) $$ [Hn]
       · dsimp only [renDirOutA, logOut, claimOut, osLogged, renDirEntA]; iframe; iframe #
         ipureintro; exact ⟨fun _ => hR, (Nat.max_le.1 hs).2, hst⟩
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm Hp [HQ Hout] HΦ
         iright; iexists (x, s0); iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
-      wp_auto
+      try wp_auto
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe Hp Hperm
         isplitl []
@@ -141,7 +144,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         iframe HQ Hout
         ipureintro; exact ⟨fun _ => rfl, Or.inl rfl⟩
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
       wp_apply (os.wp_linkError_ok _ _ _ _ he0)
       iintro %le #Hle
       iapply HΦ
@@ -175,16 +178,16 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     ihave Hout : renDirOutA j J N bs bt h (DFrac.own q) lb (some (x, sx)) $$ [Hn]
     · dsimp only [renDirOutA, logOut, claimOut, osLogged]; iframe; iframe #
       ipureintro; exact ⟨hRt, hlo, hlo2⟩
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       iapply IH $$ Hperm Hp [HQ Hout] HΦ
       iright; iexists (x, sx); iframe
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
-    wp_auto
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
-    wp_auto
+    try wp_auto
     wp_apply (os.wp_linkError_ok _ _ _ _ he)
     iintro %le #Hle
     iapply HΦ

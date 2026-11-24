@@ -30,16 +30,14 @@ theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG :
   wp_start as ⟨-, %inner, #Hf, Hfd, #Hn⟩
   ihave ⟨%e, #Heok, #He⟩ := os.errClosed_of_pkgInit $$ Hpkg
   unfold os.ErrClosed at *
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
   rw [decide_eq_false hnn]
-  wp_auto
+  try wp_auto
   unfold os.model.pathError
   iapply wp_fupd
-  wp_auto
+  try wp_auto
   iStructNamed pe
   ipersist Op
   ipersist Path

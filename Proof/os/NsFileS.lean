@@ -50,11 +50,14 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsOpen.impl
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq, show flag ||| W64 524288 = fl from hfl']
   (try wp_auto)
+  -- PORT: which stub? (OpenFileSN)
   wp_apply wp_osOpenFileSN' R d b j i N dq dqn h t s0 qc fl hfl htr hb hN hi CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %fd %e %hres Hperm Hp Hn Hfd
   by_cases he0 : e = W64 0
@@ -68,10 +71,10 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
       by split
          · iintro H; iexact H
          · exact absurd rfl ‹_›) $$ Hfd
-    wp_auto
+    try wp_auto
     iStructNamed inner
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
     imodintro
@@ -98,15 +101,15 @@ theorem os.OpenFile.wp_fileSN (d b : GoString) (flag : w64) (perm : w32) (R : Ro
     have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, -, h⟩; exact absurd h he0; exact h
     subst hfd
     rw [decide_eq_false (show e ≠ W64 0 from he0)]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
       iapply IH $$ Hperm Hp Hn HΦ
     · rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       wp_apply os.wp_pathError_errno as %err #Herr
       iapply HΦ
       iframe
@@ -130,7 +133,7 @@ theorem os.Open.wp_fileSN (d b : GoString) (R : Roots) (j i : Ino) (N : NameSet)
   have e : W64 0 ||| W64 0x80000 = flRO := by decide
   rw [← e]
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
-  wp_auto
+  try wp_auto
   wp_apply os.OpenFile.wp_fileSN d b (W64 0) (W32 0) R j i N dq dqn h qc
     (by rw [e]; exact flRO_ok) (by rw [e]; decide) hb hN hi
     $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr

@@ -133,7 +133,7 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
   | zero =>
     simp only [show ¬ sint.Z (W64 0) ≤ sint.Z (W64 ((0 : Nat) : Int) - W64 1) by decide,
       _root_.decide_false]
-    wp_auto
+    try wp_auto
     have hM : os.parentModel p = List.take (0 - 0) (List.drop 0 p) := by
       unfold os.parentModel; rw [← hT]; simp [os.trailIdx, os.backIdx]
     rw [← hM]
@@ -142,7 +142,7 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
   | succ k =>
     rw [show W64 ((k + 1 : Nat) : Int) - W64 1 = W64 (k : Int) by word]
     simp only [show sint.Z (W64 0) ≤ sint.Z (W64 (k : Int)) by word, _root_.decide_true]
-    wp_auto
+    try wp_auto
     have hk : k < p.length := by omega
     simp only [show (0 : Int) ≤ sint.Z (W64 (k : Int)) by word, ↓reduceIte,
       show sint.nat (W64 (k : Int)) = k by word, List.getElem?_eq_getElem hk]
@@ -150,13 +150,13 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
     wp_apply os.wp_IsPathSeparator
     by_cases hs : p[k] = slashB
     · rw [decide_eq_true hs]
-      wp_auto
+      try wp_auto
       have hT' : os.trailIdx p k = os.trailIdx p p.length := by
         rw [← hT]; simp only [os.trailIdx, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk,
           Option.getD_some, hs, ↓reduceIte]
       iapply IH $$ %k %hT' %(by omega) HΦ
     · rw [decide_eq_false hs]
-      wp_auto
+      try wp_auto
       have hT1 : os.trailIdx p (k + 1) = k + 1 := by
         simp only [os.trailIdx, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk,
           Option.getD_some, hs, ↓reduceIte]
@@ -171,7 +171,7 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
       | zero =>
         simp only [show ¬ sint.Z (W64 0) ≤ sint.Z (W64 ((0 : Nat) : Int) - W64 1) by decide,
           _root_.decide_false]
-        wp_auto
+        try wp_auto
         have hM : os.parentModel p = List.take (0 - 0) (List.drop 0 p) := by
           unfold os.parentModel; rw [← hB]; simp [os.backIdx]
         rw [← hM]
@@ -180,7 +180,7 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
       | succ k =>
         rw [show W64 ((k + 1 : Nat) : Int) - W64 1 = W64 (k : Int) by word]
         simp only [show sint.Z (W64 0) ≤ sint.Z (W64 (k : Int)) by word, _root_.decide_true]
-        wp_auto
+        try wp_auto
         have hk : k < p.length := by omega
         simp only [show (0 : Int) ≤ sint.Z (W64 (k : Int)) by word, ↓reduceIte,
           show sint.nat (W64 (k : Int)) = k by word, List.getElem?_eq_getElem hk]
@@ -188,11 +188,11 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
         wp_apply os.wp_IsPathSeparator
         by_cases hs : p[k] = slashB
         · rw [decide_eq_true hs]
-          wp_auto
+          try wp_auto
           simp only [show ¬ sint.Z (W64 (k : Int)) < sint.Z (W64 0) by word, _root_.decide_false]
-          wp_auto
+          try wp_auto
           rw [ite_cond_eq_true _ _ (eq_true ⟨by word, by word, by word⟩)]
-          wp_auto
+          try wp_auto
           have hM : os.parentModel p = List.take (sint.nat (W64 (k : Int)) - 0) (List.drop 0 p) := by
             unfold os.parentModel
             rw [← hB]
@@ -204,7 +204,7 @@ theorem os.model.wp_mkdirAllParent (p : GoString) :
           iapply HΦ
           itrivial
         · rw [decide_eq_false hs]
-          wp_auto
+          try wp_auto
           have hB' : os.backIdx p k = os.backIdx p (os.trailIdx p p.length) := by
             rw [← hB]; simp only [os.backIdx, List.getD_eq_getElem?_getD, List.getElem?_eq_getElem hk,
               Option.getD_some, hs, ↓reduceIte]
@@ -222,20 +222,20 @@ theorem os.model.wp_base (p : GoString) :
   by_cases h0 : p = []
   · subst h0
     simp only [List.length_nil]
-    wp_auto
+    try wp_auto
     iapply HΦ $$ %_
     itrivial
   have hne : W64 (p.length : Int) ≠ W64 0 := by
     have : p.length ≠ 0 := by simpa using h0
     intro h; apply this; word
   rw [decide_eq_false hne]
-  wp_auto
+  try wp_auto
   wp_apply os.model.wp_mkdirAllParent
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %hlen2
   have hpl := os.parentModel_length p h0
   try wp_auto
   rw [if_pos (by word)]
-  wp_auto
+  try wp_auto
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
   try wp_auto
   wp_if_destruct

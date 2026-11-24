@@ -161,11 +161,11 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
   unfold os.ownFile
   wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfo, #Hn⟩, Hosfd, Hk, Hv, Hcf, Hm, Hbs⟩
   ihave #Hos := walAreaOk_osInv walCodec Mr R jr r $$ Harea
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hos Hosfd as Hosfd
   wp_apply wp_tailFsyncR Mr R jr r dir γ k H md cuts wr m bs fd dq d _ hm hlen hzf hwr
     $$ Harea Hosfd Hk Hv Hcf Hm Hbs as %e Hosfd Hv Hcf Hr
@@ -174,12 +174,12 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     · exact absurd (he4 ▸ he) (by decide)
     · exact absurd he4 he.2
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
   icases Hr with (⟨%he, Hk, Hm, Hbs, -⟩ | ⟨%he, -⟩)
   · subst he
     rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe
     isplitl []
@@ -189,7 +189,7 @@ theorem os.File.Sync.wp_tailR (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoSt
     iframe
   · have he0' : ¬ e = W64 0 := he.1
     simp only [decide_eq_false he0', Bool.not_false]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
     iapply HΦ
     iframe
@@ -223,7 +223,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.wp_specRepTail (Mr : WalMar
   obtain ⟨hmsz, hmz, hsz62, hfd, -⟩ := hp
   iapply Fs.wp_osMeta_zfGe _ _ rfl i _ m $$ Hm
   iintro %hzf Hm
-  wp_auto
+  try wp_auto
   ihave Hv : tailVar (W := W) γ ((H, md, cuts, o0, i, none) : TailG) $$ [Hv]
   · unfold tailVar; iexact Hv
   wp_apply WalFs.os.File.Sync.wp_tailR Mr R jr r dir γ k H md cuts o0 m bs f fd name (DFrac.own 1)

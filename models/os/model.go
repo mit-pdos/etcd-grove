@@ -280,7 +280,10 @@ func (f *File) Seek(offset int64, whence int) (ret int64, err error) {
 // a zero-byte write(2) whose answer depends on the fd's mode (EBADF on a read-only fd), returns
 // (0, nil) or (0, f.wrapErr("write", e)) for any errno, changing nothing (POSIX; measured,
 // TestEmptyWrite; examples/osfs/semantics/model_os_writefile.go). Not modelled: a closed file, an
-// unknown offset, a write reaching modelOffMax.
+// unknown offset, a write reaching modelOffMax. Concurrent Write or Read calls on one File, which
+// Go serializes (poll.FD's fdMutex; Linux's f_pos update is atomic), read and write off without a
+// lock here: the model has at least Go's outcomes (also lost offset updates, which Go has not; in
+// gc builds os's TestWriteAtConcurrent fails for that reason).
 func (f *File) Write(b []byte) (n int, err error) {
 	inner := f.file
 	fd := inner.pfd.Sysfd

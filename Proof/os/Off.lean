@@ -42,16 +42,13 @@ theorem os.File.Seek.wp_start (f : Loc) (fd : w64) (name : GoString) (dqf : DFra
   wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩⟩
   icombine Hf Hf' gives %hin
   cases hin
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   have hfd' : ¬ sint.Z fd < sint.Z (W64 0) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
   rw [decide_eq_false hfd']
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, show os.model.seekMax = W64 0xffffffff000 from rfl]
+  try wp_auto
   try rw [show W64 0 + off = off from BitVec.zero_add off]
   have hz : sint.Z (W64 0) = 0 := rfl
   have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
@@ -85,16 +82,13 @@ theorem os.File.Seek.wp_cur (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   wp_start as ⟨⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩⟩
   icombine Hf Hf' gives %hin
   cases hin
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   have hfd' : ¬ sint.Z fd < sint.Z (W64 0) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
   rw [decide_eq_false hfd']
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, show os.model.seekMax = W64 0xffffffff000 from rfl]
+  try wp_auto
   have hz : sint.Z (W64 0) = 0 := rfl
   have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
   try rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by simp only [sint.Z] at *; omega)]
@@ -134,21 +128,20 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hosfd, Hm⟩
   icombine Hf Hf' gives %hin
   cases hin
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   have hfd' : ¬ sint.Z fd < sint.Z (W64 0) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd
   rw [decide_eq_false hfd']
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFstat.impl
   wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
   rcases hr with ⟨rfl, rfl⟩ | ⟨he, rfl⟩
   · rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]
-    wp_auto
-    rw [show os.model.offMax = W64 0x4000000000000000 from rfl, show os.model.seekMax = W64 0xffffffff000 from rfl]
+    try wp_auto
     try rw [show W64 m.size + W64 0 = W64 m.size from BitVec.add_zero _]
     have hz : sint.Z (W64 0) = 0 := rfl
     have hm : sint.Z (W64 0x4000000000000000) = 2 ^ 62 := rfl
@@ -178,7 +171,7 @@ theorem os.File.Seek.wp_end (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
       iexists inner; iframe; iassumption
   · have he' : ¬ e = W64 0 := he
     simp only [decide_eq_false he', Bool.not_false]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
     iframe Hosfd Hm
@@ -217,8 +210,6 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
          (⌜err ≠ interface.nil⌝ ∗ os.ownOff f (W64 (-1)))) }} := by
   unfold os.ownOff
   wp_start as ⟨#Hinv, Hf, ⟨%inner, #Hfi, Ho⟩, Hsl, Hosfd, Hm, Hbs, Hmc⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hfi
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
@@ -226,27 +217,27 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
-  wp_auto
+  try wp_auto
   have hsl : sl.len = W64 data.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
   rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sl.len = W64 0 by
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
-  wp_auto
+  try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
   · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, hsl]
+  try wp_auto
+  rw [hsl]
   try wp_auto
   have hsum : sint.Z (o + W64 (data.length : Int)) = o.toInt + data.length := by
     simp only [sint.Z]; word
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + W64 (data.length : Int)) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
   wp_apply wp_WriteAt f fd name dqf sl data dqs o dq d m xs hwr h0 hle h63 hn hn2 hxs
@@ -254,7 +245,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
   · iframe; iexact Hinv
   cases err with
   | nil =>
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe Hf Hsl Hosfd
     isplitl [Hm Hbs Hmc]
@@ -268,7 +259,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
     · ipureintro; rfl
     iexists inner; iframe; iassumption
   | ok ie =>
-    wp_auto
+    try wp_auto
     wp_apply wp_ArbitraryInt as %x _
     iapply HΦ
     iframe Hf Hsl Hosfd
@@ -306,8 +297,6 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
   icombine Hf Hf' gives %hin'
   cases hin'
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl _ vs $$ Hsl with %Hlen
@@ -316,44 +305,45 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
   have hslz : sint.Z sl.len = vs.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
-  wp_auto
+  try wp_auto
   have hl0 : ¬ sl.len = W64 0 := by
     intro h; rw [h, show sint.Z (W64 0) = 0 from rfl] at hslz; omega
   rw [decide_eq_false hl0]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl]
+  try wp_auto
   try wp_auto
   have hsum : sint.Z (o + sl.len) = o.toInt + vs.length := by
     rw [hsl]; simp only [sint.Z]; word
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + sl.len) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   iloeb as IH generalizing Hosfd Hm Hbs Hsl Ho Hfd HΦ
   have hmx : ¬ (sint.Z (W64 1073741824) < sint.Z sl.len) := by
     rw [hslz, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
   rw [decide_eq_false hmx]
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsPRead.impl
   wp_apply wp_osPRead fd o sl.len dq dqm dqb d m xs CoPset.subseteq_top hrd h0
     (by rw [hxl]; simp only [sint.Z] at hslz; have := BitVec.toInt_eq_toNat_cond sl.len; split at this <;> omega)
     $$ Hinv Hosfd Hm Hbs as %r %e %hre Hosfd Hm Hbs
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
+    try wp_auto
     rw [decide_eq_false hmx]
     iapply IH $$ Hosfd Hm Hbs Hsl Ho Hfd HΦ
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
   obtain ⟨k, hkl, rfl, hke0⟩ := hre
   by_cases he0 : e = W64 0
   rotate_left
   · simp only [decide_eq_false he0, Bool.not_false]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
     iframe Hosfd Hm Hbs
@@ -374,7 +364,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     · rw [h] at hxl; simp at hxl; omega
   rw [show decide ((W64 0) = W64 0) = true from decide_eq_true rfl]
   simp only [Bool.not_true]
-  wp_auto
+  try wp_auto
   wp_apply wp_string_to_bytes ((xs.map Prod.fst).take k) as %tmp ⟨Htmp, -⟩
   wp_apply wp_slice_copy sl vs tmp ((xs.map Prod.fst).take k) (DFrac.own 1) $$ [Hsl Htmp]
     as %mm ⟨%hmm, Hsl, -⟩
@@ -393,7 +383,7 @@ theorem os.File.Read.wp_spec (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     have := congrArg BitVec.toNat h
     simp only [BitVec.toNat_ofInt] at this; omega
   rw [decide_eq_false hk0']
-  wp_auto
+  try wp_auto
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]

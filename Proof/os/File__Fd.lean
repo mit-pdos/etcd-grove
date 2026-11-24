@@ -26,11 +26,9 @@ theorem os.File.Fd.wp_proof : os.File.Fd.spec (GF := GF) (hG := hG) := by
   intro f fd name dq
   unfold os.ownFile
   wp_start as ⟨%inner, #Hf, Hfd, #Hn⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   iapply HΦ
   iexists inner
   iframe

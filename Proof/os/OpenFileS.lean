@@ -41,6 +41,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -65,7 +66,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
           iintro Hau
           obtain ⟨-, rfl⟩ := he
           subst he4
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
           iapply IH $$ Hperm Hp [Hau Hn] HΦ
@@ -76,11 +77,11 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
           · dsimp only [crOut]; iexact Hr'
           iintro HQ
           obtain ⟨he0, rfl⟩ := he
-          wp_auto
+          try wp_auto
           rw [decide_eq_false (show e ≠ W64 0 from he0)]
-          wp_auto
+          try wp_auto
           rw [decide_eq_false (show e ≠ W64 4 from he4)]
-          wp_auto
+          try wp_auto
           wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
           iapply HΦ
           iframe
@@ -98,10 +99,10 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · dsimp only [crOut]; iexact Hr'
         iintro HQ
         obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
+        try wp_auto
         iStructNamed inner
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
         imodintro
@@ -137,18 +138,18 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         ipureintro; exact ⟨⟨hn, hs⟩, hst⟩
       icases Hr with (%he | ⟨%he, Hfd⟩)
       · obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         by_cases he4 : e = W64 4
         · rw [decide_eq_true he4]
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
           iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
           iright; iexists (x, s0, i); dsimp only [crMeta]; iframe
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
+        try wp_auto
         wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
         iapply HΦ
         dsimp only [crMeta]
@@ -158,10 +159,10 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
       · obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
+        try wp_auto
         iStructNamed inner
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
         imodintro
@@ -189,7 +190,7 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         iintro Hau
         obtain ⟨-, rfl⟩ := he
         subst he4
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ Hperm Hp [Hau Hn] HΦ
@@ -200,11 +201,11 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         · dsimp only [crOut]; iexact Hr'
         iintro HQ
         obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
+        try wp_auto
         wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
         iapply HΦ
         iframe
@@ -235,10 +236,10 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
         by split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd
-      wp_auto
+      try wp_auto
       iStructNamed inner
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       ipersist name
       ipersist f
       imodintro
@@ -260,18 +261,18 @@ theorem os.OpenFile.wp_proofCreateSnc : os.OpenFile.specCreateSnc (GF := GF) (hG
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h⟩; exact absurd h he0; exact h
       subst hfd
-      wp_auto
+      try wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
         iright; iexists (x, sx, i); dsimp only [crMeta]; iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
-      wp_auto
+      try wp_auto
       wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
       iapply HΦ
       iframe
@@ -338,6 +339,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -362,7 +364,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
           iintro Hau
           obtain ⟨-, rfl⟩ := he
           subst he4
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
           iapply IH $$ Hperm Hp [Hau Hn] HΦ
@@ -374,10 +376,10 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         · dsimp only [crOut]; iexact Hr'
         iintro HQ
         obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
+        try wp_auto
         iStructNamed inner
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
         imodintro
@@ -412,22 +414,22 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         ipureintro; exact ⟨⟨hn, hs⟩, hst⟩
       icases Hr with (%he | ⟨%he, Hfd⟩)
       · obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         by_cases he4 : e = W64 4
         · rw [decide_eq_true he4]
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
           iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
           iright; iexists (x, s0, i); dsimp only [crMeta]; iframe
         exact absurd (hPe he0) he4
       · obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
+        try wp_auto
         iStructNamed inner
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
         imodintro
@@ -454,7 +456,7 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         iintro Hau
         obtain ⟨-, rfl⟩ := he
         subst he4
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ Hperm Hp [Hau Hn] HΦ
@@ -479,10 +481,10 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
         by split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd
-      wp_auto
+      try wp_auto
       iStructNamed inner
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       ipersist name
       ipersist f
       imodintro
@@ -503,12 +505,12 @@ private theorem os.OpenFile.wp_NECreateS : os.OpenFile.tripleNECreateS (GF := GF
     · iclear Hfd
       have hfd : fd = -1 := by rcases hres with ⟨h, -⟩ | ⟨-, h, -⟩; exact absurd h he0; exact h
       subst hfd
-      wp_auto
+      try wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ

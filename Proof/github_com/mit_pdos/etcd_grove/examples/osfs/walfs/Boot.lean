@@ -90,10 +90,13 @@ local macro "rmdir_loop" hc:term ", " hnd:term " => " post:tacticSeq : tactic =>
   iloeb as IH2 generalizing Hperm Hh
   imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   icases osCallPerm_child R d tmpB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsRmdir.impl
   wp_apply wp_osCallBeginS R _ 1 h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
   iclear Hls1
   icases (bHalf_eq (L := hG.goose_localGS) j γ ko _).1 $$ Hh with ⟨Hv, Hw⟩
+  -- PORT: which stub? (RmdirSN)
   wp_apply wp_osRmdirSN_none R d tmpB j bN (DFrac.own 1) (DFrac.own (1 : Qp).half) $hc t1 s1 1
     tmpB_ok bN_tmp $hnd CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hw Hk1
     as %e1 %he1 Hperm - Hw
@@ -101,21 +104,21 @@ local macro "rmdir_loop" hc:term ", " hnd:term " => " post:tacticSeq : tactic =>
   · iframe
   by_cases he14 : e1 = W64 4
   · rw [decide_eq_true he14]
-    wp_auto
+    try wp_auto
     iapply IH2 $$ Hperm Hh HΦ
   rw [decide_eq_false he14]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show e1 ≠ W64 0 from he1)]
-  wp_auto
+  try wp_auto
   unfold os.model.pathError
   by_cases h20 : e1 = W64 20
   · rw [decide_eq_true h20]
-    wp_auto
+    try wp_auto
     wp_apply wp_errno
     iapply HΦ
     ($post)
   · rw [decide_eq_false h20]
-    wp_auto
+    try wp_auto
     wp_apply wp_errno
     iapply HΦ
     ($post)))
@@ -144,6 +147,7 @@ theorem wp_removeTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
   iloeb as IH generalizing Hperm HSt
   imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   icases osCallPerm_child R d tmpB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ 1 h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -154,13 +158,13 @@ theorem wp_removeTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
     icases Hres with (⟨%he, Hh⟩ | ⟨%h', Hh, %hh'⟩)
     · by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm [Hh] HΦ
         ileft; iframe Hh; ipureintro; exact ⟨i, hi⟩
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he)]
-      wp_auto
+      try wp_auto
       rmdir_loop h, (fun J hJ => by rw [hi] at hJ; cases hJ) =>
         iframe Hperm
         iexists h
@@ -168,27 +172,28 @@ theorem wp_removeTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
         ipureintro; exact ⟨rfl, fun h => by cases h⟩
     · by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm [Hh] HΦ
         iright; iexists h'; iframe Hh; ipureintro; exact hh'
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe Hperm
         iexists h'
         iframe Hh
         ipureintro; exact ⟨hh'.2, fun _ => hh'.1⟩
       rw [decide_eq_false he0]
-      wp_auto
+      try wp_auto
       rmdir_loop h', (fun J hJ => by rw [hh'.1] at hJ; cases hJ) =>
         iframe Hperm
         iexists h'
         iframe Hh
         ipureintro; exact ⟨hh'.2, fun h => by cases h⟩
   · icases (bHalf_eq (L := hG.goose_localGS) j γ ko _).1 $$ Hh with ⟨Hv, Hw⟩
+    -- PORT: which stub? (UnlinkSN)
     wp_apply wp_osUnlinkSN_none R d tmpB j bN (DFrac.own 1) (DFrac.own (1 : Qp).half) h1 t s0 1
       tmpB_ok bN_tmp (fun i hi => by rw [hn1.1] at hi; cases hi) CoPset.subseteq_top
       CoPset.subseteq_top $$ Hos Hsi Hp Hw Hk as %e %he Hperm - Hw
@@ -196,13 +201,13 @@ theorem wp_removeTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
     · iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       iapply IH $$ Hperm [Hh] HΦ
       iright; iexists h1; iframe Hh; ipureintro; exact hn1
     rw [decide_eq_false he4]
-    wp_auto
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
-    wp_auto
+    try wp_auto
     rmdir_loop h1, (fun J hJ => by rw [hn1.1] at hJ; cases hJ) =>
       iframe Hperm
       iexists h1
@@ -239,10 +244,10 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
   iloeb as IH generalizing %o Hperm Hh HΦ
   imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   icases osCallPerm_child R d tmpB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ 1 h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq]
   (try wp_auto)
   cases o with
   | none =>
@@ -255,10 +260,10 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
       obtain ⟨rfl, hfd0⟩ := he
       rw [create_openFd]
       rw [decide_eq_true (show (0 : w64) = W64 0 from rfl)]
-      wp_auto
+      try wp_auto
       iStructNamed inner
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       ipersist name
       ipersist f
       imodintro
@@ -276,18 +281,19 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
     all_goals
       obtain ⟨he0, rfl⟩ := he
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
     · -- no effect
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ %none Hperm Hh HΦ
       · rw [decide_eq_false he4]
-        wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        try wp_auto
+        wp_apply os.wp_modelErrno
+        try wp_auto
+        wp_apply os.wp_modelPathError
         iapply HΦ
         iframe Hperm
         iright
@@ -297,16 +303,17 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
     · -- created, the open failed
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ %(some i) Hperm [Hh Hm] HΦ
         try dsimp only
         iexists h'; iframe Hh Hm; ipureintro; exact hh'
       · rw [decide_eq_false he4]
-        wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        try wp_auto
+        wp_apply os.wp_modelErrno
+        try wp_auto
+        wp_apply os.wp_modelPathError
         iapply HΦ
         iframe Hperm
         iright
@@ -317,6 +324,7 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
     unfold crState
     icases Hh with ⟨%h', Hh, %hh', Hm⟩
     icases (bHalf_eq (L := hG.goose_localGS) j γ ko _).1 $$ Hh with ⟨Hv, Hw⟩
+    -- PORT: which stub? (OpenFileS)
     wp_apply wp_osOpenFileS R d tmpB j i bN (DFrac.own 1) (DFrac.own (1 : Qp).half) h' t s0 1
       (W64 66 ||| W64 0x80000) hfl htr tmpB_ok bN_tmp hh'.1 CoPset.subseteq_top
       CoPset.subseteq_top $$ Hos Hsi Hp Hw Hk as %fd %e %hres Hperm - Hw Hfd
@@ -331,10 +339,10 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
         by split
            · rw [create_openFd]
            · exact absurd rfl ‹_›) $$ Hfd
-      wp_auto
+      try wp_auto
       iStructNamed inner
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       ipersist name
       ipersist f
       imodintro
@@ -351,19 +359,20 @@ theorem wp_openTmp (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (γ
       isplitl [] <;> iassumption
     · rw [decide_eq_false he0]
       iclear Hfd
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ %(some i) Hperm [Hh Hm] HΦ
         try dsimp only
         iexists h'; iframe Hh Hm; ipureintro; exact hh'
       · rw [decide_eq_false he4]
-        wp_auto
-        unfold os.model.pathError
-        wp_apply wp_errno
+        try wp_auto
+        wp_apply os.wp_modelErrno
+        try wp_auto
+        wp_apply os.wp_modelPathError
         iapply HΦ
         iframe Hperm
         iright
@@ -375,11 +384,11 @@ set_option hygiene false in
 /-- `os.Rename`'s error after a failed attempt `e` (`he : e ≠ 0`): `post` after `iapply HΦ`. -/
 local macro "ren_err" " => " post:tacticSeq : tactic => `(tactic| (
   rw [decide_eq_false (show ¬ e = W64 0 from he)]
-  wp_auto
+  try wp_auto
   wp_apply wp_errno
   unfold os.model.linkError
   rw [show os.model.LinkError = os.LinkError.ty by unfold os.LinkError.ty; rfl]
-  wp_auto
+  try wp_auto
   iapply HΦ
   ($post)))
 
@@ -397,10 +406,13 @@ theorem wp_renameSeg (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
   imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   -- `lstat(seg)`: not a directory
   icases osCallPerm_child R d segB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsLstatDir.impl
   wp_apply wp_osCallBeginS R _ 1 h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk Hls
   iclear Hls
   icases (bHalf_eq (L := hG.goose_localGS) j γ (some i) h).1 $$ Hh with ⟨Hv, Hw⟩
+  -- PORT: which stub? (LstatDirS)
   wp_apply wp_osLstatDirS_mem R d segB j bN (DFrac.own 1) (DFrac.own (1 : Qp).half) h t s0 1
     segB_ok bN_seg CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hw Hk
     as %isDir %e0 %hd Hperm - Hw
@@ -408,7 +420,7 @@ theorem wp_renameSeg (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
     obtain ⟨⟨J', hJ'⟩, -⟩ := hd h1
     rw [hsn] at hJ'; cases hJ'
   rw [decide_eq_false hd1]
-  wp_auto
+  try wp_auto
   ihave Hh := (bHalf_eq (L := hG.goose_localGS) j γ (some i) h).2 $$ [Hv Hw]
   · iframe
   -- the rename loop: before the rename, or after it
@@ -419,6 +431,7 @@ theorem wp_renameSeg (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
   iloeb as IH generalizing Hperm HSt
   imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   icases osCallPerm_child R d tmpB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ 1 h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
   iclear Hls1
@@ -428,24 +441,24 @@ theorem wp_renameSeg (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
     icases Hr with (⟨%he, Hh⟩ | ⟨%h', Hh, %hh'⟩)
     · by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm [Hh] HΦ
         ileft; iexact Hh
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       ren_err =>
         iframe Hperm
         iexists h; iframe Hh; ipureintro; intro hc; cases hc
     · by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm [Hh] HΦ
         iright; iexists h'; iframe Hh; ipureintro; exact hh'
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe Hperm
         iexists h'; iframe Hh; ipureintro; exact fun _ => hh'.2
@@ -456,6 +469,7 @@ theorem wp_renameSeg (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
   · icases (bHalf_eq (L := hG.goose_localGS) j γ (some i) h').1 $$ Hh with ⟨Hv, Hw⟩
     imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp'
     icases osPathS_sameRoot R d tmpB segB _ j $$ Hp' with ⟨Hp', %hsr⟩
+    -- PORT: which stub? (RenameAbsentS)
     wp_apply wp_osRenameAbsentS R d tmpB d segB j j bN (DFrac.own 1) (DFrac.own 1)
       (DFrac.own (1 : Qp).half) h' t1 s1 1 tmpB_ok segB_ok bN_tmp hh'.1 hsr CoPset.subseteq_top
       CoPset.subseteq_top $$ Hos Hsi Hp Hp' Hw Hk1 as %e %he Hperm - - Hw
@@ -463,11 +477,11 @@ theorem wp_renameSeg (R : Roots) (d : GoString) (j : Ino) (hrj : (d, j) ∈ R) (
     · iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       iapply IH $$ Hperm [Hh] HΦ
       iright; iexists h'; iframe Hh; ipureintro; exact hh'
     rw [decide_eq_false he4]
-    wp_auto
+    try wp_auto
     ren_err =>
       iframe Hperm
       iexists h'; iframe Hh; ipureintro; exact fun _ => hh'.2
@@ -498,7 +512,7 @@ theorem wp_commit (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
       (App (Val (@! github_com.mit_pdos.etcd_grove.examples.osfs.walfs.commit)) (Val #d))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hos, #Hsi, #Hinv, Hperm, Hh⟩
-  wp_auto
+  try wp_auto
   rw [show d ++ go!"/seg.tmp" = child d tmpB from rfl, show (W64 2 ||| W64 64) = W64 66 from by decide]
   wp_apply wp_openTmp R d j hrj γ ko h hn (W32 438) $$ [Hperm Hh] as %f %err ⟨Hperm, Hr⟩
   · iframe; iframe #
@@ -624,7 +638,7 @@ theorem wp_Boot (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
     {{ RET #(); True }} := by
   wp_start as ⟨#Hos, #Hsi, #Hinv, Hperm, Hh, Hs⟩
   imod boot_facts R j γ ko0 h0 $$ Hinv Hsi Hh with ⟨Hh, %hnow⟩
-  wp_auto
+  try wp_auto
   imod osPathS_root R d j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   icases (bHalf_eq (L := hG.goose_localGS) j γ ko0 h0).1 $$ Hh with ⟨Hv, Hw⟩
   wp_apply DSBase.wp_readNamesS d R j (DFrac.own 1) 1 bN (DFrac.own (1 : Qp).half) h0
@@ -670,7 +684,7 @@ theorem wp_Boot (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
     by_cases hbs : b = segB
     · subst hbs
       rw [decide_eq_true (show segB = go!"seg" from rfl)]
-      wp_auto
+      try wp_auto
       wp_for_post
       iframe
       iexists i + W64 1, segB, true, h
@@ -685,11 +699,11 @@ theorem wp_Boot (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
         simp only [List.mem_append, List.mem_singleton, tmp_ne_seg, or_false] at h
         exact hsame h
     rw [decide_eq_false (show ¬ b = go!"seg" from hbs)]
-    wp_auto
+    try wp_auto
     by_cases hbt : b = tmpB
     · subst hbt
       rw [decide_eq_true (show tmpB = go!"seg.tmp" from rfl)]
-      wp_auto
+      try wp_auto
       rw [show d ++ go!"/seg.tmp" = child d tmpB from rfl]
       wp_apply wp_removeTmp R d j hrj γ ko0 h $$ [Hperm Hh] as %err ⟨Hperm, %h', Hh, %hh'⟩
       · iframe; iframe #
@@ -710,7 +724,7 @@ theorem wp_Boot (wp_SyncDirS : os.File.Sync.specDirS (GF := GF) (hG := hG))
       · rw [htake, hhv]; simp [Ne.symm tmp_ne_seg]
       · rw [htake]; simp
     rw [decide_eq_false (show ¬ b = go!"seg.tmp" from hbt)]
-    wp_auto
+    try wp_auto
     wp_for_post
     iframe
     iexists i + W64 1, b, hv, h

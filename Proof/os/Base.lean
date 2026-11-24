@@ -108,6 +108,8 @@ theorem wp_wrapErrno (op : GoString) (inner : Loc) (name : GoString) (e : w64)
     -- modelPathError(op, name, err)
     wp_func_call; wp_call
     try wp_auto
+    wp_alloc pe as Hpe
+    try wp_auto
     iapply HΦ
 
 end def_

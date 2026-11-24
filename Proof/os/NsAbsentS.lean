@@ -43,6 +43,7 @@ theorem os.OpenFile.wp_absentS (d b : GoString) (flag : w64) (perm : w32) (R : R
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   iloeb as IH generalizing Hperm Hp Hn HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -51,17 +52,17 @@ theorem os.OpenFile.wp_absentS (d b : GoString) (flag : w64) (perm : w32) (R : R
   wp_apply +noauto wp_osOpenAbsentS R d b j N dq dqn h t s0 qc fl hfl hcr htr hb hN hi
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk
     as %e %he0 Hperm Hp Hn
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show e ≠ W64 0 from he0)]
-  wp_auto
+  try wp_auto
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
+    try wp_auto
     try rw [os.file_ty_eq]
     try rw [os.File_ty_eq]
     iapply IH $$ Hperm Hp Hn HΦ
   rw [decide_eq_false (show e ≠ W64 4 from he4)]
-  wp_auto
+  try wp_auto
   wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
   iapply HΦ
   iframe
@@ -77,7 +78,7 @@ theorem os.Open.wp_absentS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet) 
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
         osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil ∧ f = null⌝ ∗ fmtErrorOkOrNil err }} := by
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
-  wp_auto
+  try wp_auto
   have e : W64 0 ||| W64 0x80000 = flRO := by decide
   wp_apply os.OpenFile.wp_absentS d b (W64 0) (W32 0) R j N dq dqn h qc (by rw [e]; exact flRO_ok)
     (by rw [e]; decide) (by rw [e]; decide) hb hN hi $$ [Hinv Hsi Hp Hn Hperm] as %f %err Hr

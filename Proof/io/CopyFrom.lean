@@ -81,39 +81,36 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
   icases Hf with ⟨%ins, #Hfp, Hsfd, #Hsn⟩
   ihave %hbfn := typedPointsto_not_null bf _ _ $$ Hbfp
   ihave %hfn := typedPointsto_not_null f _ _ $$ Hfp
-  wp_auto
+  try wp_auto
   wp_method_call
   wp_call
-  wp_auto
+  try wp_auto
   rw [decide_eq_false hbfn]
-  wp_auto
+  try wp_auto
   wp_method_call
   wp_call
-  wp_auto
-  rw [os.File_ty_eq]
+  try wp_auto
   wp_method_call
   wp_call
-  wp_auto
+  try wp_auto
   have hfwt : go.GoType.Named go!"os.fileWithoutWriteTo" [] = os.fileWithoutWriteTo.ty := by
     unfold os.fileWithoutWriteTo.ty; rfl
   rw [show (go!"os.tryLimitedReader" : GoString) = os.tryLimitedReader from rfl, os.File_ty_eq, hfwt]
   wp_func_call
   wp_call
-  wp_auto
+  try wp_auto
   wp_method_call
   wp_call
-  wp_auto
+  try wp_auto
   rw [decide_eq_false hfn]
-  wp_auto
+  try wp_auto
   ihave HG := io.cpS_cpG bf f ind ins dd.ino o bs j $$ [HS]
   · iframe; iframe #
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hbf2 := Hbfp
   iStructNamed Hbf2
   ihave #Hf2 := Hfp
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   wp_apply (os.wp_pollCFR ind ins fdd fds (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) dd ds m
     qm qb bs o j hfdd hfds hwr hrd hbs hm) $$ [Hdfd Hsfd Hfdd Hfds Hm Hbs HG]
     as %wr %h %e ⟨Hdfd, Hsfd, Hfdd, Hfds, Hm, Hbs, %j', HG, %hpost⟩
@@ -122,22 +119,22 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
   · iframe; iframe #
   cases h
   · -- not handled: `spliceToFile`, then `genericReadFrom`
-    wp_auto
+    try wp_auto
     wp_method_call
     wp_call
-    wp_auto
+    try wp_auto
     rw [show (go!"os.tryLimitedReader" : GoString) = os.tryLimitedReader from rfl]
     wp_func_call
     wp_call
-    wp_auto
+    try wp_auto
     rw [show (go!"os.getPollFDAndNetwork" : GoString) = os.getPollFDAndNetwork from rfl]
     wp_func_call
     wp_call
-    wp_auto
+    try wp_auto
     have hsc : go.typeSetContains os.fileWithoutWriteTo.ty _root_.Perennial.syscall.Conn.ty = true := by
       go_type_set
     simp only [hsc, ↓reduceIte]
-    wp_auto
+    try wp_auto
     wp_method_call
     wp_call
     try wp_auto
@@ -148,7 +145,7 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
     wp_call
     try wp_auto
     rw [decide_eq_false hfn]
-    wp_auto
+    try wp_auto
     wp_func_call
     wp_call
     try wp_auto
@@ -160,7 +157,7 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
         false := by
       go_type_set
     simp only [hpfd]
-    wp_auto
+    try wp_auto
     wp_func_call
     wp_call
     try wp_auto
@@ -173,14 +170,14 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
     iapply HΦ
     iframe
   · -- handled: `wrapErr`
-    wp_auto
+    try wp_auto
     wp_method_call
     wp_call
     try wp_auto
     obtain ⟨hend, he | ⟨l, rfl⟩⟩ := hpost
     · -- `nil`: the copy reached the source's end
       subst he
-      wp_auto
+      try wp_auto
       iapply HΦ
       iunfold os.ownFile
       iframe; iframe #
@@ -197,9 +194,9 @@ theorem os.wp_ReadFrom_cp (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG 
       ihave ⟨%ecl, -, #Hecl⟩ := os.errClosed_of_pkgInit $$ Hos
       ihave #Hcwe := os.checkWrapErr_of_pkgInit $$ Hos
       simp only [interface.mkOk]
-      wp_auto
+      try wp_auto
       wp_alloc pe as Hpe
-      wp_auto
+      try wp_auto
       iapply HΦ
       iunfold os.ownFile
       iframe; iframe #

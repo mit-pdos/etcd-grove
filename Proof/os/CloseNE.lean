@@ -34,17 +34,19 @@ theorem os.File.Close.wp_dirSNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : �
     {{ RET #GoInterface.nil; emp }} := by
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
   rw [decide_eq_false hnn]
-  wp_auto
+  try wp_auto
   ihave %hfd0 := osDirFdS_nonneg _ _ _ $$ Hosfd
   rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKindDirS fd j ph CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  try wp_auto
+  wp_stub os.fsDirClose.impl
   wp_apply wp_osDirCloseSNE hS fd j ph CoPset.subseteq_top $$ Hinv Hosfd
   iapply HΦ
   iempintro

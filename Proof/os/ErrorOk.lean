@@ -86,6 +86,18 @@ theorem wp_modelErrno (e : w64) (Φ : val → IProp GF) :
     try wp_auto
     unfold errnoErr; rw [if_neg he]; iexact HΦ
 
+/-- `modelPathError(op, path, err)`: a fresh `*PathError` as an `error`. -/
+theorem wp_modelPathError (op path : GoString) (err : GoInterface) (Φ : val → IProp GF) :
+    (∀ pe : Loc, Φ #(interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)) ⊢
+      WP (App (App (App (Val (@! os.modelPathError)) (Val #op)) (Val #path))
+        (Val #err)) {{ Φ }} := by
+  iintro HΦ
+  wp_func_call; wp_call
+  try wp_auto
+  wp_alloc pe as Hpe
+  try wp_auto
+  iapply HΦ
+
 /-- `modelPathError(op, path, Errno(e))` for a nonzero errno `e`: a fresh `*PathError` as an
 `error`, one `fmt` formats (`fmtErrorOk`). -/
 theorem wp_modelPathError_ok (op path : GoString) (e : w64) (he : e ≠ 0) (Φ : val → IProp GF) :

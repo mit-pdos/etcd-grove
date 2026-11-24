@@ -159,17 +159,18 @@ theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (
   iclear Hls
   wp_apply +noauto wp_osMkdirS_some R d b j N dq dqn h t s0 qc hb hN hi
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
-  wp_auto
+  try wp_auto
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
+    try wp_auto
     iapply IH $$ Hperm Hp Hn HΦ
   rw [decide_eq_false (show e ≠ W64 4 from he4)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show e ≠ W64 0 from he)]
-  wp_auto
-  unfold os.model.pathError
-  wp_apply wp_errno
+  try wp_auto
+  wp_apply os.wp_modelErrno
+  try wp_auto
+  wp_apply os.wp_modelPathError
   iapply HΦ
   iframe
   ipureintro; intro hc; cases hc
@@ -214,11 +215,11 @@ theorem os.model.wp_mkdirAllAbove (p : GoString) :
   wp_apply wp_ArbitraryInt as %x _
   by_cases hx : x = W64 0
   · subst hx
-    wp_auto
+    try wp_auto
     iapply HΦ $$ %_
     itrivial
   rw [decide_eq_false hx]
-  wp_auto
+  try wp_auto
   wp_apply os.model.wp_mkdirAllParent
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
   try wp_auto
@@ -226,11 +227,11 @@ theorem os.model.wp_mkdirAllAbove (p : GoString) :
   · wp_apply IH as %e _
     cases e with
     | ok i =>
-      wp_auto
+      try wp_auto
       iapply HΦ $$ %_
       itrivial
     | nil =>
-      wp_auto
+      try wp_auto
       above_tail
   · try wp_auto
     above_tail
@@ -268,11 +269,13 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
     simp only [List.reverse_nil, show joinPath r [] = r by simp [joinPath]]
     wp_start as ⟨#Hos, #Hsi, Hs, Hperm⟩
     try wp_auto
+    try wp_auto
+    wp_stub os.fsPathKind.impl
     wp_apply wp_osPathKindS R r ⟨r, j0, [], hm, by simp, by simp [joinPath]⟩
       CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi as %k %hk
     rcases hk with ⟨hk, -⟩ | ⟨-, rfl⟩
     · exact absurd hk (os.not_treeName_root hR hm)
-    wp_auto
+    try wp_auto
     wp_apply os.model.wp_mkdirAllAbove as %e _
     iapply HΦ
     iframe
@@ -284,10 +287,12 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
     rw [show (go!"os.MkdirAll" : GoString) = os.MkdirAll from rfl]
     wp_start as ⟨#Hos, #Hsi, Hs, Hperm⟩
     try wp_auto
+    try wp_auto
+    wp_stub os.fsPathKind.impl
     wp_apply wp_osPathKindS R _ ⟨r, j0, _, hm, hcs, rfl⟩
       CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi as %k %hk
     obtain ⟨-, rfl⟩ := hk.resolve_right (fun h => h.1 (os.treeName_snoc hm hcs))
-    wp_auto
+    try wp_auto
     rw [show (go!"os.Stat" : GoString) = os.Stat from rfl]
     ihave Hp := (os.osPathS_joinPath R r j0 _ dq J hR hm hcs).2 $$ Hs
     ihave Hperm := osCallPerm_congr _ (callKey_joinPath hR hm (rcs.reverse ++ [c])).symm $$ Hperm
@@ -296,7 +301,7 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
     ihave Hperm := osCallPerm_congr _ (callKey_joinPath hR hm (rcs.reverse ++ [c])) $$ Hperm
     icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr)
     · obtain ⟨rfl, rfl⟩ := hfe
-      wp_auto
+      try wp_auto
       fileStat_isDir Hfs
       ihave Hs := (os.osPathS_joinPath R r j0 _ dq J hR hm hcs).1 $$ Hp
       wp_if_destruct
@@ -307,7 +312,7 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
     · cases err with
       | nil => exact absurd rfl herr
       | ok ie =>
-      wp_auto
+      try wp_auto
       have hcs1 : ∀ x ∈ rcs.reverse ++ [c], NameOk x := hcs
       have hc : NameOk c := hcs c (by simp)
       have hpar : os.parentModel (joinPath r (rcs.reverse ++ [c])) = joinPath r rcs.reverse := by
@@ -324,19 +329,19 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
       wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %hlen
       rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 ((joinPath r rcs.reverse).length : Int))
         by word)]
-      wp_auto
+      try wp_auto
       ihave Hs := (os.osPathS_joinPath R r j0 _ dq J hR hm hcs).1 $$ Hp
       icases os.osSpine_unsnoc _ c j0 dq J $$ Hs with ⟨%j, %h, Hs, Hn, %hJ⟩
       wp_apply (ih' j) $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
       · iframe; iframe #
       cases e with
       | ok ie =>
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe
         iapply osSpine_snoc _ j0 dq j c h J hJ $$ Hs Hn
       | nil =>
-      wp_auto
+      try wp_auto
       have hPS := os.osPathS_joinPath (GF := GF) R r j0 (rcs.reverse ++ [c]) dq J hR hm hcs
       rw [joinPath_snoc] at hPS ⊢
       rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
@@ -348,7 +353,7 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
       cases e with
       | nil => exact absurd rfl he
       | ok ie =>
-      wp_auto
+      try wp_auto
       rw [show (go!"os.Lstat" : GoString) = os.Lstat from rfl]
       ihave Hpc := osPathS_child R _ c dq j J h hc hJ $$ Hp Hn
       have hkc : callKey R (child (joinPath r rcs.reverse) c) = callKey R (joinPath r rcs.reverse) := by
@@ -360,7 +365,7 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
       ihave Hs := hPS.1 $$ Hpc
       icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr)
       · obtain ⟨rfl, rfl⟩ := hfe
-        wp_auto
+        try wp_auto
         fileStat_isDir Hfs
         wp_if_destruct
         · iapply HΦ; iframe
@@ -368,7 +373,7 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
       · cases err with
         | nil => exact absurd rfl herr
         | ok ie' =>
-        wp_auto
+        try wp_auto
         iapply HΦ; iframe
 
 end proof

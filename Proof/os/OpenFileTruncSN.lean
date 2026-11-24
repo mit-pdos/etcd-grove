@@ -39,6 +39,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -70,19 +71,19 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         ipureintro; exact ⟨⟨hn', hs⟩, hst⟩
       icases Hr with (%he | ⟨%he, Hfd⟩)
       · obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         by_cases he4 : e = W64 4
         · rw [decide_eq_true he4]
-          wp_auto
+          try wp_auto
           try rw [os.file_ty_eq]
           try rw [os.File_ty_eq]
           iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
           iright; iexists (x, s0, i); dsimp only [crTr]; iframe
           iapply trFile_new $$ Hm
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
+        try wp_auto
         wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
         iapply HΦ
         dsimp only [crTr]
@@ -94,10 +95,10 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         · ipureintro; exact ⟨(fun h => by cases h), rfl⟩
         iapply (EtcdGrove.fmtErrorOkOrNil_of _) $$ Hok
       · obtain ⟨rfl, hfd0⟩ := he
-        wp_auto
+        try wp_auto
         iStructNamed inner
         iapply wp_fupd
-        wp_auto
+        try wp_auto
         ipersist name
         ipersist f
         imodintro
@@ -127,7 +128,7 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         iintro Hau
         obtain ⟨-, rfl⟩ := he
         subst he4
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ Hperm Hp [Hau Hn] HΦ
@@ -138,11 +139,11 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
         · dsimp only [crOutN]; iexact Hr'
         iintro HQ
         obtain ⟨he0, rfl⟩ := he
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he0)]
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
+        try wp_auto
         wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
         iapply HΦ
         iframe
@@ -178,10 +179,10 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
            · exact absurd rfl ‹_›) $$ Hfd
       icases Htr with (⟨%he, -⟩ | ⟨%n, Hd⟩)
       · exact absurd rfl he
-      wp_auto
+      try wp_auto
       iStructNamed inner
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       ipersist name
       ipersist f
       imodintro
@@ -212,18 +213,18 @@ theorem os.OpenFile.wp_proofCreateTruncSncN : os.OpenFile.specCreateTruncSncN (G
           unfold trFile; iexists m, bs; iframe; isplitl [Hc]; · iexact Hc
           ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
         · iapply trFile_of_rsDone i m n False hmb.2.2.1 hmb.2.2.2.1 hmb.2.2.2.2.2.1 $$ Hd
-      wp_auto
+      try wp_auto
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         try rw [os.file_ty_eq]
         try rw [os.File_ty_eq]
         iapply IH $$ Hperm Hp [HQ Hout Hm] HΦ
         iright; iexists (x, sx, i); dsimp only [crTr]; iframe
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
-      wp_auto
+      try wp_auto
       wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
       iapply HΦ
       dsimp only [crTr]

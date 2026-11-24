@@ -58,24 +58,25 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
   unfold os.model.inner os.model.arbitraryMode
-  rw [os.file_ty_eq, os.File_ty_eq, os.fileStat_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
   iloeb as IH generalizing Hosfd Hm Hfd HΦ
+  try wp_auto
+  wp_stub os.fsFstat.impl
   wp_apply wp_osFstat fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %sz %e %hr Hosfd Hm
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
+    try wp_auto
     try rw [os.fileStat_ty_eq]
     iapply IH $$ Hosfd Hm Hfd HΦ
   · rw [decide_eq_false he4]
-    wp_auto
+    try wp_auto
     rcases hr with ⟨rfl, rfl⟩ | ⟨he0, rfl⟩
     · rw [show decide ((0 : w64) = W64 0) = true from decide_eq_true rfl]
       simp only [Bool.not_true]
       iapply wp_fupd
-      wp_auto
+      try wp_auto
       iStructNamed fs
       try wp_auto
       wp_apply os.model.wp_base as %nm _
@@ -107,7 +108,7 @@ private theorem os.File.Stat.wp_old : os.File.Stat.tripleOld (GF := GF) (hG := h
       iassumption
     · have he0' : ¬ e = W64 0 := he0
       rw [decide_eq_false he0']
-      wp_auto
+      try wp_auto
       wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
       ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hep
       ihave %Hne := os.errnoPathErr_ne perr e $$ Hep
@@ -128,10 +129,11 @@ private theorem os.File.Stat.wp_NE : os.File.Stat.tripleNE (GF := GF) (hG := hG)
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
   unfold os.model.inner os.model.arbitraryMode
-  rw [os.file_ty_eq, os.File_ty_eq, os.fileStat_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFstat.impl
   wp_apply wp_osFstatNE hS fd dq dqm d m CoPset.subseteq_top $$ Hinv Hosfd Hm as Hosfd Hm
   iapply wp_fupd
   iStructNamed fs

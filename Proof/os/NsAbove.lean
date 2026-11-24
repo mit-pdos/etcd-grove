@@ -61,12 +61,13 @@ variable in
 /-- `model.stat(op, p)` of a strict ancestor of a root: some answer, nothing changed. -/
 theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R p) :
     {{ osInv (GF := GF) ∗ osSharedInv R }}
-      (App (App (Val os.model.stat) (Val #op)) (Val #p))
+      (App (App (Val (@! os.modelStat)) (Val #op)) (Val #p))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); True }} := by
   wp_start as ⟨#Hos, #Hsi⟩
   try unfold os.model.stat
   unfold os.model.statAbove os.model.arbitraryMode
-  rw [os.fileStat_ty_eq]
+  try wp_auto
+  wp_stub os.fsPathKind.impl
   wp_apply wp_osPathKindAboveS R p hp CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi
   try wp_auto
   wp_apply wp_ArbitraryInt as %x _
@@ -123,22 +124,24 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
   wp_start as ⟨#Hos, #Hsi, #Hab⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing HΦ
+  try wp_auto
+  wp_stub os.fsOpen.impl
   wp_apply wp_osCallBeginAboveS R _ hp 0 CoPset.subseteq_top CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hab Hlb as %t %s0 %qc %hs Hk Hls
   iclear Hls
-  rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
   (try wp_auto)
+  -- PORT: which stub? (OpenAboveS)
   wp_apply wp_osOpenAboveS R p hp t s0 qc CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hk as %fd %e %hres - Hfd
   by_cases he0 : e = W64 0
   · subst he0
     ihave Hfd := Hfd $$ %rfl
     rw [decide_eq_true rfl]
-    wp_auto
+    try wp_auto
     iStructNamed inner
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
     imodintro
@@ -155,17 +158,18 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
     isplitl [] <;> iassumption
   · iclear Hfd
     rw [decide_eq_false he0]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
       iapply IH $$ HΦ
     · rw [decide_eq_false he4]
-      wp_auto
-      unfold os.model.pathError
-      wp_apply wp_errno
+      try wp_auto
+      wp_apply os.wp_modelErrno
+      try wp_auto
+      wp_apply os.wp_modelPathError
       iapply HΦ
       iframe
       iright
@@ -180,7 +184,7 @@ theorem os.Open.wp_aboveS (p : GoString) (R : Roots) (hp : RootsAbove R p) :
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
   wp_start as ⟨#Hinv, #Hsi, #Hab⟩
-  wp_auto
+  try wp_auto
   wp_apply os.OpenFile.wp_aboveS p (W32 0) R hp $$ [] as %f %err Hr
   · isplitl [] <;> try isplitl []
     all_goals iassumption
@@ -194,31 +198,33 @@ theorem os.File.Sync.wp_outS (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac
     {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osOutFd fd }} := by
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKindOut fd CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   try wp_auto
   iloeb as IH generalizing Hosfd HΦ
+  try wp_auto
+  wp_stub os.fsOutSync.impl
   wp_apply wp_osOutSync fd CoPset.subseteq_top $$ Hinv Hosfd as %e Hosfd
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
+    try wp_auto
     iapply IH $$ Hosfd HΦ Hfd
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
   by_cases he : e = W64 0
   · subst he
     rw [show decide ((W64 0 : w64) = W64 0) = true from decide_eq_true rfl]
     simp only [Bool.not_true]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iframe
     isplitl [] <;> iassumption
   · simp only [decide_eq_false he, Bool.not_false]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
     iframe
@@ -231,26 +237,28 @@ theorem os.File.Close.wp_outS (f : Loc) (fd : w64) (name : GoString) :
     {{ (err : GoInterface), RET #err; emp }} := by
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
   rw [decide_eq_false hnn]
-  wp_auto
+  try wp_auto
   ihave %hfd0 := osOutFd_nonneg _ $$ Hosfd
   rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
-  wp_auto
+  try wp_auto
+  try wp_auto
+  wp_stub os.fsFdKind.impl
   wp_apply wp_osFdKindOut fd CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   try wp_auto
+  try wp_auto
+  wp_stub os.fsOutClose.impl
   wp_apply wp_osOutClose fd CoPset.subseteq_top $$ Hinv Hosfd as %e
   by_cases he : e = W64 0
   · rw [decide_eq_true he]
-    wp_auto
+    try wp_auto
     iapply HΦ
     iempintro
   · rw [decide_eq_false he]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
     iapply HΦ
     iempintro

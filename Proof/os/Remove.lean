@@ -37,29 +37,32 @@ the goal after the error is built (`Φ` of it, with `Hp`, `Hperm`, `Hn` back). -
 local macro "rmdir_loop" hnd:term " => " post:tacticSeq : tactic => `(tactic| (
   iloeb as IH2 generalizing Hperm Hp Hn
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsRmdir.impl
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
   iclear Hls1
+  -- PORT: which stub? (RmdirS)
   wp_apply wp_osRmdirS_none R d b j dq (DFrac.own q) _ t1 s1 qc hb $hnd CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hp Hn Hk1 as %e1 %he1 Hperm Hp Hn
   by_cases he14 : e1 = W64 4
   · rw [decide_eq_true he14]
-    wp_auto
+    try wp_auto
     iapply IH2 $$ Hperm Hp Hn HΦ
     all_goals iframe
   rw [decide_eq_false he14]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show e1 ≠ W64 0 from he1)]
-  wp_auto
+  try wp_auto
   unfold os.model.pathError
   by_cases h20 : e1 = W64 20
   · rw [decide_eq_true h20]
-    wp_auto
+    try wp_auto
     wp_apply wp_errno
     iapply HΦ
     ($post)
   · rw [decide_eq_false h20]
-    wp_auto
+    try wp_auto
     wp_apply wp_errno
     iapply HΦ
     ($post)))
@@ -101,7 +104,7 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
         iframe Hr'
         iintro Hau
         subst he4
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm Hp [Hau Hn] HΦ
         ileft; iframe
       · iright
@@ -109,11 +112,11 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
         isplitl [Hr']
         · dsimp only [rmFileOut, logOut, claimOut]; iframe
         iintro HQ
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 4 from he4)]
-        wp_auto
+        try wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he)]
-        wp_auto
+        try wp_auto
         rmdir_loop (fun J hJ => by rw [hi] at hJ; cases hJ) =>
           iframe
           dsimp only [rmFileOut, logOut, claimOut]
@@ -129,25 +132,25 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
       · dsimp only [rmFileOut, logOut, claimOut, osLogged, rmFileEnt]; iframe; iframe #
         ipureintro; exact ⟨hs, hst⟩
       iintro HQ
-      wp_auto
+      try wp_auto
       by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm Hp [HQ Hn] HΦ
         iright; iexists (x, s0)
         dsimp only [rmFileOut, logOut, claimOut, osLogged, rmFileEnt]; iframe; iframe #
         ipureintro; exact ⟨hs, hst⟩
       rw [decide_eq_false (show e ≠ W64 4 from he4)]
-      wp_auto
+      try wp_auto
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe
         dsimp only [rmFileOut, logOut, claimOut, osLogged, rmFileEnt]; iframe; iframe #
         ipureintro; exact ⟨fun _ => rfl, hs, hst⟩
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
-      wp_auto
+      try wp_auto
       rmdir_loop (fun J hJ => by simp [habs] at hJ) =>
         iframe
         dsimp only [rmFileOut, logOut, claimOut, osLogged, rmFileEnt]; iframe; iframe #
@@ -162,18 +165,18 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
       (h.log x (rmFileEnt j b i sx) (restrictN (.only [b]) (GMap.delete b h.cur))) t s0 qc hb
       (fun i' hJ => by simp [rmFileEnt, habs] at hJ) CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hp Hn Hk as %e %he Hperm Hp Hn
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       iapply IH $$ Hperm Hp [HQ Hn] HΦ
       iright; iexists (x, sx)
       dsimp only [rmFileOut, logOut, claimOut, osLogged]; iframe; iframe #
       ipureintro; exact ⟨hlo, hlo2⟩
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
-    wp_auto
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
-    wp_auto
+    try wp_auto
     rmdir_loop (fun J hJ => by simp [rmFileEnt, habs] at hJ) =>
       iframe
       dsimp only [rmFileOut, logOut, claimOut, osLogged]; iframe; iframe #

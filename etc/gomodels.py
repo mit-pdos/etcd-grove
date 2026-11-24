@@ -114,13 +114,20 @@ TESTS = [
     # (S5) os's and syscall's models over the Linux file extension's stubs (the stubs' Go bodies are
     # the real system calls)
     ("os", "Code", "project:bboltfs", ["os", "syscall"],
-     ["-run", "^Test(ReadAt|WriteAt|Seek|Truncate|MkdirAll|Remove|RemoveAll|Rename|Stat|Lstat|"
-      "Readdirnames|OpenFile|Close|Fd|ReadFrom|CopyFileRange)",
-      "-skip", "^(TestWriteAtInAppendMode|TestOpenFileKeepsPermissions|TestCloseWithBlockingReadByFd|TestRemoveAllSymlinkRemovalFailure|TestRemoveAllNoFcntl|TestRemoveAllLongPath|TestClosedPipeRaceWrite|TestClosedPipeRaceRead)$", "-timeout", "90s", "os"],
-     "os's tests of the modelled calls only; left out: what reaches gomodel.Stuck in the model "
-     "(O_APPEND, nonblocking and pipe files, deadlines, Readdirnames(n > 0), a closed File's methods; "
-     "gomodel.Stuck blocks forever in Go builds, so TestWriteAtInAppendMode is skipped) "
-     "and what is not modelled at all (Chmod, Chown, links, Root, processes, finalizers)"),
+     ["-run", "^Test(ReadAt|WriteAt|Seek|Truncate|MkdirAll|Remove|RemoveAll|Rename|Stat|Readdirnames)",
+      "-skip", "^(TestWriteAtInAppendMode|TestReaddirnamesOneAtATime|TestRemoveAllWithMoreErrorThanReqSize|"
+      "TestStatStdin|TestStatDirModeExec|TestSeekError|TestWriteAtConcurrent|TestRemoveAllLongPath|"
+      "TestRemoveAllSymlinkRemovalFailure|TestRemoveAllNoFcntl)$", "os"],
+     "os's tests of the modelled calls the plan lists (ReadAt, WriteAt, Seek, Truncate, MkdirAll, "
+     "Remove, RemoveAll, Rename, Stat, Readdirnames); left out: what reaches gomodel.Stuck, which blocks "
+     "forever in gc builds (O_APPEND: TestWriteAtInAppendMode; Readdirnames(n > 0): "
+     "TestReaddirnamesOneAtATime, TestRemoveAllWithMoreErrorThanReqSize); a choice whose gc answer is "
+     "not Linux's (mode bits, gomodel.ChooseUint64 = 0: TestStatStdin, TestStatDirModeExec); what the "
+     "file extension does not model, where the stubs' gc bodies differ from Go (pipes: TestSeekError; "
+     "symlinks: TestRemoveAllSymlinkRemovalFailure; paths over PATH_MAX, which RemoveAll's model names "
+     "whole where Go uses the *at calls: TestRemoveAllLongPath; a strace child process: "
+     "TestRemoveAllNoFcntl); concurrent Write calls, whose offset the model updates without Go's lock "
+     "(more outcomes than Go: TestWriteAtConcurrent; models/os/model.go, Write)"),
     ("syscall", "Code", "project:bboltfs", ["os", "syscall"],
      ["-run", "^TestLocks(OFDConflict|OFDRemoveThenClose|OFDSameDescription|Flock|FlockVsOFD)$",
       "github.com/mit-pdos/etcd-grove/examples/osfs/semantics"],

@@ -94,17 +94,15 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
     unfold os.ownFile
     wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
-    unfold os.model.inner
-    rw [os.file_ty_eq, os.File_ty_eq]
     ihave #Hf2 := Hf
     iStructNamed Hf2
     icases ownSlice_len sl dqs data $$ Hsl with %Hlen
     icases ownSlice_wf sl dqs data $$ Hsl with %Hwf
-    wp_auto
+    try wp_auto
     have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
       rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff
     rw [decide_eq_false h0]
-    wp_auto
+    try wp_auto
     have hl0 : sl.len ≠ W64 0 := by
       intro h; have h1 := Hlen.1; rw [h, show sint.nat (W64 0) = 0 from rfl] at h1; omega
     rw [decide_eq_false hl0]
@@ -146,7 +144,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     have hnnz : sint.Z nnv = nnv.toNat := by
       simp only [sint.Z]; rw [BitVec.toInt_eq_toNat_of_lt (by omega)]
     have hnnn : sint.nat nnv = nnv.toNat := by simp [sint.nat, hnnz]
-    wp_auto
+    try wp_auto
     have hsub : sint.Z (sl.len - nnv) = data.length - nnv.toNat := by
       have : sint.Z nnv ≤ sint.Z sl.len := by rw [hnnz, hslz]; omega
       have : 0 ≤ sint.Z nnv := by rw [hnnz]; omega
@@ -170,7 +168,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
       rw [hslz]; omega
     iintro %v ⟨%mx, %hmx⟩
     obtain ⟨rfl, hmxz⟩ := hmx
-    wp_auto
+    try wp_auto
     have hmxt := wl_toNat_of_sintZ mx A' hmxz
     have hmxn : sint.nat mx = A' := by simp [sint.nat, hmxz]
     have hsb : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z mx ∧ sint.Z mx ≤ sint.Z sl.cap := by
@@ -218,6 +216,8 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
         min (A' - nnv.toNat) (ys.length - nnv.toNat) := by
       simp only [List.length_take, List.length_drop]
     have hend : off.toNat + nnv.toNat + (A' - nnv.toNat) = off.toNat + A' := by omega
+    try wp_auto
+    wp_stub os.fsPWrite.impl
     wp_apply wp_osPWriteStart fd (off + nnv) ((data.drop nnv.toNat).take (A' - nnv.toNat)) dq d mj
       ((ys.drop nnv.toNat).take (A' - nnv.toNat))
       CoPset.subseteq_top hwr hoffv' (by rw [hoffv, hmsz]; exact hS) hdne
@@ -288,19 +288,19 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
       iapply IH $$ %(max j (nnv.toNat + k)) %A' %_ %nnv %_ %_ %hnn1 %hnl %hj' %hA'l %hAn1
         %hEj' %hjA' %hinv' %hys' %hcj' Hm Hbs Hc Hosfd Hsl Hfd HΦ
     · rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       have hWk : (W64 k).toNat = k := wl_W64_toNat k (by omega)
       have hnk : (nnv + W64 k).toNat = nnv.toNat + k := by
         rw [BitVec.toNat_add, hWk]; exact Nat.mod_eq_of_lt (by omega)
       have hlenN : (W64 data.length).toNat = data.length := wl_W64_toNat _ (by omega)
       by_cases hfull : nnv + W64 k = sl.len
       · rw [decide_eq_true hfull]
-        wp_auto
+        try wp_auto
         have hfk : nnv.toNat + k = data.length := by
           have := congrArg BitVec.toNat hfull; rw [hnk, hsln, hlenN] at this; exact this
         by_cases he0 : e = W64 0
         · rw [decide_eq_true he0]
-          wp_auto
+          try wp_auto
           ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
           iapply HΦ
           iframe Hokn
@@ -311,9 +311,9 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inl ⟨by omega, hsln, rfl⟩⟩
         · rw [decide_eq_false he0]
-          wp_auto
+          try wp_auto
           simp only [decide_eq_false he0, Bool.not_false]
-          wp_auto
+          try wp_auto
           wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
           ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
           iapply HΦ
@@ -325,7 +325,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
             exact ⟨hj', hA'l, fun h => absurd h (by omega), hEj', hjA', hys', hcj',
               .inr ⟨rfl, (by intro h; cases h), (hneW he0).imp_right (fun h => by rw [hoffv] at h; omega)⟩⟩
       · rw [decide_eq_false hfull]
-        wp_auto
+        try wp_auto
         by_cases he0 : e = W64 0
         · -- a short write, or a whole chunk: the next attempt from `nn + k`
           rw [decide_eq_true he0]
@@ -344,7 +344,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
           · iexact Hc
         · rw [decide_eq_false he0]
           simp only [Bool.not_false]
-          wp_auto
+          try wp_auto
           wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hok
           ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
           iapply HΦ

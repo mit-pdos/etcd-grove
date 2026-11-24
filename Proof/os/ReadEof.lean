@@ -70,23 +70,25 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
   obtain ⟨Nn, hNn⟩ : ∃ Nn, ($N).toNat = Nn := ⟨_, rfl⟩
   rw [hNn] at hNl
   ihave ⟨Hmid, Hback⟩ := os.osBytes_mid d.ino dqb bs o.toNat Nn $$ Hbs
+  try wp_auto
+  wp_stub os.fsPRead.impl
   wp_apply wp_osPRead fd o ($N) dq dqm dqb d m ((bs.drop o.toNat).take Nn)
     CoPset.subseteq_top hrd h0 (by rw [hNn]; simp only [List.length_take, List.length_drop]; omega)
     $$ Hinv Hosfd Hm Hmid as %r %e %hre Hosfd Hm Hmid
   ihave Hbs := Hback $$ Hmid
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]
-    wp_auto
+    try wp_auto
     rw [($hd:term)]
     iapply IH $$ Hosfd Hm Hbs Hsl Ho Hfd HΦ
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
   obtain ⟨k, hkl, rfl, hke0⟩ := hre
   simp only [List.length_take, List.length_drop] at hkl
   by_cases he0 : e = W64 0
   rotate_left
   · simp only [decide_eq_false he0, Bool.not_false]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
     ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0 $$ Hep
     ihave #Hep2 := Hep
@@ -114,7 +116,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
   subst he0
   rw [show decide ((W64 0) = W64 0) = true from decide_eq_true rfl]
   simp only [Bool.not_true]
-  wp_auto
+  try wp_auto
   have hrw : ((bs.drop o.toNat).take Nn).map Prod.fst =
       ((bs.map Prod.fst).drop o.toNat).take Nn := by
     rw [List.map_take, List.map_drop]
@@ -175,7 +177,7 @@ local macro "read_rest " N:term:max hd:term:max : tactic => `(tactic| (
     have := congrArg BitVec.toNat h
     simp only [BitVec.toNat_ofInt] at this; omega
   rw [decide_eq_false hk0']
-  wp_auto
+  try wp_auto
   iapply HΦ
   iframe Hosfd Hm Hbs
   isplitl [Hfd]
@@ -216,21 +218,19 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
   wp_start as ⟨#Hinv, #Heof, ⟨%inner, #Hf, Hfd, #Hn⟩, ⟨%inner', #Hf', Ho⟩, Hsl, Hosfd, Hm, Hbs⟩
   icombine Hf Hf' gives %hin'
   cases hin'
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl _ vs $$ Hsl with %Hlen
   icases ownSlice_wf sl _ vs $$ Hsl with %Hwf
   have hslz : sint.Z sl.len = vs.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2 ⊢; omega
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
-  wp_auto
+  try wp_auto
   by_cases hl0 : sl.len = W64 0
   · rw [decide_eq_true hl0]
-    wp_auto
+    try wp_auto
     have hv : vs = [] := by
       rw [hl0, show sint.Z (W64 0) = 0 from rfl] at hslz
       exact List.eq_nil_of_length_eq_zero (by omega)
@@ -248,29 +248,28 @@ theorem os.File.Read.wp_eof (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac)
     · rw [show o + W64 (0 : Nat) = o by simp]; iexists inner; iframe Ho; iassumption
     ileft; ipureintro; simp
   rw [decide_eq_false hl0]
-  wp_auto
+  try wp_auto
   have hsl : sl.len = W64 vs.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl]
+  try wp_auto
   try wp_auto
   have hsum : sint.Z (o + sl.len) = o.toInt + vs.length := by
     rw [hsl]; simp only [sint.Z]; word
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + sl.len) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   iloeb as IH generalizing Hosfd Hm Hbs Hsl Ho Hfd HΦ
   by_cases hmx : sint.Z (W64 1073741824) < sint.Z sl.len
   · rw [decide_eq_true hmx]
-    wp_auto
+    try wp_auto
     have hNl : (W64 1073741824).toNat = min vs.length 1073741824 := by
       rw [hslz, show sint.Z (W64 1073741824) = 1073741824 from rfl] at hmx
       rw [Nat.min_eq_right (by omega)]; rfl
     read_rest (W64 1073741824) (decide_eq_true hmx)
   · rw [decide_eq_false hmx]
-    wp_auto
+    try wp_auto
     have hNl : sl.len.toNat = min vs.length 1073741824 := by
       rw [hslz, show sint.Z (W64 1073741824) = 1073741824 from rfl] at hmx
       rw [Nat.min_eq_left (by omega), hsl]

@@ -36,11 +36,11 @@ set_option hygiene false in
 /-- `os.Rename`'s error after a failed attempt `e` (`he : e ≠ 0`): `post` after `iapply HΦ`. -/
 local macro "ren_err" " => " post:tacticSeq : tactic => `(tactic| (
   rw [decide_eq_false (show ¬ e = W64 0 from he)]
-  wp_auto
+  try wp_auto
   wp_apply wp_errno
   unfold os.model.linkError
   rw [show os.model.LinkError = os.LinkError.ty by unfold os.LinkError.ty; rfl]
-  wp_auto
+  try wp_auto
   iapply HΦ
   ($post)))
 
@@ -58,11 +58,14 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
   imod osNames_next R J sN _ hs CoPset.subseteq_top $$ Hsi HJ with ⟨HJ, #Hlb⟩
   -- `lstat(wal)`: not a directory
   icases osCallPerm_child R dir walB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  try wp_auto
+  wp_stub os.fsLstatDir.impl
   wp_apply wp_osCallBeginS R _ 1 hs.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs0 Hk Hls
   iclear Hls
   unfold dsHalf
   icases Hh with ⟨Hv, Hw, Hs⟩
+  -- PORT: which stub? (LstatDirS)
   wp_apply wp_osLstatDirS_mem R dir walB j wN (DFrac.own 1) (DFrac.own (1 : Qp).half) hw t s0 1
     walB_ok wN_wal CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hw Hk
     as %isDir %e0 %hd Hperm Hp Hw
@@ -70,7 +73,7 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
     obtain ⟨⟨J', hJ'⟩, -⟩ := hd h1
     rw [hA] at hJ'; cases hJ'
   rw [decide_eq_false hd1]
-  wp_auto
+  try wp_auto
   ihave Hh : dsHalf (GF := GF) j γ (some k) true hw none $$ [Hv Hw Hs]
   · unfold dsHalf; iframe
   iclear Hp
@@ -83,6 +86,7 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
   iloeb as IH generalizing Hperm HSt
   imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp
   icases osCallPerm_child R dir wtB _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ 1 hs.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
   iclear Hls1
@@ -93,23 +97,23 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
     icases Hr with (⟨%he, Hh, HJ⟩ | ⟨%hw', Hh, %hw2⟩)
     · by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm [Hh HJ] HΦ
         ileft; iframe
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       ren_err =>
         iexact Hperm
     · by_cases he4 : e = W64 4
       · rw [decide_eq_true he4]
-        wp_auto
+        try wp_auto
         iapply IH $$ Hperm [Hh] HΦ
         iright; iexists hw', some (J, hs); iframe Hh; ipureintro; exact hw2.2
       rw [decide_eq_false he4]
-      wp_auto
+      try wp_auto
       by_cases he0 : e = W64 0
       · rw [decide_eq_true he0]
-        wp_auto
+        try wp_auto
         iapply HΦ
         iexact Hperm
       have he : e ≠ W64 0 := he0
@@ -119,6 +123,7 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
     icases Hh with ⟨Hv, Hw, Hs⟩
     imod osPathS_root R dir j (DFrac.own 1) hrj CoPset.subseteq_top $$ Hsi with Hp'
     icases osPathS_sameRoot R dir wtB walB _ j $$ Hp' with ⟨Hp', %hsr⟩
+    -- PORT: which stub? (RenameAbsentS)
     wp_apply wp_osRenameAbsentS R dir wtB dir walB j j wN (DFrac.own 1) (DFrac.own 1)
       (DFrac.own (1 : Qp).half) hw' t1 s1 1 wtB_ok walB_ok wN_wt hwt hsr CoPset.subseteq_top
       CoPset.subseteq_top $$ Hos Hsi Hp Hp' Hw Hk1 as %e %he Hperm - - Hw
@@ -126,14 +131,14 @@ theorem wp_osRenameWal (R : Roots) (dir : GoString) (j J k : Ino) (hrj : (dir, j
     · unfold dsHalf; iframe
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       iapply IH $$ Hperm [Hh] HΦ
       iright; iexists hw', hsO
       isplitl [Hh]
       · first | iexact Hh | (unfold dsHalf at *; iexact Hh) | (unfold dsHalf; iexact Hh)
       ipureintro; exact hwt
     rw [decide_eq_false he4]
-    wp_auto
+    try wp_auto
     ren_err =>
       iexact Hperm
 

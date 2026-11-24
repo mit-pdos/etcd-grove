@@ -51,11 +51,11 @@ theorem os.wp_genArgs2 (f : val) (a b : w64) (Φ : val → IProp GF) :
 
 -- The `k = 0` exit of `os.wp_pollCFR` with an unhandled result `(false, nil)`.
 local macro "cfr_unhandled" hΦ:pmTerm : tactic => `(tactic| (
-  wp_auto
+  try wp_auto
   rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
   wp_func_call
   wp_call
-  wp_auto
+  try wp_auto
   iapply $hΦ
   iframe
   ipureintro
@@ -69,7 +69,7 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
         structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
         osFd fdd dqfd dd ∗ osFd fds dqfs ds ∗ osMeta ds.ino qm m ∗ osBytes ds.ino 0 qb bs ∗
         io.cpG ind ins dd.ino o bs j }}
-      (App (App (App (App (Val os.model.pollCopyFileRange) (Val #ind)) (Val #ins))
+      (App (App (App (App (Val (@! os.modelPollCopyFileRange)) (Val #ind)) (Val #ins))
         (Val #(null : Loc))) (Val #(W64 0x7fffffffffffffff)))
     {{ (wr : w64) (h : Bool) (err : GoInterface), RET (PairV (PairV #wr #h) #err);
         structFieldRef os.file go!"fd" ind ↦{dqd} fdd ∗ structFieldRef os.file go!"fd" ins ↦{dqs} fds ∗
@@ -92,17 +92,17 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
   have hrem : 2 ^ 63 - 1 ≤ sint.Z rem0 + j := by rw [hrem0]; have : sint.Z (W64 9223372036854775807) = 2 ^ 63 - 1 := rfl; omega
   clear hrem0 hwr0
   iloeb as IH generalizing %rem0 %wr0 %j %hrem HG HΦ
-  wp_auto
+  try wp_auto
   iunfold io.cpG at HG
   icases HG with ⟨%hj0, HG⟩
   ihave HG : io.cpG ind ins dd.ino o bs j $$ [HG]
   · iunfold io.cpG; iframe; ipureintro; exact hj0
   rw [decide_eq_false (show ¬ sint.Z rem0 ≤ sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sint.Z rem0 < sint.Z (W64 2147479552) by
     rw [show sint.Z (W64 2147479552) = 2147479552 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   iloeb as IH2 generalizing Hdfd Hsfd Hfdd Hfds Hm Hbs HG HΦ
   iunfold io.cpG at HG
   icases HG with ⟨%hj, Hdoff, Hsoff, Hdst⟩
@@ -141,26 +141,26 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
     wp_pure
     iapply IH2 $$ Hdfd Hsfd Hfdd Hfds Hm Hbs HG HΦ
   rw [decide_eq_false he4]
-  wp_auto
+  try wp_auto
   have hkZ : sint.Z (W64 (k : Int)) = k := (os.cfr_natZ k (by omega)).1
   by_cases hkp : 0 < k
   · rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 (k : Int)) by rw [hkZ, show sint.Z (W64 0) = 0 from rfl]; omega)]
-    wp_auto
+    try wp_auto
     have he0 := hk1 hkp
     subst he0
     rw [decide_eq_true (show sint.Z (W64 0) < sint.Z (W64 (k : Int)) by rw [hkZ, show sint.Z (W64 0) = 0 from rfl]; omega)]
-    wp_auto
+    try wp_auto
     unfold syscall.model.errno
-    wp_auto
+    try wp_auto
     rw [show (go!"internal/poll.handleCopyFileRangeErr" : GoString) =
       _root_.Perennial.internal.poll.handleCopyFileRangeErr from rfl]
     wp_func_call
     wp_call
-    wp_auto
+    try wp_auto
     have hkne : ¬ (W64 (k : Int)) = W64 0 := by
       intro h; have := congrArg BitVec.toNat h; simp at this; omega
     rw [decide_eq_false hkne]
-    wp_auto
+    try wp_auto
     rw [decide_eq_false hkne]
     have hremk : sint.Z (rem0 - W64 (k : Int)) = sint.Z rem0 - k := by
       have h1 : sint.Z rem0 < 2 ^ 63 := by simp only [sint.Z]; word
@@ -172,35 +172,35 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
   · have hk0 : k = 0 := by omega
     subst hk0
     rw [decide_eq_false (show ¬ sint.Z (W64 0) < sint.Z (W64 ((0 : Nat) : Int)) by decide)]
-    wp_auto
+    try wp_auto
     unfold syscall.model.errno
-    wp_auto
+    try wp_auto
     by_cases he0 : e = W64 0
     · subst he0
       rw [decide_eq_true (rfl : W64 0 = W64 0)]
-      wp_auto
+      try wp_auto
       rw [show (go!"internal/poll.handleCopyFileRangeErr" : GoString) =
         _root_.Perennial.internal.poll.handleCopyFileRangeErr from rfl]
       wp_func_call
       wp_call
-      wp_auto
+      try wp_auto
       by_cases hw : wr0 = W64 0
       · rw [decide_eq_true hw]
-        wp_auto
+        try wp_auto
         rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
         wp_func_call
         wp_call
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe
         ipureintro
         exact ⟨fun h => (by cases h), Or.inl rfl⟩
       · rw [decide_eq_false hw]
-        wp_auto
+        try wp_auto
         rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
         wp_func_call
         wp_call
-        wp_auto
+        try wp_auto
         iapply HΦ
         iframe
         ipureintro
@@ -208,51 +208,51 @@ theorem os.wp_pollCFR (ind ins : Loc) (fdd fds : w64) (dqd dqs dqfd dqfs : DFrac
         have := hk2 rfl rfl
         omega
     · rw [decide_eq_false he0, errno_ty_eq]
-      wp_auto
+      try wp_auto
       rw [show (go!"internal/poll.handleCopyFileRangeErr" : GoString) =
         _root_.Perennial.internal.poll.handleCopyFileRangeErr from rfl]
       wp_func_call
       wp_call
-      wp_auto
+      try wp_auto
       by_cases hX38 : e = W64 38
       · subst hX38
         cfr_unhandled HΦ
       rw [decide_eq_false hX38]
-      wp_auto
+      try wp_auto
       by_cases hX1 : e = W64 1
       · subst hX1
         cfr_unhandled HΦ
       rw [decide_eq_false hX1]
-      wp_auto
+      try wp_auto
       by_cases hX95 : e = W64 95
       · subst hX95
         cfr_unhandled HΦ
       rw [decide_eq_false hX95]
-      wp_auto
+      try wp_auto
       by_cases hX5 : e = W64 5
       · subst hX5
         cfr_unhandled HΦ
       rw [decide_eq_false hX5]
-      wp_auto
+      try wp_auto
       by_cases hX22 : e = W64 22
       · subst hX22
         cfr_unhandled HΦ
       rw [decide_eq_false hX22]
-      wp_auto
+      try wp_auto
       by_cases hX18 : e = W64 18
       · subst hX18
         cfr_unhandled HΦ
       rw [decide_eq_false hX18]
-      wp_auto
+      try wp_auto
       rw [show (go!"os.wrapSyscallError" : GoString) = _root_.Perennial.os.wrapSyscallError from rfl]
       wp_func_call
       wp_call
-      wp_auto
+      try wp_auto
       wp_func_call
       wp_call
-      wp_auto
+      try wp_auto
       wp_alloc l as Hl
-      wp_auto
+      try wp_auto
       iapply HΦ
       iframe
       ipureintro

@@ -218,17 +218,15 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
                 off.toNat + data.length ≤ max m.size maxBytes ∧ LoWr m' (off.toNat + data.length)⌝ }} := by
   unfold os.ownFile
   wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
   icases ownSlice_len sl dqs data $$ Hsl with %Hlen
   icases ownSlice_wf sl dqs data $$ Hsl with %Hwfs
-  wp_auto
+  try wp_auto
   have h0 : ¬ (sint.Z off < sint.Z (W64 0)) := by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hoff0
   rw [decide_eq_false h0]
-  wp_auto
+  try wp_auto
   have hl0 : sl.len ≠ W64 0 := by
     intro h; have h1 := Hlen.1; rw [h, show sint.nat (W64 0) = 0 from rfl] at h1; omega
   rw [decide_eq_false hl0]
@@ -274,11 +272,11 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
   have hnnz := tw_toInt nnv hnn63
   have hnnn := tw_nat nnv hnn63
   have hsub := tw_sub sl.len nnv data.length hslz (Nat.le_of_lt hnn) hL63
-  wp_auto
+  try wp_auto
   by_cases hA : 1073741824 < data.length - nnv.toNat
   rw [decide_eq_true (show sint.Z (W64 1073741824) < sint.Z (sl.len - nnv) by
     rw [hsub, show sint.Z (W64 1073741824) = 1073741824 from rfl]; exact (tw_dec _ _).2 hA)]
-  wp_auto
+  try wp_auto
   have hmx := tw_addMax nnv (by omega)
   obtain ⟨hs1, hs2, hs3, hs4⟩ := tw_sbBig nnv.toNat data.length _ hcap hA
   have hsb : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z (nnv + W64 1073741824) ∧
@@ -312,7 +310,7 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
   rotate_left
   rw [decide_eq_false (show ¬ sint.Z (W64 1073741824) < sint.Z (sl.len - nnv) by
     rw [hsub, show sint.Z (W64 1073741824) = 1073741824 from rfl]; exact mt (tw_dec _ _).1 hA)]
-  wp_auto
+  try wp_auto
   obtain ⟨hs1, hs2, hs3⟩ := tw_sbSmall nnv.toNat data.length _ hcap hnn
   have hsb : 0 ≤ sint.Z nnv ∧ sint.Z nnv ≤ sint.Z sl.len ∧ sint.Z sl.len ≤ sint.Z sl.cap := by
     rw [hnnz, hslz]; exact ⟨hs1, hs2, hs3⟩
@@ -389,10 +387,10 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
       by_cases hfull : nnv.toNat + k = data.length
       · rw [decide_eq_true (show nnv + W64 (k : Int) = sl.len by
           rw [hsln]; exact (tw_full_iff nnv k data.length (by omega) hL63).2 hfull)]
-        wp_auto
+        try wp_auto
         by_cases he0 : e = W64 0
         · try rw [decide_eq_true he0]
-          wp_auto
+          try wp_auto
           have ew := tw_full _ _ _ _ _ _ hwb hfull hx1 hx2 hx3
           subst ew
           iapply HΦ
@@ -410,7 +408,7 @@ theorem wp_tailWriteAtWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : 
         · exact absurd he00.symm he0
       · rw [decide_eq_false (show ¬ nnv + W64 (k : Int) = sl.len by
           rw [hsln]; exact mt (tw_full_iff nnv k data.length (by omega) hL63).1 hfull)]
-        wp_auto
+        try wp_auto
         by_cases he0 : e = W64 0
         · -- a short write: the next attempt from `nn + k`
           try rw [decide_eq_true he0]
@@ -459,8 +457,6 @@ theorem wp_tailWriteWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : Ro
   subst hwrn
   unfold os.ownOff
   wp_start as ⟨#Harea, Hf, ⟨%inner, #Hfi, Ho⟩, Hsl, Hosfd, Hk, Hv, Hm, Hbs⟩
-  unfold os.model.inner
-  rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hfi
   iStructNamed Hf2
   icases ownSlice_len sl _ data $$ Hsl with %Hlen
@@ -468,27 +464,27 @@ theorem wp_tailWriteWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : Ro
   icases Hf with ⟨%inner0, #Hf0, Hfd0, #Hn0⟩
   icombine Hfi Hf0 gives %hin0
   cases hin0
-  wp_auto
+  try wp_auto
   have hsl : sl.len = W64 data.length := by
     have h1 := Hlen.1; have h2 := Hlen.2; simp only [sint.nat, sint.Z] at h1 h2; word
   rw [decide_eq_false (show ¬ sint.Z fd < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; exact Int.not_lt.2 hfd)]
-  wp_auto
+  try wp_auto
   rw [decide_eq_false (show ¬ sl.len = W64 0 by
     rw [hsl]; intro h; have := congrArg BitVec.toNat h; simp only [BitVec.toNat_ofInt] at this; omega)]
-  wp_auto
+  try wp_auto
   ihave Hf : os.ownFile f fd name dqf $$ [Hfd0]
   · unfold os.ownFile; iexists inner; iframe; isplitl [] <;> iassumption
   rw [decide_eq_false (show ¬ sint.Z o < sint.Z (W64 0) by
     rw [show sint.Z (W64 0) = 0 from rfl]; simp only [sint.Z]; omega)]
-  wp_auto
-  rw [show os.model.offMax = W64 0x4000000000000000 from rfl, hsl]
+  try wp_auto
+  rw [hsl]
   try wp_auto
   have hsum : sint.Z (o + W64 (data.length : Int)) = o.toInt + data.length := by
     simp only [sint.Z]; word
   rw [decide_eq_false (show ¬ sint.Z (W64 0x4000000000000000) ≤ sint.Z (o + W64 (data.length : Int)) by
     rw [hsum, show sint.Z (W64 0x4000000000000000) = 2 ^ 62 from rfl]; omega)]
-  wp_auto
+  try wp_auto
   have h63 : o.toNat + data.length < 2 ^ 63 := by
     have := BitVec.toInt_eq_toNat_cond o; split at this <;> omega
   wp_apply wp_tailWriteAtWNE hS0 Mr R jr r dir γ H md cuts f fd name dqf sl data dqs o dq d m bs hwr h0 hn
@@ -497,7 +493,7 @@ theorem wp_tailWriteWNE (hS0 : ∀ st i, Sio.ino st i) (Mr : WalMarshal) (R : Ro
   · iframe; iexact Harea
   icases Hres with ⟨%hres, Hosfd, Hk, Hv, %m', %bs', Hm, Hbs, %hmb⟩
   obtain ⟨rfl, rfl⟩ := hres
-  wp_auto
+  try wp_auto
   iapply HΦ
   iframe Hf Hsl
   isplitr

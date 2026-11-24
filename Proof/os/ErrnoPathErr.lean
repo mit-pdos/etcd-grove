@@ -71,13 +71,13 @@ theorem errnoPathErr_fmtErrorOkOrNil (err : GoInterface) (e : w64) (he : e ≠ 0
 /-- `&PathError{op, path, Errno(e)}` (`model.pathError`): `errnoPathErr`. -/
 theorem wp_pathError_errno (op path : GoString) (e : w64) (Φ : val → IProp GF) :
     (∀ err : GoInterface, errnoPathErr (GF := GF) err e -∗ Φ #err) ⊢
-      WP (App (App (App (Val os.model.pathError) (Val #op)) (Val #path))
+      WP (App (App (App (Val (@! os.modelPathError)) (Val #op)) (Val #path))
         (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
   iintro HΦ
   wp_apply wp_errno
   unfold os.model.pathError
   iapply wp_fupd
-  wp_auto
+  try wp_auto
   iStructNamed pe
   ipersist Op
   ipersist Path
@@ -95,11 +95,10 @@ theorem wp_wrapErrno_errno (op : GoString) (inner : Loc) (name : GoString) (e : 
     (Φ : val → IProp GF) :
     structFieldRef os.file go!"name" inner ↦□ name -∗
       (∀ err : GoInterface, errnoPathErr (GF := GF) err e -∗ Φ #err) -∗
-      WP (App (App (App (Val os.model.wrapErrno) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
+      WP (App (App (App (Val (@! os.modelWrapErrno)) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
   iintro #Hn HΦ
-  unfold os.model.wrapErrno os.model.pathError
-  rw [file_ty_eq]
-  wp_auto
+  unfold os.model.wrapErrno (@! os.modelPathError)
+  try wp_auto
   iapply wp_fupd
   wp_apply wp_errno
   iStructNamed pe

@@ -117,6 +117,7 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   iloeb as IH generalizing Hperm Hp Hn Hf HΦ
   icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
+  -- PORT: which stub? (CallBeginS)
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -139,10 +140,10 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
          · exact absurd rfl ‹_›) $$ Hfd
     icases Htr with (⟨%he, -⟩ | ⟨%n, Hd⟩)
     · exact absurd rfl he
-    wp_auto
+    try wp_auto
     iStructNamed inner
     iapply wp_fupd
-    wp_auto
+    try wp_auto
     ipersist name
     ipersist f
     imodintro
@@ -173,17 +174,17 @@ theorem os.OpenFile.wp_truncS (d b : GoString) (flag : w64) (perm : w32) (R : Ro
         unfold trFile; iexists m, bs; iframe; isplitl [Hc]; · iexact Hc
         ipureintro; exact ⟨hmb.1, False.elim, hmb.2.2⟩
       · iapply trFile_of_rsDone i m n False hmb.2.2.1 hmb.2.2.2.1 hmb.2.2.2.2.2.1 $$ Hd
-    wp_auto
+    try wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he0)]
-    wp_auto
+    try wp_auto
     by_cases he4 : e = W64 4
     · rw [decide_eq_true he4]
-      wp_auto
+      try wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
       iapply IH $$ Hperm Hp Hn Hm HΦ
     rw [decide_eq_false (show e ≠ W64 4 from he4)]
-    wp_auto
+    try wp_auto
     wp_apply os.wp_pathError_ok _ _ e he0 as %pe #Hok
     iapply HΦ
     iframe
