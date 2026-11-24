@@ -1,9 +1,9 @@
 # dsv-gryff: dsverify-lab's gryff kit on the net extension (phase 6)
 
-> **STATE (2026-11-24, session 13, on lean af4fd74b00, Perennial 52d62e83c): merged `origin/lean`
-> (the real-`fmt` pin bump). Statement unchanged: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`. The
+> **STATE (2026-11-24, session 13, on lean b64d2397f8, Perennial d9c8c1d97): merged `origin/lean`
+> (the real-`fmt` pin bump and after). Statement unchanged: `Robust [] (system σ) g (2 ^ 31) (2 ^ 63)`. The
 > proved theorem is the plain `gryff_remote_robust : gryff_remote_robust.spec`: Net's `DialHTTP.wp`
-> gets `strings.Cut`/`TrimLeft` from Perennial's proofs (`Proof/strings/FromPerennial.lean`);
+> takes no strings hypotheses since lean's 57d66cdcee (Perennial's `strings.Cut`/`TrimLeft` proofs);
 > `StringsPending`, `stringsPending.spec` and `gryff_remote_robust_of_strings` are gone. `#print
 > axioms`: Lean's three. Non-vacuity open ("Non-vacuity: open"). See "Session 13" below.**
 
@@ -859,13 +859,14 @@ blocked by prophcheck's grammar" above and the recorded deviation (option 3 ther
 
 ## Session 13 (2026-11-24): onto the real-`fmt` pin
 
-- Merged `origin/lean` af4fd74b00 (Perennial 52d62e83c; no conflict); the eleven generated
+- Merged `origin/lean` af4fd74b00 (Perennial 52d62e83c), then b64d2397f8 (Perennial d9c8c1d97; no
+  conflict either time); the eleven generated
   `cmd/*/PkgTable.lean` regenerated (`etc/gen-init.py`: the pin's new packages in the closures);
   `kitgen --check`, the Links and `goose.py --check` clean.
-- New `Proof/strings/FromPerennial.lean` (defs tier; the same file as dsv-craq's): this repository's
-  `strings.Cut.spec`/`TrimLeft.spec` from Perennial's (`strings.cut_eq`: the two `cut`s agree;
-  Perennial's `TrimLeft` precondition is weaker). `Link.lean`'s `wp_Server` passes them, over
-  Perennial's `strings.wp_Cut`/`wp_TrimLeft`, to Net's `net.rpc.DialHTTP.wp`; `StringsPending`
+- Strings: at 52d62e83c a bridge `Proof/strings/FromPerennial.lean` turned Perennial's
+  `strings.Cut`/`TrimLeft` proofs into the specs Net's `DialHTTP.wp` took as hypotheses; lean's
+  57d66cdcee then discharged them in Net itself (deleting `Spec/strings/{Cut,TrimLeft}.lean`), so
+  the bridge went and `Link.lean`'s `wp_Server` passes `net.rpc.DialHTTP.wp` as is. `StringsPending`
   and `stringsPending.spec` deleted; `gryff_remote_robust_of_strings` became `gryff_remote_robust`.
   The statement is unchanged (only its docstring's mention of the old theorem).
 - **`fmt.Sprintf` onto the real `fmt`**: lean's pin bump removed `fmt.wp_Sprintf_argsWf` (the

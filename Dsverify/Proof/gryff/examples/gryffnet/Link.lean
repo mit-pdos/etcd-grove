@@ -9,7 +9,7 @@ every-length form (`lib.io.ReadFull.wp_proofLt`); the kit's model (`Model.wp_pro
 `Check`/`ServeClient`. `encoding/binary`'s varints (`binaryVarintHyps`, Perennial's proofs). What is not proved stays
 a premise (the statement's): the `InitHyp`s, `StringsIndexHyp`, `SortSliceHyp`, `MathPowHyp`, `RandSeedHyp`, `RpcHttpAddr`,
 `RpcHttpHyp`, `RpcBootHyp`. `DialHTTP` is Net's `net.rpc.DialHTTP.wp`, over Perennial's proofs of
-`strings.Cut`/`TrimLeft` (`Proof/strings/FromPerennial.lean`).
+`strings.Cut`/`TrimLeft`.
 -/
 module
 
@@ -53,8 +53,6 @@ public import Proof.bufio.Writer__Flush
 public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.Link
 public import Proof.bufio.NewWriterSizeRep
 public import Net.Proof.net.rpc.Results
-public import Proof.strings.FromPerennial
-public import Perennial.Proof.strings.Link
 
 @[expose] public section
 
@@ -99,8 +97,7 @@ theorem netSpecs [net.Assumptions] [net.FieldAssumptions] : netN.NetSpecs GF :=
     net.Dial.wp_proof, net.DialTimeout.wp_proof⟩
 
 /-! Net's net/rpc client and `SetCodec` (`Net/Proof/net/rpc/Results.lean`'s links). `DialHTTP` is
-Net's `net.rpc.DialHTTP.wp`, whose hypotheses `h_Cut`/`h_TrimLeft` are Perennial's proofs of
-`strings.Cut`/`TrimLeft` (`Proof/strings/FromPerennial.lean`). -/
+Net's `net.rpc.DialHTTP.wp`, over Perennial's proofs of `strings.Cut`/`TrimLeft`. -/
 
 section rpc
 variable [net.rpc.Assumptions] [sync.Assumptions]
@@ -144,9 +141,7 @@ theorem wp_Server : Server.spec (GF := GF) (hG := hG) := by
   haveI := bufioSpecs (GF := GF) (hG := hG)
   haveI := netSpecs (GF := GF) (hG := hG)
   exact Server.wp_proof lib.io.ReadFull.wp_proofLt gryffCodecLaws gryffRcvLaws Call_wp
-    (net.rpc.DialHTTP.wp
-      (EtcdGrove.strings.Cut.of_perennial _root_.Perennial.strings.wp_Cut)
-      (EtcdGrove.strings.TrimLeft.of_perennial _root_.Perennial.strings.wp_TrimLeft)) SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt) net.rpc.Register.wp
+    net.rpc.DialHTTP.wp SetCodec_wp (replica2.run.wp lib.io.ReadFull.wp_proofLt) net.rpc.Register.wp
 
 end server
 

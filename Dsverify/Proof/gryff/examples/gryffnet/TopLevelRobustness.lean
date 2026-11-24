@@ -117,7 +117,7 @@ theorem init_of_gen [hG : HeapGS .hasLC GF] (init : val) (pkg : GoString)
 end boot
 
 /-- **The gryff kit, closed** (see the statement's file); net/rpc's client over HTTP over Perennial's
-proofs of `strings.Cut`/`TrimLeft` (`Link.lean`'s `wp_Server`). -/
+proofs of `strings.Cut`/`TrimLeft` (Net's `DialHTTP.wp`, in `Link.lean`'s `wp_Server`). -/
 theorem gryff_remote_robust : gryff_remote_robust.spec := by
   intro gctx lctx sem s0 s1 s2 s3 s4 s5 s6 s7 s8 s9 s10 fsem bvi rsem hri hhi hmr hsi hss hmp hrs H hboot σ g
   refine github_com.imdea_software.swiftpaxos_epaxos.examples.epaxosnet.robust_of_distProtoLisRBT (GF := remoteGF) gryffKitAddrs gryffLas (system σ) g (2 ^ 31)
