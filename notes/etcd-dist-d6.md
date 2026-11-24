@@ -729,3 +729,71 @@ clashes with an existing one (checked by grep).
 
 Checkpoint 2026-11-24: L1 and L2 done. **Next statement:** the lifetime fact (above), which needs a
 decision on changing `node.Ready`'s post. Then the server's `rnReplayJob` narrowing.
+
+**2026-11-24, T4 round 5: the lifetime law (decision: change the API's posts).** No axiom, no `sorry`, no
+new premise on any API spec.
+
+*Raft side (built, VM).*
+- The attachment's term floor: `StorNames.t0 : w64` (default `0`; `Defs.lean`), set by `RestartNode` to
+  the stored term `σ.hs.Term'` (in the `storKeyNames` tuple too). Raft's queue invariant gets
+  `LifeOk s l` as `XfOk`'s last conjunct (`InvRaftPhys.lean`): `t0 ≤ s.term`, `t0 < s.term` at a leader
+  or candidate, and `t0 < m.Term` for every queued `MsgSnap`. Kept by: `raft.wp_store_stateC`'s new
+  premise `Hrt0` (leader/candidate past `t0`: `becomeCandidate` from `ownRaftPhysC_t0` before its
+  `reset(term+1)`; `becomeLeader`'s new spec premise `uint.Z s.gh.sn.t0 < uint.Z s.term`, which
+  `stepCandidate` gets from its candidate role), `send`'s `SendOk` `MsgSnap` clause (new last conjunct
+  `t0 < s.term`; `maybeSendSnapshot`'s new premise, which `maybeSendAppend` gets from its leader role),
+  the queue pushes (`Hxq`'s new last conjunct), `XfOk.term_le` (term raised), `XfOk.drain` (a `Ready`),
+  and `newRaft`/`NewRawNode`/`setupNode`'s new premise `uint.Z sn.t0 ≤ uint.Z hs.Term'` (callers:
+  `RestartNode` `le_refl`, `StartNode` `0 ≤ 0`).
+- `handoutOrigins` (`InvRawnode.lean`) gains `⌜∀ q ∈ ms, MsgSnap → uint.Z sn.t0 < uint.Z q.st.msg.Term'⌝`
+  (from `LifeOk` at the hand-out), so `readyGot`'s statement is unchanged: the fact is inside the sealed
+  `readySnapSources` it already gives.
+- **The mark** (`InvNode.lean`, sealed, persistent): `nodeStartTerm (n : NodeH) (T0 : w64)`, body
+  `⌜n.names.sn.t0 = T0⌝`; `nodeStartTerm_agree`.
+- **The lifetime fact** (`InvNodeRule.lean`): `readySnapSources_startTerm γ n id term ms bound installed T0 :
+  readySnapSources γ n id term ms bound installed ∗ nodeStartTerm n T0 ⊢
+  ⌜∀ q ∈ ms, q.st.msg.Type' = MsgSnap → uint.Z T0 < uint.Z q.st.msg.Term'⌝`.
+- **Posts changed:** `RestartNode.spec` only: `nodeStartTerm n S.term` after `nodeArm n γ x` (clients'
+  patterns gain one slot: kv, kvreconf (2), kvdurable, kvnet (KvNet's own `StartNode.lean`), the
+  server's `newRaftNode`). `StartNode.spec` unchanged (a first start's `rnReplayJob` is vacuous,
+  `a0 = []`). Internal specs changed: `raft.send` (`SendOk`), `raft.maybeSendSnapshot`,
+  `raft.becomeLeader` (and its untraced/traced wrappers), `newRaft`, `NewRawNode`, `setupNode`.
+- RaftNoAx's own `newRaft.lean` patched by hand (the same two edits).
+
+*Server side (written; see the build line below).*
+- `rnBootPost`'s restart arm gives `nodeStartTerm n S.term`; `rnRestartOk`'s restart disjunct carries
+  `nodeStartTerm γ.nl γ.t0` (`NodeStartLinked`: `γw.t0 = σ.hs.Term' = S.term`, `StorageHolds`).
+- `rnReplayJob` narrowed to this run's `MsgSnap`s: its premise takes `rnMessageSource γ ⟨ml, sm⟩` (which
+  `rnSnapMsg` carries; `applyAll` passes `%m Hsrc`). `ReplayJob.lean`: `rnReplayJob_lifetime`
+  (`rnRestartOk γ ∗ rnMessageSource γ ⟨ml, sm⟩ ⊢ ⌜MsgSnap → a0 ≠ [] → uint.Z γ.t0 < uint.Z sm.msg.Term'⌝`),
+  and `rnReplayJob_of_history` now takes `rnRestartOk γ` and its premise only at `uint.Z γ.t0 < uint.Z rt`.
+- `srv_confFixed` (`ReplayJob.lean`): `srvRaftLogInv γ ⊢ confFixed γ.raft.cl E (Membership.simple γ.raft.cfg)`
+  for `↑srvConfN ⊆ E`, `↑srvLogN ⊆ E`.
+
+*Not done: `rnReplayJob_of_history`'s premise from L2.* Its premise is a persistent wand returning a pure
+fact (`□ ∀ sm, … -∗ sentMsg … sm -∗ ⌜DurAgrees S a0⌝`), but L2 (`raftState_cmtBefore_agree`) is an
+update that needs the exclusive `raftState γ id S` (its camps authority identifies the leader's campaign
+record). So L2 cannot be fed into that premise as stated. Two ways: (a) a raft law of the wand form
+`raftState γ id S ∗ … ⊢ |={E}=> raftState γ id S ∗ □ (snapshotLeader γ id S.term -∗ ⌜durLogAgrees S l⌝)`
+(needs, from the authority at the update, a persistent fragment of the camps entry at `S.term`, and for
+an absent entry a persistent "no campaign at `S.term`" fact: a change to `durShares`'s camps ghost);
+or (b) the producer (`raftNode.start`'s snapshot hand-off) applies L2 at its update with a
+`snapshotLeader` it obtains first, which needs the `MsgSnap` in hand, i.e. reorder the job's
+quantifier. Decision needed (raft-proof work for (a)).
+
+*Built (VM, `e3572c99c0`):* raft's `Link`, `Linked`, `Results`, `Api` (3474 jobs); the server's `Link` and
+`ReplayJob`, kv/kvreconf/kvdurable `Link`, `RaftTla`'s raft `Link`, `RaftNoAx`'s raft and kvdurablenoax
+`Link`, `KvNet`'s kvnet `Link` (13763 jobs); every module naming a changed name (`etc/importers.py
+--uses` for `rnRestartOk`, `rnReplayJob`, `rnReplayJob_of_history`, `rnBootPost`, `RestartNode`,
+`StorNames`, `XfOk`, `handoutOrigins`: 102 modules, plus `etcdstart.Restart` and `NewServerCrash`; 5495
+jobs): all green. `etc/gen-raft-tla.py --check`, `etc/copy-part.py --check`, `etc/tier-check.py --check`,
+`etc/api-check.py etc/api/raft.txt --check` pass. Not rebuilt: the rest of `Defs.lean`'s cone (9156
+modules; `StorNames` gains a defaulted field, which only its two constructions and `storKeyNames_agree`
+enumerate). `etc/tcb-report.py --check` not run (needs a local build).
+
+*Left for `wp_proofC`:* step 1 (the snapshot payload's `rnReplayJob` by `rnReplayJob_of_history`) needs
+the L2 bridge above; step 3 (raft's restart configuration point past the stored log: the other branch's
+option D); steps 2, 4, 5 after them; `NewServerCrash.lean`'s `sorry` (the case `σ.commit < i`) stays.
+
+Checkpoint 2026-11-24: the lifetime law proved and exposed (`e3572c99c0`); next decision: the L2
+bridge's form (a) or (b) above.
