@@ -28,9 +28,14 @@ import (
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/protoadapt"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/runtime/protoiface"
+	"google.golang.org/protobuf/types/descriptorpb"
+	"google.golang.org/protobuf/types/gofeaturespb"
 
 	"models.lab/internal/pbdifftest/pb"
 	"models.lab/internal/pbdifftest/xpb"
+	"models.lab/internal/stuck"
 )
 
 // transcript: what a test observed, line by line; saved to $PBMODEL_OUT/<name>.txt (run.sh
@@ -56,20 +61,17 @@ func (t *transcript) save(tb testing.TB) {
 	}
 }
 
-// outcome runs f: "ok", "panic: NotModelled" (the model's panic value), or "panic" (any other;
-// its value is not compared: protobuf-go's are runtime errors, the model's the same or its own).
-func outcome(f func()) (s string) {
-	defer func() {
-		if r := recover(); r != nil {
-			if _, ok := r.(interface{ NotModelled() }); ok {
-				s = "panic: NotModelled"
-			} else {
-				s = "panic"
-			}
-		}
-	}()
-	f()
-	return "ok"
+// outcome runs f: "ok", "panic" (its value is not compared: protobuf-go's are runtime errors, the
+// model's the same or its own), or "stuck" (blocked forever in an empty select: the model's
+// not-modelled points, models/README.md).
+func outcome(f func()) string {
+	switch o, _ := stuck.Run(f); o {
+	case stuck.Returned:
+		return "ok"
+	case stuck.Panicked:
+		return "panic"
+	}
+	return "stuck"
 }
 
 func class(err error) string {
@@ -311,7 +313,7 @@ func TestEntryPoints(t *testing.T) {
 		}
 		for k := 0; k < 6; k++ {
 			var line string
-			switch op := r.Intn(10); op {
+			switch op := r.Intn(14); op {
 			case 0:
 				line = fmt.Sprintf("Size %d", proto.Size(m))
 			case 1:
@@ -359,6 +361,31 @@ func TestEntryPoints(t *testing.T) {
 				data, _ := proto.MarshalOptions{AllowPartial: true}.Marshal(newOf(r))
 				err := proto.UnmarshalOptions{}.Unmarshal(mutate(r, data), x)
 				line = fmt.Sprintf("UnmarshalOptions{}.Unmarshal %s %s", uclass(err), dump(x))
+			case 10: // Merge from a message of m's type: random, decoded, a typed nil, or m itself
+				var src proto.Message
+				switch r.Intn(4) {
+				case 0:
+					src = reflect.New(reflect.TypeOf(m).Elem()).Interface().(proto.Message)
+					fill(r, reflect.ValueOf(src).Elem(), 0)
+				case 1:
+					src = reflect.New(reflect.TypeOf(m).Elem()).Interface().(proto.Message)
+					data, _ := proto.MarshalOptions{AllowPartial: true}.Marshal(newOf(r))
+					_ = proto.Unmarshal(mutate(r, data), src) // (a failed decode leaves a partial message)
+				case 2:
+					src = reflect.Zero(reflect.TypeOf(m)).Interface().(proto.Message)
+				case 3:
+					src = m
+				}
+				proto.Merge(m, src)
+				line = fmt.Sprintf("Merge(%s)", dump(src))
+			case 11:
+				proto.Reset(m)
+				line = "Reset"
+			case 12:
+				line = fmt.Sprintf("CheckInitialized %s", class(proto.CheckInitialized(m)))
+			case 13:
+				v1 := protoadapt.MessageV1Of(m)
+				line = fmt.Sprintf("MessageV1Of identical %v", v1 == protoadapt.MessageV1(m.(protoadapt.MessageV1)))
 			}
 			tr.printf("%s | %s", line, dump(m))
 		}
@@ -381,6 +408,19 @@ func TestEntryPoints(t *testing.T) {
 		tr.printf("  %T %v", c, c.(*pb.Args) == nil)
 	}))
 	tr.printf("Unmarshal into typed nil %s", outcome(func() { _ = proto.Unmarshal([]byte{8, 1}, typedNil) }))
+	tr.printf("Merge into typed nil %s", outcome(func() { proto.Merge(typedNil, &pb.Args{A: 1}) }))
+	tr.printf("Merge from typed nil %s", outcome(func() {
+		d := &pb.Args{A: 1}
+		proto.Merge(d, typedNil)
+		tr.printf("  %s", dump(d))
+	}))
+	tr.printf("Reset(typed nil) %s", outcome(func() { proto.Reset(typedNil) }))
+	tr.printf("CheckInitialized(nil) %s", outcome(func() { tr.printf("  %s", class(proto.CheckInitialized(nilIface))) }))
+	tr.printf("CheckInitialized(typed nil) %s", outcome(func() { tr.printf("  %s", class(proto.CheckInitialized(typedNil))) }))
+	tr.printf("Equal(nil, nil) %s", outcome(func() { tr.printf("  %v", proto.Equal(nilIface, nilIface)) }))
+	tr.printf("Equal(nil, m) %s", outcome(func() { tr.printf("  %v", proto.Equal(nilIface, &pb.Args{})) }))
+	tr.printf("MessageName(nil) %s", outcome(func() { tr.printf("  %q", proto.MessageName(nilIface)) }))
+	tr.printf("MessageV1Of(nil) %s", outcome(func() { tr.printf("  %v", protoadapt.MessageV1Of(nil) == nil) }))
 	tr.printf("Marshal(empty) %s", outcome(func() { b, err := proto.Marshal(&pb.Empty{}); tr.printf("  %s %s", bs(b), class(err)) }))
 	tr.save(t)
 }
@@ -401,5 +441,91 @@ func TestEmbedded(t *testing.T) {
 	tr.printf("Clone %T %s", c, dump(c))
 	err = proto.Unmarshal([]byte{0x0a, 0x01, 'x', 0x10, 0x05, 0xf8, 0x01, 0x01}, e)
 	tr.printf("Unmarshal %s %s", uclass(err), dump(e.Inner))
+	tr.printf("CheckInitialized %s", class(proto.CheckInitialized(e)))
+	proto.Merge(e, embedding{&pb.Inner{K: "m", Sub: &pb.Inner{V: 7}}})
+	tr.printf("Merge from an embedding %s", dump(e.Inner))
+	proto.Merge(e, &pb.Inner{V: 9})
+	tr.printf("Merge from the message %s", dump(e.Inner))
+	inner := e.Inner
+	proto.Reset(e)
+	tr.printf("Reset %v %s", e.Inner == inner, dump(e.Inner))
+	// a nil embedded message (zeldovich's review: Marshal nil, Size 0, Clone a typed nil)
+	n := embedding{}
+	tr.printf("nil embedded: Marshal %s", outcome(func() { b, err := proto.Marshal(n); tr.printf("  %s %s", bs(b), class(err)) }))
+	tr.printf("nil embedded: Size %s", outcome(func() { tr.printf("  %d", proto.Size(n)) }))
+	tr.printf("nil embedded: Clone %s", outcome(func() { c := proto.Clone(n); tr.printf("  %T %v", c, c.(*pb.Inner) == nil) }))
+	tr.printf("nil embedded: Merge into %s", outcome(func() { proto.Merge(n, &pb.Inner{V: 1}) }))
+	tr.printf("nil embedded: Merge from %s", outcome(func() {
+		d := &pb.Inner{V: 1}
+		proto.Merge(d, n)
+		tr.printf("  %s", dump(d))
+	}))
+	tr.printf("nil embedded: Reset %s", outcome(func() { proto.Reset(n) }))
+	tr.printf("nil embedded: CheckInitialized %s", outcome(func() { tr.printf("  %s", class(proto.CheckInitialized(n))) }))
+	// a message embedded by value (its pointer embeds it, promoting the pointer methods)
+	v := &valueEmbedding{pb.Inner{K: "v", V: 4}}
+	b, err = proto.Marshal(v)
+	tr.printf("value embedded: Marshal %s %s; Size %d", bs(b), class(err), proto.Size(v))
+	c = proto.Clone(v)
+	tr.printf("value embedded: Clone %T %s", c, dump(c))
+	proto.Merge(v, &pb.Inner{Sub: &pb.Inner{K: "s"}})
+	tr.printf("value embedded: Merge %s", dump(&v.Inner))
+	proto.Reset(v)
+	tr.printf("value embedded: Reset %s", dump(&v.Inner))
 	tr.save(t)
 }
+
+// valueEmbedding embeds a message by value (*valueEmbedding has the message's pointer methods).
+type valueEmbedding struct {
+	pb.Inner
+}
+
+// notModelledCases: what the model does not model (it blocks there: stuck), with protobuf-go's
+// outcome ("ok", or "panic" where protobuf-go panics too: the model then has fewer behaviors).
+func notModelledCases() map[string]struct {
+	f    func()
+	real string
+} {
+	type c = struct {
+		f    func()
+		real string
+	}
+	fs := &descriptorpb.FeatureSet{}
+	return map[string]c{
+		"Marshal of a type without methods": {func() { _, _ = proto.Marshal(&descriptorpb.FileDescriptorProto{}) }, "ok"},
+		"Size of a type without methods":    {func() { _ = proto.Size(&descriptorpb.FileDescriptorProto{}) }, "ok"},
+		"Clone of a type without methods":   {func() { _ = proto.Clone(&descriptorpb.FileDescriptorProto{}) }, "ok"},
+		"Merge of a type without methods": {func() {
+			proto.Merge(&descriptorpb.FileDescriptorProto{}, &descriptorpb.FileDescriptorProto{})
+		}, "ok"},
+		"Reset of a type without methods":            {func() { proto.Reset(&descriptorpb.FileDescriptorProto{}) }, "ok"},
+		"CheckInitialized of a type without methods": {func() { _ = proto.CheckInitialized(&descriptorpb.FileDescriptorProto{}) }, "ok"},
+		"UnmarshalOptions{DiscardUnknown}":           {func() { _ = proto.UnmarshalOptions{DiscardUnknown: true}.Unmarshal(nil, &pb.Args{}) }, "ok"},
+		"UnmarshalOptions{Merge}":                    {func() { _ = proto.UnmarshalOptions{Merge: true}.Unmarshal(nil, &pb.Args{}) }, "ok"},
+		"MarshalState": {func() {
+			_, _ = proto.MarshalOptions{}.MarshalState(protoiface.MarshalInput{Message: (&pb.Args{}).ProtoReflect()})
+		}, "ok"},
+		"UnmarshalState": {func() {
+			_, _ = proto.UnmarshalOptions{}.UnmarshalState(protoiface.UnmarshalInput{Message: (&pb.Args{}).ProtoReflect()})
+		}, "ok"},
+		"Equal":                       {func() { _ = proto.Equal(&pb.Args{A: 1}, &pb.Args{A: 1}) }, "ok"},
+		"MessageName":                 {func() { _ = proto.MessageName(&pb.Args{}) }, "ok"},
+		"HasExtension":                {func() { _ = proto.HasExtension(fs, gofeaturespb.E_Go) }, "ok"},
+		"GetExtension":                {func() { _ = proto.GetExtension(fs, gofeaturespb.E_Go) }, "ok"},
+		"SetExtension":                {func() { proto.SetExtension(fs, gofeaturespb.E_Go, &gofeaturespb.GoFeatures{}) }, "ok"},
+		"ClearExtension":              {func() { proto.ClearExtension(fs, gofeaturespb.E_Go) }, "ok"},
+		"RangeExtensions":             {func() { proto.RangeExtensions(fs, func(protoreflect.ExtensionType, any) bool { return true }) }, "ok"},
+		"Merge of two types":          {func() { proto.Merge(&pb.Args{}, &pb.Inner{}) }, "panic"},
+		"Merge into nil":              {func() { proto.Merge(nil, &pb.Args{}) }, "panic"},
+		"Reset of nil":                {func() { proto.Reset(nil) }, "panic"},
+		"Unmarshal into nil":          {func() { _ = proto.Unmarshal(nil, nil) }, "panic"},
+		"MessageV2Of of a v1 message": {func() { _ = protoadapt.MessageV2Of(v1Only{}) }, "ok"},
+	}
+}
+
+// v1Only: a message of the original API only (Reset, String, ProtoMessage; no ProtoReflect).
+type v1Only struct{}
+
+func (v1Only) Reset()         {}
+func (v1Only) String() string { return "" }
+func (v1Only) ProtoMessage()  {}

@@ -117,7 +117,7 @@ const (
 // function.
 //
 // MODEL: grpc-go's NewClient, without channelz, the balancer, the picker and the idleness manager
-// (model_clientconn.go). Outside the model (a panic): stats handlers, binary logging, a
+// (model_clientconn.go). Outside the model (stuck): stats handlers, binary logging, a
 // compressor or decompressor, a default service config other than round robin's.
 func NewClient(target string, opts ...DialOption) (conn *ClientConn, err error) {
 	cc := &ClientConn{
@@ -178,10 +178,10 @@ func NewClient(target string, opts ...DialOption) (conn *ClientConn, err error) 
 	}
 
 	if len(cc.dopts.copts.StatsHandlers) != 0 {
-		panic(notModelled("grpc: stats handlers"))
+		stuck() // MODEL: not modelled (stuck): grpc: stats handlers
 	}
 	if cc.dopts.compressorV0 != nil || cc.dopts.dc != nil {
-		panic(notModelled("grpc: compression"))
+		stuck() // MODEL: not modelled (stuck): grpc: compression
 	}
 
 	cc.csMgr = newConnectivityStateManager(cc.ctx)

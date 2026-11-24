@@ -27,7 +27,7 @@ type Ctx struct {
 }
 
 // Wrap embeds Rec and is not a root: it has Rec's methods by promotion, so the model's dispatch
-// reaches Rec's methods with a Wrap, which are not modelled there (a panic); real encoding/json
+// reaches Rec's methods with a Wrap, which are not modelled there (stuck); real encoding/json
 // encodes it by its own structure.
 type Wrap struct {
 	Rec

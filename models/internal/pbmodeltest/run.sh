@@ -4,7 +4,7 @@
 # model (models/protobuf-go/gomodel.py: the module assembled with the model's packages, tag
 # protomodel); both with tag pbmodel (pbdifftest's messages with their generated methods). Each
 # build writes its transcripts; the two builds' transcripts must be equal. And the model's
-# NotModelled cases: a panic in the model, protobuf-go's behavior otherwise.
+# not-modelled cases: stuck in the model (an empty select), protobuf-go's behavior otherwise.
 # Usage: models/internal/pbmodeltest/run.sh [go test flags]
 set -euo pipefail
 D=$(cd "$(dirname "$0")" && pwd)

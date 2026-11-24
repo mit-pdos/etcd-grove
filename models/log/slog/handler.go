@@ -66,10 +66,14 @@ func (dh discardHandler) Handle(context.Context, Record) error { return nil }
 func (dh discardHandler) WithAttrs(attrs []Attr) Handler       { return dh }
 func (dh discardHandler) WithGroup(name string) Handler        { return dh }
 
-// MODEL: the models' panic value: what the model does not model (a program-supplied Handler).
-type notModelled struct{ what string }
-
-func (e notModelled) Error() string { return "log/slog model: not modelled: " + e.what }
-
-// NotModelled marks the value as the models' panic.
-func (notModelled) NotModelled() {}
+// stuck is the model's not-modelled point (MODEL: not in Go's log/slog; models/README.md, "Not modelled:
+// stuck"): where the model does not model Go's log/slog's behavior it calls stuck (after a comment
+// `MODEL: not modelled (stuck): ...`), which has no behavior. Its Lean model is Perennial's
+// internal/gomodel.Stuck, `Panic "not modelled"`: a stuck panic, which no recover catches and no
+// WP rule steps, so a proof of the program shows that it never gets here. Not a value panic, which
+// a program could recover and so observe a behavior Go's log/slog does not have; not a bare `select {}`,
+// whose WP has the precondition True and so would prove anything after it. Its Go body blocks
+// forever, which the tests detect (models/internal/stuck).
+func stuck() {
+	select {}
+}

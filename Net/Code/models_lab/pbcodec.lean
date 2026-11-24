@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Golang.Defn
+public import Net.TrustedCode.models_lab.pbcodec
 
 @[expose] public section
 
@@ -51,6 +52,9 @@ attribute [irreducible] Error.ty
 
 @[reducible] noncomputable def DefaultRecursionLimit [GooseExts] [GoGlobalContext] : val :=
   #(W64 10000)
+
+noncomputable def Stuck [GooseExts] [GoGlobalContext] : GoString :=
+  go!"models.lab/pbcodec.Stuck"
 
 noncomputable def SizeVarint [GooseExts] [GoGlobalContext] : GoString :=
   go!"models.lab/pbcodec.SizeVarint"
@@ -124,7 +128,7 @@ noncomputable def ValidUTF8 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ValidString [GooseExts] [GoGlobalContext] : GoString :=
   go!"models.lab/pbcodec.ValidString"
 
-/-- go: pbcodec.go:43:17 -/
+/-- go: pbcodec.go:59:17 -/
 noncomputable def Error.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
@@ -141,7 +145,7 @@ noncomputable def Error.Error.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- SizeVarint returns the number of bytes AppendVarint writes for v.
 
-    go: pbcodec.go:48:6 -/
+    go: pbcodec.go:64:6 -/
 noncomputable def SizeVarint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -178,7 +182,7 @@ noncomputable def SizeVarint.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendVarint appends v as a base-128 varint (protowire.AppendVarint).
 
-    go: pbcodec.go:59:6 -/
+    go: pbcodec.go:75:6 -/
 noncomputable def AppendVarint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -224,7 +228,7 @@ noncomputable def AppendVarint.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendTag appends the tag of field num with wire type typ (protowire.AppendTag).
 
-    go: pbcodec.go:70:6 -/
+    go: pbcodec.go:86:6 -/
 noncomputable def AppendTag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "num"
@@ -246,7 +250,7 @@ noncomputable def AppendTag.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendBytes appends v length-delimited (protowire.AppendBytes).
 
-    go: pbcodec.go:75:6 -/
+    go: pbcodec.go:91:6 -/
 noncomputable def AppendBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -274,7 +278,7 @@ noncomputable def AppendBytes.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendString appends s length-delimited (protowire.AppendString).
 
-    go: pbcodec.go:81:6 -/
+    go: pbcodec.go:97:6 -/
 noncomputable def AppendString.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "s"
@@ -302,7 +306,7 @@ noncomputable def AppendString.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendFixed32 appends v little-endian in 4 bytes (protowire.AppendFixed32).
 
-    go: pbcodec.go:87:6 -/
+    go: pbcodec.go:103:6 -/
 noncomputable def AppendFixed32.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -326,7 +330,7 @@ noncomputable def AppendFixed32.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- AppendFixed64 appends v little-endian in 8 bytes (protowire.AppendFixed64).
 
-    go: pbcodec.go:92:6 -/
+    go: pbcodec.go:108:6 -/
 noncomputable def AppendFixed64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -354,7 +358,7 @@ noncomputable def AppendFixed64.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- EncodeZigZag encodes a signed integer as sint64's unsigned value (protowire.EncodeZigZag).
 
-    go: pbcodec.go:98:6 -/
+    go: pbcodec.go:114:6 -/
 noncomputable def EncodeZigZag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -370,7 +374,7 @@ noncomputable def EncodeZigZag.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- DecodeZigZag decodes sint64's unsigned value (protowire.DecodeZigZag).
 
-    go: pbcodec.go:103:6 -/
+    go: pbcodec.go:119:6 -/
 noncomputable def DecodeZigZag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
@@ -386,7 +390,7 @@ noncomputable def DecodeZigZag.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- EncodeBool is a bool's varint value (protowire.EncodeBool).
 
-    go: pbcodec.go:108:6 -/
+    go: pbcodec.go:124:6 -/
 noncomputable def EncodeBool.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -413,7 +417,7 @@ noncomputable def EncodeBool.impl [GooseExts] [GoGlobalContext] : val :=
 /-- CopyBytes returns a copy of v, never nil (the real Unmarshal's value for an element of a
     repeated bytes field).
 
-    go: pbcodec.go:117:6 -/
+    go: pbcodec.go:133:6 -/
 noncomputable def CopyBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -438,7 +442,7 @@ noncomputable def CopyBytes.impl [GooseExts] [GoGlobalContext] : val :=
 /-- CopyBytesOrNil returns a copy of v, nil if v is empty (the real Unmarshal's value for a proto3
     bytes field, which has no presence).
 
-    go: pbcodec.go:124:6 -/
+    go: pbcodec.go:140:6 -/
 noncomputable def CopyBytesOrNil.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -467,7 +471,7 @@ noncomputable def CopyBytesOrNil.impl [GooseExts] [GoGlobalContext] : val :=
 /-- DecodeZigZag32 decodes a sint32 field's varint value as the real Unmarshal does (its low 32
     bits, zigzag-decoded).
 
-    go: pbcodec.go:133:6 -/
+    go: pbcodec.go:149:6 -/
 noncomputable def DecodeZigZag32.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int32))) (App (Val (GoInstruction (GoZeroVal go.int32))) (Val #())))
@@ -486,7 +490,7 @@ noncomputable def DecodeZigZag32.impl [GooseExts] [GoGlobalContext] : val :=
     ends before the varint does or the varint has more than 10 bytes or overflows 64 bits (the
     10th byte above 1), as protowire.ConsumeVarint.
 
-    go: pbcodec.go:140:6 -/
+    go: pbcodec.go:156:6 -/
 noncomputable def ConsumeVarint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -591,7 +595,7 @@ noncomputable def ConsumeVarint.impl [GooseExts] [GoGlobalContext] : val :=
     false if the varint is malformed or the field number is 0 or above 2^31-1, as
     protowire.ConsumeTag.
 
-    go: pbcodec.go:163:6 -/
+    go: pbcodec.go:179:6 -/
 noncomputable def ConsumeTag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -693,7 +697,7 @@ noncomputable def ConsumeTag.impl [GooseExts] [GoGlobalContext] : val :=
     Unmarshal does (internal/impl's unmarshalPointer): field number, wire type and length, or ok =
     false if the varint is malformed or the field number is 0 or above MaxValidNumber.
 
-    go: pbcodec.go:178:6 -/
+    go: pbcodec.go:194:6 -/
 noncomputable def ConsumeFieldTag.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -794,7 +798,7 @@ noncomputable def ConsumeFieldTag.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ConsumeBytes parses a length-delimited value at the start of b: its contents (a subslice of
     b) and total length, or ok = false (protowire.ConsumeBytes).
 
-    go: pbcodec.go:192:6 -/
+    go: pbcodec.go:208:6 -/
 noncomputable def ConsumeBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -883,7 +887,7 @@ noncomputable def ConsumeBytes.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ConsumeFixed32 parses a little-endian 4-byte value (protowire.ConsumeFixed32).
 
-    go: pbcodec.go:205:6 -/
+    go: pbcodec.go:221:6 -/
 noncomputable def ConsumeFixed32.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
@@ -933,7 +937,7 @@ noncomputable def ConsumeFixed32.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ConsumeFixed64 parses a little-endian 8-byte value (protowire.ConsumeFixed64).
 
-    go: pbcodec.go:214:6 -/
+    go: pbcodec.go:230:6 -/
 noncomputable def ConsumeFixed64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
@@ -984,7 +988,7 @@ noncomputable def ConsumeFixed64.impl [GooseExts] [GoGlobalContext] : val :=
 /-- skipScalar returns the length of the value of wire type typ (not a group) at the start of b,
     or ok = false (a malformed value; an end-group or reserved wire type).
 
-    go: pbcodec.go:225:6 -/
+    go: pbcodec.go:241:6 -/
 noncomputable def skipScalar.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "typ"
   (Lam "b"
@@ -1143,7 +1147,7 @@ noncomputable def skipScalar.impl [GooseExts] [GoGlobalContext] : val :=
     at most DefaultRecursionLimit groups nested inside the outermost; an end-group tag that does
     not match, an end-group or reserved (6, 7) wire type, or malformed input is an error.
 
-    go: pbcodec.go:250:6 -/
+    go: pbcodec.go:266:6 -/
 noncomputable def SkipField.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "num"
   (Lam "typ"
@@ -1342,7 +1346,7 @@ noncomputable def SkipField.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- cont reports whether c is a UTF-8 continuation byte (0x80..0xbf).
 
-    go: pbcodec.go:290:6 -/
+    go: pbcodec.go:306:6 -/
 noncomputable def cont.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1359,7 +1363,7 @@ noncomputable def cont.impl [GooseExts] [GoGlobalContext] : val :=
 /-- ValidUTF8 reports whether b is valid UTF-8, as Go's unicode/utf8.Valid: no overlong
     encodings, no surrogates (U+D800..U+DFFF), nothing above U+10FFFF, nothing cut short.
 
-    go: pbcodec.go:296:6 -/
+    go: pbcodec.go:312:6 -/
 noncomputable def ValidUTF8.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1517,7 +1521,7 @@ noncomputable def ValidUTF8.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- ValidString reports whether s is valid UTF-8 (unicode/utf8.ValidString).
 
-    go: pbcodec.go:349:6 -/
+    go: pbcodec.go:365:6 -/
 noncomputable def ValidString.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1581,6 +1585,7 @@ attribute [instance] Error.TypeAssumptions.type_repr
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Error_instance : Error.TypeAssumptions
+  Stuck_unfold : FuncUnfold Stuck [] Stuck.impl
   SizeVarint_unfold : FuncUnfold SizeVarint [] SizeVarint.impl
   AppendVarint_unfold : FuncUnfold AppendVarint [] AppendVarint.impl
   AppendTag_unfold : FuncUnfold AppendTag [] AppendTag.impl
@@ -1607,6 +1612,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   ValidString_unfold : FuncUnfold ValidString [] ValidString.impl
 
 attribute [instance] Assumptions.Error_instance
+  Assumptions.Stuck_unfold
   Assumptions.SizeVarint_unfold
   Assumptions.AppendVarint_unfold
   Assumptions.AppendTag_unfold

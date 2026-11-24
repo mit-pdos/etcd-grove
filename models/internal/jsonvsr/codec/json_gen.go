@@ -11,7 +11,7 @@ import (
 
 // jsonMarshal is the codec's Marshal: v's encoding as real encoding/json's Marshal writes it,
 // for v nil, a value of one of the codec's types or a basic type, or a pointer to one; any
-// other v panics (NotModelled).
+// other v is stuck (not modelled: jsoncodec.Stuck).
 func jsonMarshal(v any) ([]byte, error) {
 	b, err := jencAny(make([]byte, 0), v, 0)
 	if err != nil {
@@ -23,7 +23,7 @@ func jsonMarshal(v any) ([]byte, error) {
 // jsonUnmarshal is the codec's Unmarshal: decodes data (one valid JSON value, whitespace
 // around it) into *v as real encoding/json's Unmarshal does, v a non-nil pointer to one of the
 // codec's types; real encoding/json's error for a nil pointer, a non-pointer of one of its
-// types, or nil; any other v panics (NotModelled).
+// types, or nil; any other v is stuck (not modelled: jsoncodec.Stuck).
 func jsonUnmarshal(data []byte, v any) error {
 	var err error
 	switch p := v.(type) {
@@ -187,7 +187,7 @@ func jsonUnmarshal(data []byte, v any) error {
 }
 
 // jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and
-// objects; a type the codec does not know panics (NotModelled).
+// objects; a type the codec does not know is stuck (not modelled: jsoncodec.Stuck).
 func jencAny(b []byte, v any, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
@@ -458,7 +458,7 @@ func jsonSetErr(e *error) {
 
 // jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it
 // encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that
-// and panics (NotModelled) on a pointer or slice nested that deep.
+// and is stuck (not modelled: jsoncodec.Stuck) on a pointer or slice nested that deep.
 const jsonCycleDepth uint64 = 1000
 
 // jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.
@@ -587,7 +587,7 @@ func jdecMember_events_Event(b []byte, i uint64, key string, p *events.Event, e 
 		return k
 	}
 	if key == "data" {
-		panic(jsoncodec.NotModelled("json model: decoding into an interface (any)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding into an interface (any)
 	}
 	if jsoncodec.FoldEq(key, "@type") {
 		var k uint64
@@ -601,7 +601,7 @@ func jdecMember_events_Event(b []byte, i uint64, key string, p *events.Event, e 
 		return k
 	}
 	if jsoncodec.FoldEq(key, "data") {
-		panic(jsoncodec.NotModelled("json model: decoding into an interface (any)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding into an interface (any)
 	}
 	return jsoncodec.ValueEnd(b, jsoncodec.SkipSpace(b, i))
 }
@@ -2185,7 +2185,7 @@ func jenc_S_log_Log(b []byte, v []log.Log, d uint64) ([]byte, error) {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a slice nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err
@@ -2220,7 +2220,7 @@ func jdec_S_log_Log(b []byte, i uint64, p *[]log.Log, e *error) uint64 {
 		return k
 	}
 	if *p != nil {
-		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding a non-empty array into a non-nil slice
 	}
 	s := make([]log.Log, 0)
 	for {

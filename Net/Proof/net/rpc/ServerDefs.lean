@@ -13,7 +13,7 @@ spec `Sm` of its method (`S m` for the service spec `S`): `NewArg()` returns a n
 `argv` with a decoding resource `D` and its decoding `argDec C argv D Sm Θ`: from `D`, the codec's
 `dec` into `argv` of the argument bytes `args` of a deposit `Sm args Φ` (which it keeps), not of
 every request body (a generated codec decodes only bytes of the argument's type: its `Decode`
-panics `rpcNotModelled` on another listed type's value, and it is the method's spec that says its
+is stuck (`rpcStuck`, not modelled) on another listed type's value, and it is the method's spec that says its
 deposits' arguments are of that type; the reader holds the request's deposit when it reads the
 body, `req_guard`); and, from the deposit `Sm args Φ` and a decoding of `args` into `argv`
 (`Θ args true`), the call obligation `callObl`: `NewReply()` returns a `replyv`, and `Call(rcvr, argv, replyv)` returns

@@ -14,7 +14,7 @@ import (
 
 // jsonMarshal is the codec's Marshal: v's encoding as real encoding/json's Marshal writes it,
 // for v nil, a value of one of the codec's types or a basic type, or a pointer to one; any
-// other v panics (NotModelled).
+// other v is stuck (not modelled: jsoncodec.Stuck).
 func jsonMarshal(v any) ([]byte, error) {
 	b, err := jencAny(make([]byte, 0), v, 0)
 	if err != nil {
@@ -26,7 +26,7 @@ func jsonMarshal(v any) ([]byte, error) {
 // jsonUnmarshal is the codec's Unmarshal: decodes data (one valid JSON value, whitespace
 // around it) into *v as real encoding/json's Unmarshal does, v a non-nil pointer to one of the
 // codec's types; real encoding/json's error for a nil pointer, a non-pointer of one of its
-// types, or nil; any other v panics (NotModelled).
+// types, or nil; any other v is stuck (not modelled: jsoncodec.Stuck).
 func jsonUnmarshal(data []byte, v any) error {
 	var err error
 	switch p := v.(type) {
@@ -208,7 +208,7 @@ func jsonUnmarshal(data []byte, v any) error {
 }
 
 // jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and
-// objects; a type the codec does not know panics (NotModelled).
+// objects; a type the codec does not know is stuck (not modelled: jsoncodec.Stuck).
 func jencAny(b []byte, v any, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
@@ -473,7 +473,7 @@ func jsonSetErr(e *error) {
 
 // jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it
 // encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that
-// and panics (NotModelled) on a pointer or slice nested that deep.
+// and is stuck (not modelled: jsoncodec.Stuck) on a pointer or slice nested that deep.
 const jsonCycleDepth uint64 = 1000
 
 // jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.
@@ -527,7 +527,7 @@ func jenc_S_string(b []byte, v []string, d uint64) ([]byte, error) {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a slice nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err
@@ -559,7 +559,7 @@ func jdec_S_string(b []byte, i uint64, p *[]string, e *error) uint64 {
 		return k
 	}
 	if *p != nil {
-		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding a non-empty array into a non-nil slice
 	}
 	s := make([]string, 0)
 	for {
@@ -1181,7 +1181,7 @@ func jenc_P_membership_Member(b []byte, v *membership.Member, d uint64) ([]byte,
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a pointer nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a pointer nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err
@@ -1215,7 +1215,7 @@ func jenc_S_P_membership_Member(b []byte, v []*membership.Member, d uint64) ([]b
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a slice nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err
@@ -1250,7 +1250,7 @@ func jdec_S_P_membership_Member(b []byte, i uint64, p *[]*membership.Member, e *
 		return k
 	}
 	if *p != nil {
-		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding a non-empty array into a non-nil slice
 	}
 	s := make([]*membership.Member, 0)
 	for {
@@ -1504,7 +1504,7 @@ func jenc_S_uint64(b []byte, v []uint64, d uint64) ([]byte, error) {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a slice nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err
@@ -1536,7 +1536,7 @@ func jdec_S_uint64(b []byte, i uint64, p *[]uint64, e *error) uint64 {
 		return k
 	}
 	if *p != nil {
-		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding a non-empty array into a non-nil slice
 	}
 	s := make([]uint64, 0)
 	for {
@@ -1566,7 +1566,7 @@ func jenc_P_bool(b []byte, v *bool, d uint64) ([]byte, error) {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a pointer nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a pointer nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err
@@ -2049,7 +2049,7 @@ func jenc_P_etcdserverpb_ResponseHeader(b []byte, v *etcdserverpb.ResponseHeader
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a pointer nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a pointer nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err

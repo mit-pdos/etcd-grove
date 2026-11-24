@@ -12,7 +12,7 @@ of every wire type including nested groups, repeated and reordered fields, packe
 encodings, wrong wire types, overlong varints, bad field numbers, invalid UTF-8;
 TestProtoMutations), of every field number with values of every wire type (TestProtoFields), at
 and past the recursion limits (TestProtoDepth), error-or-not and, on success, the value (unknown
-fields aside); the panics (TestProtoPanics). The counts of random values scale with the
+fields aside); the panics, and the codec blocking outside its types (TestProtoPanics). The counts of random values scale with the
 environment variable PBGEN_TEST_SCALE (a float, default 1).
 """
 
@@ -1038,8 +1038,36 @@ func pbPanics(f func()) (p bool) {
 	return false
 }
 
-// TestProtoPanics: Unmarshal into a nil *T panics, as the real one does; the codec panics on a
-// value outside the codec types.
+// pbStuck runs f in a goroutine of its own and reports whether it blocked forever in an empty
+// select (a model's not-modelled point, models/README.md) rather than returning or panicking: that
+// goroutine's state in the runtime's goroutine dump. A stuck goroutine is never released.
+func pbStuck(f func()) bool {
+	ids := make(chan string, 1)
+	done := make(chan struct{})
+	go func() {
+		var b [64]byte
+		ids <- strings.Fields(string(b[:runtime.Stack(b[:], false)]))[1]
+		defer close(done)
+		defer func() { recover() }()
+		f()
+	}()
+	needle := "goroutine " + <-ids + " [select (no cases)"
+	for start := time.Now(); time.Since(start) < time.Minute; {
+		select {
+		case <-done:
+			return false
+		case <-time.After(time.Millisecond):
+		}
+		b := make([]byte, 1<<20)
+		if strings.Contains(string(b[:runtime.Stack(b, true)]), needle) {
+			return true
+		}
+	}
+	panic("pbStuck: f neither returned nor blocked in an empty select")
+}
+
+// TestProtoPanics: Unmarshal into a nil *T panics, as the real one does; outside the codec types
+// the codec blocks forever (not modelled; the methods' test helper pbModelOf panics instead).
 func TestProtoPanics(t *testing.T) {
 	for _, tp := range pbTypes() {
 		for _, data := range [][]byte{nil, {8, 1}} {
@@ -1058,8 +1086,12 @@ func TestProtoPanics(t *testing.T) {
 			}
 			continue
 		}
-		if !pbPanics(func() { pbMarshal(v) }) || !pbPanics(func() { pbUnmarshal(nil, v) }) {
-			t.Fatalf("the codec does not panic on %#v", v)
+		if pbExact {
+			if !pbPanics(func() { pbMarshal(v) }) || !pbPanics(func() { pbUnmarshal(nil, v) }) {
+				t.Fatalf("pbModelOf does not panic on %#v", v)
+			}
+		} else if !pbStuck(func() { pbMarshal(v) }) || !pbStuck(func() { pbUnmarshal(nil, v) }) {
+			t.Fatalf("the codec does not block on %#v", v)
 		}
 	}
 }
@@ -1070,10 +1102,11 @@ def gen_test_go(P, header, go_name, names=None, pbmodel=False):
     """pb_gen_test.go: the tests against the real module (real builds only); with pbmodel, those
     of the same-package methods of `names` (pbmodel_gen_test.go, in the external test package
     go_name, which is `<package>_test`)."""
-    std = ['\t"bytes"', '\t"math"', '\t"math/rand"', '\t"os"', '\t"reflect"', '\t"strconv"', '\t"strings"']
+    std = ['\t"bytes"', '\t"math"', '\t"math/rand"', '\t"os"', '\t"reflect"', '\t"runtime"', '\t"strconv"',
+           '\t"strings"']
     if pbmodel:
         std += ['\t"sync"', '\t"sync/atomic"']
-    std += ['\t"testing"']
+    std += ['\t"testing"', '\t"time"']
     if pbmodel:
         std += ['\t"unsafe"']
     tag = "//go:build pbmodel && !goose\n" if pbmodel else "//go:build !rpcmodel && !goose\n"
@@ -1168,6 +1201,9 @@ type pbModelMsg interface {
 	PbModelClone() interface{}
 	PbModelIsInit() bool
 	PbModelIsNil() bool
+	PbModelReset()
+	PbModelSelf() interface{}
+	PbModelMerge(src interface{}) bool
 }
 
 func pbModelOf(m interface{}) pbModelMsg {
@@ -1386,6 +1422,78 @@ func TestPbModelSizeClone(t *testing.T) {
 		n++
 	}
 	t.Logf("%d Size and Clone comparisons", n)
+}
+
+// TestPbModelMergeReset: Merge, Reset and CheckInitialized, by real protobuf-go and by the
+// methods on twins: Merge of a random source into a random destination of the same type (typed
+// nil sources and the destination itself included; a nil destination panics in both), the
+// destination compared strictly
+// (exported fields with nil-ness, unknown fields, proto.Equal) and the source unchanged; Reset,
+// the message compared strictly and its cache 0; CheckInitialized's error-or-not against
+// PbModelIsInit (typed nils included). A source of another type: PbModelMerge false, nothing
+// changed (protobuf-go panics, a descriptor mismatch; the model blocks there).
+func TestPbModelMergeReset(t *testing.T) {
+	r := rand.New(rand.NewSource(19))
+	types := pbTypes()
+	samples := pbSamples(r, 200)
+	n := 0
+	for _, tp := range types {
+		nilm := pbNil(tp.new())
+		if (proto.CheckInitialized(nilm) == nil) != pbModelOf(nilm).PbModelIsInit() {
+			t.Fatalf("%s: CheckInitialized of a typed nil", tp.name)
+		}
+		d1, d2 := tp.new(), tp.new()
+		if pbPanics(func() { proto.Merge(nilm, d1) }) != pbPanics(func() { pbModelOf(nilm).PbModelMerge(pbModelOf(d2).PbModelSelf()) }) {
+			t.Fatalf("%s: Merge into a typed nil", tp.name)
+		}
+		for _, other := range types {
+			if other.name != tp.name && pbModelOf(d2).PbModelMerge(pbModelOf(other.new()).PbModelSelf()) {
+				t.Fatalf("%s: PbModelMerge from a %s", tp.name, other.name)
+			}
+		}
+	}
+	for it := 0; it < pbScaled(3000); it++ {
+		tp := types[r.Intn(len(types))]
+		a, b := pbTwin(r, tp, samples)
+		sa, sb := pbTwin(r, tp, samples)
+		if r.Intn(8) == 0 {
+			sa, sb = pbNil(sa), pbNil(sb)
+		}
+		if (proto.CheckInitialized(a) == nil) != pbModelOf(b).PbModelIsInit() {
+			t.Fatalf("%s: CheckInitialized: real %v, methods %v\n%v", tp.name, proto.CheckInitialized(a),
+				pbModelOf(b).PbModelIsInit(), a)
+		}
+		switch r.Intn(3) {
+		case 2: // a message merged into itself (its repeated fields doubled, as protobuf-go's)
+			proto.Merge(a, a)
+			if !pbModelOf(b).PbModelMerge(pbModelOf(b).PbModelSelf()) {
+				t.Fatalf("%s: PbModelMerge from itself", tp.name)
+			}
+			if !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) || !pbUnknownEq(a, b) || !proto.Equal(a, b) {
+				t.Fatalf("%s: Merge into itself:\n real    %v\n methods %v", tp.name, a, b)
+			}
+		case 0:
+			proto.Merge(a, sa)
+			if !pbModelOf(b).PbModelMerge(pbModelOf(sb).PbModelSelf()) {
+				t.Fatalf("%s: PbModelMerge from its own type", tp.name)
+			}
+			if !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) || !pbUnknownEq(a, b) || !proto.Equal(a, b) {
+				t.Fatalf("%s: Merge:\n real    %v\n methods %v", tp.name, a, b)
+			}
+			if !pbEq(reflect.ValueOf(sa), reflect.ValueOf(sb)) || !pbUnknownEq(sa, sb) {
+				t.Fatalf("%s: Merge changed its source", tp.name)
+			}
+		case 1:
+			proto.Reset(a)
+			pbModelOf(b).PbModelReset()
+			if !pbEq(reflect.ValueOf(a), reflect.ValueOf(b)) || !pbUnknownEq(a, b) || !proto.Equal(a, b) ||
+				atomic.LoadInt32(pbSC(a)) != 0 || atomic.LoadInt32(pbSC(b)) != 0 {
+				t.Fatalf("%s: Reset:\n real    %v\n methods %v", tp.name, a, b)
+			}
+		}
+		n++
+	}
+	t.Logf("%d Merge, Reset and CheckInitialized comparisons", n)
 }
 
 // pbShare: sometimes makes a sub-message reachable twice (a DAG, never a cycle): a message

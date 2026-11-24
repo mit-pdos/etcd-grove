@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+
+	"models.lab/internal/stuck"
 )
 
 // The encoding/json model's per-type dispatch (models/encoding/json/model.go): the same literals in
@@ -72,22 +74,18 @@ func TestDispatchUnmarshal(t *testing.T) {
 }
 
 // Wrap has Rec's methods by promotion: real encoding/json encodes it by its own structure; the model
-// reaches Rec's methods, which are not modelled there (a panic whose value has a NotModelled method).
+// reaches Rec's methods, which are not modelled there (stuck: jsoncodec.Stuck, which blocks in Go).
 func TestDispatchPromoted(t *testing.T) {
 	w := Wrap{Rec: Rec{ID: 3}, Extra: 4}
 	var got []byte
-	var p any
-	func() {
-		defer func() { p = recover() }()
-		got, _ = json.Marshal(w)
-	}()
+	o, p := stuck.Run(func() { got, _ = json.Marshal(w) })
 	if !modelBuild {
-		if p != nil || string(got) != `{"id":3,"name":"","extra":4}` {
-			t.Fatalf("real Marshal(Wrap) = %s, %v", got, p)
+		if o != stuck.Returned || string(got) != `{"id":3,"name":"","extra":4}` {
+			t.Fatalf("real Marshal(Wrap) = %s, %v %v", got, o, p)
 		}
 		return
 	}
-	if _, ok := p.(interface{ NotModelled() }); !ok {
-		t.Fatalf("model Marshal(Wrap): %s, panic %v (want not modelled)", got, p)
+	if o != stuck.Stuck {
+		t.Fatalf("model Marshal(Wrap): %s, %v %v (want stuck: not modelled)", got, o, p)
 	}
 }

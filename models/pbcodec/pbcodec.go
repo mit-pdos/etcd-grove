@@ -15,6 +15,22 @@
 // proto.Unmarshal by each generated codec's test (pb_gen_test.go).
 package pbcodec
 
+// Stuck is the model's not-modelled point (MODEL: not in protobuf-go; models/README.md, "Not modelled:
+// stuck"): where the model does not model protobuf-go's behavior it calls Stuck (after a comment
+// `MODEL: not modelled (stuck): ...`), which has no behavior. Its Lean model is Perennial's
+// internal/gomodel.Stuck, `Panic "not modelled"`: a stuck panic, which no recover catches and no
+// WP rule steps, so a proof of the program shows that it never gets here. Not a value panic, which
+// a program could recover and so observe a behavior protobuf-go does not have; not a bare `select {}`,
+// whose WP has the precondition True and so would prove anything after it. Its Go body blocks
+// forever, which the tests detect (models/internal/stuck).
+//
+// For the codecs pbgen.py generates in codec mode (their not-modelled points: a value of a type the
+// codec was not generated for), which call it. Lean: Net/Code/models_lab/pbcodec.toml (trusted),
+// Net/TrustedCode/models_lab/pbcodec.lean.
+func Stuck() {
+	select {}
+}
+
 // Wire types (protowire.Type).
 const (
 	VarintType     uint64 = 0

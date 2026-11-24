@@ -14,11 +14,12 @@ import (
 // The resulting message shares no observable memory with its previous state
 // other than the memory for the message itself.
 func Reset(m Message) {
-	if mr, ok := m.(interface{ Reset() }); ok && hasProtoMethods {
-		mr.Reset()
-		return
-	}
-	resetMessage(m.ProtoReflect())
+	// MODEL: the message's generated method (model.go) in place of m.Reset() (the fast path: every
+	// message of the model is protoc-gen-go's, with a Reset method, and hasProtoMethods holds):
+	// protoc-gen-go's Reset, `*m = T{}` (a nil *T panics, a nil dereference). A nil interface
+	// (protobuf-go: a nil dereference, m.ProtoReflect()) and a type without the methods are not
+	// modelled.
+	modelOf(m).PbModelReset()
 }
 
 func resetMessage(m protoreflect.Message) {

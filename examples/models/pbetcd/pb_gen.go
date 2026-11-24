@@ -30,9 +30,11 @@ import (
 //     winning), or an error where the real one errs (malformed input, a field number 0 or above
 //     2^29-1, invalid UTF-8 in a proto3 string field, messages nested deeper than 10000, a
 //     required field missing). Unknown fields are checked and skipped (the real one keeps them
-//     in the message: the model does not). A nil *T panics, as the real one does.
-//   - Any other value (another type, a non-pointer, a nil interface) panics: outside the
-//     subset.
+//     in the message: the model does not). A nil *T panics, a nil dereference, as the real
+//     one does.
+//   - Any other value (another type, a non-pointer, a nil interface) is stuck (pbcodec.Stuck):
+//     outside the subset, not modelled (models/README.md, "Not modelled: stuck": no behavior,
+//     which a proof of the program shows is never reached).
 //
 // Only error-or-not is modeled, not the error values.
 
@@ -670,644 +672,506 @@ func pbMarshal(m interface{}) ([]byte, error) {
 		}
 		return b, nil
 	}
-	panic("protobuf model: marshaling a value of a type the codec was not generated for")
+	pbcodec.Stuck() // MODEL: not modelled (stuck): marshaling a value of a type the codec was not generated for
+	return nil, nil // (not reached: Stuck does not return)
 }
 
 // pbUnmarshal is the codec's Unmarshal.
 func pbUnmarshal(b []byte, m interface{}) error {
 	switch p := m.(type) {
 	case *authpb.Permission:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = authpb.Permission{}
 		if !pbdec_authpb_Permission(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *authpb.Role:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = authpb.Role{}
 		if !pbdec_authpb_Role(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *authpb.User:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = authpb.User{}
 		if !pbdec_authpb_User(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *authpb.UserAddOptions:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = authpb.UserAddOptions{}
 		if !pbdec_authpb_UserAddOptions(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AlarmRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AlarmRequest{}
 		if !pbdec_etcdserverpb_AlarmRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthDisableRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthDisableRequest{}
 		if !pbdec_etcdserverpb_AuthDisableRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthEnableRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthEnableRequest{}
 		if !pbdec_etcdserverpb_AuthEnableRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthRoleAddRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthRoleAddRequest{}
 		if !pbdec_etcdserverpb_AuthRoleAddRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthRoleDeleteRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthRoleDeleteRequest{}
 		if !pbdec_etcdserverpb_AuthRoleDeleteRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthRoleGetRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthRoleGetRequest{}
 		if !pbdec_etcdserverpb_AuthRoleGetRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthRoleGrantPermissionRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthRoleGrantPermissionRequest{}
 		if !pbdec_etcdserverpb_AuthRoleGrantPermissionRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthRoleListRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthRoleListRequest{}
 		if !pbdec_etcdserverpb_AuthRoleListRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthRoleRevokePermissionRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthRoleRevokePermissionRequest{}
 		if !pbdec_etcdserverpb_AuthRoleRevokePermissionRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthStatusRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthStatusRequest{}
 		if !pbdec_etcdserverpb_AuthStatusRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthUserAddRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthUserAddRequest{}
 		if !pbdec_etcdserverpb_AuthUserAddRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthUserChangePasswordRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthUserChangePasswordRequest{}
 		if !pbdec_etcdserverpb_AuthUserChangePasswordRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthUserDeleteRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthUserDeleteRequest{}
 		if !pbdec_etcdserverpb_AuthUserDeleteRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthUserGetRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthUserGetRequest{}
 		if !pbdec_etcdserverpb_AuthUserGetRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthUserGrantRoleRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthUserGrantRoleRequest{}
 		if !pbdec_etcdserverpb_AuthUserGrantRoleRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthUserListRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthUserListRequest{}
 		if !pbdec_etcdserverpb_AuthUserListRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.AuthUserRevokeRoleRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.AuthUserRevokeRoleRequest{}
 		if !pbdec_etcdserverpb_AuthUserRevokeRoleRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.CompactionRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.CompactionRequest{}
 		if !pbdec_etcdserverpb_CompactionRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.Compare:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.Compare{}
 		if !pbdec_etcdserverpb_Compare(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.DeleteRangeRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.DeleteRangeRequest{}
 		if !pbdec_etcdserverpb_DeleteRangeRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.DeleteRangeResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.DeleteRangeResponse{}
 		if !pbdec_etcdserverpb_DeleteRangeResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.DowngradeVersionTestRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.DowngradeVersionTestRequest{}
 		if !pbdec_etcdserverpb_DowngradeVersionTestRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.InternalAuthenticateRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.InternalAuthenticateRequest{}
 		if !pbdec_etcdserverpb_InternalAuthenticateRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.InternalRaftRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.InternalRaftRequest{}
 		if !pbdec_etcdserverpb_InternalRaftRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.LeaseCheckpoint:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.LeaseCheckpoint{}
 		if !pbdec_etcdserverpb_LeaseCheckpoint(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.LeaseCheckpointRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.LeaseCheckpointRequest{}
 		if !pbdec_etcdserverpb_LeaseCheckpointRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.LeaseGrantRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.LeaseGrantRequest{}
 		if !pbdec_etcdserverpb_LeaseGrantRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.LeaseGrantResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.LeaseGrantResponse{}
 		if !pbdec_etcdserverpb_LeaseGrantResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.LeaseRevokeRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.LeaseRevokeRequest{}
 		if !pbdec_etcdserverpb_LeaseRevokeRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.LeaseTimeToLiveResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.LeaseTimeToLiveResponse{}
 		if !pbdec_etcdserverpb_LeaseTimeToLiveResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.Member:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.Member{}
 		if !pbdec_etcdserverpb_Member(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.MemberListResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.MemberListResponse{}
 		if !pbdec_etcdserverpb_MemberListResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.Metadata:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.Metadata{}
 		if !pbdec_etcdserverpb_Metadata(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.PutRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.PutRequest{}
 		if !pbdec_etcdserverpb_PutRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.PutResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.PutResponse{}
 		if !pbdec_etcdserverpb_PutResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.RangeRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.RangeRequest{}
 		if !pbdec_etcdserverpb_RangeRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.RangeResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.RangeResponse{}
 		if !pbdec_etcdserverpb_RangeResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.RequestHeader:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.RequestHeader{}
 		if !pbdec_etcdserverpb_RequestHeader(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.RequestOp:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.RequestOp{}
 		if !pbdec_etcdserverpb_RequestOp(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.ResponseHeader:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.ResponseHeader{}
 		if !pbdec_etcdserverpb_ResponseHeader(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.ResponseOp:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.ResponseOp{}
 		if !pbdec_etcdserverpb_ResponseOp(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.TxnRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.TxnRequest{}
 		if !pbdec_etcdserverpb_TxnRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.TxnResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.TxnResponse{}
 		if !pbdec_etcdserverpb_TxnResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.WatchCancelRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.WatchCancelRequest{}
 		if !pbdec_etcdserverpb_WatchCancelRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.WatchCreateRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.WatchCreateRequest{}
 		if !pbdec_etcdserverpb_WatchCreateRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.WatchProgressRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.WatchProgressRequest{}
 		if !pbdec_etcdserverpb_WatchProgressRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.WatchRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.WatchRequest{}
 		if !pbdec_etcdserverpb_WatchRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *etcdserverpb.WatchResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = etcdserverpb.WatchResponse{}
 		if !pbdec_etcdserverpb_WatchResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *leasepb.Lease:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = leasepb.Lease{}
 		if !pbdec_leasepb_Lease(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *membershippb.Attributes:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = membershippb.Attributes{}
 		if !pbdec_membershippb_Attributes(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *membershippb.ClusterMemberAttrSetRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = membershippb.ClusterMemberAttrSetRequest{}
 		if !pbdec_membershippb_ClusterMemberAttrSetRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *membershippb.ClusterVersionSetRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = membershippb.ClusterVersionSetRequest{}
 		if !pbdec_membershippb_ClusterVersionSetRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *membershippb.DowngradeInfoSetRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = membershippb.DowngradeInfoSetRequest{}
 		if !pbdec_membershippb_DowngradeInfoSetRequest(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *mvccpb.Event:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = mvccpb.Event{}
 		if !pbdec_mvccpb_Event(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *mvccpb.KeyValue:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = mvccpb.KeyValue{}
 		if !pbdec_mvccpb_KeyValue(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.ConfChange:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.ConfChange{}
 		if !pbdec_raftpb_ConfChange(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.ConfChangeSingle:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.ConfChangeSingle{}
 		if !pbdec_raftpb_ConfChangeSingle(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.ConfChangeV2:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.ConfChangeV2{}
 		if !pbdec_raftpb_ConfChangeV2(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.ConfState:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.ConfState{}
 		if !pbdec_raftpb_ConfState(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.Entry:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.Entry{}
 		if !pbdec_raftpb_Entry(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.HardState:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.HardState{}
 		if !pbdec_raftpb_HardState(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.Message:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.Message{}
 		if !pbdec_raftpb_Message(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.Snapshot:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.Snapshot{}
 		if !pbdec_raftpb_Snapshot(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *raftpb.SnapshotMetadata:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = raftpb.SnapshotMetadata{}
 		if !pbdec_raftpb_SnapshotMetadata(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *walpb.Record:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = walpb.Record{}
 		if !pbdec_walpb_Record(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	case *walpb.Snapshot:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
+		// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does
 		*p = walpb.Snapshot{}
 		if !pbdec_walpb_Snapshot(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
 	}
-	panic("protobuf model: unmarshaling into a value of a type the codec was not generated for")
+	pbcodec.Stuck() // MODEL: not modelled (stuck): unmarshaling into a value of a type the codec was not generated for
+	return nil // (not reached: Stuck does not return)
 }
 
 // pbenc_authpb_Permission appends the encoding of *m's fields (real proto.Marshal's: the fields in no

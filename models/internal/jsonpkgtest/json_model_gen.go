@@ -13,7 +13,7 @@ import (
 func (jr Rec) JSONModelMarshal(v any) ([]byte, error) {
 	x, ok := v.(Rec)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelMarshal of a value of another type than Rec (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelMarshal of a value of another type than Rec (a method promoted through embedding)
 	}
 	b, err := jenc_Rec(make([]byte, 0), x, 0)
 	if err != nil {
@@ -26,7 +26,7 @@ func (jr Rec) JSONModelMarshal(v any) ([]byte, error) {
 func (jr *Rec) JSONModelMarshalPtr(v any) ([]byte, error) {
 	x, ok := v.(*Rec)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelMarshalPtr of a value of another type than Rec (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelMarshalPtr of a value of another type than Rec (a method promoted through embedding)
 	}
 	if x == nil {
 		return jsoncodec.AppendRaw(make([]byte, 0), "null"), nil
@@ -44,7 +44,7 @@ func (jr *Rec) JSONModelMarshalPtr(v any) ([]byte, error) {
 func (jr *Rec) JSONModelUnmarshal(data []byte, v any) error {
 	p, ok := v.(*Rec)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelUnmarshal of a value of another type than Rec (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelUnmarshal of a value of another type than Rec (a method promoted through embedding)
 	}
 	if !jsoncodec.Valid(data) {
 		return &jsoncodec.Error{Msg: "invalid JSON input"}
@@ -62,7 +62,7 @@ func (jr *Rec) JSONModelUnmarshal(data []byte, v any) error {
 func (jr Ctx) JSONModelMarshal(v any) ([]byte, error) {
 	x, ok := v.(Ctx)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelMarshal of a value of another type than Ctx (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelMarshal of a value of another type than Ctx (a method promoted through embedding)
 	}
 	b, err := jenc_Ctx(make([]byte, 0), x, 0)
 	if err != nil {
@@ -75,7 +75,7 @@ func (jr Ctx) JSONModelMarshal(v any) ([]byte, error) {
 func (jr *Ctx) JSONModelMarshalPtr(v any) ([]byte, error) {
 	x, ok := v.(*Ctx)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelMarshalPtr of a value of another type than Ctx (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelMarshalPtr of a value of another type than Ctx (a method promoted through embedding)
 	}
 	if x == nil {
 		return jsoncodec.AppendRaw(make([]byte, 0), "null"), nil
@@ -93,7 +93,7 @@ func (jr *Ctx) JSONModelMarshalPtr(v any) ([]byte, error) {
 func (jr *Ctx) JSONModelUnmarshal(data []byte, v any) error {
 	p, ok := v.(*Ctx)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelUnmarshal of a value of another type than Ctx (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelUnmarshal of a value of another type than Ctx (a method promoted through embedding)
 	}
 	if !jsoncodec.Valid(data) {
 		return &jsoncodec.Error{Msg: "invalid JSON input"}
@@ -111,7 +111,7 @@ func (jr *Ctx) JSONModelUnmarshal(data []byte, v any) error {
 func (jr token) JSONModelMarshal(v any) ([]byte, error) {
 	x, ok := v.(token)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelMarshal of a value of another type than token (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelMarshal of a value of another type than token (a method promoted through embedding)
 	}
 	b, err := jenc_token(make([]byte, 0), x, 0)
 	if err != nil {
@@ -124,7 +124,7 @@ func (jr token) JSONModelMarshal(v any) ([]byte, error) {
 func (jr *token) JSONModelMarshalPtr(v any) ([]byte, error) {
 	x, ok := v.(*token)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelMarshalPtr of a value of another type than token (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelMarshalPtr of a value of another type than token (a method promoted through embedding)
 	}
 	if x == nil {
 		return jsoncodec.AppendRaw(make([]byte, 0), "null"), nil
@@ -142,7 +142,7 @@ func (jr *token) JSONModelMarshalPtr(v any) ([]byte, error) {
 func (jr *token) JSONModelUnmarshal(data []byte, v any) error {
 	p, ok := v.(*token)
 	if !ok {
-		panic(jsoncodec.NotModelled("json model: JSONModelUnmarshal of a value of another type than token (a method promoted through embedding)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: JSONModelUnmarshal of a value of another type than token (a method promoted through embedding)
 	}
 	if !jsoncodec.Valid(data) {
 		return &jsoncodec.Error{Msg: "invalid JSON input"}
@@ -156,7 +156,7 @@ func (jr *token) JSONModelUnmarshal(data []byte, v any) error {
 }
 
 // jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and
-// objects; a type the codec does not know panics (NotModelled).
+// objects; a type the codec does not know is stuck (not modelled: jsoncodec.Stuck).
 func jencAny(b []byte, v any, d uint64) ([]byte, error) {
 	if v == nil {
 		return jsoncodec.AppendRaw(b, "null"), nil
@@ -287,7 +287,8 @@ func jencAny(b []byte, v any, d uint64) ([]byte, error) {
 		}
 		return jenc_token(b, *x, d)
 	}
-	panic(jsoncodec.NotModelled("json model: encoding a value of a type the codec does not know"))
+	jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: encoding a value of a type the codec does not know
+	return nil, nil   // (not reached)
 }
 
 func jencBoolPtr(b []byte, x *bool) []byte {
@@ -348,7 +349,7 @@ func jsonSetErr(e *error) {
 
 // jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it
 // encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that
-// and panics (NotModelled) on a pointer or slice nested that deep.
+// and is stuck (not modelled: jsoncodec.Stuck) on a pointer or slice nested that deep.
 const jsonCycleDepth uint64 = 1000
 
 // jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.
@@ -402,7 +403,7 @@ func jenc_S_string(b []byte, v []string, d uint64) ([]byte, error) {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a slice nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a slice nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err
@@ -434,7 +435,7 @@ func jdec_S_string(b []byte, i uint64, p *[]string, e *error) uint64 {
 		return k
 	}
 	if *p != nil {
-		panic(jsoncodec.NotModelled("json model: decoding a non-empty array into a non-nil slice"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding a non-empty array into a non-nil slice
 	}
 	s := make([]string, 0)
 	for {
@@ -582,7 +583,7 @@ func jenc_P_Attrs(b []byte, v *Attrs, d uint64) ([]byte, error) {
 		return jsoncodec.AppendRaw(b, "null"), nil
 	}
 	if d >= jsonCycleDepth {
-		panic(jsoncodec.NotModelled("json model: a pointer nested 1000 deep (encoding/json's cycle detection)"))
+		jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: a pointer nested 1000 deep (encoding/json's cycle detection)
 	}
 	var err error
 	_ = err

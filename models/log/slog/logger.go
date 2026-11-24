@@ -34,14 +34,14 @@ func (l *Logger) Handler() Handler { return l.handler }
 
 // New creates a new Logger with the given non-nil Handler.
 //
-// MODEL: a handler other than DiscardHandler panics with a NotModelled value (after Go's nil
+// MODEL: a handler other than DiscardHandler is stuck, not modelled (after Go's nil
 // check), so a Logger's handler is DiscardHandler or, in a zero Logger, nil: Go's own values.
 func New(h Handler) *Logger {
 	if h == nil {
 		panic("nil Handler")
 	}
 	if _, ok := h.(discardHandler); !ok {
-		panic(notModelled{"a Handler other than DiscardHandler"})
+		stuck() // MODEL: not modelled (stuck): a Handler other than DiscardHandler
 	}
 	return &Logger{handler: h}
 }

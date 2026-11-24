@@ -33,7 +33,15 @@ func rpcReceiver(rcvr any) *rpcmodel.Receiver {
 			"Ping":        {NewArg: rpcNewArg_r1_Ping, NewReply: rpcNewReply_r1_Ping, Call: rpcCall_r1_Ping},
 		}}
 	}
-	panic(rpcNotModelled("net/rpc model: Register of a receiver of a type the codec does not list"))
+	rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Register of a receiver of a type the codec does not list
+	return nil // (not reached: rpcStuck does not return)
+}
+
+// rpcStuck is the codec's not-modelled point: the net/rpc model's Stuck, which has no behavior
+// (its Lean model is Perennial's stuck `Panic "not modelled"`; models/README.md, "Not modelled:
+// stuck").
+func rpcStuck() {
+	rpcmodel.Stuck()
 }
 
 func rpcNewArg_r0_GetLeader() any {

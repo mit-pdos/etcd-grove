@@ -16,17 +16,6 @@ noncomputable section
 
 namespace net.http
 
-class tLogKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying tLogKey.underlying tLogKey
-  underlying : go.UnderlyingDirectedEq tLogKey.ty tLogKey.underlying
-  method_set : go.MethodSetIs tLogKey.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tLogKey.ty) []
-
-attribute [instance] tLogKey.TypeAssumptions.type_repr
-  tLogKey.TypeAssumptions.underlying
-  tLogKey.TypeAssumptions.method_set
-  tLogKey.TypeAssumptions.ptr_method_set
-
 class bodyEOFSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bodyEOFSignal.underlying bodyEOFSignal
   underlying : go.UnderlyingDirectedEq bodyEOFSignal.ty bodyEOFSignal.underlying

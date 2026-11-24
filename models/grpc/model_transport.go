@@ -26,7 +26,7 @@ package grpc
 // has not read yet: only timing and memory differ); HPACK, settings, pings, keepalive, GOAWAY
 // (a GOAWAY's effect on a stream, refusal before dispatch or the end of an idle connection, is
 // kept: a REFUSED_STREAM reset, and a connection serves one stream); compression (a compressor is outside
-// the model: setting one panics).
+// the model: setting one is stuck).
 
 import (
 	"context"
@@ -89,7 +89,7 @@ type connectOptions struct {
 	ReadBufferSize         int
 	SharedWriteBuffer      bool
 	MaxHeaderListSize      *uint32
-	// MODEL: no BufferPool field (the default pool; withBufferPool panics)
+	// MODEL: no BufferPool field (the default pool; withBufferPool is stuck)
 	StaticWindowSize bool
 }
 

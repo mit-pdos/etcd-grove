@@ -3,13 +3,13 @@
 // Package http here is a model of Go 1.27.3's net/http (models/README.md): Go's code, but for the
 // parts this file and the places marked MODEL replace. The claim (trusted): every behavior of Go's
 // net/http, as the program observes it, is a behavior of this model; where the model does not
-// model Go's behavior it panics ("net/http model: ..."), so that a proof that the program does not
-// panic shows it never gets there. What is replaced:
+// model Go's behavior it calls stuck, which has no behavior (below; models/README.md, "Not
+// modelled: stuck"), so that a proof of the program shows it never gets there. What is replaced:
 //
 //   - The HTTP/1.x message head parser (Go's net/textproto Reader: ReadLine and readMIMEHeader, as
 //     ReadRequest, the server's request reading and ReadResponse call them) is this file's
 //     modelReadLine and modelReadMIMEHeader, which return what textproto's return on the heads they
-//     accept, and panic on the others: a header continuation line (obsolete line folding) and a
+//     accept, and are stuck on the others: a header continuation line (obsolete line folding) and a
 //     header line whose name holds a space (Go accepts it, uncanonicalized). On a malformed line
 //     they return textproto's error (a textproto.ProtocolError with its message).
 //   - url.ParseRequestURI, which readRequest calls on a request's URI, is modelParseRequestURI:
@@ -21,11 +21,11 @@
 //     translates as a name only) as modelIndexByte, and tokenEqual's range over a string's runes as
 //     one over its bytes.
 //   - Chunked message bodies (transfer.go: a request or response with Transfer-Encoding chunked)
-//     are not modelled: reading one panics. Content-Length bodies, bodies to the end of the
+//     are not modelled: reading one is stuck. Content-Length bodies, bodies to the end of the
 //     connection, and no body are Go's code.
 //   - TLS and HTTP/2 serving (server.go, conn.serve: a connection that is a TLS connection, and
-//     unencrypted HTTP/2 when the Server enables it) are not modelled: serving one panics.
-//   - The client's Transport (transport.go, roundTrip) is not modelled: a round trip panics. (The
+//     unencrypted HTTP/2 when the Server enables it) are not modelled: serving one is stuck.
+//   - The client's Transport (transport.go, roundTrip) is not modelled: a round trip is stuck. (The
 //     Client's own code, redirects and cookies, is Go's.)
 //
 // Everything else is Go's code: the server's connection loop (conn.serve, the background read that
@@ -48,14 +48,19 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
-// notModelled is the value the model panics with where it does not model Go's behavior. The
-// server's recovery of a handler's panic (conn.serve) panics again with any value that has a
-// NotModelled method (this one, net/rpc's model's, the generated codecs'), so that it stops the
-// program instead of closing one connection.
-type notModelled string
-
-// NotModelled marks the value as the models' panic.
-func (notModelled) NotModelled() {}
+// stuck is the model's not-modelled point (MODEL: not in Go's net/http; models/README.md, "Not modelled:
+// stuck"): where the model does not model Go's net/http's behavior it calls stuck (after a comment
+// `MODEL: not modelled (stuck): ...`), which has no behavior. Its Lean model is Perennial's
+// internal/gomodel.Stuck, `Panic "not modelled"`: a stuck panic, which no recover catches and no
+// WP rule steps, so a proof of the program shows that it never gets here. Not a value panic, which
+// a program could recover and so observe a behavior Go's net/http does not have; not a bare `select {}`,
+// whose WP has the precondition True and so would prove anything after it. Its Go body blocks
+// forever, which the tests detect (models/internal/stuck). Lean: Net/Code/net/http.toml: trusted; Net/TrustedCode/net/http.lean.
+//
+// So conn.serve's recovery of a handler's panic is upstream's: no model panic reaches it.
+func stuck() {
+	select {}
+}
 
 // modelReadLine is textproto's (*Reader).ReadLine over b: the next line, without its "\n" or
 // "\r\n"; at the end of the input, the bytes before it (without error) if there are any, else
@@ -104,7 +109,7 @@ func modelReadMIMEHeader(b *bufio.Reader, maxHeaders int64) (textproto.MIMEHeade
 	m := make(textproto.MIMEHeader)
 	// The first line cannot start with a leading space (textproto quotes up to 80 bytes of it).
 	if buf, err := b.Peek(1); err == nil && (buf[0] == ' ' || buf[0] == '\t') {
-		panic(notModelled("net/http model: a header block starting with a space is not modelled"))
+		stuck() // MODEL: not modelled (stuck): net/http model: a header block starting with a space is not modelled
 	}
 	for {
 		s, err := modelReadLine(b)
@@ -128,7 +133,7 @@ func modelReadMIMEHeader(b *bufio.Reader, maxHeaders int64) (textproto.MIMEHeade
 		}
 		// a continuation line follows (obsolete line folding): not modelled
 		if next, err := b.Peek(1); err == nil && (next[0] == ' ' || next[0] == '\t') {
-			panic(notModelled("net/http model: a header continuation line is not modelled"))
+			stuck() // MODEL: not modelled (stuck): net/http model: a header continuation line is not modelled
 		}
 		kv = trimLine(kv)
 		colon = -1
@@ -141,7 +146,7 @@ func modelReadMIMEHeader(b *bufio.Reader, maxHeaders int64) (textproto.MIMEHeade
 		k, v := kv[:colon], kv[colon+1:]
 		for _, c := range k {
 			if c == ' ' {
-				panic(notModelled("net/http model: a header name holding a space is not modelled"))
+				stuck() // MODEL: not modelled (stuck): net/http model: a header name holding a space is not modelled
 			}
 		}
 		if !httpguts.ValidHeaderFieldName(string(k)) {
@@ -167,7 +172,8 @@ func modelReadMIMEHeader(b *bufio.Reader, maxHeaders int64) (textproto.MIMEHeade
 
 // modelChunked stands for a chunked body's reader: not modelled.
 func modelChunked(r io.Reader) io.Reader {
-	panic(notModelled("net/http model: a chunked message body is not modelled"))
+	stuck() // MODEL: not modelled (stuck): net/http model: a chunked message body is not modelled
+	return nil // (not reached: stuck does not return)
 }
 
 // modelParseRequestURI is url.ParseRequestURI(rawurl) (Go 1.27.3's net/url). On a URI that is "/"

@@ -1,0 +1,8 @@
+# Project models's pbcodec (etc/goose.py): models.lab/pbcodec, with all its bodies.
+#
+# Trusted (Net/TrustedCode/models_lab/pbcodec.lean): `Stuck`, the not-modelled point of pbcodec and of the
+# codecs generated over it (models/README.md, "Not modelled: stuck"), whose model is Perennial's
+# `internal.gomodel.Stuck.impl`.
+translate = ["*", "!Stuck"]
+imports = ["*"]
+trusted = ["Stuck"]

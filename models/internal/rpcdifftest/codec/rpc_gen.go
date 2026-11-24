@@ -11,13 +11,6 @@ import (
 // The net/rpc model's codec of this program's types (models/net/rpc/rpcgen.py; the encoding and
 // gob's decoding it reproduces: rpcgen_core.py's doc).
 
-// rpcNotModelled is the value the codec panics with outside the model (the net/http model's
-// server does not recover a panic whose value has a NotModelled method).
-type rpcNotModelled string
-
-// NotModelled marks the value as the models' panic.
-func (rpcNotModelled) NotModelled() {}
-
 func rpcErrDecode() error {
 	return errors.New("net/rpc model: malformed value")
 }
@@ -833,60 +826,61 @@ func rpcEncode(v any) []byte {
 		return rpcEnc_t3(rpcPutTag("models.lab/internal/rpcdifftest.Args"), x)
 	case *difftest.Args:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *difftest.Args (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *difftest.Args (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t3(rpcPutTag("models.lab/internal/rpcdifftest.Args"), *x)
 	case difftest.Reply:
 		return rpcEnc_t6(rpcPutTag("models.lab/internal/rpcdifftest.Reply"), x)
 	case *difftest.Reply:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *difftest.Reply (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *difftest.Reply (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t6(rpcPutTag("models.lab/internal/rpcdifftest.Reply"), *x)
 	case string:
 		return rpcEnc_t7(rpcPutTag("string"), x)
 	case *string:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *string (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *string (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t7(rpcPutTag("string"), *x)
 	case difftest.Tags:
 		return rpcEnc_t10(rpcPutTag("models.lab/internal/rpcdifftest.Tags"), x)
 	case *difftest.Tags:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *difftest.Tags (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *difftest.Tags (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t10(rpcPutTag("models.lab/internal/rpcdifftest.Tags"), *x)
 	case int:
 		return rpcEnc_t11(rpcPutTag("int"), x)
 	case *int:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *int (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *int (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t11(rpcPutTag("int"), *x)
 	case []difftest.Item:
 		return rpcEnc_t13(rpcPutTag("[]models.lab/internal/rpcdifftest.Item"), x)
 	case *[]difftest.Item:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *[]difftest.Item (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *[]difftest.Item (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t13(rpcPutTag("[]models.lab/internal/rpcdifftest.Item"), *x)
 	case difftest.Nums:
 		return rpcEnc_t19(rpcPutTag("models.lab/internal/rpcdifftest.Nums"), x)
 	case *difftest.Nums:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *difftest.Nums (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *difftest.Nums (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t19(rpcPutTag("models.lab/internal/rpcdifftest.Nums"), *x)
 	case difftest.Deep:
 		return rpcEnc_t23(rpcPutTag("models.lab/internal/rpcdifftest.Deep"), x)
 	case *difftest.Deep:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *difftest.Deep (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *difftest.Deep (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t23(rpcPutTag("models.lab/internal/rpcdifftest.Deep"), *x)
 	}
-	panic(rpcNotModelled("net/rpc model: Encode of a value of a type the codec does not list"))
+	rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a value of a type the codec does not list
+	return nil // (not reached: rpcStuck does not return)
 }
 
 // rpcDecode is the codec's Decode: into a non-nil pointer to a value of a listed type, of the
@@ -899,10 +893,10 @@ func rpcDecode(data []byte, ptr any) error {
 	switch p := ptr.(type) {
 	case *difftest.Args:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *difftest.Args"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *difftest.Args
 		}
 		if tag != "models.lab/internal/rpcdifftest.Args" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a difftest.Args is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a difftest.Args
 		}
 		r, ok2 := rpcDec_t3(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -911,10 +905,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *difftest.Reply:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *difftest.Reply"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *difftest.Reply
 		}
 		if tag != "models.lab/internal/rpcdifftest.Reply" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a difftest.Reply is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a difftest.Reply
 		}
 		r, ok2 := rpcDec_t6(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -923,10 +917,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *string:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *string"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *string
 		}
 		if tag != "string" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a string is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a string
 		}
 		r, ok2 := rpcDec_t7(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -935,10 +929,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *difftest.Tags:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *difftest.Tags"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *difftest.Tags
 		}
 		if tag != "models.lab/internal/rpcdifftest.Tags" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a difftest.Tags is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a difftest.Tags
 		}
 		r, ok2 := rpcDec_t10(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -947,10 +941,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *int:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *int"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *int
 		}
 		if tag != "int" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a int is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a int
 		}
 		r, ok2 := rpcDec_t11(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -959,10 +953,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *[]difftest.Item:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *[]difftest.Item"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *[]difftest.Item
 		}
 		if tag != "[]models.lab/internal/rpcdifftest.Item" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a []difftest.Item is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a []difftest.Item
 		}
 		r, ok2 := rpcDec_t13(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -971,10 +965,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *difftest.Nums:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *difftest.Nums"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *difftest.Nums
 		}
 		if tag != "models.lab/internal/rpcdifftest.Nums" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a difftest.Nums is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a difftest.Nums
 		}
 		r, ok2 := rpcDec_t19(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -983,10 +977,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *difftest.Deep:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *difftest.Deep"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *difftest.Deep
 		}
 		if tag != "models.lab/internal/rpcdifftest.Deep" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a difftest.Deep is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a difftest.Deep
 		}
 		r, ok2 := rpcDec_t23(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -994,5 +988,6 @@ func rpcDecode(data []byte, ptr any) error {
 		}
 		return nil
 	}
-	panic(rpcNotModelled("net/rpc model: Decode into a value of a type the codec does not list"))
+	rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a value of a type the codec does not list
+	return nil // (not reached: rpcStuck does not return)
 }

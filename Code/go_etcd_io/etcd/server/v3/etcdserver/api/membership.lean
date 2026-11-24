@@ -1204,8 +1204,7 @@ noncomputable def Member.JSONModelMarshal.impl [GooseExts] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshal of a value of another type than Member (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1293,8 +1292,7 @@ noncomputable def Member.JSONModelMarshalPtr.impl [GooseExts] [GoGlobalContext] 
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshalPtr of a value of another type than Member (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1366,8 +1364,7 @@ noncomputable def Member.JSONModelUnmarshal.impl [GooseExts] [GoGlobalContext] :
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelUnmarshal of a value of another type than Member (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1440,8 +1437,7 @@ noncomputable def RaftAttributes.JSONModelMarshal.impl [GooseExts] [GoGlobalCont
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshal of a value of another type than RaftAttributes (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1529,8 +1525,7 @@ noncomputable def RaftAttributes.JSONModelMarshalPtr.impl [GooseExts] [GoGlobalC
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshalPtr of a value of another type than RaftAttributes (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1602,8 +1597,7 @@ noncomputable def RaftAttributes.JSONModelUnmarshal.impl [GooseExts] [GoGlobalCo
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelUnmarshal of a value of another type than RaftAttributes (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1676,8 +1670,7 @@ noncomputable def Attributes.JSONModelMarshal.impl [GooseExts] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshal of a value of another type than Attributes (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1765,8 +1758,7 @@ noncomputable def Attributes.JSONModelMarshalPtr.impl [GooseExts] [GoGlobalConte
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshalPtr of a value of another type than Attributes (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1838,8 +1830,7 @@ noncomputable def Attributes.JSONModelUnmarshal.impl [GooseExts] [GoGlobalContex
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelUnmarshal of a value of another type than Attributes (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1912,8 +1903,7 @@ noncomputable def ConfigChangeContext.JSONModelMarshal.impl [GooseExts] [GoGloba
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "b") (Var "$r0"))))))))))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshal of a value of another type than ConfigChangeContext (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2001,8 +1991,7 @@ noncomputable def ConfigChangeContext.JSONModelMarshalPtr.impl [GooseExts] [GoGl
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelMarshalPtr of a value of another type than ConfigChangeContext (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2074,8 +2063,7 @@ noncomputable def ConfigChangeContext.JSONModelUnmarshal.impl [GooseExts] [GoGlo
   (Val #()))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: JSONModelUnmarshal of a value of another type than ConfigChangeContext (a method promoted through embedding)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -2085,7 +2073,7 @@ noncomputable def ConfigChangeContext.JSONModelUnmarshal.impl [GooseExts] [GoGlo
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
 
 /-- jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and
-    objects; a type the codec does not know panics (NotModelled).
+    objects; a type the codec does not know is stuck (not modelled: jsoncodec.Stuck).
 
     go: json_model_gen.go:210:6 -/
 noncomputable def jencAny.impl [GooseExts] [GoGlobalContext] : val :=
@@ -2100,9 +2088,19 @@ noncomputable def jencAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.byte)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: encoding a value of a type the codec does not know")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #()))))))
   (Let "$y" (App (Val (GoInstruction (GoLoad go.any))) (Var "v"))
   (Let "__p" (App (Val (GoInstruction (TypeAssert2 go.bool))) (Var "$y"))
   (Let "$x" (Fst (Var "__p"))
@@ -3071,7 +3069,7 @@ noncomputable def jencAny.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))))
 
-/-- go: json_model_gen.go:345:6 -/
+/-- go: json_model_gen.go:346:6 -/
 noncomputable def jencBoolPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3089,7 +3087,7 @@ noncomputable def jencBoolPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:349:6 -/
+/-- go: json_model_gen.go:350:6 -/
 noncomputable def jencStringPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3107,7 +3105,7 @@ noncomputable def jencStringPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:353:6 -/
+/-- go: json_model_gen.go:354:6 -/
 noncomputable def jencIntPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3125,7 +3123,7 @@ noncomputable def jencIntPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:357:6 -/
+/-- go: json_model_gen.go:358:6 -/
 noncomputable def jencInt8Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3143,7 +3141,7 @@ noncomputable def jencInt8Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:361:6 -/
+/-- go: json_model_gen.go:362:6 -/
 noncomputable def jencInt16Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3161,7 +3159,7 @@ noncomputable def jencInt16Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:365:6 -/
+/-- go: json_model_gen.go:366:6 -/
 noncomputable def jencInt32Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3179,7 +3177,7 @@ noncomputable def jencInt32Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:369:6 -/
+/-- go: json_model_gen.go:370:6 -/
 noncomputable def jencInt64Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3197,7 +3195,7 @@ noncomputable def jencInt64Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:373:6 -/
+/-- go: json_model_gen.go:374:6 -/
 noncomputable def jencUintPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3215,7 +3213,7 @@ noncomputable def jencUintPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:377:6 -/
+/-- go: json_model_gen.go:378:6 -/
 noncomputable def jencUint8Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3233,7 +3231,7 @@ noncomputable def jencUint8Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:381:6 -/
+/-- go: json_model_gen.go:382:6 -/
 noncomputable def jencUint16Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3251,7 +3249,7 @@ noncomputable def jencUint16Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:385:6 -/
+/-- go: json_model_gen.go:386:6 -/
 noncomputable def jencUint32Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3269,7 +3267,7 @@ noncomputable def jencUint32Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0"))))))
 
-/-- go: json_model_gen.go:389:6 -/
+/-- go: json_model_gen.go:390:6 -/
 noncomputable def jencUint64Ptr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "x"
@@ -3290,7 +3288,7 @@ noncomputable def jencUint64Ptr.impl [GooseExts] [GoGlobalContext] : val :=
 /-- jsonSetErr records a decoding error (real encoding/json keeps decoding and returns the
     first error).
 
-    go: json_model_gen.go:395:6 -/
+    go: json_model_gen.go:396:6 -/
 noncomputable def jsonSetErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Seq (App (Val exceptionDo)
@@ -3306,7 +3304,7 @@ noncomputable def jsonSetErr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.
 
-    go: json_model_gen.go:407:6 -/
+    go: json_model_gen.go:408:6 -/
 noncomputable def jsonDepthErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
@@ -3322,7 +3320,7 @@ noncomputable def jsonDepthErr.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- jenc_p0_types_ID appends the encoding of a p0_types.ID inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:412:6 -/
+    go: json_model_gen.go:413:6 -/
 noncomputable def jenc_p0_types_ID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3354,7 +3352,7 @@ noncomputable def jenc_p0_types_ID.impl [GooseExts] [GoGlobalContext] : val :=
 /-- jdec_p0_types_ID decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:419:6 -/
+    go: json_model_gen.go:420:6 -/
 noncomputable def jdec_p0_types_ID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3414,7 +3412,7 @@ noncomputable def jdec_p0_types_ID.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- jenc_string appends the encoding of a string inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:432:6 -/
+    go: json_model_gen.go:433:6 -/
 noncomputable def jenc_string.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3446,7 +3444,7 @@ noncomputable def jenc_string.impl [GooseExts] [GoGlobalContext] : val :=
 /-- jdec_string decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:439:6 -/
+    go: json_model_gen.go:440:6 -/
 noncomputable def jdec_string.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3505,7 +3503,7 @@ noncomputable def jdec_string.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- jenc_S_string appends the encoding of a []string inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:452:6 -/
+    go: json_model_gen.go:453:6 -/
 noncomputable def jenc_S_string.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3573,8 +3571,7 @@ noncomputable def jenc_S_string.impl [GooseExts] [GoGlobalContext] : val :=
   (Var "$r0")))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "d")) (Val jsonCycleDepth))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: a slice nested 1000 deep (encoding/json's cycle detection)")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "v")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil)))))
@@ -3597,7 +3594,7 @@ noncomputable def jenc_S_string.impl [GooseExts] [GoGlobalContext] : val :=
 /-- jdec_S_string decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:473:6 -/
+    go: json_model_gen.go:474:6 -/
 noncomputable def jdec_S_string.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3733,8 +3730,7 @@ noncomputable def jdec_S_string.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "s") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType (go.GoType.SliceType go.string))))) (Var "p"))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType go.string)))) (Val UntypedNil))))))
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.models_lab.jsoncodec.NotModelled.ty (go.GoType.InterfaceType [])))) (Val #(go!"json model: decoding a non-empty array into a non-nil slice")))
-  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.models_lab.jsoncodec.Stuck []))) (Val #())) (Val #())))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "empty"))
@@ -3790,7 +3786,7 @@ noncomputable def jdec_S_string.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- jenc_bool appends the encoding of a bool inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:514:6 -/
+    go: json_model_gen.go:515:6 -/
 noncomputable def jenc_bool.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -3822,7 +3818,7 @@ noncomputable def jenc_bool.impl [GooseExts] [GoGlobalContext] : val :=
 /-- jdec_bool decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:521:6 -/
+    go: json_model_gen.go:522:6 -/
 noncomputable def jdec_bool.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -3881,7 +3877,7 @@ noncomputable def jdec_bool.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- jenc_Member appends the encoding of a Member inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:534:6 -/
+    go: json_model_gen.go:535:6 -/
 noncomputable def jenc_Member.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4130,7 +4126,7 @@ noncomputable def jenc_Member.impl [GooseExts] [GoGlobalContext] : val :=
 /-- jdec_Member decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:590:6 -/
+    go: json_model_gen.go:591:6 -/
 noncomputable def jdec_Member.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -4271,7 +4267,7 @@ noncomputable def jdec_Member.impl [GooseExts] [GoGlobalContext] : val :=
     case; else the value is skipped), as real encoding/json does, allocating the nil
     embedded pointers on the field's path first; it returns the index after the value.
 
-    go: json_model_gen.go:618:6 -/
+    go: json_model_gen.go:619:6 -/
 noncomputable def jdecMember_Member.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -4669,7 +4665,7 @@ noncomputable def jdecMember_Member.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- jenc_RaftAttributes appends the encoding of a RaftAttributes inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:709:6 -/
+    go: json_model_gen.go:710:6 -/
 noncomputable def jenc_RaftAttributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -4810,7 +4806,7 @@ noncomputable def jenc_RaftAttributes.impl [GooseExts] [GoGlobalContext] : val :
 /-- jdec_RaftAttributes decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:740:6 -/
+    go: json_model_gen.go:741:6 -/
 noncomputable def jdec_RaftAttributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -4951,7 +4947,7 @@ noncomputable def jdec_RaftAttributes.impl [GooseExts] [GoGlobalContext] : val :
     case; else the value is skipped), as real encoding/json does, allocating the nil
     embedded pointers on the field's path first; it returns the index after the value.
 
-    go: json_model_gen.go:768:6 -/
+    go: json_model_gen.go:769:6 -/
 noncomputable def jdecMember_RaftAttributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -5115,7 +5111,7 @@ noncomputable def jdecMember_RaftAttributes.impl [GooseExts] [GoGlobalContext] :
 
 /-- jenc_Attributes appends the encoding of a Attributes inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:805:6 -/
+    go: json_model_gen.go:806:6 -/
 noncomputable def jenc_Attributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -5261,7 +5257,7 @@ noncomputable def jenc_Attributes.impl [GooseExts] [GoGlobalContext] : val :=
 /-- jdec_Attributes decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:838:6 -/
+    go: json_model_gen.go:839:6 -/
 noncomputable def jdec_Attributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -5402,7 +5398,7 @@ noncomputable def jdec_Attributes.impl [GooseExts] [GoGlobalContext] : val :=
     case; else the value is skipped), as real encoding/json does, allocating the nil
     embedded pointers on the field's path first; it returns the index after the value.
 
-    go: json_model_gen.go:866:6 -/
+    go: json_model_gen.go:867:6 -/
 noncomputable def jdecMember_Attributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -5566,7 +5562,7 @@ noncomputable def jdecMember_Attributes.impl [GooseExts] [GoGlobalContext] : val
 
 /-- jenc_ConfigChangeContext appends the encoding of a ConfigChangeContext inside d arrays and objects, unaddressable.
 
-    go: json_model_gen.go:903:6 -/
+    go: json_model_gen.go:904:6 -/
 noncomputable def jenc_ConfigChangeContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "v"
@@ -5841,7 +5837,7 @@ noncomputable def jenc_ConfigChangeContext.impl [GooseExts] [GoGlobalContext] : 
 /-- jdec_ConfigChangeContext decodes the value at b[i:] (valid JSON, after whitespace) into *p as real
     encoding/json does; the first error is kept in *e. It returns the index after the value.
 
-    go: json_model_gen.go:965:6 -/
+    go: json_model_gen.go:966:6 -/
 noncomputable def jdec_ConfigChangeContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
@@ -5982,7 +5978,7 @@ noncomputable def jdec_ConfigChangeContext.impl [GooseExts] [GoGlobalContext] : 
     case; else the value is skipped), as real encoding/json does, allocating the nil
     embedded pointers on the field's path first; it returns the index after the value.
 
-    go: json_model_gen.go:993:6 -/
+    go: json_model_gen.go:994:6 -/
 noncomputable def jdecMember_ConfigChangeContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"

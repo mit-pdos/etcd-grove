@@ -506,7 +506,7 @@ func init() {
 }
 `
 
-var statsRe = regexp.MustCompile(`JSONGEN-STATS types=(\d+) enc_equal=(\d+) enc_err=(\d+) enc_panic=(\d+) dec_equal=(\d+) dec_err=(\d+) dec_syntax=(\d+) dec_panic=(\d+) calls=(\d+)`)
+var statsRe = regexp.MustCompile(`JSONGEN-STATS types=(\d+) enc_equal=(\d+) enc_err=(\d+) enc_stuck=(\d+) dec_equal=(\d+) dec_err=(\d+) dec_syntax=(\d+) dec_stuck=(\d+) calls=(\d+)`)
 
 func TestRandomTypes(t *testing.T) {
 	s := newSetup(t)
@@ -548,7 +548,7 @@ func TestRandomTypes(t *testing.T) {
 	}
 	t.Logf("%d modules, %d types (embedded %d, embedded pointers %d, unexported embedded %d, embedded again %d, "+
 		"self-embedded %d, pointers %d, types with JSON methods %d): encodings equal %d, errors agreed %d, "+
-		"NotModelled %d; decodings equal %d, errors agreed %d, syntax errors agreed %d, NotModelled %d; "+
+		"not modelled (stuck) %d; decodings equal %d, errors agreed %d, syntax errors agreed %d, not modelled (stuck) %d; "+
 		"method calls agreed %d",
 		n, tot[0], cons[0], cons[1], cons[2], cons[3], cons[4], cons[5], cons[6], tot[1], tot[2], tot[3], tot[4],
 		tot[5], tot[6], tot[7], tot[8])
@@ -666,8 +666,8 @@ func TestAccepted(t *testing.T) {
 
 // Receivers and cycles (the independent review's findings, notes/axiom-review/jsongen.md): an
 // UnmarshalJSON method runs on the slice element itself (its address, kept by the method, is the
-// element's after decoding, as the real one's), and a cyclic value is a NotModelled panic in the
-// codec where the real one reports a cycle.
+// element's after decoding, as the real one's), and a cyclic value is stuck (not modelled: jsoncodec.Stuck) in
+// the codec where the real one reports a cycle.
 func TestReceiversAndCycles(t *testing.T) {
 	s := newSetup(t)
 	dir := t.TempDir()
@@ -708,7 +708,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"models.lab/jsoncodec"
 	tt "jsongenrand.tmp/t"
 )
 
@@ -739,12 +738,10 @@ func TestCycle(t *testing.T) {
 	if _, err := json.Marshal(c); err == nil {
 		t.Fatal("real: no error on a cycle")
 	}
-	defer func() {
-		if _, ok := recover().(jsoncodec.NotModelled); !ok {
-			t.Fatal("codec: no NotModelled panic on a cycle")
-		}
-	}()
-	jsonMarshal(c)
+	// (jtCall: the generated test's detector of the codec's stuck points)
+	if stuck, p := jtCall(func() { jsonMarshal(c) }); !stuck || p != nil {
+		t.Fatalf("codec: not stuck on a cycle (panic %v)", p)
+	}
 }
 `
 	must(t, os.WriteFile(filepath.Join(dir, "codec", "receivers_test.go"), []byte(test), 0o644))

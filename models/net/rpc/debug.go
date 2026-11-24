@@ -11,7 +11,8 @@ package rpc
 
 // MODEL: the debugging page (an html/template over reflection's method types) is not
 // modelled: HandleHTTP registers its handler at debugPath as Go's does (so a second
-// registration on the path panics in the mux, as Go's), and serving a request there panics.
+// registration on the path panics in the mux, as Go's), and serving a request there is stuck
+// (Stuck, not modelled).
 
 import (
 	"net/http"
@@ -26,5 +27,5 @@ type debugHTTP struct {
 
 // Runs at /debug/rpc
 func (server debugHTTP) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	panic(notModelled("net/rpc model: the debugging page is not modelled"))
+	Stuck() // MODEL: not modelled (stuck): net/rpc model: the debugging page is not modelled
 }

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import ManualProof.encoding.json
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory

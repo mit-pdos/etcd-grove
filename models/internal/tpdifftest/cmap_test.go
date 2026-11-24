@@ -227,7 +227,7 @@ func TestCmapConcurrent(t *testing.T) {
 }
 
 // TestCmapFormats: fmt's printing of a shard (the same struct as v1.0.0's) in both builds; JSON
-// (MarshalJSON), outside the model: a NotModelled panic in the model, v1.0.0's JSON otherwise.
+// (MarshalJSON), outside the model: it blocks forever in the model (not modelled), v1.0.0's JSON otherwise.
 func TestCmapFormats(t *testing.T) {
 	tr := newTranscript("cmap-formats")
 	defer func(n int) { cmap.SHARD_COUNT = n }(cmap.SHARD_COUNT)
@@ -240,7 +240,7 @@ func TestCmapFormats(t *testing.T) {
 	tr.printf("len %d", len(m))
 	nm := notModelled(func() { json.Marshal(m) })
 	if model && !nm {
-		t.Errorf("model: json.Marshal did not panic NotModelled")
+		t.Errorf("model: json.Marshal did not block (not modelled)")
 	}
 	if !model {
 		j, err := json.Marshal(m)

@@ -226,7 +226,7 @@ const logRegisterError = false
 
 // MODEL: the receiver's facts reflection gives (its type's name and string, the methods
 // suitableMethods finds for its type and for a pointer to it) are the program's generated
-// Codec's (codec.go, Receiver), which panics for a receiver of a type it does not list.
+// Codec's (codec.go, Receiver), which is stuck (Stuck) for a receiver of a type it does not list.
 func (server *Server) register(rcvr any, name string, useName bool) error {
 	s := new(service)
 	r := getCodec().Receiver(rcvr)

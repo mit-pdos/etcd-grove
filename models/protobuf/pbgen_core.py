@@ -188,7 +188,8 @@ protowire function of the same name, tested in `models/pbcodec/protowire_test.go
     initialized (the UnmarshalInitialized flag, internal/impl/decode.go:186-191, 237-242; past 64
     required fields in a message the mask never fills and the check always runs); with the
     refusal above (a oneof's non-first member) the skip happens only where the check would pass.
-  - Unmarshal into a nil *T panics (protobuf-go's Reset of a nil message panics too).
+  - Unmarshal into a nil *T panics, a nil dereference (protobuf-go's generated Reset of a nil
+    message panics so too, `*x = T{}`).
 
   Where the codec mode's claim stops (documented deviations, outside "behaves as protobuf-go"):
   - unknown fields (the codec mode only; the pbmodel mode keeps them, below): protobuf-go keeps
@@ -211,7 +212,12 @@ protowire function of the same name, tested in `models/pbcodec/protowire_test.go
     `append([]byte(nil), v...)`), so cap() and what two appends to a decoded slice share differ;
     lengths and contents do not.
   - only proto.Marshal and proto.Unmarshal with default options, on *T of the derived types;
-    any other value panics ("not modelled"). proto.Size, Equal, Clone, Merge, MarshalOptions
+    any other value is stuck (pbcodec.Stuck: not modelled, no behavior; its Lean model is
+    Perennial's stuck `Panic "not modelled"`, so a proof shows it is never reached; never a value
+    panic, which a program could recover from and so observe a behavior protobuf-go does not have,
+    nor a bare `select {}`, whose WP proves anything after it: models/README.md, "Not modelled:
+    stuck"). proto.Size, Equal,
+    Clone, Merge, MarshalOptions
     (Deterministic is moot: no maps; AllowPartial, which skips the required-field checks),
     protojson, prototext are not covered.
 
@@ -290,6 +296,18 @@ contents are claimed). The encoding of each field kind is the codec mode's (abov
   - PbModelClone is proto.Clone (proto/merge.go:41-60): the receiver itself if nil (a typed nil:
     Clone of an invalid message is that type's nil, `src.Type().Zero()`), else a new message
     merged from it; PbModelIsNil reports a nil receiver (emptyBytesForMessage, encode.go:141-146).
+  - PbModelReset is proto.Reset (proto/reset.go:16-22): a message of protoc-gen-go has a Reset
+    method and the build has the fast path (hasProtoMethods, proto_methods.go:16), so it calls the
+    generated Reset, `*x = T{}` (e.g. types/known/emptypb/empty.pb.go:57-62; a nil x panics, a nil
+    dereference), whose other store (the message state's MessageInfo) is not a field of the model.
+  - PbModelMerge(src) is proto.Merge(m, src) (proto/merge.go:25-37) for src the source's
+    PbModelSelf (the *T itself, promoted through an embedding as ProtoReflect is): a source of
+    another type gives false and changes nothing (protobuf-go panics, a descriptor mismatch,
+    merge.go:28-33: proto/model.go does not model it), else PbModelMergeFrom (mergeMessage calls
+    the type's Merge method, internal/impl/merge.go:23-34: mergePointer).
+  - proto.CheckInitialized (proto/checkinit.go:14-33) is PbModelIsInit through the model's
+    composition: nil for a nil interface, else the type's CheckInitialized method,
+    checkInitializedPointer (internal/impl/checkinit.go:15-23).
   A message type embedded in another struct (etcd embeds raftpb and etcdserverpb types) promotes
   these methods as it promotes ProtoReflect, so the model and protobuf-go act on the same
   embedded message.
@@ -336,7 +354,7 @@ RESERVED = {"pbcodec", "b", "m", "p", "i", "num", "typ", "n", "ok", "ok2", "k", 
             "append", "panic", "string", "len", "true", "false", "error", "byte", "bool", "int32",
             "int64", "uint32",
             # the packages the generated test (pb_gen_test.go) imports
-            "bytes", "math", "rand", "os", "reflect", "strconv", "strings", "testing", "proto",
+            "bytes", "math", "rand", "os", "reflect", "runtime", "strconv", "strings", "testing", "time", "proto",
             "protowire", "protoreflect"}
 
 
@@ -693,9 +711,11 @@ CODEC_DOC = """// The protobuf codec (registered with a model of google.golang.o
 //     winning), or an error where the real one errs (malformed input, a field number 0 or above
 //     2^29-1, invalid UTF-8 in a proto3 string field, messages nested deeper than 10000, a
 //     required field missing). Unknown fields are checked and skipped (the real one keeps them
-//     in the message: the model does not). A nil *T panics, as the real one does.
-//   - Any other value (another type, a non-pointer, a nil interface) panics: outside the
-//     subset.
+//     in the message: the model does not). A nil *T panics, a nil dereference, as the real
+//     one does.
+//   - Any other value (another type, a non-pointer, a nil interface) is stuck (pbcodec.Stuck):
+//     outside the subset, not modelled (models/README.md, "Not modelled: stuck": no behavior,
+//     which a proof of the program shows is never reached).
 //
 // Only error-or-not is modeled, not the error values."""
 
@@ -952,22 +972,22 @@ def codec_go(S, header, go_name):
         if n in S.needs_init:
             body += [f"\t\tif !pbinit_{ident(n)}(p) {{", f"\t\t\treturn nil, {req_err}", "\t\t}"]
         body += ["\t\treturn b, nil"]
-    body += ["\t}", "\tpanic(\"protobuf model: marshaling a value of a type the codec was not generated for\")",
-             "}", "",
+    body += ["\t}", "\tpbcodec.Stuck() // MODEL: not modelled (stuck): marshaling a value of a type the codec was not generated for",
+             "\treturn nil, nil // (not reached: Stuck does not return)", "}", "",
              "// pbUnmarshal is the codec's Unmarshal.",
              "func pbUnmarshal(b []byte, m interface{}) error {",
              "\tswitch p := m.(type) {"]
     for n in S.names:
-        body += [f"\tcase *{n}:", "\t\tif p == nil {",
-                 "\t\t\tpanic(\"protobuf model: Unmarshal into a nil message pointer\")", "\t\t}",
+        body += [f"\tcase *{n}:",
+                 "\t\t// a nil p panics here, a nil dereference, as protobuf-go's generated Reset does",
                  f"\t\t*p = {n}{{}}",
                  f"\t\tif !pbdec_{ident(n)}(b, p, pbcodec.DefaultRecursionLimit) {{",
                  "\t\t\treturn &pbcodec.Error{Msg: \"cannot parse invalid wire-format data\"}", "\t\t}"]
         if n in S.needs_init:
             body += [f"\t\tif !pbinit_{ident(n)}(p) {{", f"\t\t\treturn {req_err}", "\t\t}"]
         body += ["\t\treturn nil"]
-    body += ["\t}", "\tpanic(\"protobuf model: unmarshaling into a value of a type the codec was not generated for\")",
-             "}", ""]
+    body += ["\t}", "\tpbcodec.Stuck() // MODEL: not modelled (stuck): unmarshaling into a value of a type the codec was not generated for",
+             "\treturn nil // (not reached: Stuck does not return)", "}", ""]
     for n in S.names:
         body += gen_encoder(S, n)
         body += gen_decoder(S, n)
@@ -1380,12 +1400,29 @@ def pm_entry(S, n, L):
             f"\tc := &{T}{{}}", "\tc.PbModelMergeFrom(m)", "\treturn c", "}", "",
             "// PbModelIsNil: m is nil (proto.Marshal's emptyBytesForMessage, proto/encode.go:141-146:",
             "// a nil *T is not a valid message).",
-            f"func (m *{T}) PbModelIsNil() bool {{", "\treturn m == nil", "}", ""]
+            f"func (m *{T}) PbModelIsNil() bool {{", "\treturn m == nil", "}", "",
+            f"// PbModelReset is proto.Reset(m) (proto/reset.go:16-22): protoc-gen-go's generated Reset,",
+            f"// `*m = {T}{{}}` (a nil m panicking, a nil dereference), the size cache and unknown fields",
+            "// included; what it stores besides (the message state's MessageInfo, internal/impl) is not",
+            "// a field of the model.",
+            f"func (m *{T}) PbModelReset() {{", f"\t*m = {T}{{}}", "}", "",
+            "// PbModelSelf: m, as proto.Merge's source (a type embedding this one promotes it, as it",
+            "// promotes ProtoReflect: the model then merges from the embedded message, as protobuf-go).",
+            f"func (m *{T}) PbModelSelf() interface{{}} {{", "\treturn m", "}", "",
+            "// PbModelMerge is proto.Merge(m, src) (proto/merge.go:25-37, then mergeMessage's",
+            "// internal/impl merge, merge.go:23-34) for src another message's PbModelSelf: false, and",
+            f"// nothing changed, if src is not a *{T} (protobuf-go panics there, a descriptor mismatch;",
+            f"// the model does not model it), else m.PbModelMergeFrom(src) (a nil m panics, a nil src",
+            "// changes nothing).",
+            f"func (m *{T}) PbModelMerge(src interface{{}}) bool {{",
+            f"\to, ok := src.(*{T})", "\tif !ok {", "\t\treturn false", "\t}",
+            "\tm.PbModelMergeFrom(o)", "\treturn true", "}", ""]
     return out
 
 
 PBMODEL_DOC = """// The protobuf model's methods (models/protobuf-go/proto calls them in place of protobuf-go's
-// reflection: proto.Marshal, Unmarshal, Size, Clone, MarshalOptions), for the message types of
+// reflection: proto.Marshal, Unmarshal, Size, Clone, Merge, Reset, CheckInitialized,
+// MarshalOptions), for the message types of
 // this package below, derived by models/protobuf/pbgen.py (its pbmodel mode) from their
 // registered descriptors, over the wire format of models.lab/pbcodec. The trusted claim is the
 // generator's (models/protobuf/pbgen_core.py's doc, "THE SAME-PACKAGE METHODS", against

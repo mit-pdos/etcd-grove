@@ -97,7 +97,7 @@ def codecUnset : IProp GF :=
   typedPointsto (globalAddr encoding.json.codec) null (DFrac.own (1 : Qp).half)
 
 /-- A codec of the functions `fm`, `fu` is registered, for good (persistent): `SetCodec` was
-called with it, and the model's `codec` is never written again (a second `SetCodec` panics). With
+called with it, and the model's `codec` is never written again (a second `SetCodec` is stuck: `stuck`, not modelled). With
 the registry's mutex, which `getCodec` locks (#24 J2: J1's form had only the points-to). -/
 def codecSetWith (fm fu : GoFunc) : IProp GF :=
   iprop(isPkgInit (PROP := IProp GF) pkg_id.sync ∗

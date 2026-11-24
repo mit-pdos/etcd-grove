@@ -129,15 +129,15 @@ func newInt(b int) *int {
 
 // MODEL: in place of parseServiceConfig (which parses any service config through encoding/json
 // and the balancer registry), the model accepts exactly the round-robin load balancing config
-// (clientv3's, client/v3/internal/resolver: the only one etcd and the kits give) and panics on any
-// other ("not modelled": a retry policy, a method config's timeout or limits, another balancer
+// (clientv3's, client/v3/internal/resolver: the only one etcd and the kits give) and blocks
+// forever on any other ("not modelled": a retry policy, a method config's timeout or limits, another balancer
 // would change what the model must do). Whitespace between JSON tokens is ignored, as JSON does.
 // Round robin is not modeled as such: an attempt dials any address reported (model_clientconn.go),
 // which covers it.
 func parseServiceConfig(js string, maxAttempts int) *serviceconfig.ParseResult {
 	compact := strings.Join(strings.Fields(js), "")
 	if compact != `{"loadBalancingPolicy":"round_robin"}` && compact != "{}" {
-		panic(notModelled("grpc: service config " + js))
+		stuck() // MODEL: not modelled (stuck): grpc: a service config other than round robin's
 	}
 	return &serviceconfig.ParseResult{Config: &ServiceConfig{rawJSONString: js}}
 }

@@ -126,7 +126,6 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   socksConn_instance : socksConn.TypeAssumptions
   socksDialer_instance : socksDialer.TypeAssumptions
   socksUsernamePassword_instance : socksUsernamePassword.TypeAssumptions
-  notModelled_instance : notModelled.TypeAssumptions
   errorReader_instance : errorReader.TypeAssumptions
   byteReader_instance : byteReader.TypeAssumptions
   transferWriter_instance : transferWriter.TypeAssumptions
@@ -184,6 +183,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Handle_unfold : FuncUnfold Handle [] Handle.impl
   Serve_unfold : FuncUnfold Serve [] Serve.impl
   ListenAndServe_unfold : FuncUnfold ListenAndServe [] ListenAndServe.impl
+  stuck_unfold : FuncUnfold stuck [] stuck.impl
   modelReadLine_unfold : FuncUnfold modelReadLine [] modelReadLine.impl
   trimLine_unfold : FuncUnfold trimLine [] trimLine.impl
   modelReadMIMEHeader_unfold : FuncUnfold modelReadMIMEHeader [] modelReadMIMEHeader.impl
@@ -331,7 +331,6 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.socksConn_instance
   Assumptions.socksDialer_instance
   Assumptions.socksUsernamePassword_instance
-  Assumptions.notModelled_instance
   Assumptions.errorReader_instance
   Assumptions.byteReader_instance
   Assumptions.transferWriter_instance
@@ -389,6 +388,7 @@ attribute [instance] Assumptions.Client_instance
   Assumptions.Handle_unfold
   Assumptions.Serve_unfold
   Assumptions.ListenAndServe_unfold
+  Assumptions.stuck_unfold
   Assumptions.modelReadLine_unfold
   Assumptions.trimLine_unfold
   Assumptions.modelReadMIMEHeader_unfold

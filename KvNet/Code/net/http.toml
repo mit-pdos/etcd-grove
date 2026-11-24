@@ -13,8 +13,13 @@
 # rest: types and names (an untranslated function is an `opaque` constant). The imports are the
 # packages these bodies call (crypto/tls for a type assertion; the vendored httpguts through the
 # forwarding module Net/Code/golang_org/x/net/http/httpguts.lean).
+#
+# Trusted (Net/TrustedCode/net/http.lean): `stuck`, the model's not-modelled point
+# (textproto_model.go; models/README.md, "Not modelled: stuck"), whose model is Perennial's
+# `internal.gomodel.Stuck.impl`.
+trusted = ["stuck"]
 translate = ["!*", "modelReadLine", "modelReadMIMEHeader", "trimLine", "errMessageTooLarge",
-             "notModelled", "notModelled.*", "modelChunked", "Method*", "Status*", "!StatusText",
+             "modelChunked", "Method*", "Status*", "!StatusText",
              "ReadResponse", "modelParseRequestURI", "modelPathBytes",
              "modelPathByte", "modelHeaderValuesContainsToken", "modelHeaderValueContainsToken",
              "modelIndexByte", "modelTrimOWS", "modelLowerASCII", "modelTokenEqual", "ParseHTTPVersion", "badStringError",

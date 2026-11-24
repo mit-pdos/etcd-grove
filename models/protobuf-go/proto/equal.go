@@ -4,13 +4,6 @@
 
 package proto
 
-import (
-	"reflect"
-
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/runtime/protoiface"
-)
-
 // Equal reports whether two messages are equal,
 // by recursively comparing the fields of the message.
 //
@@ -43,24 +36,8 @@ func Equal(x, y Message) bool {
 	if x == nil || y == nil {
 		return x == nil && y == nil
 	}
-	if reflect.TypeOf(x).Kind() == reflect.Ptr && x == y {
-		// Avoid an expensive comparison if both inputs are identical pointers.
-		return true
-	}
-	mx := x.ProtoReflect()
-	my := y.ProtoReflect()
-	if mx.IsValid() != my.IsValid() {
-		return false
-	}
-
-	// Only one of the messages needs to implement the fast-path for it to work.
-	pmx := protoMethods(mx)
-	pmy := protoMethods(my)
-	if pmx != nil && pmy != nil && pmx.Equal != nil && pmy.Equal != nil {
-		return pmx.Equal(protoiface.EqualInput{MessageA: mx, MessageB: my}).Equal
-	}
-
-	vx := protoreflect.ValueOfMessage(mx)
-	vy := protoreflect.ValueOfMessage(my)
-	return vx.Equal(vy)
+	// MODEL: not modelled (stuck): Equal of two messages (protobuf-go compares them by
+	// reflection; no verified code reaches it)
+	stuck()
+	return false // (not reached: stuck does not return)
 }

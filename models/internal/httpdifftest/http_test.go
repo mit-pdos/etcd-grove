@@ -4,8 +4,8 @@
 // transcript of what a program observes (the raw bytes a server answers raw requests with; what
 // ReadRequest and ReadResponse return on raw heads and their mutations) and compares it with the
 // golden one in testdata/, which only the real build writes (`go test -update`). In the model's
-// transcript an entry may instead be "NOT MODELLED" (the model panicked: a panic stands for any
-// behavior), never another value.
+// transcript an entry may instead be "NOT MODELLED" (the model blocked forever: a not-modelled point,
+// which stands for no behavior), never another value.
 package httpdifftest
 
 import (
@@ -24,6 +24,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"models.lab/internal/stuck"
 )
 
 var update = flag.Bool("update", false, "write the golden transcripts (real build only)")
@@ -306,18 +308,20 @@ func heads(seed int64, base []string, n int) []string {
 	return out
 }
 
-// try runs f, returning "NOT MODELLED" if the model panics.
-func try(f func() string) (res string) {
-	defer func() {
-		if p := recover(); p != nil {
-			if _, ok := p.(interface{ NotModelled() }); ok && model {
-				res = "NOT MODELLED"
-				return
-			}
-			res = fmt.Sprintf("PANIC %v", p)
+// try runs f, returning "NOT MODELLED" if the model blocks forever (a not-modelled point, an
+// empty select; models/README.md).
+func try(f func() string) string {
+	var res string
+	switch o, p := stuck.Run(func() { res = f() }); o {
+	case stuck.Stuck:
+		if model {
+			return "NOT MODELLED"
 		}
-	}()
-	return f()
+		return "STUCK"
+	case stuck.Panicked:
+		return fmt.Sprintf("PANIC %v", p)
+	}
+	return res
 }
 
 func describeHeader(h http.Header) string {

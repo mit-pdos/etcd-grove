@@ -297,12 +297,26 @@ for x in $pbinputs; do
   fi
 done
 # the same-package methods' prefix: no Go code names it but the generated files, the proto model and
-# their tests (#37, D1's condition 1: no other code may reach the methods)
-if git grep -n -E '\bPbModel(Size|Append|Unmarshal|Decode|DecodeField|IsInit|MergeFrom|Clone|IsNil)\b|\bpbmodel(codec|atomic)\b' -- '*.go' ':!*pbmodel_gen.go' ':!*pbmodel_gen_test.go' \
+# their tests (#37, D1's condition 1: no other code may reach the methods); also not pbdesc (which
+# refuses a type that has the prefix), pbgenrand's tests of that refusal and of the methods, embedcheck
+# and the S1 vectors' test (which name it in comments)
+if git grep -n -E '\bPbModel\w*|\bpbmodel(codec|atomic)\b' -- '*.go' ':!*pbmodel_gen.go' ':!*pbmodel_gen_test.go' \
      ':!models/protobuf-go/' ':!models/internal/pbmodeltest/' ':!models/internal/pbgenrand/cache_test.go' \
-     ':!old/' >> "$tmp/nm.log" 2>&1; then
+     ':!models/pbdesc/pbdesc.go' ':!models/internal/pbgenrand/orders_test.go' \
+     ':!models/internal/pbgenrand/pbgenrand_test.go' ':!examples/models/pbetcd/embedcheck/main.go' \
+     ':!examples/pbschema/d1post_test.go' ':!old/' >> "$tmp/nm.log" 2>&1; then
   echo "models: Go code outside the generated files names the PbModel prefix (above)" >> "$tmp/nm.log"; nm=1
 fi
+# not modelled is stuck (models/README.md, "Not modelled: stuck"; #37, the S3 review's item 1, and
+# the 2026-11-23 decision): no model, generated codec or generator panics with a not-modelled value
+# (a panic can be recovered, which would add behaviors the library does not have), and every
+# not-modelled point calls a stuck stub, whose Lean model is Perennial's `internal.gomodel.Stuck.impl`
+# (a stuck `Panic`), never a bare `select {}` (whose WP proves anything after it)
+if git grep -n -E '\b[Nn]otModelled\b' -- 'models/*.go' 'models/*.py' 'examples/*.go' ':!*_test.go' \
+     >> "$tmp/nm.log" 2>&1; then
+  echo "models: a not-modelled point is a NotModelled panic, not stuck (above)" >> "$tmp/nm.log"; nm=1
+fi
+python3 etc/models-stuck-check.py >> "$tmp/nm.log" 2>&1 || nm=1
 for t in $(git ls-files '*protobuf.toml' ':!old/'); do  # old/: reference copies, not built
   grep -q "^$t:" <<< "$pbinputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
 done

@@ -9,23 +9,24 @@ import (
 )
 
 // outcome runs f: "ok", or "panic: " and the panic's text (a runtime error's message, which the
-// model's panics must match), or "panic: NotModelled" for the models' panic value.
+// model's panics must match). It runs f in place: the libraries' code may not return when misused
+// (gods' iterator over a tree changed under it), which only its own goroutine can show.
 func outcome(f func()) (s string) {
 	defer func() {
 		if r := recover(); r != nil {
-			if _, ok := r.(interface{ NotModelled() }); ok {
-				s = "panic: NotModelled"
-			} else {
-				s = fmt.Sprintf("panic: %v", r)
-			}
+			s = fmt.Sprintf("panic: %v", r)
 		}
 	}()
 	f()
 	return "ok"
 }
 
-// notModelled reports whether f panics with the models' panic value.
-func notModelled(f func()) bool { return outcome(f) == "panic: NotModelled" }
+// notModelled reports whether f is stuck (blocks forever in an empty select: a model's
+// not-modelled point, the stub `stuck`; models/README.md), detected by stuckRun.
+func notModelled(f func()) bool {
+	o, _ := stuckRun(f)
+	return o == stuckStuck
+}
 
 // A transcript is what a test observed of a library, line by line: run.sh runs every test against
 // the real library and against the model, each writing its transcripts to $TPDIFF_OUT, and

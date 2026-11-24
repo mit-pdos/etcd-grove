@@ -192,9 +192,10 @@ func Marshal(v any) ([]byte, error) {
 // Each JSON element in the output will begin on a new line beginning with prefix
 // followed by one or more copies of indent according to the indentation nesting.
 //
-// MODEL: indentation is not modelled (Indent's rules over encoding/json/jsontext): a panic.
+// MODEL: indentation is not modelled (Indent's rules over encoding/json/jsontext): stuck.
 func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
-	panic(notModelled("encoding/json model: MarshalIndent (indentation is not modelled)"))
+	stuck() // MODEL: not modelled (stuck): encoding/json model: MarshalIndent (indentation is not modelled)
+	return nil, nil // (not reached: stuck does not return)
 }
 
 // Marshaler is the interface implemented by types that

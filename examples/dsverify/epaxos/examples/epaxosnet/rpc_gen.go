@@ -11,13 +11,6 @@ import (
 // The net/rpc model's codec of this program's types (models/net/rpc/rpcgen.py; the encoding and
 // gob's decoding it reproduces: rpcgen_core.py's doc).
 
-// rpcNotModelled is the value the codec panics with outside the model (the net/http model's
-// server does not recover a panic whose value has a NotModelled method).
-type rpcNotModelled string
-
-// NotModelled marks the value as the models' panic.
-func (rpcNotModelled) NotModelled() {}
-
 func rpcErrDecode() error {
 	return errors.New("net/rpc model: malformed value")
 }
@@ -614,74 +607,75 @@ func rpcEncode(v any) []byte {
 		return rpcEnc_t6(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderArgs"), x)
 	case *defs.GetLeaderArgs:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.GetLeaderArgs (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.GetLeaderArgs (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t6(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderArgs"), *x)
 	case defs.GetLeaderReply:
 		return rpcEnc_t8(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderReply"), x)
 	case *defs.GetLeaderReply:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.GetLeaderReply (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.GetLeaderReply (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t8(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderReply"), *x)
 	case defs.GetReplicaListArgs:
 		return rpcEnc_t10(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListArgs"), x)
 	case *defs.GetReplicaListArgs:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.GetReplicaListArgs (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.GetReplicaListArgs (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t10(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListArgs"), *x)
 	case defs.GetReplicaListReply:
 		return rpcEnc_t12(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListReply"), x)
 	case *defs.GetReplicaListReply:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.GetReplicaListReply (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.GetReplicaListReply (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t12(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListReply"), *x)
 	case defs.RegisterArgs:
 		return rpcEnc_t18(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterArgs"), x)
 	case *defs.RegisterArgs:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.RegisterArgs (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.RegisterArgs (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t18(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterArgs"), *x)
 	case defs.RegisterReply:
 		return rpcEnc_t20(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterReply"), x)
 	case *defs.RegisterReply:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.RegisterReply (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.RegisterReply (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t20(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterReply"), *x)
 	case defs.BeTheLeaderArgs:
 		return rpcEnc_t84(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderArgs"), x)
 	case *defs.BeTheLeaderArgs:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.BeTheLeaderArgs (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.BeTheLeaderArgs (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t84(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderArgs"), *x)
 	case defs.BeTheLeaderReply:
 		return rpcEnc_t86(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderReply"), x)
 	case *defs.BeTheLeaderReply:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.BeTheLeaderReply (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.BeTheLeaderReply (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t86(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderReply"), *x)
 	case defs.PingArgs:
 		return rpcEnc_t88(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingArgs"), x)
 	case *defs.PingArgs:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.PingArgs (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.PingArgs (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t88(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingArgs"), *x)
 	case defs.PingReply:
 		return rpcEnc_t90(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingReply"), x)
 	case *defs.PingReply:
 		if x == nil {
-			panic(rpcNotModelled("net/rpc model: Encode of a nil *defs.PingReply (gob: cannot encode nil pointer)"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a nil *defs.PingReply (gob: cannot encode nil pointer)
 		}
 		return rpcEnc_t90(rpcPutTag("github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingReply"), *x)
 	}
-	panic(rpcNotModelled("net/rpc model: Encode of a value of a type the codec does not list"))
+	rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Encode of a value of a type the codec does not list
+	return nil // (not reached: rpcStuck does not return)
 }
 
 // rpcDecode is the codec's Decode: into a non-nil pointer to a value of a listed type, of the
@@ -694,10 +688,10 @@ func rpcDecode(data []byte, ptr any) error {
 	switch p := ptr.(type) {
 	case *defs.GetLeaderArgs:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.GetLeaderArgs"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.GetLeaderArgs
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderArgs" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.GetLeaderArgs is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.GetLeaderArgs
 		}
 		r, ok2 := rpcDec_t6(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -706,10 +700,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.GetLeaderReply:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.GetLeaderReply"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.GetLeaderReply
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetLeaderReply" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.GetLeaderReply is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.GetLeaderReply
 		}
 		r, ok2 := rpcDec_t8(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -718,10 +712,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.GetReplicaListArgs:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.GetReplicaListArgs"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.GetReplicaListArgs
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListArgs" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.GetReplicaListArgs is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.GetReplicaListArgs
 		}
 		r, ok2 := rpcDec_t10(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -730,10 +724,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.GetReplicaListReply:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.GetReplicaListReply"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.GetReplicaListReply
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.GetReplicaListReply" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.GetReplicaListReply is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.GetReplicaListReply
 		}
 		r, ok2 := rpcDec_t12(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -742,10 +736,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.RegisterArgs:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.RegisterArgs"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.RegisterArgs
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterArgs" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.RegisterArgs is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.RegisterArgs
 		}
 		r, ok2 := rpcDec_t18(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -754,10 +748,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.RegisterReply:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.RegisterReply"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.RegisterReply
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.RegisterReply" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.RegisterReply is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.RegisterReply
 		}
 		r, ok2 := rpcDec_t20(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -766,10 +760,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.BeTheLeaderArgs:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.BeTheLeaderArgs"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.BeTheLeaderArgs
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderArgs" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.BeTheLeaderArgs is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.BeTheLeaderArgs
 		}
 		r, ok2 := rpcDec_t84(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -778,10 +772,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.BeTheLeaderReply:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.BeTheLeaderReply"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.BeTheLeaderReply
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.BeTheLeaderReply" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.BeTheLeaderReply is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.BeTheLeaderReply
 		}
 		r, ok2 := rpcDec_t86(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -790,10 +784,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.PingArgs:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.PingArgs"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.PingArgs
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingArgs" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.PingArgs is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.PingArgs
 		}
 		r, ok2 := rpcDec_t88(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -802,10 +796,10 @@ func rpcDecode(data []byte, ptr any) error {
 		return nil
 	case *defs.PingReply:
 		if p == nil {
-			panic(rpcNotModelled("net/rpc model: Decode into a nil *defs.PingReply"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a nil *defs.PingReply
 		}
 		if tag != "github.com/imdea-software/swiftpaxos-epaxos/replica/defs.PingReply" {
-			panic(rpcNotModelled("net/rpc model: decoding a " + tag + " into a defs.PingReply is not modelled"))
+			rpcStuck() // MODEL: not modelled (stuck): net/rpc model: decoding a value of another type into a defs.PingReply
 		}
 		r, ok2 := rpcDec_t90(rest, p)
 		if !ok2 || len(r) != 0 {
@@ -813,5 +807,6 @@ func rpcDecode(data []byte, ptr any) error {
 		}
 		return nil
 	}
-	panic(rpcNotModelled("net/rpc model: Decode into a value of a type the codec does not list"))
+	rpcStuck() // MODEL: not modelled (stuck): net/rpc model: Decode into a value of a type the codec does not list
+	return nil // (not reached: rpcStuck does not return)
 }

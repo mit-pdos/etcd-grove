@@ -6,3 +6,9 @@ package swiftnet
 
 // Register does nothing in a real build: net/rpc uses gob and reflection.
 func Register() {}
+
+// rpcStuck is the codec's not-modelled point (the model build's is the net/rpc model's Stuck): in a
+// real build the codec runs only in its tests, where it blocks forever, as Stuck's Go body does.
+func rpcStuck() {
+	select {}
+}

@@ -53,10 +53,10 @@ import (
 // MODEL: this file is grpc-go's server.go over the model's transport (model_transport.go): a
 // served connection carries one stream, dispatched at most once or refused. Removed: channelz,
 // stats handlers, binary logging, tracing, server workers, the HTTP/2 transport's creation and
-// ServeHTTP (a panic). Kept as grpc-go's: the options and their constructors, NewServer,
+// ServeHTTP (stuck). Kept as grpc-go's: the options and their constructors, NewServer,
 // RegisterService (but its reflection check), GetServiceInfo, Serve's loop, the connection set,
 // the interceptor chaining, handleStream's lookup, processRPC, GracefulStop and Stop, the context
-// functions (SetHeader, SendHeader, SetTrailer, Method, ...). Outside the model (a panic): stats
+// functions (SetHeader, SendHeader, SetTrailer, Method, ...). Outside the model (stuck): stats
 // handlers, binary logging, an InTapHandle, a compressor or decompressor, transport credentials
 // other than insecure.
 
@@ -162,7 +162,7 @@ type serverOptions struct {
 	chainUnaryInts  []UnaryServerInterceptor
 	chainStreamInts []StreamServerInterceptor
 	// MODEL: no binaryLogger and inTapHandle fields (binary logging and tap handles are not
-	// modelled: their options panic when NewServer applies them, below).
+	// modelled: their options are stuck when NewServer applies them, below).
 	statsHandlers         []stats.Handler
 	maxConcurrentStreams  uint32
 	maxReceiveMessageSize int
@@ -531,10 +531,10 @@ func ChainStreamInterceptor(interceptors ...StreamServerInterceptor) ServerOptio
 // Notice: This API is EXPERIMENTAL and may be changed or removed in a
 // later release.
 func InTapHandle(h tap.ServerInHandle) ServerOption {
-	// MODEL: tap handles are not modelled: the option panics when NewServer applies it (where the
-	// model's NewServer panicked on a set inTapHandle before), and the field is gone.
+	// MODEL: tap handles are not modelled: the option is stuck when NewServer applies
+	// it, and the field is gone.
 	return newFuncServerOption(func(o *serverOptions) {
-		panic(notModelled("grpc: InTapHandle"))
+		stuck() // MODEL: not modelled (stuck): grpc: InTapHandle
 	})
 }
 
@@ -554,10 +554,10 @@ func StatsHandler(h stats.Handler) ServerOption {
 // binaryLogger returns a ServerOption that can set the binary logger for the
 // server.
 func binaryLogger(bl binarylog.Logger) ServerOption {
-	// MODEL: binary logging is not modelled: the option panics when NewServer applies it (where
-	// the model's NewServer panicked on a set binaryLogger before), and the field is gone.
+	// MODEL: binary logging is not modelled: the option is stuck when NewServer
+	// applies it, and the field is gone.
 	return newFuncServerOption(func(o *serverOptions) {
-		panic(notModelled("grpc: binary logging"))
+		stuck() // MODEL: not modelled (stuck): grpc: binary logging
 	})
 }
 
@@ -660,10 +660,10 @@ func WaitForHandlers(w bool) ServerOption {
 }
 
 func bufferPool(bufferPool mem.BufferPool) ServerOption {
-	// MODEL: a server buffer pool other than the default is not modelled: the option panics when
-	// NewServer applies it (the field is gone; see serverOptions).
+	// MODEL: a server buffer pool other than the default is not modelled: the option is stuck
+	// when NewServer applies it (the field is gone; see serverOptions).
 	return newFuncServerOption(func(o *serverOptions) {
-		panic(notModelled("grpc: a server buffer pool"))
+		stuck() // MODEL: not modelled (stuck): grpc: a server buffer pool
 	})
 }
 
@@ -703,10 +703,10 @@ func NewServer(opt ...ServerOption) *Server {
 		done:         grpcsync.NewEvent(),
 	}
 	if opts.cp != nil || opts.dc != nil {
-		panic(notModelled("grpc: compression"))
+		stuck() // MODEL: not modelled (stuck): grpc: compression
 	}
 	if opts.creds != nil && opts.creds.Info().SecurityProtocol != "insecure" {
-		panic(notModelled("grpc: transport credentials other than insecure"))
+		stuck() // MODEL: not modelled (stuck): grpc: transport credentials other than insecure
 	}
 	chainUnaryServerInterceptors(s)
 	chainStreamServerInterceptors(s)
@@ -1044,7 +1044,7 @@ var _ http.Handler = (*Server)(nil)
 //
 // MODEL: not modelled (gRPC over net/http's HTTP/2 server, which etcd uses only with TLS).
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	panic(notModelled("grpc: Server.ServeHTTP"))
+	stuck() // MODEL: not modelled (stuck): grpc: Server.ServeHTTP
 }
 
 func (s *Server) addConn(addr string, st *serverTransport) bool {

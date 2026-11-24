@@ -31,15 +31,21 @@ import (
 
 var modelChooseRandom = os.Getenv("GRPC_MODEL_CHOOSE") == "random"
 
-// notModelled is the value the model panics with where it does not model grpc-go's behavior
-// (models/README.md: a model's panics outside its scope have a NotModelled method), so that a
-// proof that the program does not panic shows it never gets there: TLS and transport credentials
-// other than insecure, a service config other than round robin's, compression, stats handlers,
-// binary logging, an InTapHandle, Server.ServeHTTP, a unix address with a custom dialer.
-type notModelled string
-
-// NotModelled marks the value as the models' panic.
-func (notModelled) NotModelled() {}
+// stuck is the model's not-modelled point (MODEL: not in grpc-go; models/README.md, "Not modelled:
+// stuck"): where the model does not model grpc-go's behavior it calls stuck (after a comment
+// `MODEL: not modelled (stuck): ...`), which has no behavior. Its Lean model is Perennial's
+// internal/gomodel.Stuck, `Panic "not modelled"`: a stuck panic, which no recover catches and no
+// WP rule steps, so a proof of the program shows that it never gets here. Not a value panic, which
+// a program could recover and so observe a behavior grpc-go does not have; not a bare `select {}`,
+// whose WP has the precondition True and so would prove anything after it. Its Go body blocks
+// forever, which the tests detect (models/internal/stuck).
+//
+// Its points: TLS and transport credentials other than insecure, a service config other than
+// round robin's, compression, stats handlers, binary logging, an InTapHandle, Server.ServeHTTP, a
+// unix address with a custom dialer.
+func stuck() {
+	select {}
+}
 
 // modelChoose is an arbitrary boolean.
 func modelChoose() bool {

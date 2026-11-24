@@ -41,5 +41,7 @@ func MessageName(m Message) protoreflect.FullName {
 	if m == nil {
 		return ""
 	}
-	return m.ProtoReflect().Descriptor().FullName()
+	// MODEL: not modelled (stuck): MessageName (the message's descriptor, reflection)
+	stuck()
+	return "" // (not reached: stuck does not return)
 }

@@ -7,6 +7,10 @@
 # (#24 J2, 2026-11-23) with their bodies: the codec registry (`SetCodec`, `getCodec`, over `codecMu`,
 # `codec`), the per-type dispatch (`marshalAny`) and the entry points over them (`Marshal`, `Unmarshal`
 # with its validity check, `NewEncoder`, `Encoder.Encode`); the rest names only.
+# Trusted (TrustedCode/encoding/json.lean): `stuck`, the model's not-modelled point (model.go;
+# models/README.md, "Not modelled: stuck"), whose model is Perennial's `internal.gomodel.Stuck.impl`
+# (`SetCodec`'s second registration and `getCodec` with none registered call it).
+trusted = ["stuck"]
 translate = ["!*", "codecMu", "codec", "SetCodec", "getCodec", "marshalAny", "Marshal", "Unmarshal",
   "valid", "skipSpace", "isSpace", "scanDone", "scanMore", "NewEncoder", "Encoder.Encode"]
 imports = ["!*", "sync", "io"]

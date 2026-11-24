@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Net.ManualProof.models_lab.jsoncodec
 public import Perennial.Golang.Theory
 public import Net.Code.models_lab.jsoncodec
 

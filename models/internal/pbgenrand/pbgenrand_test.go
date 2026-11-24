@@ -527,7 +527,7 @@ func TestRandomSchemas(t *testing.T) {
 	r := rand.New(rand.NewSource(seed))
 	g := schemaGen{r, map[string]bool{}}
 	var types, fields, encs, encErrs, decs, decErrs int
-	var pmEncs, pmEncErrs, pmDecs, pmDecErrs, pmSizeClone int
+	var pmEncs, pmEncErrs, pmDecs, pmDecErrs, pmSizeClone, pmMergeReset int
 	pmOps := map[string]int{}
 	var cov coverage
 	for b0 := int64(0); b0 < n; b0 += batch {
@@ -658,6 +658,9 @@ func TestRandomSchemas(t *testing.T) {
 			case m[5] != "":
 				a, _ := strconv.Atoi(m[5])
 				pmSizeClone += a
+			case m[7] != "":
+				a, _ := strconv.Atoi(m[7])
+				pmMergeReset += a
 			default:
 				for _, kv := range regexp.MustCompile(`([A-Za-z ]+):(\d+)`).FindAllStringSubmatch(m[6], -1) {
 					v, _ := strconv.Atoi(kv[2])
@@ -682,12 +685,13 @@ func TestRandomSchemas(t *testing.T) {
 		"and panic tests per type)", seed, n, types, fields, encs, encErrs, decs, decErrs)
 	t.Logf("seed %d: the same-package methods: Marshal: %d encodings equal, %d errors agreed (bytes and "+
 		"class); mutated encodings: %d decodes equal, %d errors agreed (with the message left, unknown "+
-		"fields included); %d Size and Clone comparisons; interleaved operations and changes: %v",
-		seed, pmEncs, pmEncErrs, pmDecs, pmDecErrs, pmSizeClone, pmOps)
+		"fields included); %d Size and Clone comparisons; %d Merge, Reset and CheckInitialized "+
+		"comparisons; interleaved operations and changes: %v",
+		seed, pmEncs, pmEncErrs, pmDecs, pmDecErrs, pmSizeClone, pmMergeReset, pmOps)
 	t.Logf("the schemas' constructs (all declared, reached by the roots or not): %s", cov)
 }
 
-var pbmLogRe = regexp.MustCompile(`(\d+) encodings, (\d+) errors|(\d+) decoded, (\d+) errors|(\d+) Size and Clone comparisons|operations compared: map\[([^\]]*)\]`)
+var pbmLogRe = regexp.MustCompile(`(\d+) encodings, (\d+) errors|(\d+) decoded, (\d+) errors|(\d+) Size and Clone comparisons|operations compared: map\[([^\]]*)\]|(\d+) Merge, Reset and CheckInitialized comparisons`)
 
 func contains(xs []string, x string) bool {
 	for _, y := range xs {

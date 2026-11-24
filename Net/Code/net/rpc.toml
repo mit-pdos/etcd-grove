@@ -2,8 +2,10 @@
 # with gob and reflection replaced by the program's generated Codec; models/README.md), with all its
 # bodies.
 #
-# Trusted (Net/TrustedCode/net/rpc.lean): `stuck`, the model's stuck point (codec.go: a request
-# frame longer than maxFrame), whose model is Perennial's `internal.gomodel.Stuck.impl`.
-translate = ["*", "!stuck"]
+# Trusted (Net/TrustedCode/net/rpc.lean): `Stuck`, the model's not-modelled point (codec.go: a
+# request frame longer than maxFrame, a second codec, no codec, the debugging page; and the generated
+# codecs' rpcStuck; models/README.md, "Not modelled: stuck"), whose model is Perennial's
+# `internal.gomodel.Stuck.impl`.
+translate = ["*", "!Stuck"]
 imports = ["*"]
-trusted = ["stuck"]
+trusted = ["Stuck"]

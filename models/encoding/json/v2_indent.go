@@ -46,9 +46,10 @@ func appendHTMLEscape(dst, src []byte) []byte {
 // Compact appends to dst the JSON-encoded src with
 // insignificant space characters elided.
 //
-// MODEL: not modelled (encoding/json/jsontext's formatting): a panic.
+// MODEL: not modelled (encoding/json/jsontext's formatting): stuck.
 func Compact(dst *bytes.Buffer, src []byte) error {
-	panic(notModelled("encoding/json model: Compact (not modelled)"))
+	stuck() // MODEL: not modelled (stuck): encoding/json model: Compact (not modelled)
+	return nil // (not reached: stuck does not return)
 }
 
 // indentGrowthFactor specifies the growth factor of indenting JSON input.
@@ -71,7 +72,8 @@ const indentGrowthFactor = 2
 // For example, if src has no trailing spaces, neither will dst;
 // if src ends in a trailing newline, so will dst.
 //
-// MODEL: not modelled (encoding/json/jsontext's formatting): a panic.
+// MODEL: not modelled (encoding/json/jsontext's formatting): stuck.
 func Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
-	panic(notModelled("encoding/json model: Indent (not modelled)"))
+	stuck() // MODEL: not modelled (stuck): encoding/json model: Indent (not modelled)
+	return nil // (not reached: stuck does not return)
 }

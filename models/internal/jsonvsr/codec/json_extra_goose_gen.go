@@ -9,12 +9,14 @@ import (
 )
 
 // jencAnyExtra: under Goose the codec has no unnamed type; encoding a value of a type it does
-// not know panics (NotModelled).
+// not know is stuck (not modelled: jsoncodec.Stuck).
 func jencAnyExtra(b []byte, v any, d uint64) ([]byte, error) {
-	panic(jsoncodec.NotModelled("json model: encoding a value of a type the codec does not know"))
+	jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: encoding a value of a type the codec does not know
+	return nil, nil   // (not reached)
 }
 
-// jsonUnmarshalExtra: decoding into a type the codec does not know panics (NotModelled).
+// jsonUnmarshalExtra: decoding into a type the codec does not know is stuck (not modelled: jsoncodec.Stuck).
 func jsonUnmarshalExtra(data []byte, v any) error {
-	panic(jsoncodec.NotModelled("json model: decoding into a type the codec does not know"))
+	jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: decoding into a type the codec does not know
+	return nil        // (not reached)
 }

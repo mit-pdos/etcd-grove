@@ -1,0 +1,8 @@
+# Project models's jsoncodec (etc/goose.py): models.lab/jsoncodec, with all its bodies.
+#
+# Trusted (Net/TrustedCode/models_lab/jsoncodec.lean): `Stuck`, the not-modelled point of jsoncodec and of the
+# codecs generated over it (models/README.md, "Not modelled: stuck"), whose model is Perennial's
+# `internal.gomodel.Stuck.impl`.
+translate = ["*", "!Stuck"]
+imports = ["*"]
+trusted = ["Stuck"]

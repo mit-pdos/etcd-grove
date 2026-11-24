@@ -48,7 +48,7 @@ THE SUBSET (accepted):
   - a type with its own MarshalJSON and/or UnmarshalJSON method (OWN METHODS below);
   - `any` (the empty interface) as a field or element type: encoded by its dynamic type
     (v2_encode.go:175-176), which must be one of the codec's types, a pointer to one, or a basic
-    type above; decoding into it is not modelled (a panic);
+    type above; decoding into it is not modelled (stuck);
   - encoding/json.RawMessage (a field, element or root).
   Struct fields: unexported fields are ignored (as encoding/json ignores them, `v2/fields.go`:427-433);
   an exported field's `json` tag is `-` (the field ignored, v2_encode.go:89), or a name followed by
@@ -80,8 +80,8 @@ promotion (`v.X`), after checking (`Schema.selector_ok`) that the selector denot
 POINTERS (`v2/arshal_default.go`:1718-1795 makePointerArshaler). Encoding: nil is null, else the
 pointee's encoding, the pointee addressable (line 1752). From depth 1000 the real encoder records
 the pointers and slices it is inside and fails on a cycle (lines 1729-1735, 1479-1485, 62-83
-visitPointer, startDetectingCyclesAfter = 1000 at line 50): not reproduced, the codec panics
-(NotModelled) on a pointer or slice nested 1000 deep (at or before where the real one starts
+visitPointer, startDetectingCyclesAfter = 1000 at line 50): not reproduced, the codec is stuck
+(not modelled) on a pointer or slice nested 1000 deep (at or before where the real one starts
 tracking), so a cyclic value never reaches the 10000 nesting limit in the codec. Decoding: null sets the pointer to nil
 (1757-1763, also under v1's merge semantics); any other value allocates a pointee if the pointer is
 nil (1775-1777, before decoding: a value that fails leaves the new pointee) and decodes into it
@@ -100,7 +100,7 @@ type, lines 171-175; CallMethodsWithLegacySemantics, `v2_options.go`:237-255):
     method's error fails Marshal (line 238-246); its output is written as encoding/json's
     Encoder.WriteValue writes it (line 248; `jsontext/encode.go`:527-552): an error if it is not one
     valid JSON value (nil and empty among them) or nests beyond 10000 with the containers around it,
-    else without its whitespace (jencValue; jsoncodec.AppendCompact, NotModelled where real
+    else without its whitespace (jencValue; jsoncodec.AppendCompact, stuck (not modelled) where real
     encoding/json would escape).
   - Unmarshal: UnmarshalJSON (either receiver; decoding targets are always addressable) is called
     with the value's bytes (`arshal_methods.go`:342-345; `jsontext/decode.go`:777
@@ -156,19 +156,19 @@ THE EMITTED CODE. Marshal (jsonMarshal; jencAny on the argument, by its dynamic 
     (v2_encode.go:84-87; isLegacyEmpty, `v2/arshal_default.go`:1449-1466);
   - RawMessage: `null` if nil (its MarshalJSON, `jsontext/value.go`:234-240), else an error if it is
     not one valid JSON value, else the value without its whitespace outside strings
-    (jsoncodec.AppendCompact, which panics, NotModelled, on a string with `<`, `>`, `&`, an escape or
+    (jsoncodec.AppendCompact, which is stuck (not modelled) on a string with `<`, `>`, `&`, an escape or
     a non-ASCII byte: real encoding/json escapes or rewrites those);
   - no whitespace anywhere; nesting: an array or object inside 10000 others, or a RawMessage whose
     nesting (jsoncodec.Nesting) with the containers around it exceeds 10000, is an error, as the
     encoder's nesting limit (`jsontext` maxNestingDepth; measured: jsoncodec_test.go, TestNesting).
-  Any value of another type panics (NotModelled; real encoding/json would encode it by
+  Any value of another type is stuck (not modelled; real encoding/json would encode it by
   reflection or return an UnsupportedTypeError).
 
 Unmarshal (the model's Unmarshal first checks that the input is one valid JSON value with only
 whitespace around it, jsoncodec.Scan, and returns a syntax error with nothing decoded otherwise, as
 the real one, v2_decode.go:91; then jsonUnmarshal) decodes into `*p`, p a non-nil pointer to one of
 the codec's types (a nil pointer, or a non-pointer value of one of the codec's types, or nil: an
-error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else panics, NotModelled):
+error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else is stuck, not modelled):
   - null into a slice sets it to nil; null into anything else (bool, string, integer, struct)
     leaves it (v2_decode.go:100-105; `MergeWithLegacySemantics`, `v2/arshal_default.go`:504-509);
   - a value of the wrong kind, or a number out of range or with a fraction or exponent for an
@@ -178,15 +178,15 @@ error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else panics,
     (`v2/arshal_default.go`:531-554, 632-647); with the `string` option a JSON string holding
     strconv.ParseInt/ParseUint(s, 10, bits) syntax (a `+` or `-` sign for signed kinds, leading
     zeros allowed) or the string "null" (the field left), and nothing else
-    (`v2/arshal_default.go`:510-528, 609-627); a string with an escape sequence panics
-    (NotModelled: the real one unescapes first);
-  - strings: a JSON string without escape sequences or non-ASCII bytes (else a panic, NotModelled:
+    (`v2/arshal_default.go`:510-528, 609-627); a string with an escape sequence is stuck
+    (not modelled: the real one unescapes first);
+  - strings: a JSON string without escape sequences or non-ASCII bytes (else stuck, not modelled:
     unescaping and invalid UTF-8 replacement are not reproduced);
   - slices: a JSON array; `[]` gives a new empty slice (v2_decode.go:75-76); a non-empty array into
     a nil slice gives a new slice of the decoded elements (an element of the wrong kind is left
     its zero value), each decoded in place in a slice grown one element at a time from capacity 0
     as reflect.Value.Grow(1) grows the real one (`v2/arshal_default.go`:1565-1588: the same
-    capacities, and an element's address while it is decoded is the real one's); a non-empty array into a non-nil slice panics (NotModelled: the
+    capacities, and an element's address while it is decoded is the real one's); a non-empty array into a non-nil slice is stuck (not modelled: the
     real one decodes into the existing elements in place, v2_decode.go:71-74);
   - structs: a JSON object; each member's key matched to the field of that JSON name, else to the
     one equal to it ignoring ASCII case (v2_decode.go:55-59; `v2/fields.go`:367-386 with
@@ -194,10 +194,10 @@ error, the real InvalidUnmarshalError, v2_decode.go:24-26; anything else panics,
     ASCII case folding; among several, the first breadth-first: EMBEDDED FIELDS); its value decoded
     into that field (merging: the other fields stay; a repeated
     key decodes again, so the last wins); members matching no field skipped; a key with an escape
-    or a non-ASCII byte panics (NotModelled);
+    or a non-ASCII byte is stuck (not modelled: jsoncodec.Stuck);
   - RawMessage: a copy of the value's bytes (without the whitespace around it), also for null
     (its UnmarshalJSON, `jsontext/value.go`:242-251, reusing the target's storage);
-  - `any`: panics (NotModelled);
+  - `any`: stuck (not modelled: jsoncodec.Stuck);
   - a pointer, a type with UnmarshalJSON: POINTERS, OWN METHODS.
 
 THE SAME-PACKAGE METHODS (`Schema(..., home=PATH)`, `pkgmodel_go`; mit-pdos/etcd-grove#24, J3). The
@@ -210,7 +210,7 @@ source stays upstream's). Its roots are named non-interface types of PATH (unexp
 code names PATH's types unqualified); the types they reach in other packages are named through
 aliases of their own (pN_<last element>). It holds the functions above for the roots' closure
 (jencAny, jenc_/jencA_/jdec_ and the helpers, with no jsonMarshal, jsonUnmarshal or registration:
-jencAny's default is a panic, NotModelled) and, per root T:
+jencAny's default is stuck: not modelled) and, per root T:
   - `func (T) JSONModelMarshal(v any) ([]byte, error)`: for v of dynamic type exactly T, jsonMarshal's
     case T: `jenc_T(make([]byte, 0), v, 0)`, nil and the error on an error;
   - `func (*T) JSONModelMarshalPtr(v any) ([]byte, error)`: for v of dynamic type exactly *T,
@@ -222,12 +222,12 @@ jencAny's default is a panic, NotModelled) and, per root T:
     model's Unmarshal with jsonUnmarshal's case *T: a syntax error, nothing decoded, unless
     jsoncodec.Valid(data) (the model's own check before a codec, `valid`: the same scan); an error
     for a nil pointer; else `jdec_T(data, 0, p, &err)` and its error.
-  Any other v panics (NotModelled): a type that embeds T (or *T) has T's methods by promotion, and
+  Any other v is stuck (not modelled: jsoncodec.Stuck): a type that embeds T (or *T) has T's methods by promotion, and
   real encoding/json would encode it by its own structure, which these methods do not know. So the
   methods are exactly the program-wide codec's cases for T and *T, reached by T's method set instead
   of a type switch: the same emitted functions, the same claim. A non-pointer T given to Unmarshal
   has no JSONModelUnmarshal (pointer receiver) and goes to the registered codec (an error there, or
-  a panic if it has none), as nil does. The names JSONModel* are reserved: a root (or its pointer)
+  stuck if it has none), as nil does. The names JSONModel* are reserved: a root (or its pointer)
   that already has a method of such a name is refused, and the gates check that no other code
   declares or calls one. A clash of the emitted identifiers (j*, JSONModel*, the aliases) with the
   package's own is a compile error, never a different program.
@@ -246,7 +246,7 @@ WHERE THE CLAIM STOPS (documented deviations, outside "behaves as encoding/json"
     of the model's buffer, which the method must not retain, as encoding/json documents.)
   - only the API the encoding/json model covers (`models/encoding/json`, its doc): Marshal,
     Unmarshal, Valid, Encoder.Encode, Decoder.Decode and their companions; MarshalIndent, Indent,
-    Compact, HTMLEscape, Token-level decoding and DisallowUnknownFields panic there.
+    Compact, HTMLEscape, Token-level decoding and DisallowUnknownFields are stuck there.
 
 The evidence (untrusted, jsongen.py --help): the generator's differential test over random Go
 types of the subset (`models/internal/jsongenrand`), the regression test generated beside each
@@ -799,7 +799,16 @@ class Schema:
 # The emitter
 
 def nm(msg):
-    return f"panic(jsoncodec.NotModelled({go_str('json model: ' + msg)}))"
+    """A not-modelled point: a call of jsoncodec.Stuck, which has no behavior (its Lean model is the
+    stuck `Panic "not modelled"`; models/README.md, "Not modelled: stuck"). In a function with
+    results, the statement after it is `nm_ret`'s unreached return."""
+    return f"jsoncodec.Stuck() // MODEL: not modelled (stuck): json model: {msg}"
+
+
+def nm_ret(ret):
+    """The return after a not-modelled point at the end of a function with results (never reached:
+    jsoncodec.Stuck does not return), for Go's terminating-statement rule."""
+    return f"return {ret} // (not reached)"
 
 
 def int_append(S, i, expr, quoted):
@@ -1021,7 +1030,7 @@ def gen_decoder(S, i):
                 "empty, k := jsoncodec.Empty(b, j)", "if empty {", f"\t*p = make({g}, 0)", "\treturn k", "}",
                 "if *p != nil {", "\t" + nm("decoding a non-empty array into a non-nil slice"), "}"]
         if S.kind(et) == "interface":
-            body += [nm("decoding into an interface (any)")]
+            body += [nm("decoding into an interface (any)"), nm_ret("k")]
         else:
             # each element decoded in place, the slice grown by one zero element at a time as
             # reflect.Value.Grow(1) grows it (`v2/arshal_default.go`:1577-1588): the same backing
@@ -1137,7 +1146,7 @@ def codec_entry(S, ids):
     body = [
         "// jsonMarshal is the codec's Marshal: v's encoding as real encoding/json's Marshal writes it,",
         "// for v nil, a value of one of the codec's types or a basic type, or a pointer to one; any",
-        "// other v panics (NotModelled).",
+        "// other v is stuck (not modelled: jsoncodec.Stuck).",
         "func jsonMarshal(v any) ([]byte, error) {",
         "\tb, err := jencAny(make([]byte, 0), v, 0)",
         "\tif err != nil {",
@@ -1149,7 +1158,7 @@ def codec_entry(S, ids):
         "// jsonUnmarshal is the codec's Unmarshal: decodes data (one valid JSON value, whitespace",
         "// around it) into *v as real encoding/json's Unmarshal does, v a non-nil pointer to one of the",
         "// codec's types; real encoding/json's error for a nil pointer, a non-pointer of one of its",
-        "// types, or nil; any other v panics (NotModelled).",
+        "// types, or nil; any other v is stuck (not modelled: jsoncodec.Stuck).",
         "func jsonUnmarshal(data []byte, v any) error {"]
     uc = unmarshal_cases(S, ids)
     if uc:
@@ -1162,7 +1171,7 @@ def codec_entry(S, ids):
 def codec_body(S, ids):
     """The codec's functions of the types ids: jencAny, the helpers, jenc_/jencA_/jdec_ per type."""
     body = ["// jencAny appends the encoding of v by its dynamic type (nil: null) inside d arrays and",
-             "// objects; a type the codec does not know panics (NotModelled).",
+             "// objects; a type the codec does not know is stuck (not modelled: jsoncodec.Stuck).",
              "func jencAny(b []byte, v any, d uint64) ([]byte, error) {",
              "\tif v == nil {", "\t\treturn jsoncodec.AppendRaw(b, \"null\"), nil", "\t}",
              "\tswitch x := v.(type) {"]
@@ -1170,7 +1179,8 @@ def codec_body(S, ids):
     if S.home is None:
         body += ["\t}", "\treturn jencAnyExtra(b, v, d)", "}", ""]
     else:
-        body += ["\t}", "\t" + nm("encoding a value of a type the codec does not know"), "}", ""]
+        body += ["\t}", "\t" + nm("encoding a value of a type the codec does not know"),
+                 "\t" + nm_ret("nil, nil"), "}", ""]
     for g in ANY_BASICS:
         if g in INTS:
             enc = f"jsoncodec.{'AppendInt' if INTS[g][0] else 'AppendUint'}(b, {'int64' if INTS[g][0] else 'uint64'}(*x))"
@@ -1190,7 +1200,7 @@ def codec_body(S, ids):
         "",
         "// jsonCycleDepth: the depth from which real encoding/json tracks the pointers and slices it",
         "// encodes, failing on a cycle (startDetectingCyclesAfter); the codec does not reproduce that",
-        "// and panics (NotModelled) on a pointer or slice nested that deep.",
+        "// and is stuck (not modelled: jsoncodec.Stuck) on a pointer or slice nested that deep.",
         "const jsonCycleDepth uint64 = 1000",
         "",
         "// jsonDepthErr is the error of a value nested deeper than encoding/json's encoder allows.",
@@ -1303,14 +1313,16 @@ def extra_go(S, header, pkg):
     sees (json_extra_goose_gen.go); without unnamed roots, json_extra_gen.go is the stub."""
     stub = [
         "// jencAnyExtra: under Goose the codec has no unnamed type; encoding a value of a type it does",
-        "// not know panics (NotModelled).",
+        "// not know is stuck (not modelled: jsoncodec.Stuck).",
         "func jencAnyExtra(b []byte, v any, d uint64) ([]byte, error) {",
         "\t" + nm("encoding a value of a type the codec does not know"),
+        "\t" + nm_ret("nil, nil"),
         "}",
         "",
-        "// jsonUnmarshalExtra: decoding into a type the codec does not know panics (NotModelled).",
+        "// jsonUnmarshalExtra: decoding into a type the codec does not know is stuck (not modelled: jsoncodec.Stuck).",
         "func jsonUnmarshalExtra(data []byte, v any) error {",
         "\t" + nm("decoding into a type the codec does not know"),
+        "\t" + nm_ret("nil"),
         "}"]
     stub_text = "\n".join(stub) + "\n"
 
@@ -1324,13 +1336,14 @@ def extra_go(S, header, pkg):
     body = ["// jencAnyExtra appends the encoding of a value of an unnamed root type (outside Goose).",
             "func jencAnyExtra(b []byte, v any, d uint64) ([]byte, error) {", "\tswitch x := v.(type) {"]
     body += ["\t" + l for l in any_cases(S, ids, [])]
-    body += ["\t}", "\t" + nm("encoding a value of a type the codec does not know"), "}", "",
+    body += ["\t}", "\t" + nm("encoding a value of a type the codec does not know"),
+             "\t" + nm_ret("nil, nil"), "}", "",
              "// jsonUnmarshalExtra decodes into an unnamed root type (outside Goose).",
              "func jsonUnmarshalExtra(data []byte, v any) error {"]
     uc = unmarshal_cases(S, ids)
     if uc:
         body += ["\tvar err error", "\tswitch p := v.(type) {"] + ["\t" + l for l in uc] + ["\t}"]
-    body += ["\t" + nm("decoding into a type the codec does not know"), "}", ""]
+    body += ["\t" + nm("decoding into a type the codec does not know"), "\t" + nm_ret("nil"), "}", ""]
     for i in ids:
         body += gen_encoder(S, i) + gen_decoder(S, i)
     return {"json_extra_gen.go": file("!goose", "\n".join(body)),
