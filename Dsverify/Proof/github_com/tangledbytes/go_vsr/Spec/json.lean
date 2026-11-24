@@ -87,9 +87,9 @@ compares the codec with real encoding/json; `encLogs` is the lab's proved encodi
 values), and `jsonUnmarshal` decodes `encLogs es` (ids below `2^64`, plain operations) into a
 nil `*[]log.Log` as a fresh slice of `es`. -/
 def vsrnet.registeredCodecOk : Prop :=
-  ⊢ (letI := encoding.json.codecPart (vsrnet.jsonCodec (GF := GF))
-     iprop(models_lab.jsoncodec.marshalOk (encoding.json.kitFn go!"jsonMarshal") ∗
-       models_lab.jsoncodec.unmarshalOk vsrnet.scanF (encoding.json.kitFn go!"jsonUnmarshal")))
+  ⊢ (letI : models_lab.jsoncodec.JsonCodec GF := encoding.json.codecPart (vsrnet.jsonCodec (GF := GF))
+     iprop(models_lab.jsoncodec.marshalOk (GF := GF) (encoding.json.kitFn go!"jsonMarshal") ∗
+       models_lab.jsoncodec.unmarshalOk (GF := GF) vsrnet.scanF (encoding.json.kitFn go!"jsonUnmarshal")))
 
 /-- **Premise** (#24 J3): the substantive part of the main tree's `typeCodecOk vsrnet.jsonCodec
 scanF T` for the kit's types (`encoding.json.kitTypes`), one field per method/type pair where the
