@@ -36,7 +36,7 @@ variable [os.Assumptions]
 theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
   intro d b perm R j dq h q r Q hb hn hq
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
-  wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
+  wp_start_folded as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   icases osPathS_pathIn_keep R d dq j $$ Hp with ⟨%hpd, Hp⟩
   have hpin : PathIn R (child d b) := pathIn_child hpd.2 hb
   have htn : RootsTreeName R (child d b) := os.treeName_child hpd.2 hb
@@ -52,7 +52,9 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
   · iframe; iframe #
     isplitl [Hn Hau]
     · ileft; iframe
-    iintro !> %m %Φ' ⟨Hp, Hperm, HSt⟩ HΦ'
+    iintro !>
+    unfold os.mkdirAttempt
+    iintro %m %Φ' ⟨Hp, Hperm, HSt⟩ HΦ'
     icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
     wp_stub syscall.fsMkdir.impl
     wp_apply +noauto wp_osCallBeginS R _ 1 0 CoPset.subseteq_top CoPset.subseteq_top
@@ -87,8 +89,9 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
           iright
           isplitr
           · ipureintro; exact he4
+          (try dsimp only)
           iframe
-          iexists none
+          (try iexists none)
           dsimp only [mkOut, mkNew]
           iframe
           ipureintro; intro h0; exact absurd h0 he
@@ -114,9 +117,10 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
         · iright
           isplitr
           · ipureintro; exact he4
+          (try dsimp only)
           iframe
-          iexists some (x, s0, J)
-          iframe
+          (try iexists some (x, s0, J))
+          (try iframe)
           ipureintro; intro _; rfl
     · obtain ⟨x, sx, J⟩ := xs
       isimp only [mkOut, osLogged] at Hout
@@ -137,14 +141,15 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
       · iright
         isplitr
         · ipureintro; exact he4
+        (try dsimp only)
         iframe
-        iexists some (x, sx, J)
-        iframe
+        (try iexists some (x, sx, J))
+        (try iframe)
         ipureintro; intro _; rfl
   iapply HΦ
   iframe
-  iexists o
-  iframe
+  (try iexists o)
+  (try iframe)
   ipureintro; intro hnil; exact ho (he.2.1 hnil)
 
 /-- `specS` from `specSnc`: an `osAU` is an `osAUnc`. -/
