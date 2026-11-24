@@ -1123,6 +1123,12 @@ tests kept as differential tests against the real library, a "not modelled" pani
    `*errorString` (its `Error()` from `errors.newVar`) and the connection's `*OpError` (`net.wp_OpError_Error`,
    Go's form, through `readErr_msgOk`); `crHeadErr_msg` is the law `readRequestLimit.spec` asks. A stronger
    post of `connReader.Read.spec`; no other statement changed.
+   **net/url's `escape` proved (2026-11-24, same branch).** `Spec/net/url/escape.lean`: `escape(s, mode)`
+   returns `escapeF s mode` for the seven modes, given `3 * len(s) < 2^63` (Go's `len(s) + 2*hexCount`, the
+   result's length, must not overflow `int`, else `make` panics); proved over its body (both counting loops, the
+   64-byte stack buffer or `make`, the space-only `copy` path, the `%AB` writes through `upperhex`), linked in
+   `Results.lean`. Left: `unescape` (needs `strings.Builder.Grow`), `PathUnescape`, `URL.EscapedPath` (specs
+   drafted).
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,

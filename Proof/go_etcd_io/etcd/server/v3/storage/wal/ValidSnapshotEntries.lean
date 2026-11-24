@@ -191,6 +191,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     wal.ValidSnapshotEntries.spec (W := W) Mr := by
   intro lg R jr r dir nm qp Q hin hnmO hr hdl
+  have hdl' : dir.length < 4096 := hdl.1
   iintro %Φ ⟨#Hpkg, #Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩ HΦ
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'

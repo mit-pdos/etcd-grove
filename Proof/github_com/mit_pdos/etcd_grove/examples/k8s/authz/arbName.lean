@@ -49,7 +49,11 @@ theorem arbName.wp_proof
   · iframe; ipureintro; exact List.getElem?_eq_getElem (by simpa using hl)
   (try wp_auto)
   iapply HΦ
-  itrivial
+  ipureintro
+  have hall : ∀ s ∈ [go!"x", go!"y", go!"", go!"Not_A_DNS_Name", go!"x", go!"a"],
+      s.length ≤ authzNameMax := by
+    unfold authzNameMax; simp
+  exact hall _ (List.getElem_mem ..)
 
 end proof
 

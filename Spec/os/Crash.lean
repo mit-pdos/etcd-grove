@@ -20,6 +20,7 @@ spec: `ReadAt` reads with the caller's half of the bytes (`File.ReadAt.specRacy`
 -/
 module
 
+public import Proof.os.PkgInit
 public import Proof.os.CrashOps
 
 @[expose] public section
@@ -45,7 +46,7 @@ abbrev os.OpenFile.specCrash : Prop :=
     (Good : Option OsFile → Prop) (s : CFile),
   NameOk b → (s = none ∨ ∃ i m bs, s = some (i, m, bs, none)) → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   ↑osShN ⊆ (⊤ : CoPset) \ ↑N → (s = none → FileOk Good (newMeta, [], none)) →
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R d) q ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.os ∗ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R d) q ∗
       cfInv (GF := GF) N (child d b) R γ Good ∗ cfOwn (GF := GF) (child d b) R γ s }}
     (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0x42))) (Val #perm))
   {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R d) q ∗

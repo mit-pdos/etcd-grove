@@ -23,7 +23,8 @@ show `stuck` is never reached).
 * the server (`ServerDefs.lean`): the server codec's `ReadRequestHeader`, `ReadRequestBody`,
   `WriteResponse` (`respWire`, an error response's body not encoded) and `Close` (the `closed`
   flag), `newServerCodec`; `NewServer`, the free lists, `register` (the codec's `Receiver`, `rcvOk`)
-  with `Register`, `RegisterName`, and `go/token.IsExported` on an ASCII upper-case first byte.
+  with `Register`, `RegisterName`, the package-level `Register` and `RegisterName` (on
+  `DefaultServer`, `defaultServer`), and `go/token.IsExported` on an ASCII upper-case first byte.
 
 * the request loop (`ServerGhost.lean`: a request read is a client's, taken once; an answer
   recorded at its response's write): `sendResponse`, `service.call`, `readRequestHeader`,
@@ -34,9 +35,7 @@ show `stuck` is never reached).
   `Net/Proof/net/http/ServerDefs.lean`).
 
 The HTTP client (`section http`): `DialHTTPPath`, `DialHTTP`, over net/http's `ReadResponse`
-(`Net/Proof/net/http/Results.lean`) and the net extension's `Conn.Read` (`specLc`); pending, as
-`ReadResponse`, on Perennial's `strings.Cut` and `strings.TrimLeft` (hypotheses `h_Cut`,
-`h_TrimLeft`).
+(`Net/Proof/net/http/Results.lean`) and the net extension's `Conn.Read` (`specLc`).
 Not yet proved (the plan note, phase 5.2, lists what remains): `HandleHTTP` and net/http's server
 up to the hijack (which gives `ServeHTTP` its `hijackOk`).
 -/
@@ -89,6 +88,8 @@ public import Net.Proof.net.rpc.Server__freeResponse
 public import Net.Proof.net.rpc.Server__register
 public import Net.Proof.net.rpc.Server__Register
 public import Net.Proof.net.rpc.Server__RegisterName
+public import Net.Proof.net.rpc.Register
+public import Net.Proof.net.rpc.RegisterName
 public import Net.Proof.go.token.IsExported
 public import Net.Proof.net.rpc.Server__sendResponse
 public import Net.Proof.net.rpc.service__call
@@ -251,6 +252,12 @@ theorem Server.Register.wp [errors.Assumptions] [go.token.Assumptions] :
 theorem Server.RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
     Server.RegisterName.spec (GF := GF) (hG := hG) := Server.RegisterName.wp_proof Server.register.wp
 
+theorem Register.wp [errors.Assumptions] [go.token.Assumptions] :
+    Register.spec (GF := GF) (hG := hG) := Register.wp_proof Server.Register.wp
+
+theorem RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
+    RegisterName.spec (GF := GF) (hG := hG) := RegisterName.wp_proof Server.RegisterName.wp
+
 theorem Server.sendResponse.wp : Server.sendResponse.spec (GF := GF) (hG := hG) :=
   Server.sendResponse.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock Server.getResponse.wp
     Server.freeResponse.wp serverCodec.WriteResponse.wp
@@ -303,23 +310,16 @@ variable [sync.Assumptions] [NetProtoGS]
 /-! The HTTP path (`DialHTTPPath`, `DialHTTP`), over net/http's `ReadResponse`
 (`Net/Proof/net/http/Results.lean`). -/
 
--- Pending: Perennial's `strings.Cut` (`Net/Proof/net/http/Results.lean`, `links_pending`).
-variable (h_Cut : EtcdGrove.strings.Cut.spec (GF := GF) (hG := hG))
--- Pending: Perennial's `strings.TrimLeft`.
-variable (h_TrimLeft : EtcdGrove.strings.TrimLeft.spec (GF := GF) (hG := hG))
-
-include h_Cut h_TrimLeft in
 theorem DialHTTPPath.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
     DialHTTPPath.spec (GF := GF) (hG := hG) :=
   DialHTTPPath.wp_proof net.Dial.wp_proof net.Conn.Write.wp_proof net.Conn.Close.wp_proof
     (EtcdGrove.bufio.NewReader.wp_proof
       (EtcdGrove.bufio.NewReader.wp_proofE EtcdGrove.bufio.NewReaderSize.wp_proofE))
-    net.Conn.Read.wp_proofLc (net.http.ReadResponse.wp h_Cut h_TrimLeft) NewClient.wp
+    net.Conn.Read.wp_proofLc net.http.ReadResponse.wp NewClient.wp
 
-include h_Cut h_TrimLeft in
 theorem DialHTTP.wp [errors.Assumptions] [_root_.Perennial.bufio.Assumptions] :
     DialHTTP.spec (GF := GF) (hG := hG) :=
-  DialHTTP.wp_proof (DialHTTPPath.wp h_Cut h_TrimLeft)
+  DialHTTP.wp_proof DialHTTPPath.wp
 
 end http
 
@@ -368,6 +368,8 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.register.wp
 #print axioms Perennial.net.rpc.Server.Register.wp
 #print axioms Perennial.net.rpc.Server.RegisterName.wp
+#print axioms Perennial.net.rpc.Register.wp
+#print axioms Perennial.net.rpc.RegisterName.wp
 #print axioms Perennial.net.rpc.Server.sendResponse.wp
 #print axioms Perennial.net.rpc.service.call.wp
 #print axioms Perennial.net.rpc.Server.readRequestHeader.wp

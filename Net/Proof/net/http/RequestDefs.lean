@@ -12,8 +12,15 @@ The vocabulary of the specs of net/http's request reading (`readRequest` and wha
   net/rpc's `CONNECT path HTTP/1.0` request: method, request URI, version, the URL `u` (its `Path`
   `path`, nothing else), an empty header map `m`, no body (`NoBody`'s value `nb`, `ContentLength`
   `0`), no `Host`, its `Close` `cl` (`shouldClose`'s);
-* `errMsgOk e`: `e` is an error whose `Error()` returns some string (`fmt.stringMethodSpec`), what
-  `readRequestLimit` asks of its stream's errors (it calls `Error()` on the header reader's).
+* `errMsgOk e`: `e` is an error whose `Error()` returns some string other than textproto's
+  `"message too large"`, what `readRequestLimit` asks of its stream's errors (it calls `Error()` on
+  the header reader's and answers `errTooLarge` for that message: `conn.serve` answers that one `431`);
+  `errMsgOk_of`: an `Error()` returning a known message other than that one;
+* `reqErr E err`: the errors `readRequestLimit` returns: the header reader's (`mimeErr E err`: the
+  stream's, or a `textproto.ProtocolError`), `io.ErrUnexpectedEOF` (the deferred rewrite of the
+  stream's `io.EOF`), or a `badStringError` (an `*errors.errorString` whose message starts with
+  `"malformed HTTP "`: a request line or version cut by the stream's error). None of them is
+  `errTooLarge`, an `*unsupportedTEError` or a `statusError`.
 -/
 module
 
@@ -69,10 +76,44 @@ def connectReqv (req : Loc) (path : List w8) : IProp GF :=
 
 /-- See the file header. -/
 def errMsgOk (e : GoInterface) : IProp GF :=
-  iprop(∃ ii : GoInterfaceOk, ⌜e = interface.ok ii⌝ ∗ fmt.stringMethodSpec ii go!"Error")
+  iprop(∃ ii : GoInterfaceOk, ⌜e = interface.ok ii⌝ ∗
+    □ ∀ Φ : val → IProp GF, ▷ (∀ s : GoString, ⌜s ≠ go!"message too large"⌝ -∗ Φ #s) -∗
+      WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }})
 
 instance errMsgOk_persistent (e : GoInterface) : Persistent (errMsgOk (GF := GF) e) := by
   unfold errMsgOk; infer_instance
+
+/-- See the file header. -/
+def reqErr (E : List w8 → GoInterface → IProp GF) (err : GoInterface) : IProp GF :=
+  iprop(mimeErr E err ∨
+    (∃ x : Loc, ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x⌝ ∗
+      globalAddr io.ErrUnexpectedEOF ↦□ err) ∨
+    (∃ (x : Loc) (s : GoString),
+      ⌜err = interface.mkOk (go.GoType.PointerType errors.errorString.ty) #x ∧
+        go!"malformed HTTP " <+: s⌝ ∗
+      x.[errors.errorString, go!"s"] ↦□ s))
+
+instance reqErr_persistent (E : List w8 → GoInterface → IProp GF) (err : GoInterface) :
+    Persistent (reqErr (GF := GF) E err) := by
+  unfold reqErr; infer_instance
+
+open Iris.ProofMode in
+/-- See the file header. -/
+theorem errMsgOk_of (ii : GoInterfaceOk) (msg : GoString) (h : msg ≠ go!"message too large") :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+        WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }}) ⊢
+      errMsgOk (interface.ok ii) := by
+  iintro #HW
+  iunfold errMsgOk
+  iexists ii
+  isplitr
+  · ipureintro; rfl
+  imodintro
+  iintro %Φ HΦ
+  iapply HW
+  inext
+  iapply HΦ
+  ipureintro; exact h
 
 end preds
 

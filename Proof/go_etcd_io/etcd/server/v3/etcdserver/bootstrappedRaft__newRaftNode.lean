@@ -2,8 +2,8 @@
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/bootstrappedRaft__newRaftNode.lean`.
 Lean-first (no Rocq counterpart). Its callees with specs: raft's node API's `StartNode`
 (`StartNode.spec`, at the cluster's storage model, `srvStor`) and `newRaftNode`; Perennial's `sync.Mutex.Lock`/`Unlock` are
-its linked results, used directly; the rest are the contracts the spec takes
-(`InvNodeStart.lean`). (2026-10-27: over the node API; until then raft's `StartNode.spec`.)
+its linked results, used directly; `NewStorage`'s contract is a law (`rnNewStorageOk.law`, wal-nostorageok,
+2026-11-21); the rest are the contracts the spec takes (`InvNodeStart.lean`). (2026-10-27: over the node API; until then raft's `StartNode.spec`.)
 -/
 module
 
@@ -36,7 +36,10 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       StartNode.spec (GF := GF) (hG := hG))
     (wp_RestartNode : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       RestartNode.spec (GF := GF) (hG := hG))
-    (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
+    (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG))
+    -- (wal-nostorageok, 2026-11-21: until then the spec's premise `rnNewStorageOk`) `NewStorage`'s contract,
+    -- proved over the real WAL (`rnNewStorageOk_law_holds`)
+    (hNewStorage : rnNewStorageOk.law (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
   intro E γr b ss wal cl sd dq bv cv lok γs pre ν pv ps ctxs Q bt
   letI := srvStor (GF := GF) γr
@@ -221,6 +224,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   (try wp_auto)
   ipersist cl
   -- `serverstorage.NewStorage(b.lg, wal, ss)`
+  ihave #Hns := hNewStorage $$ Hpkgs
   iunfold rnNewStorageOk at Hns
   subst Hwal
   wp_apply Hns $$ %bv.lg' %ss %sd %ν.h [] as %st ⟨#Hst, Hrd1, Hrd2⟩

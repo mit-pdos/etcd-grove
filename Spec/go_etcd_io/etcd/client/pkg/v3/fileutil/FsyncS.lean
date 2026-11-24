@@ -42,7 +42,7 @@ abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specOutS : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac),
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osOutFd fd }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync)) (Val #f))
-  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osOutFd fd }}
+  {{ (err : GoInterface), RET #err; fmtErrorOkOrNil err ∗ os.ownFile f fd name dqf ∗ osOutFd fd }}
 
 end spec
 

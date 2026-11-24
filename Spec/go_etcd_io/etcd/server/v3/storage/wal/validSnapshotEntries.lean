@@ -52,7 +52,7 @@ instance wal.vseErrIs_persistent (err : GoInterface) : Persistent (wal.vseErrIs 
 abbrev go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries.specPinned (Mr : WalMarshal) : Prop :=
   ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir : GoString) (qd : Qp) (d : WalDur) (lay : WalLay)
     (X : List GoString) (hj : NamesH),
-  VsePinOk walCodec Mr jr d lay X hj → dir.length < 2 ^ 59 →
+  VsePinOk walCodec Mr jr d lay X hj → PathFits dir →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm (callKey R dir) 1 ∗
       ([∗list] g ∈ lay.segs, segRes g) ∗ osNames lay.j (.except X) (DFrac.own (1 : Qp).half) hj }}

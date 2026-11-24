@@ -1,5 +1,6 @@
 /-
-Proof of `byteorder.LEUint32` over its translated body (`internal/byteorder`, go1.27.3): a load of
+Proof of `byteorder.LEUint32` over its translated body (`internal/byteorder`, go1.27.3; Perennial's translation since its pin
+b3f2fc485, this repository's until 2026-11-24): a load of
 `b[3]`, then four loads at constant indices below `len(b)`. Lean-first (crc32-hooks2, 2026-11-22).
 -/
 module

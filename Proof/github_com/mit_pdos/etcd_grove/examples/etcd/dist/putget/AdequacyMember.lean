@@ -90,6 +90,16 @@ def putgetRegKeys : List w64 :=
    0x1de4f1c3b13fe482, 0xe4ccc50c7daf4c9c, 0x9b8a677c6e6c1ef8, 0x7133d22463246355,
    0xaa607cdd4f5c0a9a, 0xb0bfadd1258d120e, 0xe5bc0e939f7dd45d, 0x35c8acd42298ce6b]
 
+/-- A valid address is within etcd's URL bounds (`etcdstart.addrFits`, `Member.spec`'s premise): `http://`
+and it is a plain peer URL (`etcd_dist.addrOk_plainPeerURL`) of at most `7 + 21` bytes
+(`etcd_dist.addrOk_length_le`). -/
+theorem addrOk_addrFits {a : GoString} (h : Net.addrOk a = true) : etcdstart.addrFits a := by
+  refine ⟨etcd_dist.addrOk_plainPeerURL h, ?_⟩
+  have := etcd_dist.addrOk_length_le h
+  simp only [List.length_append, etcdURLLenMax]
+  have : (go!"http://").length = 7 := rfl
+  omega
+
 /-- **The registering packages' IDs can have their rights** (prom-registry, route (b)): decided by the
 kernel once, over the IDs as literals (`mvccfull_regQsOk`). -/
 theorem putget_regQsOk :
@@ -102,10 +112,12 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [log.NewModel] [net.FieldAssumptions]
+    -- (wal-nostorageok: `NewStorage`'s contract proved, `etcdstart`'s linked results take `os`'s field steps)
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
     (HM : MemberBootHyps) (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
-    (peer client : GoString) (hpeer : Net.addrOk peer = true)
+    (peer client : GoString) (hpeer : Net.addrOk peer = true) (hclient : Net.addrOk client = true)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
     (Hdbo : storage.diskOk)
@@ -162,6 +174,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
       S peer client id ctxs boot γE (putgetPub S) Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
+      (addrOk_addrFits hpeer) (addrOk_addrFits hclient)
       (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hdd Hwa Hshare]
   · iframe; iframe #

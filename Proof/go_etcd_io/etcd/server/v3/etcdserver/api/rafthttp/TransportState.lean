@@ -84,22 +84,26 @@ theorem netHttpOk_of_dir (γn : NetNames GF) (lid : w64) (hd0 : γn.dir 0 = []) 
   iapply Hdir $$ %pid %h %hp
 
 /-- **A three-address network's HTTP side, reserved** (stage 6d; the examples' clusters): with every
-host of the directory one of `a₁`, `a₂`, `a₃` and no member `0`, the program start's rights to fix
-the three addresses' protocols reserve each for the raft protocol: the network's HTTP side for
-every member (`netHttpOk`), and the right to serve each address with it (`httpProtoOwn`, for its
-member's listener, `http.register`). -/
+host of the directory one of `a₁`, `a₂`, `a₃` and no member `0`, the program start's rights to listen at the three
+addresses and to fix their protocols reserve each for the raft protocol: the network's HTTP side for
+every member (`netHttpOk`), and for each address the right to listen at it reserved for HTTP (`httpAddrFree`, its net
+protocols set to net/http's, 2026-11-24: `http.reserveAddr`) and to serve it with the raft protocol (`httpProtoOwn`),
+for its member's listener (`net.Listen.specHttp`, `http.register`). -/
 theorem netHttp_reserve3 (γn : NetNames GF) (a₁ a₂ a₃ : GoString) (hd0 : γn.dir 0 = [])
     (hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ γn.dir i → h = a₁ ∨ h = a₂ ∨ h = a₃) :
     ⊢ inv streamRegN iprop(∃ m : GMap GName StreamKey, ghostMapAuth γn.reg 1 m) -∗
-      httpProtoFree a₁ -∗ httpProtoFree a₂ -∗ httpProtoFree a₃ ==∗
-      (□ ∀ lid : w64, netHttpOk γn lid) ∗ http.httpProtoOwn a₁ (raftProto (netRh γn)) ∗
-        http.httpProtoOwn a₂ (raftProto (netRh γn)) ∗ http.httpProtoOwn a₃ (raftProto (netRh γn)) := by
-  iintro #Hreg Hf₁ Hf₂ Hf₃
-  imod (http.reserve a₁ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Hf₁ with ⟨#Hat₁, Ho₁⟩
-  imod (http.reserve a₂ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Hf₂ with ⟨#Hat₂, Ho₂⟩
-  imod (http.reserve a₃ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Hf₃ with ⟨#Hat₃, Ho₃⟩
+      (netAddrFree a₁ ∗ httpProtoFree a₁) -∗ (netAddrFree a₂ ∗ httpProtoFree a₂) -∗
+      (netAddrFree a₃ ∗ httpProtoFree a₃) ={⊤}=∗
+      (□ ∀ lid : w64, netHttpOk γn lid) ∗
+        (http.httpAddrFree a₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn))) ∗
+        (http.httpAddrFree a₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
+        (http.httpAddrFree a₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) := by
+  iintro #Hreg ⟨Ha₁, Hf₁⟩ ⟨Ha₂, Hf₂⟩ ⟨Ha₃, Hf₃⟩
+  imod (http.reserveAddr ⊤ a₁ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Ha₁ Hf₁ with ⟨#Hat₁, Ha₁, Ho₁⟩
+  imod (http.reserveAddr ⊤ a₂ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Ha₂ Hf₂ with ⟨#Hat₂, Ha₂, Ho₂⟩
+  imod (http.reserveAddr ⊤ a₃ (raftProto (netRh γn)) (raftProto_srvOk _)) $$ Ha₃ Hf₃ with ⟨#Hat₃, Ha₃, Ho₃⟩
   imodintro
-  iframe Ho₁ Ho₂ Ho₃
+  iframe Ha₁ Ho₁ Ha₂ Ho₂ Ha₃ Ho₃
   iintro !> %lid
   iapply netHttpOk_of_dir γn lid hd0 $$ [Hreg]
   iframe Hreg

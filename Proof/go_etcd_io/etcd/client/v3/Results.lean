@@ -94,6 +94,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Link
 public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
 public import Proof.go_etcd_io.etcd.client.v3.KeyOps
 public import Proof.go_etcd_io.etcd.client.v3.GrpcTys
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
 
 @[expose] public section
 
@@ -3505,6 +3506,7 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
         srvRevokeBuilt s E ∗ srvRunPool s E γr ∗
         (□ [∗list] m ∈ ms, grpcRunOkMd #m.handler m.srv [il, im, iu] m.spec) ⊢
       |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
+        etcdKVSrvAt addr s [il, im, iu] ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
@@ -3517,6 +3519,10 @@ theorem etcd_kv_started_with (addr : GoString) (gs q p s : Loc)
   · iframe
   ihave #Hil' := Hil $$ %v3rpc.learnerReqOk
   ihave #Him' := Him $$ %v3rpc.learnerReqOk
+  -- (2026-11-24) the server now listening at `addr` serves etcd's KV service over `s` (what
+  -- `etcd_noRefusal` takes)
+  ihave #Hksa := etcdKVSrvAt_of_serverAt addr [il, im, iu] regs etcdTys γ q p s hregs $$ [Hat' Hq]
+  · iframe #
   imod (etcd_kv_served_with addr p q s E ρ γr cid mid n il im iu regs γ ms
     (by rw [etcdKVRegs_eq]; exact hregs) hms hmt hρ HL) $$ [] with H
   · iframe #
@@ -3532,7 +3538,9 @@ registrations, and etcd's specs of `Put`, `Range`, `DeleteRange` and `Txn` regis
 (`isGrpcRpc`), each run on a fork of grpc's borrowing from the server's built pools and run pool
 (`srvRevokeBuilt`, `srvRunPool`, with the levels `srvLevels`; per-type stage B3), given the server's
 request-path premises (`etcd_kv_served`'s), under the workload premise `grpcRepliesFit` and the
-registrations' distinct names (`grpc.start`'s). -/
+registrations' distinct names (`grpc.start`'s); and (2026-11-24) that the server now listening at `addr`
+serves etcd's KV service over `s` behind the chain `[il, im, iu]` (`etcdKVSrvAt`, from `grpc.start'`'s `grpcServerAt`: with the chain's identity, what
+`etcd_noRefusal_at` takes, after the start). -/
 theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
     (lis : GoInterface) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (cid mid n : w64)
     (il im iu ims is : GoFunc) (svcs : List GoString)
@@ -3552,6 +3560,7 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
         grpcSrvNew gs [il, im, iu] [ims, is] svcs regs sregs ∗ netListenerAt lis addr ∗ netAddrLeft addr ∗
         srvRevokeBuilt s E ∗ srvRunPool s E γr ⊢
       |={⊤}=> ∃ γ : GName, grpcServeTok gs lis addr (grpcGoSvc [il, im, iu] regs etcdTys) ∗ grpcStreamServerAt addr [ims, is] sregs γ ∗
+        etcdKVSrvAt addr s [il, im, iu] ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E ρ.rd cid mid) ∗
         isGrpcRpcMd addr go!"/etcdserverpb.KV/Range" (etcdRangeSpecE E γr cid mid) ∗
         isGrpcRpc addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E ρ.rd cid mid) ∗
@@ -3560,7 +3569,7 @@ theorem etcd_kv_started (addr : GoString) (gs q p s : Loc)
   iintro ⟨#Pv, #Ps, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hleft, #Hb, #Hrp⟩
   imod (etcd_kv_started_with addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs []
     hregs (by intro m hm; simp at hm) (by intro m hm; simp at hm) Hrf hnd hρ HL) $$ [Hgs Hlis Hleft]
-    with ⟨%γ, Htok, Hst, #H1, #H2, #H3, #H4, #H5, -⟩
+    with ⟨%γ, Htok, Hst, #Hksa, #H1, #H2, #H3, #H4, #H5, -⟩
   · iframe; iframe #
     iintro !>
     iapply BigSepL.bigSepL_nil.2
