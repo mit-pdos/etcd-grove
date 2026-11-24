@@ -59,7 +59,7 @@ theorem retryLeaseClient.LeaseKeepAlive.wp_proof
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb $$ []
   · iPkgInit
   ihave #Hdesc := leaseDescOk_of_init $$ Hpb
-  wp_apply wp_stub lc conn addr ctx cd copts _ $$ [] as %st %err Hres
+  wp_apply wp_stub lc conn addr ctx cd copts _ $$ [Hlt] as %st %err Hres
   · iframe #
   iapply HΦ
   iexact Hres

@@ -53,7 +53,7 @@ theorem retryKVClient.Range.wp_proof
   ihave #Hs1 := callOptsOk_singleton _ $$ Hro1
   ihave #Hok2 := callOptsOk_app vs _ $$ [Hok Hs1]
   · iframe #
-  wp_apply wp_kVClient_Range kc conn addr Spec Q ctx om cd inp req k e copts _ Ψe $$ [Hin] as %resp %err Hres
+  wp_apply wp_kVClient_Range kc conn addr Spec Q ctx om cd inp req k e copts _ Ψe $$ [Hlt Hin] as %resp %err Hres
   · iframe #
     iframe
     try (ipureintro; exact Hsz)

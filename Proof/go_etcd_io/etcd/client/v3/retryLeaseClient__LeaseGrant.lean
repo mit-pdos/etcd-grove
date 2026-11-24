@@ -57,7 +57,7 @@ theorem retryLeaseClient.LeaseGrant.wp_proof
   ihave #Hs1 := callOptsOk_singleton _ $$ Hro1
   ihave #Hok2 := callOptsOk_app vs _ $$ [Hok Hs1]
   · iframe #
-  wp_apply wp_stub lc conn addr Spec Q ctx om cd inp req copts _ $$ [Hin] as %resp %err Hres
+  wp_apply wp_stub lc conn addr Spec Q ctx om cd inp req copts _ $$ [Hlt Hin] as %resp %err Hres
   · iframe #
     iframe
     try (ipureintro; exact Hsz)

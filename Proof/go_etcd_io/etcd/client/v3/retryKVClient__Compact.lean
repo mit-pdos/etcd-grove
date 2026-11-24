@@ -30,7 +30,7 @@ theorem retryKVClient.Compact.wp_proof (wp_kVClient_Compact : kVClient.Compact.s
   iunfold retryKVAt at Hrkv
   icases Hrkv with ⟨%kc, #Hkc, #Hstub⟩
   wp_auto
-  wp_apply wp_kVClient_Compact kc conn addr Spec Q ctx om cd inp req opts vs $$ [Hin Hpre] as %resp %err Hres
+  wp_apply wp_kVClient_Compact kc conn addr Spec Q ctx om cd inp req opts vs $$ [Hlt Hin Hpre] as %resp %err Hres
   · iframe #
     iframe
     try (ipureintro; exact Hsz)

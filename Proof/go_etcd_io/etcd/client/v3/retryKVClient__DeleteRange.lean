@@ -30,7 +30,7 @@ theorem retryKVClient.DeleteRange.wp_proof (wp_kVClient_DeleteRange : kVClient.D
   iunfold retryKVAt at Hrkv
   icases Hrkv with ⟨%kc, #Hkc, #Hstub⟩
   wp_auto
-  wp_apply wp_kVClient_DeleteRange kc conn addr Spec Q ctx om cd inp req k e opts vs $$ [Hin Hpre] as %resp %err Hres
+  wp_apply wp_kVClient_DeleteRange kc conn addr Spec Q ctx om cd inp req k e opts vs $$ [Hlt Hin Hpre] as %resp %err Hres
   · iframe #
     iframe
     try (ipureintro; exact Hsz)

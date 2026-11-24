@@ -31,7 +31,7 @@ theorem retryAuthClient.RoleAdd.wp_proof
   iunfold retryAuthAt at Hrac
   icases Hrac with ⟨%ac, #Hac, #Hstub⟩
   wp_auto
-  wp_apply wp_authClient_RoleAdd ac conn addr Spec Q ctx om cd inp m opts vs $$ [Hin] as %resp %err Hres
+  wp_apply wp_authClient_RoleAdd ac conn addr Spec Q ctx om cd inp m opts vs $$ [Hlt Hin] as %resp %err Hres
   · iframe #
     iframe
     try (ipureintro; exact Hsz)
