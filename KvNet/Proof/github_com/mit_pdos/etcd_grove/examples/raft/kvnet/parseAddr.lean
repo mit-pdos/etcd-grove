@@ -80,10 +80,10 @@ theorem parseAddr.wp_proof
     (wp_AddrOk : AddrOk.spec (GF := GF) (hG := hG))
     (wp_decimal : decimal.spec (GF := GF) (hG := hG)) :
     parseAddr.spec (GF := GF) (hG := hG) := by
-  intro a ha
+  intro a _ha
   wp_start
   try wp_auto
-  wp_apply wp_AddrOk a ha $$ [$Hpkg]
+  wp_apply wp_AddrOk a $$ [$Hpkg]
   try wp_auto
   cases hok : addrOk a
   · -- refused
