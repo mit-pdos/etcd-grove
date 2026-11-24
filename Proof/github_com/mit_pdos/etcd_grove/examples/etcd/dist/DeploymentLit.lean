@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 /-! ## Array and slice literals of expressions -/
 
 /-- The keyed element of an unkeyed array literal element `e` of type `t`. -/
-def arrayLitKEe [GooseExts] (t : go.GoType) (e : Expr) : keyed_element :=
+abbrev arrayLitKEe [GooseExts] (t : go.GoType) (e : Expr) : keyed_element :=
   KeyedElement none (ElementExpression t e)
 
 theorem arrayLiteralSize_unkeyed [GooseExts] {A : Type} (t : go.GoType) (f : A → Expr) (es : List A) :
@@ -112,7 +112,9 @@ theorem wp_arrayLit_exprs_fold {s : Stuckness} {E : CoPset} (n : Int) (t : go.Go
   | [], i, e0, Q, he0, Φ => by
     refine .trans ?_ (he0 Φ)
     iintro H %acc HQ
-    iapply H $$ %acc %([] : List V) HQ
+    ispecialize H $$ %acc %([] : List V) HQ
+    rw [show arrayLitSets acc i ([] : List V) = acc from rfl]
+    iapply H
     iapply BigSepL2.bigSepL2_nil.2
     iempintro
   | x :: xs, i, e0, Q, he0, Φ => by
@@ -121,7 +123,10 @@ theorem wp_arrayLit_exprs_fold {s : Stuckness} {E : CoPset} (n : Int) (t : go.Go
       (fun acc' => iprop(∃ acc v, ⌜acc' = acc.set (sint.nat (W64 i)) v⌝ ∗ Q acc ∗ P x v)) ?_ Φ)
     · iintro H %acc' %vs ⟨%acc, %v, %Heq, HQ, HP⟩ Hvs
       subst Heq
-      iapply H $$ %acc %(v :: vs) HQ
+      ispecialize H $$ %acc %(v :: vs) HQ
+      rw [show arrayLitSets acc i (v :: vs) = arrayLitSets (acc.set (sint.nat (W64 i)) v) (i + 1) vs
+        from rfl]
+      iapply H
       iapply BigSepL2.bigSepL2_cons.2
       iframe
     · intro Ψ
@@ -198,8 +203,21 @@ theorem wp_sliceLit_exprs {s : Stuckness} {E : CoPset} {st t : go.GoType} {A V :
     wp_pures
     iapply H
     ipureintro; rfl
+  have harr : ∀ Ψ : val → IProp GF,
+      iprop(∀ acc vs, ⌜acc = List.replicate (xs.length : Int).toNat (zero_val V)⌝ -∗
+        ([∗list] x;v ∈ xs;vs, P x v) -∗ Ψ #(array.mk (xs.length : Int) (arrayLitSets acc 0 vs))) ⊢
+      WP (App (Val (GoInstruction (CompositeLiteral (go.ArrayType (xs.length : Int) t))))
+        (Val (LiteralValueV (xs.map (fun x => arrayLitKEe t (f x)))))) @ s; E {{ Ψ }} := by
+    intro Ψ
+    refine .trans ?_ ((pure_wp_go_step_det _ _ _).pure_wp_wp s E Ψ [] rfl)
+    iintro H
+    inext
+    iintro -
+    rw [show ∀ e : Expr, fill [] e = e from fun _ => rfl]
+    iapply (wp_arrayLit_exprs_fold (xs.length : Int) t f P hf _ (fun _ _ _ => rfl) xs 0 _ _ he0)
+    iexact H
   iintro H %hlen
-  iapply (wp_arrayLit_exprs_fold (xs.length : Int) t f P hf _ (fun _ _ _ => rfl) xs 0 _ _ he0)
+  iapply harr
   iintro %acc %vs %Hacc Hvs
   ihave %Hl := BigSepL2.bigSepL2_length $$ Hvs
   subst Hacc
@@ -213,6 +231,30 @@ theorem wp_sliceLit_exprs {s : Stuckness} {E : CoPset} {st t : go.GoType} {A V :
   · ipureintro; rfl
   iintro %sl_ptr %_ ⟨Hsl, -⟩
   iapply H $$ Hsl Hvs
+
+/-- Read-only copies of slices related element-wise to lists. -/
+theorem bigSepL2_ownSlice_persist {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] :
+    ∀ (vss : List (List V)) (ss : List GoSlice),
+      ([∗list] vs;s ∈ vss;ss, s ↦* vs : IProp GF) ⊢ |==> [∗list] s;vs ∈ ss;vss, s ↦*□ vs
+  | [], ss => by
+    iintro H
+    ihave %Hl := BigSepL2.bigSepL2_length $$ H
+    match ss, Hl with
+    | [], _ =>
+      imodintro
+      iapply BigSepL2.bigSepL2_nil.2
+      iempintro
+  | vs :: vss, ss => by
+    iintro H
+    ihave %Hl := BigSepL2.bigSepL2_length $$ H
+    match ss, Hl with
+    | s :: ss, _ =>
+      ihave ⟨H1, H⟩ := BigSepL2.bigSepL2_cons.1 $$ H
+      imod (ownSlice_persist _ _ _) $$ H1 with H1
+      imod (bigSepL2_ownSlice_persist vss ss) $$ H with H
+      imodintro
+      iapply BigSepL2.bigSepL2_cons.2
+      iframe
 
 /-- A list related element-wise to the images of another list is that image. -/
 theorem bigSepL2_eq_map {A B : Type} (g : A → B) :
@@ -246,14 +288,14 @@ section exprs
 variable [GooseExts] [GoGlobalContext]
 
 /-- A member's struct literal (`deploymentLit`'s element of `Members`). -/
-def memberLitE (m : Member) : Expr :=
+abbrev memberLitE (m : Member) : Expr :=
   App (Val (GoInstruction (CompositeLiteral deployment.Member.ty))) (LiteralValue
     [KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Val #m.name)),
      KeyedElement (some (KeyField go!"Peer")) (ElementExpression go.string (Val #m.peer)),
      KeyedElement (some (KeyField go!"Client")) (ElementExpression go.string (Val #m.client))])
 
 /-- A workload's struct literal (`deploymentLit`'s element of `Workloads`). -/
-def workloadLitE (w : Workload) : Expr :=
+abbrev workloadLitE (w : Workload) : Expr :=
   App (Val (GoInstruction (CompositeLiteral deployment.Workload.ty))) (LiteralValue
     [KeyedElement (some (KeyField go!"Kind")) (ElementExpression deployment.Kind.ty (Val #w.kind)),
      KeyedElement (some (KeyField go!"Clients")) (ElementExpression go.int (Val #w.clients)),
@@ -261,7 +303,7 @@ def workloadLitE (w : Workload) : Expr :=
 
 /-- A workload's client machines' addresses, as a slice literal (`deploymentLit`'s element of
 `Nodes`). -/
-def nodesLitE (ns : List GoString) : Expr :=
+abbrev nodesLitE (ns : List GoString) : Expr :=
   App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue
     (ns.map (fun n => arrayLitKEe go.string (Val #n))))
 
@@ -291,17 +333,16 @@ theorem wp_workloadLitE {s : Stuckness} {E : CoPset} (w : Workload) (Ψ : val �
   ipureintro; rfl
 
 theorem wp_nodesLitE {s : Stuckness} {E : CoPset} (ns : List GoString) (Ψ : val → IProp GF) :
-    iprop(∀ sl : GoSlice, sl ↦*□ ns -∗ Ψ #sl) ⊢ WP (nodesLitE ns) @ s; E {{ Ψ }} := by
+    iprop(∀ sl : GoSlice, sl ↦* ns -∗ Ψ #sl) ⊢ WP (nodesLitE ns) @ s; E {{ Ψ }} := by
   iintro H
   unfold nodesLitE
   wp_pure
   iapply (wp_sliceLit_exprs (V := GoString) (t := go.string) (fun n => Val #n)
-    (fun n v => iprop(⌜v = n⌝)) (fun n Ψ' => by iintro H'; wp_pures; iapply H'; ipureintro; rfl) ns)
+    (fun n v => iprop(⌜v = id n⌝)) (fun n Ψ' => by iintro H'; wp_pures; iapply H'; ipureintro; rfl) ns)
   iintro %sl %vs Hsl Hvs
   ihave %Hvs := bigSepL2_eq_map id ns vs $$ Hvs
   rw [List.map_id] at Hvs
   subst Hvs
-  imod (ownSlice_persist _ _ _) $$ Hsl with Hsl
   iapply H $$ Hsl
 
 /-- **The deployment's literal evaluates**: `deploymentLit d` evaluates, without panicking, to a Go
@@ -312,8 +353,45 @@ theorem wp_deploymentLit {s : Stuckness} {E : CoPset} (d : Deployment) (Φ : val
   iintro HΦ
   simp only [deploymentLit]
   wp_pures
-  trace_state
-  sorry
+  -- `Members`
+  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType deployment.Member.ty))))
+    (Val (LiteralValueV _)))
+  iapply (wp_sliceLit_exprs (V := deployment.Member) (t := deployment.Member.ty) memberLitE
+    (fun m v => iprop(⌜v = m.val⌝)) (fun m Ψ => wp_memberLitE m Ψ) d.members)
+  iintro %msl %mvs Hm Hmvs
+  ihave %Hmvs := bigSepL2_eq_map Member.val d.members mvs $$ Hmvs
+  subst Hmvs
+  imod (ownSlice_persist _ _ _) $$ Hm with Hm
+  wp_pures
+  -- `Workloads`
+  wp_bind (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType deployment.Workload.ty))))
+    (Val (LiteralValueV _)))
+  iapply (wp_sliceLit_exprs (V := deployment.Workload) (t := deployment.Workload.ty) workloadLitE
+    (fun w v => iprop(⌜v = w.val⌝)) (fun w Ψ => wp_workloadLitE w Ψ) d.workloads)
+  iintro %wsl %wvs Hw Hwvs
+  ihave %Hwvs := bigSepL2_eq_map Workload.val d.workloads wvs $$ Hwvs
+  subst Hwvs
+  imod (ownSlice_persist _ _ _) $$ Hw with Hw
+  wp_pures
+  -- `Nodes`
+  wp_bind (App (Val (GoInstruction (CompositeLiteral
+    (go.GoType.SliceType (go.GoType.SliceType go.string))))) (Val (LiteralValueV _)))
+  iapply (wp_sliceLit_exprs (V := GoSlice) (t := go.GoType.SliceType go.string) nodesLitE
+    (fun ns sl => iprop(sl ↦* ns)) (fun ns Ψ => wp_nodesLitE ns Ψ) d.nodes)
+  iintro %nsl %ss Hn Hss
+  imod (ownSlice_persist _ _ _) $$ Hn with Hn
+  imod (bigSepL2_ownSlice_persist d.nodes ss) $$ Hss with Hss
+  wp_pures
+  iapply HΦ
+  iunfold deploymentRepr
+  iframe Hm
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · ipureintro; rfl
+  iframe Hw
+  iexists ss
+  iframe
 
 end lit
 
