@@ -11,16 +11,19 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__Events
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__Servers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__deliver
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__drain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__isolate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__isolatedNow
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__node
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__reportCause
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__run
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster__send
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DefaultConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Name
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Recorder__Events
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Recorder__record
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.below
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage__Entries
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage__FirstIndex
@@ -37,7 +40,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.role
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
 public import Perennial.Proof.strconv.Link
-public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunCluster
+public import Proof.go_etcd_io.raft.v3.RawNodeApiLinked
+public import Proof.go_etcd_io.raft.v3.RawNodeStartSpec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.CloneMsgLaw
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.DrainAdvWp
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.MsgShape
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.ReadyAll
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check.Link
 public import Proof.go_etcd_io.raft.v3.Link
 
@@ -92,18 +100,6 @@ theorem AntHarness.Cluster.wp_deliver [StorageModel GF] :
     AntHarness.Cluster.deliver.spec (GF := GF) (hG := hG) :=
   AntHarness.Cluster.deliver.wp_proof
 
-theorem AntHarness.Cluster.wp_isolate :
-    AntHarness.Cluster.isolate.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.isolate.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
-
-theorem AntHarness.Cluster.wp_isolatedNow :
-    AntHarness.Cluster.isolatedNow.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.isolatedNow.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
-
-theorem AntHarness.Cluster.wp_node :
-    AntHarness.Cluster.node.spec (GF := GF) (hG := hG) :=
-  AntHarness.Cluster.node.wp_proof
-
 theorem AntHarness.Recorder.wp_record :
     AntHarness.Recorder.record.spec (GF := GF) (hG := hG) :=
   AntHarness.Recorder.record.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
@@ -111,6 +107,14 @@ theorem AntHarness.Recorder.wp_record :
 theorem AntHarness.Cluster.wp_reportCause [StorageModel GF] :
     AntHarness.Cluster.reportCause.spec (GF := GF) (hG := hG) :=
   AntHarness.Cluster.reportCause.wp_proof AntHarness.Recorder.wp_record
+
+theorem AntHarness.Cluster.wp_node :
+    AntHarness.Cluster.node.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.node.wp_proof
+
+theorem AntHarness.Cluster.wp_isolatedNow :
+    AntHarness.Cluster.isolatedNow.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.isolatedNow.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
 
 theorem AntHarness.wp_below :
     AntHarness.below.spec (GF := GF) (hG := hG) :=
@@ -120,33 +124,9 @@ theorem AntHarness.Cluster.wp_send [StorageModel GF] :
     AntHarness.Cluster.send.spec (GF := GF) (hG := hG) :=
   AntHarness.Cluster.send.wp_proof AntHarness.Cluster.wp_deliver AntHarness.Cluster.wp_node AntHarness.Cluster.wp_isolatedNow AntHarness.wp_below _root_.Perennial.time.wp_Sleep raftpb.Message.wp_GetType raftpb.Message.wp_GetTo raftpb.Message.wp_GetFrom _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done
 
-theorem AntHarness.wp_DefaultConfig :
-    AntHarness.DefaultConfig.spec (GF := GF) (hG := hG) :=
-  AntHarness.DefaultConfig.wp_proof
-
-theorem AntHarness.bootStorage.wp_Entries [StorageModel GF] :
-    AntHarness.bootStorage.Entries.spec (GF := GF) (hG := hG) :=
-  AntHarness.bootStorage.Entries.wp_proof MemoryStorage.wp_Entries
-
-theorem AntHarness.bootStorage.wp_FirstIndex [StorageModel GF] :
-    AntHarness.bootStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
-  AntHarness.bootStorage.FirstIndex.wp_proof MemoryStorage.wp_FirstIndex
-
-theorem AntHarness.bootStorage.wp_InitialState :
-    AntHarness.bootStorage.InitialState.spec (GF := GF) (hG := hG) :=
-  AntHarness.bootStorage.InitialState.wp_proof MemoryStorage.wp_InitialState MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
-
-theorem AntHarness.bootStorage.wp_LastIndex :
-    AntHarness.bootStorage.LastIndex.spec (GF := GF) (hG := hG) :=
-  AntHarness.bootStorage.LastIndex.wp_proof MemoryStorage.wp_LastIndex
-
-theorem AntHarness.bootStorage.wp_Snapshot :
-    AntHarness.bootStorage.Snapshot.spec (GF := GF) (hG := hG) :=
-  AntHarness.bootStorage.Snapshot.wp_proof MemoryStorage.wp_Snapshot
-
-theorem AntHarness.bootStorage.wp_Term :
-    AntHarness.bootStorage.Term.spec (GF := GF) (hG := hG) :=
-  AntHarness.bootStorage.Term.wp_proof MemoryStorage.wp_Term
+theorem AntHarness.wp_msgType :
+    AntHarness.msgType.spec (GF := GF) (hG := hG) :=
+  AntHarness.msgType.wp_proof
 
 theorem AntHarness.wp_entryOf :
     AntHarness.entryOf.spec (GF := GF) (hG := hG) :=
@@ -156,10 +136,6 @@ theorem AntHarness.wp_entriesOf :
     AntHarness.entriesOf.spec (GF := GF) (hG := hG) :=
   AntHarness.entriesOf.wp_proof AntHarness.wp_entryOf
 
-theorem AntHarness.wp_msgType :
-    AntHarness.msgType.spec (GF := GF) (hG := hG) :=
-  AntHarness.msgType.wp_proof
-
 theorem AntHarness.wp_msgOf :
     AntHarness.msgOf.spec (GF := GF) (hG := hG) :=
   AntHarness.msgOf.wp_proof AntHarness.wp_msgType AntHarness.wp_Name AntHarness.wp_entriesOf raftpb.Message.wp_GetIndex raftpb.Message.wp_GetLogTerm raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom raftpb.Message.wp_GetTerm raftpb.Message.wp_GetEntries raftpb.Message.wp_GetCommit raftpb.Message.wp_GetReject raftpb.Message.wp_GetRejectHint
@@ -167,6 +143,38 @@ theorem AntHarness.wp_msgOf :
 theorem AntHarness.wp_roleOf :
     AntHarness.roleOf.spec (GF := GF) (hG := hG) :=
   AntHarness.roleOf.wp_proof
+
+theorem AntHarness.Cluster.wp_isolate :
+    AntHarness.Cluster.isolate.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.isolate.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
+
+theorem AntHarness.wp_DefaultConfig :
+    AntHarness.DefaultConfig.spec (GF := GF) (hG := hG) :=
+  AntHarness.DefaultConfig.wp_proof
+
+theorem AntHarness.bootStorage.wp_InitialState :
+    AntHarness.bootStorage.InitialState.spec (GF := GF) (hG := hG) :=
+  AntHarness.bootStorage.InitialState.wp_proof MemoryStorage.wp_InitialState MemoryStorage.wp_Snapshot raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem AntHarness.bootStorage.wp_Snapshot :
+    AntHarness.bootStorage.Snapshot.spec (GF := GF) (hG := hG) :=
+  AntHarness.bootStorage.Snapshot.wp_proof MemoryStorage.wp_Snapshot
+
+theorem AntHarness.bootStorage.wp_LastIndex :
+    AntHarness.bootStorage.LastIndex.spec (GF := GF) (hG := hG) :=
+  AntHarness.bootStorage.LastIndex.wp_proof MemoryStorage.wp_LastIndex
+
+theorem AntHarness.bootStorage.wp_FirstIndex [StorageModel GF] :
+    AntHarness.bootStorage.FirstIndex.spec (GF := GF) (hG := hG) :=
+  AntHarness.bootStorage.FirstIndex.wp_proof MemoryStorage.wp_FirstIndex
+
+theorem AntHarness.bootStorage.wp_Term :
+    AntHarness.bootStorage.Term.spec (GF := GF) (hG := hG) :=
+  AntHarness.bootStorage.Term.wp_proof MemoryStorage.wp_Term
+
+theorem AntHarness.bootStorage.wp_Entries [StorageModel GF] :
+    AntHarness.bootStorage.Entries.spec (GF := GF) (hG := hG) :=
+  AntHarness.bootStorage.Entries.wp_proof MemoryStorage.wp_Entries
 
 end links_hasLC
 
@@ -178,12 +186,24 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Assumptions]
-variable (h_antithesis_RunCluster : AntHarness.RunCluster.spec (GF := GF) (hG := hG))
-include h_antithesis_RunCluster
+variable (h_readyMsgsOk : AntHarness.readyMsgsOk.law)
+include h_readyMsgsOk
 
-theorem AntHarness.wp_Main :
+theorem AntHarness.Cluster.wp_drain [StorageModel GF] :
+    AntHarness.Cluster.drain.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.drain.wp_proof (RawNode.HasReady.wp_apiProof SoftState.wp_equal wp_IsEmptyHardState wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot raftLog.wp_hasNextUnstableEnts raftLog.wp_hasNextCommittedEnts raft.wp_softState raft.wp_hardState) (RawNode.Ready.wp_apiProof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady) (AntHarness.drainSend AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_msgOf raftpb.Message.wp_GetTo AntHarness.Cluster.wp_send (AntHarness.cloneMsg_law_of proto.wp_ClonePb) rnBudget_persistent rnTermLB_persistent rnTermLB_rb rnTermLB_le) (AntHarness.drainAdvance AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_entriesOf raftpb.Entry.wp_GetIndex (RawNode.Advance.wp_apiProof raft.wp_Step)) rawNode_vote rawNode_wf rawNode_noSnap rawNode_logTerms rawNode_term_tc rnBudget_persistent rnTermLB_persistent rnTermLB_rb rawNode_logRecs rawNode_commitInv rawNode_commit rawNode_committed rawNode_leader h_readyMsgsOk AntSim.msgShape AntHarness.wp_roleOf wp_IsEmptyHardState raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raftpb.HardState.wp_GetCommit wp_IsEmptySnap rawNode_appended rawNode_phsTerm AntSim.antSim_ready AntHarness.Cluster.wp_reportCause AntHarness.Recorder.wp_record AntHarness.wp_entriesOf AntHarness.wp_Name raftpb.Entry.wp_GetIndex MemoryStorage.wp_Append MemoryStorage.wp_SetHardState
+
+theorem AntHarness.Cluster.wp_run [StorageModel GF] :
+    AntHarness.Cluster.run.spec (GF := GF) (hG := hG) :=
+  AntHarness.Cluster.run.wp_proof _root_.Perennial.time.wp_NewTicker _root_.Perennial.time.Ticker.wp_Stop _root_.Perennial.sync.WaitGroup.wp_Done AntHarness.wp_msgOf (AntHarness.Cluster.wp_drain h_readyMsgsOk) (RawNode.Tick.wp_apiProof raft.wp_tickElection raft.wp_tickHeartbeat) (RawNode.Step.wp_apiProof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom) (RawNode.Propose.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) rawNode_wf rawNode_term_tc rawNode_raise_tc rnBudget_persistent rnBudget_spend rnBudget_step
+
+theorem AntHarness.wp_RunCluster [StorageModel GF] :
+    AntHarness.RunCluster.spec (GF := GF) (hG := hG) :=
+  AntHarness.RunCluster.wp_proof wp_NewMemoryStorage AntHarness.bootStorage.wp_InitialState AntHarness.bootStorage.wp_Snapshot AntHarness.bootStorage.wp_LastIndex AntHarness.bootStorage.wp_FirstIndex AntHarness.bootStorage.wp_Term AntHarness.bootStorage.wp_Entries (NewRawNode.wp_proofEmptyStartApi wp_NewRawNode) AntHarness.wp_Name AntHarness.wp_names AntHarness.Recorder.wp_record (AntHarness.Cluster.wp_drain h_readyMsgsOk) (AntHarness.Cluster.wp_run h_readyMsgsOk) AntHarness.Cluster.wp_deliver AntHarness.Cluster.wp_isolate AntHarness.wp_below _root_.Perennial.time.wp_Sleep _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done _root_.Perennial.sync.WaitGroup.wp_Wait _root_.Perennial.strconv.wp_FormatUint cluster_alloc_names rawNode_prop_mint raftState_open_rn rawNode_committed rawNode_logRecs
+
+theorem AntHarness.wp_Main [StorageModel GF] :
     AntHarness.Main.spec (GF := GF) (hG := hG) :=
-  AntHarness.Main.wp_proof AntHarness.wp_DefaultConfig h_antithesis_RunCluster AntHarness.Cluster.wp_Servers AntHarness.Cluster.wp_Events AntCheck.wp_Run
+  AntHarness.Main.wp_proof AntHarness.wp_DefaultConfig (AntHarness.wp_RunCluster h_readyMsgsOk) AntHarness.Cluster.wp_Servers AntHarness.Cluster.wp_Events AntCheck.wp_Run
 
 end links_pending
 

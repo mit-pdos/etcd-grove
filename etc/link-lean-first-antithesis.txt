@@ -2,14 +2,17 @@
 # (the Antithesis harness, #33 S4, notes/antithesis-s4-design.md; all Lean-first, no Rocq
 # counterpart), read by `etc/gen-link.py --antithesis`: `<fn>: <callees in the order of
 # <fn>.wp_proof's hypotheses>`; `@`: linked in its package's `Link.lean` (the checker's, raft's);
-# `=term`: a term given as is (Perennial's `sync`, `time`, `strconv` results); `?`: specified, not
-# proved yet (a hypothesis of the results reaching it).
+# `=term`: a term given as is (Perennial's `sync`, `time`, `strconv` results, raft's `RawNode` laws
+# and API results, `=(<term> <args>)` applied); `?`: specified, not proved yet (a hypothesis of the
+# results reaching it); a line `?(<name> : <type>)`: a statement not proved yet, a hypothesis of the
+# results whose `=` terms name it.
 #
-# Not listed yet: `Cluster.run`, whose proof takes `Cluster.drain`'s spec (pending) and raft's
-# `RawNode.{Tick,Step,Propose}.apiSpec`, which raft's Link does not link yet (their `wp_absProof`s,
-# `apiSpec_of_abs`); listed once raft links them.
+# not proved yet: `readyMsgsOk.law` (a `Ready`'s messages are typed and addressed to the
+# cluster's nodes)
+?(h_readyMsgsOk : AntHarness.readyMsgsOk.law)
 #
 # the checker (examples/raft/antithesis/check)
+NewMemoryStorage: @
 check_Run: @
 check_SetOf: @
 # raft's storage and protobuf getters
@@ -38,6 +41,8 @@ raftpb_Snapshot__GetMetadata: @
 antithesis_Cluster__Events: antithesis_Recorder__Events
 antithesis_Cluster__Servers: antithesis_names check_SetOf
 antithesis_Cluster__deliver:
+antithesis_Cluster__drain: =(RawNode.HasReady.wp_apiProof SoftState.wp_equal wp_IsEmptyHardState wp_isHardStateEqual raftLog.wp_hasNextUnstableSnapshot raftLog.wp_hasNextUnstableEnts raftLog.wp_hasNextCommittedEnts raft.wp_softState raft.wp_hardState) =(RawNode.Ready.wp_apiProof RawNode.wp_readyWithoutAccept RawNode.wp_acceptReady) =(AntHarness.drainSend AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_msgOf raftpb.Message.wp_GetTo AntHarness.Cluster.wp_send (AntHarness.cloneMsg_law_of proto.wp_ClonePb) rnBudget_persistent rnTermLB_persistent rnTermLB_rb rnTermLB_le) =(AntHarness.drainAdvance AntHarness.Recorder.wp_record AntHarness.Cluster.wp_reportCause AntHarness.wp_entriesOf raftpb.Entry.wp_GetIndex (RawNode.Advance.wp_apiProof raft.wp_Step)) =rawNode_vote =rawNode_wf =rawNode_noSnap =rawNode_logTerms =rawNode_term_tc =rnBudget_persistent =rnTermLB_persistent =rnTermLB_rb =rawNode_logRecs =rawNode_commitInv =rawNode_commit =rawNode_committed =rawNode_leader =h_readyMsgsOk =AntSim.msgShape antithesis_roleOf =wp_IsEmptyHardState =raftpb.HardState.wp_GetTerm =raftpb.HardState.wp_GetVote =raftpb.HardState.wp_GetCommit =wp_IsEmptySnap =rawNode_appended =rawNode_phsTerm =AntSim.antSim_ready antithesis_Cluster__reportCause antithesis_Recorder__record antithesis_entriesOf antithesis_Name =raftpb.Entry.wp_GetIndex =MemoryStorage.wp_Append =MemoryStorage.wp_SetHardState
+antithesis_Cluster__run: =_root_.Perennial.time.wp_NewTicker =_root_.Perennial.time.Ticker.wp_Stop =_root_.Perennial.sync.WaitGroup.wp_Done antithesis_msgOf antithesis_Cluster__drain =(RawNode.Tick.wp_apiProof raft.wp_tickElection raft.wp_tickHeartbeat) =(RawNode.Step.wp_apiProof wp_IsResponseMsg wp_IsLocalMsg wp_IsLocalMsgTarget raft.wp_Step raftpb.Message.wp_GetType raftpb.Message.wp_GetFrom) =(RawNode.Propose.wp_apiProof raft.wp_Step raftpb.MessageType.wp_Enum) =rawNode_wf =rawNode_term_tc =rawNode_raise_tc =rnBudget_persistent =rnBudget_spend =rnBudget_step
 antithesis_Cluster__isolate: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
 antithesis_Cluster__isolatedNow: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
 antithesis_Cluster__node:
@@ -48,7 +53,7 @@ antithesis_Main: antithesis_DefaultConfig antithesis_RunCluster antithesis_Clust
 antithesis_Name: =_root_.Perennial.strconv.wp_FormatUint
 antithesis_Recorder__Events: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
 antithesis_Recorder__record: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
-antithesis_RunCluster: ?
+antithesis_RunCluster: NewMemoryStorage antithesis_bootStorage__InitialState antithesis_bootStorage__Snapshot antithesis_bootStorage__LastIndex antithesis_bootStorage__FirstIndex antithesis_bootStorage__Term antithesis_bootStorage__Entries =(NewRawNode.wp_proofEmptyStartApi wp_NewRawNode) antithesis_Name antithesis_names antithesis_Recorder__record antithesis_Cluster__drain antithesis_Cluster__run antithesis_Cluster__deliver antithesis_Cluster__isolate antithesis_below =_root_.Perennial.time.wp_Sleep =_root_.Perennial.sync.WaitGroup.wp_Add =_root_.Perennial.sync.WaitGroup.wp_Done =_root_.Perennial.sync.WaitGroup.wp_Wait =_root_.Perennial.strconv.wp_FormatUint =cluster_alloc_names =rawNode_prop_mint =raftState_open_rn =rawNode_committed =rawNode_logRecs
 antithesis_below:
 antithesis_bootStorage__Entries: MemoryStorage__Entries
 antithesis_bootStorage__FirstIndex: MemoryStorage__FirstIndex

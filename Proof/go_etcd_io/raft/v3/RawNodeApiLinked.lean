@@ -27,6 +27,7 @@ public import Proof.go_etcd_io.raft.v3.RawNode__HasReadyAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__StepAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__TickAbs
 public import Proof.go_etcd_io.raft.v3.RawNode__ProposeAbs
+public import Proof.go_etcd_io.raft.v3.RawNode__AdvanceAbs
 import all Proof.go_etcd_io.raft.v3.InvRawnode
 
 @[expose] public section
@@ -521,8 +522,10 @@ theorem RawNode.Propose.wp_apiProof
     RawNode.Propose.apiSpec (GF := GF) (hG := hG) :=
   RawNode.Propose.apiSpec_of_abs (RawNode.Propose.wp_absProof wp_raft_Step wp_MessageType_Enum)
 
--- `RawNode.Advance.wp_apiProof` (`apiSpec_of_abs (RawNode.Advance.wp_absProof …)`) goes here once
--- `RawNode__AdvanceAbs.lean` is committed (in progress, #33 S4).
+/-- **`RawNode.Advance`, over `rawNode`** (`RawNode.Advance.wp_absProof`'s hypothesis). -/
+theorem RawNode.Advance.wp_apiProof (wp_raft_Step : raft.Step.spec (GF := GF) (hG := hG)) :
+    RawNode.Advance.apiSpec (GF := GF) (hG := hG) :=
+  RawNode.Advance.apiSpec_of_abs (RawNode.Advance.wp_absProof wp_raft_Step)
 
 end specs
 

@@ -1353,29 +1353,12 @@ variable [sem : go.Semantics]
         sm_memo[fn] = r
         return r
 
-    # (2026-11-24) the theorems an imported Link states over the ghost state (`[AllG GF]`: raft's
-    # `RawNode` results): an `=` term naming one, or a result of this mode that does, needs it too
-    allg_thms = set()
-    for mod, _, _ in links:
-        allg_thms |= set(re.findall(r"^theorem (\S+) \[AllG GF\]", open(link_file(mod)).read(), re.M))
-    allg_memo = {}
-
-    def eq_allg(fn):
-        if fn not in allg_memo:
-            allg_memo[fn] = False
-            allg_memo[fn] = any(
-                c.startswith("=") and (term_names(c) & allg_thms or any(eq_allg(f) for f in eq_refs(c)))
-                or (not c.startswith("=") and c in callees and eq_allg(c))
-                for c in callees.get(fn, []))
-        return allg_memo[fn]
-
     def emit_cache(fn):
         args = " ".join(arg(fn, c) for c in callees[fn])
         body = f"{specref(fn)}.wp_proof{sfx(fn)}" + (f" {args}" if args else "")
         # the specs with ghost state (the store's) take `[AllG GF]`
         src = open(spec_file(fn)).read()
-        allg = (" [AllG GF]" if ("[AllG GF]" in src or eq_allg(fn)) and fn not in blocked
-                else "")
+        allg = " [AllG GF]" if "[AllG GF]" in src and fn not in blocked else ""
         # the key-value store's specs take its storage registry
         allg += "".join(" " + r for r in STOR_REGS if r in src)
         # mvcc's index specs use the btree through the cache's interface (its assumptions), and
@@ -1529,8 +1512,7 @@ variable [sem : go.Semantics]
         # GF], …`), as the store's results are stated at any
         def pend_src(fn):
             return open(spec_file(fn)).read()
-        pend_allg = (any("[AllG GF]" in pend_src(fn) for fn in pending)
-                     or any(eq_allg(fn) for fn in later))
+        pend_allg = any("[AllG GF]" in pend_src(fn) for fn in pending)
         hyps = ("variable [AllG GF]\n" if pend_allg else "") + "\n".join(
             [f"variable ({hyp(fn)} : "
              + "".join(f"∀ {STOR_QUAL.get(r, r)}, " for r in STOR_REGS if r in pend_src(fn))
