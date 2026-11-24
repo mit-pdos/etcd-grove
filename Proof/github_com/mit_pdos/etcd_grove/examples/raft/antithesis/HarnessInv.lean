@@ -39,6 +39,7 @@ unchanged.
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.HarnessDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.AntStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Sim.Stmts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.join.NetJoin
 public import Proof.go_etcd_io.raft.v3.RawNodeApi
@@ -364,14 +365,14 @@ frame): its generation view and free batch slot, its durable state's ghost (`own
 `rs.dur`), its term ceiling within the budget, and the budget; and the cluster's ghost names'
 static facts (`RunCluster` allocates them so): untraced (the inputs' and `Advance`'s exact effects
 are guarded by it), the configuration the three voters (`rnCfg` is `AntSim.cfgM3`), no bound on
-proposed data (`Step`'s message-size premise void). -/
+proposed data (`Step`'s message-size premise void), no bootstrap log (`commitIn_camp`'s premise). -/
 def nodeRaft (γ : AntNames) (j : Fin 3) (rs : RNState) : IProp GF :=
   iprop(∃ (x : CrashNames) (g : Nat),
     genView γ.raft.raftNames (AntSim.nodeId j) x 1 g ∗ slotFree γ.raft.raftNames (AntSim.nodeId j) g ∗
     ownDurGhost γ.raft.raftNames (AntSim.nodeId j) rs.dur ∗ rnTermLB γ.raft rs.tc ∗
     rnBudget γ.raft ∗
     ⌜γ.raft.raftNames.reTrace = none ∧ γ.raft.raftNames.reCfg = AntSim.voters3 ∧
-      γ.raft.raftNames.maxData = none⌝)
+      γ.raft.raftNames.maxData = none ∧ γ.raft.raftNames.reBoot = []⌝)
 
 /-- **The cause cell** (`n.cause` at `cl`): while the drain's `recv` is not reported (`by = recv`,
 `told = false`), the report of the handled message `m` (`msgOf(inp.msg, n.id)`, made before
@@ -395,7 +396,7 @@ def RsView (rs : RNState) (v : AntSim.NodeView) : Prop :=
   rs.unpersisted = [] ∧ rs.flw = false
 
 /-- **Node `j`'s goroutine's state** at `n`, its view `v`, the phase `ph` (see the file header): the
-`RawNode` at `rs ps qs ip` and its raft ghost state; its `MemoryStorage` (`ms`, in the
+`RawNode` at `rs ps qs ip` and its raft ghost state; its `MemoryStorage` (`ms`, `nodeStor`: at the view's hard state, in the
 `bootStorage` raft reads, `si`); the Go fields `role term vote commit` the view's (the last
 `ready`'s), `applied` any; the cause cell; the view fragment and the right to report; and the
 phase's facts:
@@ -409,7 +410,7 @@ def nodeOwn (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v : AntSim.NodeView
   iprop(∃ (rn ms si : Loc) (rs : RNState) (ps : PState) (qs : List Msg) (ip : Nat) (cl : Loc)
       (applied : w64),
     n.[H.node, go!"rn"] ↦□ rn ∗ n.[H.node, go!"storage"] ↦□ ms ∗
-    bootStorRec si ms [W64 1, W64 2, W64 3] ∗
+    nodeStor si ms (HardStateM.mk v.ps.term v.ps.vote v.ps.commit) ∗
     ⌜rs.storage = interface.ok ⟨go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.bootStorage.ty, #si⟩⌝ ∗
     rawNode γ.raft.raftNames rn (AntSim.nodeId j) rs ps qs ip ∗ nodeRaft γ j rs ∗
     ⌜RsView rs v⌝ ∗

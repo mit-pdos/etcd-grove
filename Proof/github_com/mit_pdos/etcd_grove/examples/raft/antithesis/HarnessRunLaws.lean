@@ -230,7 +230,7 @@ theorem nodeRaft_open (hbp : rnBudget_persistent.law (GF := GF)) (γ : AntNames)
   isplitr
   · iexact Hb
   isplitr
-  · ipureintro; exact Hst
+  · ipureintro; exact ⟨Hst.1, Hst.2.1, Hst.2.2.1⟩
   iintro %rs' %hd Htc'
   iexists x, g
   rw [hd]
@@ -261,7 +261,7 @@ theorem nodeOwn_idle_open (hbp : rnBudget_persistent.law (GF := GF)) (c : Loc) (
           n.[H.node, go!"cause"] ↦ cl -∗ viewFrag γ j v' -∗ nodeLive γ j -∗ sentLb γ net₀ -∗
           causeOwn γ j v' cl -∗ nodeOwn c γ j n v' (.loop net₀ ps₁)) := by
   unfold nodeOwn
-  iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, #Hbs, %Hsto, Hraw, Hnr,
+  iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, Hbs, %Hsto, Hraw, Hnr,
     %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %Hph⟩
   obtain ⟨hI, rfl, rfl, rfl, hP, rfl⟩ := Hph
   icases nodeRaft_open hbp γ j rs $$ Hnr with ⟨Htc, #Hb, %Hst, Hnrc⟩
@@ -291,7 +291,7 @@ theorem nodeOwn_drained_reset (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v
       ∃ cl : Loc, n.[H.node, go!"cause"] ↦ cl ∗
         (n.[H.node, go!"cause"] ↦ (null : Loc) -∗ nodeOwn c γ j n v .idle) := by
   unfold nodeOwn
-  iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, #Hbs, %Hsto, Hraw, Hnr,
+  iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, Hbs, %Hsto, Hraw, Hnr,
     %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %Hph, -⟩
   iexists cl
   iframe Hcause
@@ -309,7 +309,7 @@ theorem nodeOwn_drained_idle (c : Loc) (γ : AntNames) (j : Fin 3) (n : Loc) (v 
   have hco : ∀ cl, causeOwn (GF := GF) γ j v cl = iprop(⌜cl = null⌝) := by
     intro cl; unfold causeOwn; simp only [h, false_and, ↓reduceIte]
   unfold nodeOwn
-  iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, #Hbs, %Hsto, Hraw, Hnr,
+  iintro ⟨%rn, %ms, %si, %rs, %ps, %qs, %ip, %cl, %applied, #Hrn, #Hms, Hbs, %Hsto, Hraw, Hnr,
     %Hrv, Hrole, Hterm, Hvote, Hcommit, Happ, Hcause, Hv, Hl, %Hph, Hco⟩
   rw [hco]
   icases Hco with %Hnil
