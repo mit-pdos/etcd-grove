@@ -1117,6 +1117,12 @@ tests kept as differential tests against the real library, a "not modelled" pani
    "no read deadlines on served connections" exclusion. Difftests pass. `origin/lean` merged (Perennial
    `ccfeb3895`), swiftpaxos's `RpcWorld` built by field names (`Start.lean`) and `NewWriterSize` over its
    `specRep` (`LibDepsLinked.lean`), from dsv-gryff `bb8e39f9c3`/`b30a1f41ce`.
+   **`crHeadErr` records the error's message (2026-11-24, proving session 2, branch `prove-ps2-s5srv/2026-11-24`;
+   agreed with dsverify-net on #24).** `crHeadErr γe r e := monoListLbOwn γe [r] ∗ errMsgOk e`
+   (`ConnReaderHead.lean`; `errMsgOk` from `RequestDefs.lean`): `connReader.Read`'s errors are `io.EOF`'s
+   `*errorString` (its `Error()` from `errors.newVar`) and the connection's `*OpError` (`net.wp_OpError_Error`,
+   Go's form, through `readErr_msgOk`); `crHeadErr_msg` is the law `readRequestLimit.spec` asks. A stronger
+   post of `connReader.Read.spec`; no other statement changed.
 3. **net/http**: (the model's Go is item 2's: the server and `ReadResponse` are Go's code over the
    model's head parser) then option B
    §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
