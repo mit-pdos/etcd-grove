@@ -332,8 +332,14 @@ use `flock /tmp/ant4-build.lock` and `etc/lean-check.py` (server class) rather t
   `nodeRaft`, not `antCluster` (sealed; persistence is a law). `NetJoin` moved to
   `Proof/.../examples/lib/join/NetJoin.lean` (namespace `Perennial.EtcdGrove`; RaftTla's module re-exports
   it). The bodies of `nodeRaft`, `NetFacts`, `AntRun`, `raftFactsOwn` may gain conjuncts in the proofs.
-- **Invariant phase** (in progress, a helper): `Sim/GC.lean`, `Sim/Init.lean` proved; `boot`, `recv`,
-  `Reach.stay` (the boot drain) and `Reach.mono`/`Quiet.mono` next; then `quiet`, `ready`, `send`, `apply`.
+- **Invariant phase** (in progress): `antSim_gc`, `_init`, `_boot`, `_recv` proved (`Sim/{GC,Init,Boot,Recv}.lean`),
+  `Reach.stay` (the boot drain), `Reach.mono`/`Quiet.mono` (`Sim/Mono.lean`); C3 gained the facts' server
+  names (rawnode note §3.6). No discrepancy. `quiet`, `apply`, `send`, `ready` next (a helper, end of session 2).
+- **P-raft-3** (a helper, end of session 2): `HasReady`, `Ready`, `Advance` absSpecs and the two
+  `ownRawNodeAt` laws; proof-phase statement changes go to the rawnode note §2.7.
+- **HarnessInv after review:** `RsView` has no term conjunct (a loop head's term is the input's);
+  `antOpen` keeps `∀ j, (V j).ps.log ∈ G.logs` (`entOf` forgets indices; the `Ready` first-conflict fact
+  is log matching between the view's log and the node's).
 - **Open for P-harness:** creating `propOk` (raft's deposit of a proposal's data and ticket) in the
   proposer; the `StorageModel` instance reading `bootStorage`'s `storLog` as its `MemoryStorage`'s
   `memLog`; `drivers` (`Add(2)`: generalize `join3` to `joinN` in `lib/join`).
