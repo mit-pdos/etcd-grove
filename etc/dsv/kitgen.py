@@ -10,7 +10,10 @@ Usage:
   etc/dsv/kitgen.py --list [KIT ...]       print the generated files
   etc/dsv/kitgen.py --export-challenge DIR KIT   the kit as a challenge for a proving run (none of
                                            its proofs; --no-skill, --skill-from REV, --code-changes),
-                                           the lab's files in DIR.lab; then the leak check
+                                           the lab's files in DIR.lab; then the leak check. Its
+                                           statement is the KitLibs variant, with the agent's empty
+                                           KitLibs.lean, a KitLibsLinked.lean stub and kitlibs-check's
+                                           conf (notes/dsv-kitlibs-check.md)
   etc/dsv/kitgen.py --leak-check DIR KIT   the leak check of an exported tree
   --no-codecs                              do not run the codec generators (they run Go)
 
@@ -733,6 +736,145 @@ library, and every machine's share (exactly the preconditions of the generated p
 
 
 # ---------------------------------------------------------------------------------------------
+# The challenge's library premise: `KitLibs` (notes/dsv-kitlibs-check.md)
+
+KITLIBS_TEMPLATE = 'etc/dsv/challenge-KitLibs.lean'
+KITLIBS_CHECK = 'etc/kitlibs-check.py'
+
+
+def _kitlibs_check():
+    """etc/kitlibs-check.py as a module (its `variant_text` is the statement variant's reference)."""
+    sp = importlib.util.spec_from_file_location('kitlibs_check', os.path.join(ROOT, KITLIBS_CHECK))
+    mod = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(mod)
+    return mod
+
+
+def kitlibs_module(kg):
+    return f'Dsverify.Spec.{kg["lean_pkg"]}.KitLibs'
+
+
+def kitlibs_instance_module(kg):
+    return f'Dsverify.Proof.{kg["lean_pkg"]}.KitLibsLinked'
+
+
+def kitlibs_spec_file(kit, kg):
+    """The challenge's statement: the landed statement (`spec_file`, from KITGEN) with its premises
+    replaced by the one `KitLibs` premise, `kitLibs.premise` beside it: etc/kitlibs-check.py
+    --variant's text, kitgen's header as its first line."""
+    text, _, _ = _kitlibs_check().variant_text(spec_file(kit, kg), f'etc/dsv/{kit}.py', kitlibs_module(kg))
+    return lean_header(kit).rstrip('\n') + ' (the challenge\'s KitLibs variant of the statement)\n' + \
+        text.split('\n', 1)[1]
+
+
+def go_namespace(path):
+    """Goose's Lean namespace of a Go module path (`github.com/xiang90/paxos` ↦ `github_com.xiang90.paxos`)."""
+    return '.'.join(re.sub(r'[.-]', '_', c) for c in path.split('/'))
+
+
+def go_module_path(kg):
+    return re.search(r'(?m)^module (\S+)', open(os.path.join(ROOT, kg['go_module_dir'], 'go.mod')).read()).group(1)
+
+
+def kitlibs_file(kit, kg):
+    """The agent's `KitLibs.lean`, from the template (shipped empty; not fixed)."""
+    t = open(os.path.join(ROOT, KITLIBS_TEMPLATE)).read()
+    pp = pkg_path(kg)
+    vals = dict(DEFS_MODULE=f'Dsverify.Proof.{kg["lean_pkg"]}.TopLevelDefs', PKG=kg['lean_pkg'],
+                SYSTEM=f'`{go_module_path(kg)}`', KIT=kit,
+                SPEC_FILE=f'Dsverify/Spec/{pp}/TopLevelRobustness.lean',
+                INSTANCE_FILE=mod_path(kitlibs_instance_module(kg)))
+    return re.sub(r'\{\{(\w+)\}\}', lambda mt: vals[mt.group(1)], t)
+
+
+KITLIBS_STUB = """/-
+The non-vacuity instance of the challenge's library premise (`{kitlibs}`): a test-only module
+(nothing imports it). Prove `kitLibs_nonvacuity` from proved specs where they exist, else from
+axioms declared in this file alone, each about one library function (`{conf}` lists them for
+the lab's review). A `sorry` here is refused.
+-/
+module
+
+public import {stmt}
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+
+namespace {pkg}
+
+attribute [local instance] Net.netExts Net.netExtsSemantics Net.netExtsInterp Net.netExts_hasNet
+
+/-- The non-vacuity instance: `KitLibs` holds at every machine's heap. -/
+theorem kitLibs_nonvacuity : kitLibs.premise := by
+  sorry
+
+end {pkg}
+end Perennial
+"""
+
+
+def kitlibs_conf_name(kit):
+    return f'etc/dsv/{kit}-kitlibs-check.conf'
+
+
+def kitlibs_fixed_name(kit):
+    return f'etc/dsv/{kit}-fixed-modules.txt'
+
+
+def kitlibs_conf(kit, kg, head):
+    """etc/dsv/<kit>-kitlibs-check.conf (keys: etc/kitlibs-check.py's docstring). KITGEN's optional
+    `kitlibs_check` dict overrides `system`, `driver`, `model` (lists) and `global_addr`; the
+    defaults are the open questions' current answers (notes/dsv-kitlibs-check.md): `model=net`
+    only, the narrow `globalAddr` exception (`negative`)."""
+    pkg, thm = kg['lean_pkg'], kg['statement']['theorem']
+    kc = kg.get('kitlibs_check', {})
+    system = kc.get('system', [go_namespace(go_module_path(kg))])
+    driver = kc.get('driver', ['github_com.mit_pdos.etcd_grove.examples.lib', 'github_com.anishathalye.porcupine'])
+    model = kc.get('model', ['net'])
+    o = [f'# kitlibs-check of the {kg.get("title", kit)} challenge\'s library premise (notes/dsv-kitlibs-check.md),\n'
+         f'# written by {ME} --export-challenge {kit} from etcd-grove {head}\n',
+         f'statement_module=Dsverify.Spec.{pkg}.TopLevelRobustness\n',
+         f'spec=Perennial.{pkg}.{thm}.spec\n', f'premise=Perennial.{pkg}.kitLibs.premise\n',
+         f'kitlibs=Perennial.{pkg}.KitLibs\n', f'kitlibs_module={kitlibs_module(kg)}\n',
+         f'kitlibs_file={mod_path(kitlibs_module(kg))}\n',
+         f'instance=Perennial.{pkg}.kitLibs_nonvacuity\n', f'instance_module={kitlibs_instance_module(kg)}\n']
+    o += [f'system={s}\n' for s in system] + [f'driver={d}\n' for d in driver] + [f'model={m_}\n' for m_ in model]
+    o.append(f'global_addr={kc.get("global_addr", "negative")}\n')
+    o.append(f'fixed={kitlibs_fixed_name(kit)}\n')
+    return ''.join(o)
+
+
+def package_modules():
+    """The Lean modules of the workspace's packages and of Lean's own library (their built `.olean`s):
+    fixed in every challenge (`.lake/packages/` and the toolchain are not the agent's)."""
+    import json
+    dirs = []
+    ov = os.path.join(ROOT, '.lake', 'package-overrides.json')
+    if os.path.exists(ov):
+        dirs = [p_['dir'] for p_ in json.load(open(ov))['packages']]
+    elif os.path.isdir(os.path.join(ROOT, '.lake', 'packages')):
+        dirs = [os.path.join(ROOT, '.lake', 'packages', d) for d in os.listdir(os.path.join(ROOT, '.lake', 'packages'))]
+    import shutil
+    lean = shutil.which('lean') or os.path.expanduser('~/.elan/bin/lean')
+    pre = subprocess.run([lean, '--print-prefix'], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+    libs = [os.path.join(d, '.lake', 'build', 'lib', 'lean') for d in dirs]
+    if pre:
+        libs.append(os.path.join(pre, 'lib', 'lean'))
+    mods = set()
+    for lib in libs:
+        for dp, _, fs in os.walk(lib):
+            for f in fs:
+                if f.endswith('.olean'):
+                    mods.add(os.path.relpath(os.path.join(dp, f), lib)[:-6].replace(os.sep, '.'))
+    if not any(m_.startswith('Perennial') or m_.startswith('Iris.') for m_ in mods) or 'Init' not in mods:
+        sys.exit('kitgen: the packages\' and Lean\'s built modules were not found (for the KitLibs fixed list)')
+    return mods
+
+
+# ---------------------------------------------------------------------------------------------
 # The files, check, audit
 
 def generated(kit, kg):
@@ -897,7 +1039,10 @@ def challenge_plan(kit, kg):
     kits = kit_files()
     roots = kit_roots(kits[kit])
     stmt = f'Dsverify.Spec.{kg["lean_pkg"]}.TopLevelRobustness'
-    cs = closure([stmt], imports)
+    # the challenge's statement is the KitLibs variant: its closure is its own imports' (the landed
+    # premise classes, the reference solution, are not among them), plus the statement itself
+    vimps = [i for i in IMP.findall(kitlibs_spec_file(kit, kg)) if i != kitlibs_module(kg)]
+    cs = closure(vimps, imports) | {stmt}
     # the kit's modules the challenge gives: KITGEN's explicit `challenge_allow` (patterns, `*` any
     # name part; `{pkg}` the kit package), never inferred (the user's split, 2026-11-24: the driver,
     # the statement and the deployment plumbing are given; the kit's specs and proofs are answers)
@@ -907,8 +1052,9 @@ def challenge_plan(kit, kg):
     allow = {}
     for m in imports:
         if in_roots(m, roots) and any(pt.match(m) for pt in pats):
-            allow[m] = ('statement' if m in cs else 'generated' if m in gen_outputs(kits[kit])
-                        else 'non-vacuity (fixed)' if m.endswith('.NonVacuityLinked') else 'given')
+            if m.endswith('.NonVacuityLinked'):
+                continue  # the landed premises' instances: the reference solution's
+            allow[m] = ('statement' if m in cs else 'generated' if m in gen_outputs(kits[kit]) else 'given')
     bad = sorted(m for m in cs if in_roots(m, roots) and m not in allow)
     if bad:
         sys.exit('kitgen: the statement imports modules of the kit the challenge must not give (not on '
@@ -942,13 +1088,8 @@ def tracked():
     return [f for f in r.stdout.split('\0') if f]
 
 
-def dsv_issue(path):
-    """An issue file of a dsverify kit (the export leaves them out)."""
-    try:
-        t = open(os.path.join(ROOT, path), errors='replace').read()
-    except OSError:
-        return False
-    return bool(re.search(r'dsverify|Dsverify|examples/dsverify', t))
+# the coordination tooling and its data: the session registry, the GitHub inbox and its tests
+COORDINATION = ('etc/sessions.txt', 'etc/gh-inbox.py', 'notes/coordination.md', 'etc/dsv/leak-names.txt')
 
 
 def excluded(f, kit, allow, others, roots, other_roots):
@@ -962,13 +1103,17 @@ def excluded(f, kit, allow, others, roots, other_roots):
         return None if f.startswith(SKILL + '/') else '.claude (not the skill)'
     if f.startswith('old/dsverify/'):
         return 'the lab\'s old harness'
-    if top in ('issues', 'nonissues') and f.endswith('.md') and not f.endswith('INDEX.md') and dsv_issue(f):
-        return 'a dsverify kit\'s issue'
+    if top in ('issues', 'nonissues') or f == 'etc/issues-status.py':
+        return 'the findings tracker (it names people, sessions and forks\' branches)'
+    if f in COORDINATION or f.startswith('etc/gh-inbox-test/'):
+        return 'coordination (sessions, people)'
     mt = re.match(r'etc/tcb-collections/dsv-(\w+)\.txt$', f)
     if mt and mt.group(1) != kit:
         return 'another kit\'s trust-base baseline'
     if f.startswith('Dsverify/Scratch/'):
         return 'scratch'
+    if f.startswith('etc/kitlibs-check-test/'):
+        return 'kitlibs-check\'s validation (rabia\'s reference KitLibs)'
     if f.endswith('.lean') and top == 'Dsverify':
         m = f[:-5].replace('/', '.')
         if in_roots(m, roots) and m not in allow:
@@ -1010,7 +1155,8 @@ def fill_template(kit, kg, head, fixed, nv, checks, code_changes):
         'PROOF_FILE': f'Dsverify/Proof/{pp}/TopLevelRobustness.lean',
         'PROOF_MODULE': proof_module(kg),
         'FIXED_FILES': '\n'.join(f'- `{f}`' for f in fixed),
-        'NONVACUITY_MODULE': f'`{nv}`' if nv else 'none (the statement has no premises)',
+        'KITLIBS_FILE': mod_path(kitlibs_module(kg)),
+        'NONVACUITY_MODULE': f'`{nv}`',
         'CHECKS': '\n'.join(f'  - `{c}`' for c in checks),
         'CODE_CHANGES': code_changes, 'SOURCE': head,
     }
@@ -1039,6 +1185,17 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
         why = excluded(f, kit, allow, others, roots, other_roots)
         if why:
             left[f] = why
+    # the landed statement's premise classes (the reference solution) are left out unless a shipped
+    # module other than the statement imports them (rabia's proto Spec: gen-init's `message` init)
+    kept = {f[:-5].replace('/', '.') for f in files if f.endswith('.lean') and f not in left}
+    for _, _, cls in premises(kg['statement']):
+        for c in cls:
+            w = find_class(c)
+            if not w:
+                continue
+            cm_ = w[0][:-5].replace('/', '.')
+            if not any(cm_ in imports.get(x, []) for x in kept if x != stmt):
+                left[w[0]] = 'a landed premise class (the reference solution)'
     # keep the Lean trees closed under imports: a module importing a left-out one is left out too
     kept = {f[:-5].replace('/', '.') for f in files if f.endswith('.lean') and f not in left}
     changed = True
@@ -1074,24 +1231,31 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
     os.makedirs(os.path.dirname(pf), exist_ok=True)
     open(pf, 'w').write(PROOF_STUB.format(spec=stmt, pkg=pkg, thm=thm,
                                           spec_file=f'Dsverify/Spec/{pp}/TopLevelRobustness.lean'))
-    # the fixed files: the statement, TopLevelDefs, the premise classes' modules, non-vacuity
+    # the statement: the KitLibs variant, over the agent's `KitLibs` (shipped empty, from the
+    # template) and its non-vacuity module (a `sorry` stub, which kitlibs-check refuses)
+    sf = os.path.join(dest, 'Dsverify', 'Spec', pp, 'TopLevelRobustness.lean')
+    open(sf, 'w').write(kitlibs_spec_file(kit, kg))
+    open(os.path.join(dest, mod_path(kitlibs_module(kg))), 'w').write(kitlibs_file(kit, kg))
+    nvf = os.path.join(dest, mod_path(kitlibs_instance_module(kg)))
+    os.makedirs(os.path.dirname(nvf), exist_ok=True)
+    open(nvf, 'w').write(KITLIBS_STUB.format(kitlibs=mod_path(kitlibs_module(kg)), conf=kitlibs_conf_name(kit),
+                                             stmt=stmt, pkg=pkg))
+    # the fixed files: the statement, TopLevelDefs, the statement's other kit modules
     fixed = [f'Dsverify/Spec/{pp}/TopLevelRobustness.lean', f'Dsverify/Proof/{pp}/TopLevelDefs.lean']
     fixed += sorted(mod_path(m) for m, why in allow.items() if why == 'statement' and mod_path(m) not in fixed)
-    for _, _, cls in premises(kg['statement']):
-        for c in cls:
-            w = find_class(c)
-            if w and w[0] not in fixed:
-                fixed.append(w[0])
-    nvm = f'Dsverify.Proof.{pkg}.NonVacuityLinked'
-    nv = nvm if nvm in allow else None
-    if nv:
-        fixed.append(mod_path(nv))
-    km = kit_files()[kit]
+    nv = kitlibs_instance_module(kg)
+    # kitlibs-check's conf and the fixed modules (the challenge's as exported, the packages' and
+    # Lean's; not the agent's KitLibs, its instance, the goal's file)
+    conf = kitlibs_conf(kit, kg, head)
+    mine = {kitlibs_module(kg), kitlibs_instance_module(kg), proof_module(kg)}
+    fixed_mods = sorted((lean_modules(dest) | package_modules()) - mine)
+    open(os.path.join(dest, kitlibs_conf_name(kit)), 'w').write(conf)
+    open(os.path.join(dest, kitlibs_fixed_name(kit)), 'w').write('\n'.join(fixed_mods) + '\n')
     checks = [f'python3 etc/goose.py --check --project dsv-{kit}']
     if os.path.isdir(os.path.join(ROOT, 'etc', 'proph-patches', f'dsv-{kit}')):
         checks.append(f'python3 etc/proph_patch.py --project dsv-{kit}')
     checks += ['python3 etc/gen-init.py --check', f'python3 etc/dsv/kitgen.py --check --no-codecs {kit}',
-               'python3 etc/tier-check.py --check']
+               'python3 etc/tier-check.py --check', f'python3 {KITLIBS_CHECK} {kitlibs_conf_name(kit)}']
     cm = fill_template(kit, kg, head, fixed, nv, checks, code_changes)
     open(os.path.join(dest, 'CLAUDE.md'), 'w').write(cm)
     # kitgen's generated files the challenge leaves out (the proof's skeleton, Mains: the kit's
@@ -1102,7 +1266,8 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
     with open(os.path.join(dest, 'CHALLENGE.txt'), 'w') as fh:
         fh.write(f'source: {head}{" (dirty)" if dirty else ""}\nkit: {kit}\n'
                  f'skill: {skill_tree}{" from " + skill_from if skill_from and skill else ""}\n'
-                 f'claude-md: sha256 {hashlib.sha256(cm.encode()).hexdigest()}\n')
+                 f'claude-md: sha256 {hashlib.sha256(cm.encode()).hexdigest()}\n'
+                 f'statement: kitlibs\n')
         for f in omitted:
             fh.write(f'omitted: {f}\n')
     # the lab's files (outside the agent's tree): the comparator's, and the manifest
@@ -1124,6 +1289,13 @@ def export_challenge(kit, kg, dest, skill=True, skill_from=None, code_changes='a
         f'/-\nThe comparator\'s challenge: `{thm}.spec`, its proof a `sorry` (the exported tree\'s\n'
         f'`Dsverify/Proof/{pp}/TopLevelRobustness.lean`). Written by {ME} --export-challenge {kit}.\n-/\n'
         + PROOF_STUB.format(spec=stmt, pkg=pkg, thm=thm, spec_file=f'Dsverify/Spec/{pp}/TopLevelRobustness.lean'))
+    # kitlibs-check as the lab runs it: its own copies (the agent could edit the tree's)
+    kd = os.path.join(lab, 'kitlibs-check')
+    os.makedirs(kd, exist_ok=True)
+    for f in (KITLIBS_CHECK, 'etc/KitLibsCheck.lean'):
+        shutil.copy2(os.path.join(ROOT, f), kd)
+    open(os.path.join(kd, os.path.basename(kitlibs_conf_name(kit))), 'w').write(conf)
+    open(os.path.join(kd, os.path.basename(kitlibs_fixed_name(kit))), 'w').write('\n'.join(fixed_mods) + '\n')
     # what the challenge needs offline (no network in a run): the lab's image provides it
     gt = re.search(r'(?m)^GO_TOOLCHAIN = "(\S+)"', open(os.path.join(ROOT, 'etc', 'goose.py')).read())
     gomods = sorted(os.path.relpath(dp, dest) for dp, _, fs in os.walk(dest)
@@ -1163,6 +1335,72 @@ def lean_modules(dest):
     return present
 
 
+# Names the export must not carry: the people of the project (refused) and the sessions' handles
+# (reported), as etc/dsv/leak-names.txt lists them (with the allow-list) and etc/sessions.txt
+# registers them (its handles and GitHub accounts). The export leaves both files out.
+LEAK_NAMES = 'etc/dsv/leak-names.txt'
+
+
+def leak_names():
+    """(the people's names' regex: refused; the handles' regex: reported; the allow-list), or None
+    without the list."""
+    lst = os.path.join(ROOT, LEAK_NAMES)
+    if not os.path.exists(lst):
+        return None
+    people, handles, allow = [], [], []
+    for line in open(lst):
+        if not line.strip() or line.startswith('#'):
+            continue
+        fs = line.rstrip('\n').split('\t')
+        if fs[0] == 'allow':
+            allow.append((re.compile(fs[1]), re.compile(fs[2]), fs[3]))
+        else:
+            {'person': people, 'handle': handles}[fs[0]].append(fs[1])
+    reg = os.path.join(ROOT, 'etc', 'sessions.txt')
+    if os.path.exists(reg):
+        for line in open(reg):
+            if line.strip() and not line.startswith('#'):
+                fs = [x.strip() for x in line.split('|')]
+                handles += [re.escape(x) for x in (fs[0], fs[3] if len(fs) > 3 else '') if x and x != '-']
+    return (re.compile('(?i:' + '|'.join(people) + ')'),
+            re.compile(r'(?<![\w-])(?:' + '|'.join(handles) + r')(?![\w-])'), allow)
+
+
+def name_check(dest):
+    """Every match of the people's names and the sessions' handles in the exported tree's text files,
+    but those the allow-list covers: (failures, warnings)."""
+    names = leak_names()
+    if names is None:
+        return [], [f'name: no {LEAK_NAMES} in {ROOT}: the names were not checked']
+    bad_re, warn_re, allow = names
+    bad, warn = [], {}
+    for dp, dirs, fs in os.walk(dest):
+        dirs[:] = [d for d in dirs if d not in ('.lake', '.git')]
+        for f in fs:
+            full = os.path.join(dp, f)
+            rel = os.path.relpath(full, dest)
+            if os.path.islink(full):
+                continue
+            try:
+                data = open(full, 'rb').read()
+            except OSError:
+                continue
+            if b'\0' in data[:8192]:
+                continue
+            text = data.decode('utf-8', errors='replace')
+            rules = [m for p, m, _ in allow if p.search(rel)]
+            for n, line in enumerate(text.splitlines(), 1):
+                ok = lambda mt: any(a.start() <= mt.start() and mt.end() <= a.end()
+                                    for r in rules for a in r.finditer(line))
+                for mt in bad_re.finditer(line):
+                    if not ok(mt):
+                        bad.append(f'name: {rel}:{n}: {mt.group(0)!r} in {line.strip()[:120]!r}')
+                for mt in warn_re.finditer(line):
+                    if not ok(mt):
+                        warn.setdefault(mt.group(0), set()).add(rel)
+    return bad, [f'handle: {h} in {len(fs)} file(s), e.g. {min(fs)}' for h, fs in sorted(warn.items())]
+
+
 def leak_check(kit, kg, dest):
     """After an export, on the tree as written: (1) of the kit's trees only the allow-list (and the
     goal's stub); (2) of the other kits' trees only what the plan keeps; (3) no notes, no
@@ -1174,11 +1412,11 @@ def leak_check(kit, kg, dest):
     goal = proof_module(kg)
     bad, warn = [], []
     for m in sorted(present):
-        if in_roots(m, roots) and m not in allow and m != goal:
+        if in_roots(m, roots) and m not in allow and m not in (goal, kitlibs_module(kg), kitlibs_instance_module(kg)):
             bad.append(f'leak: {m} (the kit\'s, not on the allow-list)')
         elif in_roots(m, other_roots) and not in_roots(m, roots) and m not in others:
             bad.append(f'leak: {m} (another kit\'s)')
-    for p in ('notes', 'old/dsverify'):
+    for p in ('notes', 'old/dsverify', 'etc/kitlibs-check-test'):
         if os.path.exists(os.path.join(dest, p)):
             bad.append(f'leak: {p}/')
     cl = os.path.join(dest, '.claude')
@@ -1193,6 +1431,11 @@ def leak_check(kit, kg, dest):
         bad += [f'leak: etc/tcb-collections/{f}' for f in os.listdir(tc)
                 if f.startswith('dsv-') and f != f'dsv-{kit}.txt']
     texts = {m: open(os.path.join(dest, mod_path(m)), errors='replace').read() for m in present}
+    if texts.get(stmt) != kitlibs_spec_file(kit, kg):
+        bad.append(f'statement: {mod_path(stmt)} is not the KitLibs variant')
+    for f in (kitlibs_conf_name(kit), kitlibs_fixed_name(kit)):
+        if not os.path.exists(os.path.join(dest, f)):
+            bad.append(f'missing: {f}')
     for m, t in sorted(texts.items()):
         for i in IMP.findall(t):
             if i not in present and os.path.exists(os.path.join(ROOT, mod_path(i))):
@@ -1207,7 +1450,8 @@ def leak_check(kit, kg, dest):
             t = GOOSE_SORRY.sub('', t)
         if SORRY.search(COMMENT.sub('', t)):
             bad.append(f'sorry: {m} (in the statement\'s closure)')
-    return bad, warn, (len(present), len(cs), goose_sorry)
+    nb, nw = name_check(dest)
+    return bad + nb, warn + nw, (len(present), len(cs), goose_sorry)
 
 
 def main():
@@ -1269,9 +1513,13 @@ def main():
         return
     bad, nfiles = [], 0
     ch = os.path.join(ROOT, 'CHALLENGE.txt')  # an exported challenge: its omitted generated files
-    omitted = set(re.findall(r'(?m)^omitted: (\S+)$', open(ch).read())) if os.path.exists(ch) else set()
+    cht = open(ch).read() if os.path.exists(ch) else ''
+    omitted = set(re.findall(r'(?m)^omitted: (\S+)$', cht))
     for k in names:
         files = {f: t for f, t in generated(k, kits[k]).items() if f not in omitted}
+        if re.search(r'(?m)^statement: kitlibs$', cht) and re.search(rf'(?m)^kit: {k}$', cht):
+            # an exported challenge's statement is the KitLibs variant
+            files[os.path.join('Dsverify', 'Spec', pkg_path(kits[k]), 'TopLevelRobustness.lean')] = kitlibs_spec_file(k, kits[k])
         for f, txt in sorted(files.items()):
             nfiles += 1
             p = os.path.join(ROOT, f)

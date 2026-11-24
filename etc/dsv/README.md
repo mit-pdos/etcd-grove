@@ -35,7 +35,7 @@ four spaces (a tab elsewhere is an error), in `--check` too.
 A `HYP_INITS` package's `Dsverify/Proof/<pkg>/Init.lean` declares `class InitHyp GF : Prop` holding
 that package's `wp_initialize'`. It asserts that **Go runs the package's untranslated initializers
 without panicking** -- the same trust as gen-init's `opaqueInitsOk`/`initFuncsOk` axioms it replaces,
-moved to where it can be seen. So (#24, upamanyus's condition for this mechanism):
+moved to where it can be seen. So (#24, the condition for this mechanism):
 - every `[<pkg>.InitHyp GF]` a kit needs is a **premise of its top-level statement**: it appears in
   the `.spec` of `Dsverify/Proof/<kit>/.../TopLevelRobustness.lean` (the file an auditor reads);
 - **no `instance` of an `InitHyp` class may exist anywhere** (it would need an axiom, or be one in
@@ -90,24 +90,38 @@ notes/dsv-skill.md's, copied in notes/dsv-kitgen.md). From a clean work tree (`-
 a dirty one), `DIR` gets this repository's tracked files but:
 - the kit's own Lean (`Dsverify/{Proof,Spec}/<proof_roots>/`) but what KITGEN's explicit
   `challenge_allow` lists: the statement, its definitions and addresses (`addrs_module`), the
-  package facts, gen-init's `Init`/`PkgTable`, the non-vacuity module (the challenge gives the driver
+  package facts, gen-init's `Init`/`PkgTable` (the challenge gives the driver
   and the theorem; the kit's client spec, protocol specs, start and proofs are the answers: the export
   stops if the statement's closure needs a module off the list, or the list names a proof); the goal's file `Proof/.../TopLevelRobustness.lean` is a `sorry` stub,
   and kitgen's other generated proofs (`Mains.lean`) are left out (`CHALLENGE.txt`'s `omitted:` lines,
   which `kitgen.py --check` in the challenge skips);
 - other kits' Lean but what this kit's landed proof uses and what gen-init's generated files import;
 - `notes/`, `CLAUDE.md`, `.claude/` but the dsverify skill, `old/dsverify/`, dsverify kits' issues,
-  other kits' `etc/tcb-collections/dsv-*.txt`, and every module importing a left-out one;
+  other kits' `etc/tcb-collections/dsv-*.txt`, `etc/kitlibs-check-test/` (its `rabia*` KitLibs are
+  rabia's reference solution), the landed statement's premise classes nothing else shipped imports,
+  the kit's `NonVacuityLinked.lean`, and every module importing a left-out one;
+- **the library premise is the agent's** (notes/dsv-kitlibs-check.md): the statement
+  `Spec/.../TopLevelRobustness.lean` is the KitLibs variant (`etc/kitlibs-check.py --variant`'s
+  text, generated from KITGEN: the landed premises replaced by `(∀ G L, letI := heapAt G L; KitLibs
+  remoteGF) →`, `kitLibs.premise` beside it); `Spec/.../KitLibs.lean` the empty class from
+  `challenge-KitLibs.lean`; `Proof/.../KitLibsLinked.lean` a `sorry` stub of `kitLibs_nonvacuity`;
+  `etc/dsv/<kit>-kitlibs-check.conf` (KITGEN's optional `kitlibs_check` dict sets `system`, `driver`,
+  `model`, `global_addr`; defaults: the Go module's namespace, `examples/lib` and porcupine, `net`,
+  `negative`) and `etc/dsv/<kit>-fixed-modules.txt` (the challenge's modules, the packages' and Lean's,
+  but the agent's three files), and `python3 etc/kitlibs-check.py etc/dsv/<kit>-kitlibs-check.conf` among
+  the checks;
 - with the skill `.claude/skills/dsverify/` (or as of `--skill-from REV`; `--no-skill`: the control
   arm), `CLAUDE.md` filled from `challenge-CLAUDE.md` (identical in both arms; `--code-changes`), and
   `CHALLENGE.txt` (the source commit, the kit, the skill's tree hash or `none`, the CLAUDE.md's hash).
 
 Beside it, `DIR.lab/` (outside the agent's tree): `comparator/{challenge.conf,Challenge.lean}` in the
 lab's comparator conventions (`statement/comparator-check.sh`; plus `tree=` and `statement=`),
-`MANIFEST.txt` (every module kept or left out, and why) and `OFFLINE.txt` (the toolchains, the built
-Perennial and the Go modules a run needs without network).
+`MANIFEST.txt` (every module kept or left out, and why), `OFFLINE.txt` (the toolchains, the built
+Perennial and the Go modules a run needs without network) and `kitlibs-check/` (the lab's own copies of
+`kitlibs-check.py`, `KitLibsCheck.lean`, the conf and the fixed list, to run against the solution).
 
 The export then runs the leak check (also `--leak-check DIR <kit>`, on any exported tree): nothing of
 the kit's or other kits' Lean beyond the plan, no notes, `old/dsverify`, other `.claude` or other
-kits' baselines, every import present, and no `sorry` in the statement's closure but Goose's
+kits' baselines or `etc/kitlibs-check-test/`, every import present, the statement the KitLibs
+variant with its conf and fixed list present, and no `sorry` in the statement's closure but Goose's
 instances of axiomatized types (`sorry -- axiomatized type`, counted).

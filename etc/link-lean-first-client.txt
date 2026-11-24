@@ -285,7 +285,7 @@ endpoint_RequiresCredentials:
 strings_SplitN:
 fmt_SprintfClientPtr:
 context_TODO:
-context_WithCancelTodo:
+context_WithCancelTodo: =_root_.Perennial.context.wp_withCancel =_root_.Perennial.context.cancelCtx.wp_cancel =_root_.Perennial.context.cancelCtx.wp_propagateCancel =_root_.Perennial.context.cancelCtx.wp_Done =_root_.Perennial.context.cancelCtx.wp_Err =_root_.Perennial.context.cancelCtx.wp_Value =_root_.Perennial.sync.atomic.Value.wp_Load
 Client__streamClientInterceptor:
 # (prove-ps2-rqb, 2026-11-22) `roundRobinQuorumBackoff` proved over the real code: `jitterUp`'s
 # float arithmetic over `rand.Float64` (the trust boundary), zap's `Float64` over Perennial's
