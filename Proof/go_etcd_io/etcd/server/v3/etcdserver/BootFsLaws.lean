@@ -2,7 +2,8 @@
 **`bootstrap`'s file-system laws over the WAL's sealed slot** (claim #34, 2026-11-23;
 `BootParts.lean`'s header). `wal.bootRes` is sealed (`WalApi.lean`); the laws open it through its
 API law `wal.bootRes_iff` (no `import all` of the slot's module): `bootFs.touchData.law` from
-`TouchDirAll.specExisting` (at every file-extension instance: the slot's data area names its own).
+`TouchDirAll.specExisting` (at every file-extension instance: the slot's data area names its own);
+`bootFs.walExist.law` from `wal.Exist.spec` at the WAL area's instances (2026-11-23).
 Lean-first.
 -/
 module
@@ -11,6 +12,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootParts
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllExisting
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Exist
 
 @[expose] public section
 
@@ -93,6 +95,74 @@ theorem bootFs.touchData_law_holds
     · simp only [Fs.NamesH.restrict]
       next hc =>
       rw [Fs.restrictN_lookup _ _ _ (by simp [Fs.NameSet.Mem, hc]), hemp]
+
+/-- **An update over the WAL directory `dir`, from `dir`'s own claim of no WAL** (`walAbsent`),
+committed with the state unchanged: `wal.Exist`'s update on the fresh area. -/
+theorem bootFs.walAbsent_au [W : WalFs.WalGS GF] (dir : GoString) :
+    WalFs.walAbsent (W := W) dir ⊢
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs (W := W) dir o }> @ WalFs.walAuMask, ∅
+        <{ WalFs.walDirIs (W := W) dir o, COMM ⌜o = none⌝ ∗ WalFs.walAbsent (W := W) dir }> := by
+  iintro Ha
+  iauintro
+  unfold atomic_acc
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ WalFs.walAuMask from Std.LawfulSet.empty_subset)
+  iintro Hclose
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists none
+  iunfold WalFs.walAbsent at Ha
+  iframe Ha
+  isplit
+  · iintro Hd
+    imod Hclose with -
+    imodintro
+    iunfold WalFs.walAbsent
+    iexact Hd
+  · iintro Hd
+    imod Hclose with -
+    imodintro
+    isplitr
+    · ipureintro; rfl
+    iunfold WalFs.walAbsent
+    iexact Hd
+
+/-- **`bootFs.walExist.law`** from `wal.Exist.spec` at the WAL area's file-extension instances: the
+area holds no WAL (`walAbsent`, committed unchanged by `bootFs.walAbsent_au`), and the file system does
+not fail on the WAL directory (`FsNoErrAt`: the area's I/O set covers every inode, `a.cov`, and the
+directory by path, with its no-I/O-error and no-lock-error premises, `a.sat`/`a.satL`; the directory
+fits, `a.fits`), so `Exist` answers `false` (`wal.Exist.spec`'s `o = none` arm), the area as it was. -/
+theorem bootFs.walExist_law_holds
+    (hE : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [WalFs.WalGS GF],
+      wal.Exist.spec (GF := GF) walCodec walSrvMr) :
+    bootFs.walExist.law (GF := GF) := by
+  intro cfg
+  iintro %Φ ⟨#Hpkg, Hw⟩ HΦ
+  iunfold bootFs.walPart at Hw
+  icases Hw with ⟨%hdd, Ha⟩
+  iunfold walAreaFresh at Ha
+  icases Ha with ⟨%a, %ha, #Hok, Hdur, Hp, Hres, Hperm, Hu, Habs⟩
+  obtain ⟨hdir, hin, hcl, hpath⟩ := ha
+  have hne : @Fs.FsNoErrAt a.ext a.dir :=
+    ⟨⟨a.Sio, a.cov, a.sat, a.satL, fun p hp => hp ▸ hpath⟩,
+      ⟨by have := a.fits.1; omega, a.fits.2⟩⟩
+  have hnm : NameOk go!"wal" := by unfold NameOk; decide
+  rw [hdd, ← hdir]
+  ihave Hau := bootFs.walAbsent_au (W := a.W) a.dir $$ Habs
+  wp_apply (@hE a.ext a.semOk a.has a.W a.R a.jr a.r a.dir go!"wal" 1
+      (fun o => iprop(⌜o = none⌝ ∗ WalFs.walAbsent (W := a.W) a.dir)) hin hnm)
+    $$ [Hp Hres Hperm Hu Hau] as %b ⟨Hp, Hres, Hperm, Hu, %o, ⟨%ho, Habs⟩, -, %hf⟩
+  · iframe; iframe #
+  subst ho
+  have hb : b = false := hf rfl hne
+  subst hb
+  iapply HΦ
+  iunfold bootFs.walPart
+  isplitr
+  · ipureintro; exact hdd
+  iunfold walAreaFresh
+  iexists a
+  isplitr
+  · ipureintro; exact ⟨hdir, hin, hcl, hpath⟩
+  iframe Hok Hdur Hp Hres Hperm Hu Habs
 
 end laws
 
