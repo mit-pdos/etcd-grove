@@ -22,170 +22,170 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'GeoRadiusQuery :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoRadiusQuery where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery where
   typedPointstoDef l v dq := iprop(
-    "Radius" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq ∗
-    "Unit" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq ∗
-    "WithCoord" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq ∗
-    "WithDist" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq ∗
-    "WithGeoHash" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq ∗
-    "Count" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq ∗
-    "Sort'" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq ∗
-    "Store" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq ∗
-    "StoreDist" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq ∗
+    "Radius" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq ∗
+    "Unit" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq ∗
+    "WithCoord" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq ∗
+    "WithDist" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq ∗
+    "WithGeoHash" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq ∗
+    "Sort'" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq ∗
+    "Store" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq ∗
+    "StoreDist" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'GeoRadiusQuery :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoRadiusQuery github_com.go_redis.redis.v8.GeoRadiusQuery.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'GeoRadiusQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Radius (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
+noncomputable instance access_store'GeoRadiusQuery'Radius (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Radius' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) v.Radius' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Radius" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Radius' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'Unit (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Unit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'Unit (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'Unit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unit' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) v.Unit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Unit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unit' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'WithCoord (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'WithCoord (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
+noncomputable instance access_store'GeoRadiusQuery'WithCoord (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithCoord' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) v.WithCoord' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithCoord" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithCoord' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'WithDist (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'WithDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
+noncomputable instance access_store'GeoRadiusQuery'WithDist (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithDist' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) v.WithDist' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithDist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithDist' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'WithGeoHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'WithGeoHash (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'WithGeoHash (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
+noncomputable instance access_store'GeoRadiusQuery'WithGeoHash (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithGeoHash' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) v.WithGeoHash' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"WithGeoHash" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WithGeoHash' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Count (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
+noncomputable instance access_store'GeoRadiusQuery'Count (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Sort (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'Sort (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sort' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) v.Sort' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Sort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sort' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'Store (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'Store (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'Store (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'Store (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) v.Store' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"Store" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoRadiusQuery'StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoRadiusQuery'StoreDist (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoRadiusQuery'StoreDist (l : Loc) (v : github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
+noncomputable instance access_store'GeoRadiusQuery'StoreDist (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StoreDist' := y } : github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) v.StoreDist' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery go!"StoreDist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StoreDist' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoRadiusQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -198,204 +198,204 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'GeoSearchQuery :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoSearchQuery where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery where
   typedPointstoDef l v dq := iprop(
-    "Member" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq ∗
-    "Longitude" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq ∗
-    "Latitude" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq ∗
-    "Radius" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq ∗
-    "RadiusUnit" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq ∗
-    "BoxWidth" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq ∗
-    "BoxHeight" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq ∗
-    "BoxUnit" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq ∗
-    "Sort'" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq ∗
-    "Count" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq ∗
-    "CountAny" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq ∗
+    "Member" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq ∗
+    "Longitude" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq ∗
+    "Latitude" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq ∗
+    "Radius" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq ∗
+    "RadiusUnit" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq ∗
+    "BoxWidth" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq ∗
+    "BoxHeight" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq ∗
+    "BoxUnit" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq ∗
+    "Sort'" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq ∗
+    "CountAny" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'GeoSearchQuery :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoSearchQuery github_com.go_redis.redis.v8.GeoSearchQuery.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'GeoSearchQuery'Member (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Member (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'Member (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'Member (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Member' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) v.Member' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Member" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Member' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Longitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Longitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Longitude' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) v.Longitude' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Longitude" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Longitude' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Latitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Latitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Latitude' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) v.Latitude' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Latitude" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Latitude' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Radius (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'Radius (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Radius (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Radius' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) v.Radius' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Radius" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Radius' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'RadiusUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'RadiusUnit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'RadiusUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'RadiusUnit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RadiusUnit' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) v.RadiusUnit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"RadiusUnit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RadiusUnit' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'BoxWidth (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'BoxWidth (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'BoxWidth (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'BoxWidth (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BoxWidth' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) v.BoxWidth' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxWidth" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BoxWidth' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'BoxHeight (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'BoxHeight (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'BoxHeight (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'BoxHeight (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BoxHeight' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) v.BoxHeight' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxHeight" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BoxHeight' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'BoxUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'BoxUnit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'BoxUnit (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'BoxUnit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BoxUnit' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) v.BoxUnit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"BoxUnit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BoxUnit' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Sort (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'Sort (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
+noncomputable instance access_store'GeoSearchQuery'Sort (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sort' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) v.Sort' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Sort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sort' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'Count (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'Count (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
+noncomputable instance access_store'GeoSearchQuery'Count (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"Count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoSearchQuery'CountAny (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
+noncomputable instance access_load'GeoSearchQuery'CountAny (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoSearchQuery'CountAny (l : Loc) (v : github_com.go_redis.redis.v8.GeoSearchQuery) (y : Bool) :
+noncomputable instance access_store'GeoSearchQuery'CountAny (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CountAny' := y } : github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) v.CountAny' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery go!"CountAny" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CountAny' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoSearchQuery) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -408,51 +408,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'GeoPos :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.GeoPos where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.GeoPos where
   typedPointstoDef l v dq := iprop(
-    "Longitude" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq ∗
-    "Latitude" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq ∗
+    "Longitude" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq ∗
+    "Latitude" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'GeoPos :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.GeoPos github_com.go_redis.redis.v8.GeoPos.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.GeoPos _root_.Perennial.github_com.go_redis.redis.v8.GeoPos.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'GeoPos'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
+noncomputable instance access_load'GeoPos'Longitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoPos'Longitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (y : w64) :
+noncomputable instance access_store'GeoPos'Longitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoPos) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Longitude' := y } : github_com.go_redis.redis.v8.GeoPos) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) v.Longitude' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Longitude" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Longitude' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoPos) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GeoPos'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
+noncomputable instance access_load'GeoPos'Latitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoPos) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GeoPos'Latitude (l : Loc) (v : github_com.go_redis.redis.v8.GeoPos) (y : w64) :
+noncomputable instance access_store'GeoPos'Latitude (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.GeoPos) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Latitude' := y } : github_com.go_redis.redis.v8.GeoPos) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) v.Latitude' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.GeoPos go!"Latitude" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Latitude' := y } : _root_.Perennial.github_com.go_redis.redis.v8.GeoPos) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -465,153 +465,153 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'CommandInfo :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.CommandInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq ∗
-    "Arity" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq ∗
-    "Flags" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq ∗
-    "ACLFlags" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq ∗
-    "FirstKeyPos" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq ∗
-    "LastKeyPos" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq ∗
-    "StepCount" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq ∗
-    "ReadOnly" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq ∗
+    "Arity" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq ∗
+    "Flags" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq ∗
+    "ACLFlags" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq ∗
+    "FirstKeyPos" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq ∗
+    "LastKeyPos" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq ∗
+    "StepCount" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq ∗
+    "ReadOnly" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CommandInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.CommandInfo github_com.go_redis.redis.v8.CommandInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CommandInfo'Name (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'Name (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'Name (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoString) :
+noncomputable instance access_store'CommandInfo'Name (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommandInfo'Arity (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'Arity (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'Arity (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'Arity (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Arity' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) v.Arity' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Arity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Arity' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommandInfo'Flags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'Flags (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'Flags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
+noncomputable instance access_store'CommandInfo'Flags (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Flags' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) v.Flags' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"Flags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Flags' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommandInfo'ACLFlags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'ACLFlags (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'ACLFlags (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
+noncomputable instance access_store'CommandInfo'ACLFlags (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ACLFlags' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) v.ACLFlags' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ACLFlags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ACLFlags' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommandInfo'FirstKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'FirstKeyPos (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'FirstKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'FirstKeyPos (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FirstKeyPos' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) v.FirstKeyPos' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"FirstKeyPos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FirstKeyPos' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommandInfo'LastKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'LastKeyPos (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'LastKeyPos (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'LastKeyPos (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastKeyPos' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) v.LastKeyPos' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"LastKeyPos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LastKeyPos' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommandInfo'StepCount (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'StepCount (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'StepCount (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
+noncomputable instance access_store'CommandInfo'StepCount (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : w8) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepCount' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) v.StepCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"StepCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StepCount' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommandInfo'ReadOnly (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
+noncomputable instance access_load'CommandInfo'ReadOnly (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommandInfo'ReadOnly (l : Loc) (v : github_com.go_redis.redis.v8.CommandInfo) (y : Bool) :
+noncomputable instance access_store'CommandInfo'ReadOnly (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadOnly' := y } : github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) v.ReadOnly' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo go!"ReadOnly" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadOnly' := y } : _root_.Perennial.github_com.go_redis.redis.v8.CommandInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -624,14 +624,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'cmdsInfoCache :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.cmdsInfoCache :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.cmdsInfoCache :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cmdsInfoCache :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.cmdsInfoCache github_com.go_redis.redis.v8.cmdsInfoCache.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.cmdsInfoCache _root_.Perennial.github_com.go_redis.redis.v8.cmdsInfoCache.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -643,14 +643,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'SlowLog :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.SlowLog :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.SlowLog :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SlowLog :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.SlowLog github_com.go_redis.redis.v8.SlowLog.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.SlowLog _root_.Perennial.github_com.go_redis.redis.v8.SlowLog.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -662,14 +662,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'Cmdable :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.Cmdable :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.Cmdable :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Cmdable :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.Cmdable github_com.go_redis.redis.v8.Cmdable.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.Cmdable _root_.Perennial.github_com.go_redis.redis.v8.Cmdable.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -681,14 +681,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'StatefulCmdable :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.StatefulCmdable :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.StatefulCmdable :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StatefulCmdable :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.StatefulCmdable github_com.go_redis.redis.v8.StatefulCmdable.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.StatefulCmdable _root_.Perennial.github_com.go_redis.redis.v8.StatefulCmdable.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -700,14 +700,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'statefulCmdable :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.statefulCmdable :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.statefulCmdable :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'statefulCmdable :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.statefulCmdable github_com.go_redis.redis.v8.statefulCmdable.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.statefulCmdable _root_.Perennial.github_com.go_redis.redis.v8.statefulCmdable.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -719,119 +719,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'Sort :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.Sort'' where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.Sort'' where
   typedPointstoDef l v dq := iprop(
-    "By" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq ∗
-    "Offset" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq ∗
-    "Count" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq ∗
-    "Get" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq ∗
-    "Order" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq ∗
-    "Alpha" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq ∗
+    "By" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq ∗
+    "Offset" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq ∗
+    "Get" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq ∗
+    "Order" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq ∗
+    "Alpha" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Sort :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.Sort'' github_com.go_redis.redis.v8.Sort''.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.Sort'' _root_.Perennial.github_com.go_redis.redis.v8.Sort''.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Sort'By (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
+noncomputable instance access_load'Sort'By (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Sort'By (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : GoString) :
+noncomputable instance access_store'Sort'By (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"By" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with By' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"By" l) v.By' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"By" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with By' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Sort'Offset (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
+noncomputable instance access_load'Sort'Offset (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Sort'Offset (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : w64) :
+noncomputable instance access_store'Sort'Offset (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Offset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Offset" l) v.Offset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Sort'Count (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
+noncomputable instance access_load'Sort'Count (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Sort'Count (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : w64) :
+noncomputable instance access_store'Sort'Count (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Count" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Sort'Get (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
+noncomputable instance access_load'Sort'Get (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Sort'Get (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : GoSlice) :
+noncomputable instance access_store'Sort'Get (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Get" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Get" l) v.Get' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Get" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Sort'Order (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
+noncomputable instance access_load'Sort'Order (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Sort'Order (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : GoString) :
+noncomputable instance access_store'Sort'Order (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Order" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Order' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Order" l) v.Order' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Order" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Order' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Sort'Alpha (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
+noncomputable instance access_load'Sort'Alpha (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Sort'Alpha (l : Loc) (v : github_com.go_redis.redis.v8.Sort'') (y : Bool) :
+noncomputable instance access_store'Sort'Alpha (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Alpha' := y } : github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) v.Alpha' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Sort'' go!"Alpha" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Alpha' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Sort'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -844,14 +844,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'SetArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.SetArgs :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.SetArgs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SetArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.SetArgs github_com.go_redis.redis.v8.SetArgs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.SetArgs _root_.Perennial.github_com.go_redis.redis.v8.SetArgs.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -863,51 +863,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'BitCount :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.BitCount where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.BitCount where
   typedPointstoDef l v dq := iprop(
-    "Start" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq ∗
-    "End" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq ∗
+    "Start" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq ∗
+    "End" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'BitCount :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.BitCount github_com.go_redis.redis.v8.BitCount.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.BitCount _root_.Perennial.github_com.go_redis.redis.v8.BitCount.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'BitCount'Start (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
+noncomputable instance access_load'BitCount'Start (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BitCount'Start (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (y : w64) :
+noncomputable instance access_store'BitCount'Start (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.BitCount) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"Start" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : github_com.go_redis.redis.v8.BitCount) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"Start" l) v.Start' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : _root_.Perennial.github_com.go_redis.redis.v8.BitCount) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'BitCount'End (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
+noncomputable instance access_load'BitCount'End (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.BitCount) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BitCount'End (l : Loc) (v : github_com.go_redis.redis.v8.BitCount) (y : w64) :
+noncomputable instance access_store'BitCount'End (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.BitCount) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.BitCount go!"End" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : github_com.go_redis.redis.v8.BitCount) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"End" l) v.End' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.BitCount go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : _root_.Perennial.github_com.go_redis.redis.v8.BitCount) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -920,51 +920,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'LPosArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.LPosArgs where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs where
   typedPointstoDef l v dq := iprop(
-    "Rank" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq ∗
-    "MaxLen" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq ∗
+    "Rank" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq ∗
+    "MaxLen" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LPosArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.LPosArgs github_com.go_redis.redis.v8.LPosArgs.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LPosArgs'Rank (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
+noncomputable instance access_load'LPosArgs'Rank (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LPosArgs'Rank (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
+noncomputable instance access_store'LPosArgs'Rank (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rank' := y } : github_com.go_redis.redis.v8.LPosArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) v.Rank' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"Rank" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rank' := y } : _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LPosArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
+noncomputable instance access_load'LPosArgs'MaxLen (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LPosArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
+noncomputable instance access_store'LPosArgs'MaxLen (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLen' := y } : github_com.go_redis.redis.v8.LPosArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) v.MaxLen' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs go!"MaxLen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLen' := y } : _root_.Perennial.github_com.go_redis.redis.v8.LPosArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -977,170 +977,170 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'XAddArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XAddArgs where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs where
   typedPointstoDef l v dq := iprop(
-    "Stream" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq ∗
-    "NoMkStream" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq ∗
-    "MaxLen" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq ∗
-    "MaxLenApprox" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq ∗
-    "MinID" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq ∗
-    "Approx" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq ∗
-    "Limit" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq ∗
-    "ID" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq ∗
-    "Values" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq ∗
+    "Stream" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq ∗
+    "NoMkStream" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq ∗
+    "MaxLen" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq ∗
+    "MaxLenApprox" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq ∗
+    "MinID" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq ∗
+    "Approx" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq ∗
+    "Limit" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq ∗
+    "ID" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq ∗
+    "Values" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'XAddArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XAddArgs github_com.go_redis.redis.v8.XAddArgs.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'XAddArgs'Stream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Stream (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'Stream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
+noncomputable instance access_store'XAddArgs'Stream (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stream' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) v.Stream' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Stream" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stream' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'NoMkStream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'NoMkStream (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'NoMkStream (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
+noncomputable instance access_store'XAddArgs'NoMkStream (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoMkStream' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) v.NoMkStream' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"NoMkStream" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoMkStream' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'MaxLen (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'MaxLen (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
+noncomputable instance access_store'XAddArgs'MaxLen (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLen' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) v.MaxLen' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLen' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'MaxLenApprox (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'MaxLenApprox (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'MaxLenApprox (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
+noncomputable instance access_store'XAddArgs'MaxLenApprox (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLenApprox' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) v.MaxLenApprox' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MaxLenApprox" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxLenApprox' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'MinID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'MinID (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'MinID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
+noncomputable instance access_store'XAddArgs'MinID (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinID' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) v.MinID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"MinID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinID' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'Approx (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Approx (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'Approx (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
+noncomputable instance access_store'XAddArgs'Approx (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Approx' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) v.Approx' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Approx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Approx' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'Limit (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Limit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'Limit (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
+noncomputable instance access_store'XAddArgs'Limit (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Limit' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) v.Limit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Limit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Limit' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'ID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'ID (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'ID (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
+noncomputable instance access_store'XAddArgs'ID (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"ID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"ID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'XAddArgs'Values (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
+noncomputable instance access_load'XAddArgs'Values (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'XAddArgs'Values (l : Loc) (v : github_com.go_redis.redis.v8.XAddArgs) (y : GoInterface) :
+noncomputable instance access_store'XAddArgs'Values (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.XAddArgs go!"Values" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Values' := y } : github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Values" l) v.Values' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs go!"Values" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Values' := y } : _root_.Perennial.github_com.go_redis.redis.v8.XAddArgs) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1153,14 +1153,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'XReadArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XReadArgs :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XReadArgs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XReadArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XReadArgs github_com.go_redis.redis.v8.XReadArgs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XReadArgs _root_.Perennial.github_com.go_redis.redis.v8.XReadArgs.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1172,14 +1172,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'XReadGroupArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XReadGroupArgs :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XReadGroupArgs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XReadGroupArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XReadGroupArgs github_com.go_redis.redis.v8.XReadGroupArgs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XReadGroupArgs _root_.Perennial.github_com.go_redis.redis.v8.XReadGroupArgs.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1191,14 +1191,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'XPendingExtArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XPendingExtArgs :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XPendingExtArgs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XPendingExtArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XPendingExtArgs github_com.go_redis.redis.v8.XPendingExtArgs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XPendingExtArgs _root_.Perennial.github_com.go_redis.redis.v8.XPendingExtArgs.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1210,14 +1210,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'XAutoClaimArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XAutoClaimArgs :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XAutoClaimArgs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XAutoClaimArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XAutoClaimArgs github_com.go_redis.redis.v8.XAutoClaimArgs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XAutoClaimArgs _root_.Perennial.github_com.go_redis.redis.v8.XAutoClaimArgs.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1229,14 +1229,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'XClaimArgs :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.XClaimArgs :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XClaimArgs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XClaimArgs :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.XClaimArgs github_com.go_redis.redis.v8.XClaimArgs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.XClaimArgs _root_.Perennial.github_com.go_redis.redis.v8.XClaimArgs.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1248,51 +1248,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'Z :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.Z where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.Z where
   typedPointstoDef l v dq := iprop(
-    "Score" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq ∗
-    "Member" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq ∗
+    "Score" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq ∗
+    "Member" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Z :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.Z github_com.go_redis.redis.v8.Z.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.Z _root_.Perennial.github_com.go_redis.redis.v8.Z.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Z'Score (l : Loc) (v : github_com.go_redis.redis.v8.Z) (dq : DFrac) :
+noncomputable instance access_load'Z'Score (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Z) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Z'Score (l : Loc) (v : github_com.go_redis.redis.v8.Z) (y : w64) :
+noncomputable instance access_store'Z'Score (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Z) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Score" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Score' := y } : github_com.go_redis.redis.v8.Z) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Score" l) v.Score' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Score" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Score' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Z) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Z'Member (l : Loc) (v : github_com.go_redis.redis.v8.Z) (dq : DFrac) :
+noncomputable instance access_load'Z'Member (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Z) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Z'Member (l : Loc) (v : github_com.go_redis.redis.v8.Z) (y : GoInterface) :
+noncomputable instance access_store'Z'Member (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.Z) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.Z go!"Member" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Member' := y } : github_com.go_redis.redis.v8.Z) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Member" l) v.Member' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.Z go!"Member" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Member' := y } : _root_.Perennial.github_com.go_redis.redis.v8.Z) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1305,68 +1305,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.Assumptions]
 
 noncomputable instance typed_pointsto'ZStore :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.ZStore where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.ZStore where
   typedPointstoDef l v dq := iprop(
-    "Keys" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq ∗
-    "Weights" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq ∗
-    "Aggregate" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq ∗
+    "Keys" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq ∗
+    "Weights" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq ∗
+    "Aggregate" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ZStore :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.ZStore github_com.go_redis.redis.v8.ZStore.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.ZStore _root_.Perennial.github_com.go_redis.redis.v8.ZStore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ZStore'Keys (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
+noncomputable instance access_load'ZStore'Keys (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ZStore'Keys (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
+noncomputable instance access_store'ZStore'Keys (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Keys" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Keys' := y } : github_com.go_redis.redis.v8.ZStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Keys" l) v.Keys' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Keys" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Keys' := y } : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ZStore'Weights (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
+noncomputable instance access_load'ZStore'Weights (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ZStore'Weights (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
+noncomputable instance access_store'ZStore'Weights (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Weights" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Weights' := y } : github_com.go_redis.redis.v8.ZStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Weights" l) v.Weights' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Weights" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Weights' := y } : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ZStore'Aggregate (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
+noncomputable instance access_load'ZStore'Aggregate (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ZStore'Aggregate (l : Loc) (v : github_com.go_redis.redis.v8.ZStore) (y : GoString) :
+noncomputable instance access_store'ZStore'Aggregate (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Aggregate' := y } : github_com.go_redis.redis.v8.ZStore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) v.Aggregate' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.ZStore go!"Aggregate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Aggregate' := y } : _root_.Perennial.github_com.go_redis.redis.v8.ZStore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

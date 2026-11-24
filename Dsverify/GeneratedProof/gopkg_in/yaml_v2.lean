@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'node :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.node :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.node :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'node :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.node gopkg_in.yaml_v2.node.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.node _root_.Perennial.gopkg_in.yaml_v2.node.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'parser :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.parser :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.parser :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'parser :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.parser gopkg_in.yaml_v2.parser.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.parser _root_.Perennial.gopkg_in.yaml_v2.parser.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'decoder :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.decoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.decoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'decoder :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.decoder gopkg_in.yaml_v2.decoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.decoder _root_.Perennial.gopkg_in.yaml_v2.decoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'jsonNumber :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.jsonNumber :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.jsonNumber :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'jsonNumber :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.jsonNumber gopkg_in.yaml_v2.jsonNumber.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.jsonNumber _root_.Perennial.gopkg_in.yaml_v2.jsonNumber.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'encoder :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.encoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.encoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'encoder :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.encoder gopkg_in.yaml_v2.encoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.encoder _root_.Perennial.gopkg_in.yaml_v2.encoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'resolveMapItem :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.resolveMapItem :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.resolveMapItem :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'resolveMapItem :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.resolveMapItem gopkg_in.yaml_v2.resolveMapItem.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.resolveMapItem _root_.Perennial.gopkg_in.yaml_v2.resolveMapItem.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'keyList :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.keyList :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.keyList :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'keyList :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.keyList gopkg_in.yaml_v2.keyList.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.keyList _root_.Perennial.gopkg_in.yaml_v2.keyList.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'MapSlice :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.MapSlice :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.MapSlice :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MapSlice :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.MapSlice gopkg_in.yaml_v2.MapSlice.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.MapSlice _root_.Perennial.gopkg_in.yaml_v2.MapSlice.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'MapItem :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.MapItem :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.MapItem :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MapItem :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.MapItem gopkg_in.yaml_v2.MapItem.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.MapItem _root_.Perennial.gopkg_in.yaml_v2.MapItem.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'Unmarshaler :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.Unmarshaler :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Unmarshaler :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Unmarshaler :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.Unmarshaler gopkg_in.yaml_v2.Unmarshaler.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Unmarshaler _root_.Perennial.gopkg_in.yaml_v2.Unmarshaler.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'Marshaler :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.Marshaler :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Marshaler :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Marshaler :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.Marshaler gopkg_in.yaml_v2.Marshaler.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Marshaler _root_.Perennial.gopkg_in.yaml_v2.Marshaler.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'Decoder :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.Decoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Decoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Decoder :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.Decoder gopkg_in.yaml_v2.Decoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Decoder _root_.Perennial.gopkg_in.yaml_v2.Decoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'Encoder :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.Encoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Encoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Encoder :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.Encoder gopkg_in.yaml_v2.Encoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.Encoder _root_.Perennial.gopkg_in.yaml_v2.Encoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yamlError :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yamlError :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yamlError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yamlError :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yamlError gopkg_in.yaml_v2.yamlError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yamlError _root_.Perennial.gopkg_in.yaml_v2.yamlError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'TypeError :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.TypeError :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.TypeError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TypeError :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.TypeError gopkg_in.yaml_v2.TypeError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.TypeError _root_.Perennial.gopkg_in.yaml_v2.TypeError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'structInfo :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.structInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.structInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'structInfo :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.structInfo gopkg_in.yaml_v2.structInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.structInfo _root_.Perennial.gopkg_in.yaml_v2.structInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'fieldInfo :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.fieldInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.fieldInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'fieldInfo :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.fieldInfo gopkg_in.yaml_v2.fieldInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.fieldInfo _root_.Perennial.gopkg_in.yaml_v2.fieldInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'IsZeroer :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.IsZeroer :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.IsZeroer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IsZeroer :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.IsZeroer gopkg_in.yaml_v2.IsZeroer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.IsZeroer _root_.Perennial.gopkg_in.yaml_v2.IsZeroer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -364,14 +364,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_version_directive_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_version_directive_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_version_directive_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_version_directive_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_version_directive_t gopkg_in.yaml_v2.yaml_version_directive_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_version_directive_t _root_.Perennial.gopkg_in.yaml_v2.yaml_version_directive_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -383,14 +383,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_tag_directive_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_tag_directive_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_tag_directive_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_tag_directive_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_tag_directive_t gopkg_in.yaml_v2.yaml_tag_directive_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_tag_directive_t _root_.Perennial.gopkg_in.yaml_v2.yaml_tag_directive_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -402,14 +402,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_encoding_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_encoding_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_encoding_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_encoding_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_encoding_t gopkg_in.yaml_v2.yaml_encoding_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_encoding_t _root_.Perennial.gopkg_in.yaml_v2.yaml_encoding_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -421,14 +421,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_break_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_break_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_break_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_break_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_break_t gopkg_in.yaml_v2.yaml_break_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_break_t _root_.Perennial.gopkg_in.yaml_v2.yaml_break_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -440,14 +440,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_error_type_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_error_type_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_error_type_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_error_type_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_error_type_t gopkg_in.yaml_v2.yaml_error_type_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_error_type_t _root_.Perennial.gopkg_in.yaml_v2.yaml_error_type_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -459,14 +459,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_mark_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_mark_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_mark_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_mark_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_mark_t gopkg_in.yaml_v2.yaml_mark_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_mark_t _root_.Perennial.gopkg_in.yaml_v2.yaml_mark_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -478,14 +478,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_style_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_style_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_style_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_style_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_style_t gopkg_in.yaml_v2.yaml_style_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_style_t _root_.Perennial.gopkg_in.yaml_v2.yaml_style_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -497,14 +497,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_scalar_style_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_scalar_style_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_scalar_style_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_scalar_style_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_scalar_style_t gopkg_in.yaml_v2.yaml_scalar_style_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_scalar_style_t _root_.Perennial.gopkg_in.yaml_v2.yaml_scalar_style_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -516,14 +516,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_sequence_style_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_sequence_style_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_sequence_style_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_sequence_style_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_sequence_style_t gopkg_in.yaml_v2.yaml_sequence_style_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_sequence_style_t _root_.Perennial.gopkg_in.yaml_v2.yaml_sequence_style_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -535,14 +535,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_mapping_style_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_mapping_style_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_mapping_style_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_mapping_style_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_mapping_style_t gopkg_in.yaml_v2.yaml_mapping_style_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_mapping_style_t _root_.Perennial.gopkg_in.yaml_v2.yaml_mapping_style_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -554,14 +554,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_token_type_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_token_type_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_token_type_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_token_type_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_token_type_t gopkg_in.yaml_v2.yaml_token_type_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_token_type_t _root_.Perennial.gopkg_in.yaml_v2.yaml_token_type_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -573,14 +573,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_token_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_token_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_token_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_token_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_token_t gopkg_in.yaml_v2.yaml_token_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_token_t _root_.Perennial.gopkg_in.yaml_v2.yaml_token_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -592,14 +592,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_event_type_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_event_type_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_event_type_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_event_type_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_event_type_t gopkg_in.yaml_v2.yaml_event_type_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_event_type_t _root_.Perennial.gopkg_in.yaml_v2.yaml_event_type_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -611,14 +611,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_event_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_event_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_event_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_event_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_event_t gopkg_in.yaml_v2.yaml_event_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_event_t _root_.Perennial.gopkg_in.yaml_v2.yaml_event_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -630,14 +630,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_node_type_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_node_type_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_type_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_node_type_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_node_type_t gopkg_in.yaml_v2.yaml_node_type_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_type_t _root_.Perennial.gopkg_in.yaml_v2.yaml_node_type_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -649,14 +649,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_node_item_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_node_item_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_item_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_node_item_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_node_item_t gopkg_in.yaml_v2.yaml_node_item_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_item_t _root_.Perennial.gopkg_in.yaml_v2.yaml_node_item_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -668,14 +668,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_node_pair_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_node_pair_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_pair_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_node_pair_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_node_pair_t gopkg_in.yaml_v2.yaml_node_pair_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_pair_t _root_.Perennial.gopkg_in.yaml_v2.yaml_node_pair_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -687,14 +687,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_node_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_node_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_node_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_node_t gopkg_in.yaml_v2.yaml_node_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_node_t _root_.Perennial.gopkg_in.yaml_v2.yaml_node_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -706,14 +706,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_document_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_document_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_document_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_document_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_document_t gopkg_in.yaml_v2.yaml_document_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_document_t _root_.Perennial.gopkg_in.yaml_v2.yaml_document_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -725,14 +725,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_read_handler_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_read_handler_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_read_handler_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_read_handler_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_read_handler_t gopkg_in.yaml_v2.yaml_read_handler_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_read_handler_t _root_.Perennial.gopkg_in.yaml_v2.yaml_read_handler_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -744,14 +744,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_simple_key_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_simple_key_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_simple_key_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_simple_key_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_simple_key_t gopkg_in.yaml_v2.yaml_simple_key_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_simple_key_t _root_.Perennial.gopkg_in.yaml_v2.yaml_simple_key_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -763,14 +763,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_parser_state_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_parser_state_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_parser_state_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_parser_state_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_parser_state_t gopkg_in.yaml_v2.yaml_parser_state_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_parser_state_t _root_.Perennial.gopkg_in.yaml_v2.yaml_parser_state_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -782,14 +782,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_alias_data_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_alias_data_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_alias_data_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_alias_data_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_alias_data_t gopkg_in.yaml_v2.yaml_alias_data_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_alias_data_t _root_.Perennial.gopkg_in.yaml_v2.yaml_alias_data_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -801,14 +801,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_parser_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_parser_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_parser_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_parser_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_parser_t gopkg_in.yaml_v2.yaml_parser_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_parser_t _root_.Perennial.gopkg_in.yaml_v2.yaml_parser_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -820,14 +820,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_write_handler_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_write_handler_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_write_handler_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_write_handler_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_write_handler_t gopkg_in.yaml_v2.yaml_write_handler_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_write_handler_t _root_.Perennial.gopkg_in.yaml_v2.yaml_write_handler_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -839,14 +839,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_emitter_state_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_emitter_state_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_emitter_state_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_emitter_state_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_emitter_state_t gopkg_in.yaml_v2.yaml_emitter_state_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_emitter_state_t _root_.Perennial.gopkg_in.yaml_v2.yaml_emitter_state_t.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -858,14 +858,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : gopkg_in.yaml_v2.Assumptions]
+variable [package_sem' : _root_.Perennial.gopkg_in.yaml_v2.Assumptions]
 
 noncomputable instance typed_pointsto'yaml_emitter_t :
-    TypedPointsto (GF := GF) gopkg_in.yaml_v2.yaml_emitter_t :=
+    TypedPointsto (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_emitter_t :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'yaml_emitter_t :
-    IntoValTypedUnderlying (GF := GF) gopkg_in.yaml_v2.yaml_emitter_t gopkg_in.yaml_v2.yaml_emitter_t.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.gopkg_in.yaml_v2.yaml_emitter_t _root_.Perennial.gopkg_in.yaml_v2.yaml_emitter_t.underlying :=
   sorry -- axiomatized type
 
 end def_

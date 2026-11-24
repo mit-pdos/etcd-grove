@@ -30,85 +30,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.pager.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.pager.Assumptions]
 
 noncomputable instance typed_pointsto'ListPager :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.pager.ListPager where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.pager.ListPager where
   typedPointstoDef l v dq := iprop(
-    "PageSize" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' dq ∗
-    "PageFn" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' dq ∗
-    "FullListIfExpired" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' dq ∗
-    "PageBufferSize" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' dq ∗
+    "PageSize" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' dq ∗
+    "PageFn" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' dq ∗
+    "FullListIfExpired" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' dq ∗
+    "PageBufferSize" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ListPager :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.pager.ListPager k8s_io.client_go.tools.pager.ListPager.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.pager.ListPager _root_.Perennial.k8s_io.client_go.tools.pager.ListPager.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ListPager'PageSize (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
+noncomputable instance access_load'ListPager'PageSize (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListPager'PageSize (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (y : w64) :
+noncomputable instance access_store'ListPager'PageSize (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageSize' := y } : k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) v.PageSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageSize' := y } : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListPager'PageFn (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
+noncomputable instance access_load'ListPager'PageFn (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListPager'PageFn (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (y : k8s_io.client_go.tools.pager.ListPageFunc) :
+noncomputable instance access_store'ListPager'PageFn (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (y : _root_.Perennial.k8s_io.client_go.tools.pager.ListPageFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageFn' := y } : k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) v.PageFn' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageFn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageFn' := y } : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListPager'FullListIfExpired (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
+noncomputable instance access_load'ListPager'FullListIfExpired (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListPager'FullListIfExpired (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (y : Bool) :
+noncomputable instance access_store'ListPager'FullListIfExpired (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FullListIfExpired' := y } : k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) v.FullListIfExpired' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"FullListIfExpired" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FullListIfExpired' := y } : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListPager'PageBufferSize (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
+noncomputable instance access_load'ListPager'PageBufferSize (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListPager'PageBufferSize (l : Loc) (v : k8s_io.client_go.tools.pager.ListPager) (y : w32) :
+noncomputable instance access_store'ListPager'PageBufferSize (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageBufferSize' := y } : k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) v.PageBufferSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.pager.ListPager go!"PageBufferSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PageBufferSize' := y } : _root_.Perennial.k8s_io.client_go.tools.pager.ListPager) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

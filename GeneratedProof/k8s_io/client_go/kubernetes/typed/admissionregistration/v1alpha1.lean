@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'AdmissionregistrationV1alpha1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AdmissionregistrationV1alpha1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Interface k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'AdmissionregistrationV1alpha1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AdmissionregistrationV1alpha1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Client k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.AdmissionregistrationV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'MutatingAdmissionPolicyExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutatingAdmissionPolicyExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyExpansion k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'MutatingAdmissionPolicyBindingExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutatingAdmissionPolicyBindingExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingExpansion k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ValidatingAdmissionPolicyExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ValidatingAdmissionPolicyExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyExpansion k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ValidatingAdmissionPolicyBindingExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ValidatingAdmissionPolicyBindingExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingExpansion k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'MutatingAdmissionPoliciesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPoliciesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPoliciesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutatingAdmissionPoliciesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPoliciesGetter k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPoliciesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPoliciesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPoliciesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'MutatingAdmissionPolicyInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutatingAdmissionPolicyInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyInterface k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'mutatingAdmissionPolicies :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicies :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicies :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'mutatingAdmissionPolicies :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicies k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicies.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicies _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicies.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'MutatingAdmissionPolicyBindingsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutatingAdmissionPolicyBindingsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingsGetter k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'MutatingAdmissionPolicyBindingInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutatingAdmissionPolicyBindingInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingInterface k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.MutatingAdmissionPolicyBindingInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'mutatingAdmissionPolicyBindings :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicyBindings :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicyBindings :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'mutatingAdmissionPolicyBindings :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicyBindings k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicyBindings.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicyBindings _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.mutatingAdmissionPolicyBindings.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ValidatingAdmissionPoliciesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPoliciesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPoliciesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ValidatingAdmissionPoliciesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPoliciesGetter k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPoliciesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPoliciesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPoliciesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ValidatingAdmissionPolicyInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ValidatingAdmissionPolicyInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyInterface k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'validatingAdmissionPolicies :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicies :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicies :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'validatingAdmissionPolicies :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicies k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicies.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicies _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicies.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ValidatingAdmissionPolicyBindingsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ValidatingAdmissionPolicyBindingsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingsGetter k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ValidatingAdmissionPolicyBindingInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ValidatingAdmissionPolicyBindingInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingInterface k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.ValidatingAdmissionPolicyBindingInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'validatingAdmissionPolicyBindings :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicyBindings :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicyBindings :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'validatingAdmissionPolicyBindings :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicyBindings k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicyBindings.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicyBindings _root_.Perennial.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1.validatingAdmissionPolicyBindings.underlying :=
   sorry -- axiomatized type
 
 end def_

@@ -117,7 +117,7 @@ noncomputable def formatInt16.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "i"))
-  (let digits₀ := #(go!"0123456789abcdefghijklmnopqrstuvwxyz");
+  (let digits₁ := #(go!"0123456789abcdefghijklmnopqrstuvwxyz");
   (Let "$r0" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "i")))
   (Let "u" (App (Val (GoInstruction (GoAlloc go.uint64))) (App (Val (GoInstruction (GoZeroVal go.uint64))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -140,7 +140,7 @@ noncomputable def formatInt16.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits₀) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits₁) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (Var "a")
@@ -166,7 +166,7 @@ noncomputable def formatInt16.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoOp GoGe go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u")) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "b")))))) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits₀) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))) (App (Val (GoInstruction (GoLoad go.uint))) (Var "m")))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val digits₁) (App (Val (GoInstruction (Convert go.uint go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint))) (Pair (App (Val (GoInstruction (Convert go.uint64 go.uint))) (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u"))) (App (Val (GoInstruction (GoLoad go.uint))) (Var "m")))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "u") (App (Val (GoInstruction (GoOp GoShiftr go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (Var "u")) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (GoLoad go.uint))) (Var "shift"))))))))))
@@ -252,7 +252,7 @@ noncomputable def hexEncodeToString.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "src" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "src"))
-  (let hextable₀ := #(go!"0123456789abcdef");
+  (let hextable₁ := #(go!"0123456789abcdef");
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoOp GoMul go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "src"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))))
   (Let "dst" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
@@ -274,9 +274,9 @@ noncomputable def hexEncodeToString.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "$value"
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable₀) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(4 : Int))))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable₁) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(4 : Int))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable₀) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoAnd go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (Val #(W8 15)))))))
+  (Let "$r0" (App (Val (GoInstruction (Index go.untypedString))) (Pair (Val hextable₁) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoOp GoAnd go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "v")) (Val #(W8 15)))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "j")) (Val #(W64 2)))))))))

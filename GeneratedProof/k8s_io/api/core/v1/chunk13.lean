@@ -33,85 +33,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'PersistentVolume :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.PersistentVolume where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.PersistentVolume where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ObjectMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' dq ∗
-    "Spec" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' dq ∗
-    "Status" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ObjectMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' dq ∗
+    "Spec" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' dq ∗
+    "Status" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PersistentVolume :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.PersistentVolume k8s_io.api.core.v1.PersistentVolume.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.PersistentVolume _root_.Perennial.k8s_io.api.core.v1.PersistentVolume.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PersistentVolume'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolume'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolume'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'PersistentVolume'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolume'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolume'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolume'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance access_store'PersistentVolume'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolume'Spec (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolume'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolume'Spec (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (y : k8s_io.api.core.v1.PersistentVolumeSpec) :
+noncomputable instance access_store'PersistentVolume'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (y : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeSpec) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Spec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Spec" l) v.Spec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Spec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolume'Status (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolume'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolume'Status (l : Loc) (v : k8s_io.api.core.v1.PersistentVolume) (y : k8s_io.api.core.v1.PersistentVolumeStatus) :
+noncomputable instance access_store'PersistentVolume'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (y : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeStatus) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolume go!"Status" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Status" l) v.Status' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolume go!"Status" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolume) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -124,170 +124,170 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'PersistentVolumeClaimSpec :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.PersistentVolumeClaimSpec where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec where
   typedPointstoDef l v dq := iprop(
-    "AccessModes" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' dq ∗
-    "Selector" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' dq ∗
-    "Resources" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' dq ∗
-    "VolumeName" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' dq ∗
-    "StorageClassName" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' dq ∗
-    "VolumeMode" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' dq ∗
-    "DataSource" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' dq ∗
-    "DataSourceRef" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' dq ∗
-    "VolumeAttributesClassName" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' dq ∗
+    "AccessModes" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' dq ∗
+    "Selector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' dq ∗
+    "Resources" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' dq ∗
+    "VolumeName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' dq ∗
+    "StorageClassName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' dq ∗
+    "VolumeMode" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' dq ∗
+    "DataSource" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' dq ∗
+    "DataSourceRef" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' dq ∗
+    "VolumeAttributesClassName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PersistentVolumeClaimSpec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.PersistentVolumeClaimSpec k8s_io.api.core.v1.PersistentVolumeClaimSpec.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'AccessModes (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'AccessModes (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'AccessModes (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : GoSlice) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'AccessModes (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AccessModes' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) v.AccessModes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"AccessModes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AccessModes' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'Selector (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'Selector (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'Selector (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'Selector (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Selector' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) v.Selector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Selector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Selector' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'Resources (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'Resources (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'Resources (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : k8s_io.api.core.v1.VolumeResourceRequirements) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'Resources (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : _root_.Perennial.k8s_io.api.core.v1.VolumeResourceRequirements) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) v.Resources' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"Resources" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'VolumeName (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'VolumeName (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'VolumeName (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : GoString) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'VolumeName (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeName' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) v.VolumeName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeName' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'StorageClassName (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'StorageClassName (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'StorageClassName (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'StorageClassName (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StorageClassName' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) v.StorageClassName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"StorageClassName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StorageClassName' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'VolumeMode (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'VolumeMode (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'VolumeMode (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'VolumeMode (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeMode' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) v.VolumeMode' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeMode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeMode' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'DataSource (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'DataSource (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'DataSource (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'DataSource (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DataSource' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) v.DataSource' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DataSource' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'DataSourceRef (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'DataSourceRef (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'DataSourceRef (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'DataSourceRef (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DataSourceRef' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) v.DataSourceRef' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"DataSourceRef" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DataSourceRef' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PersistentVolumeClaimSpec'VolumeAttributesClassName (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
+noncomputable instance access_load'PersistentVolumeClaimSpec'VolumeAttributesClassName (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PersistentVolumeClaimSpec'VolumeAttributesClassName (l : Loc) (v : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
+noncomputable instance access_store'PersistentVolumeClaimSpec'VolumeAttributesClassName (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeAttributesClassName' := y } : k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) v.VolumeAttributesClassName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec go!"VolumeAttributesClassName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeAttributesClassName' := y } : _root_.Perennial.k8s_io.api.core.v1.PersistentVolumeClaimSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -300,442 +300,442 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'Container :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.Container where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Container where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Name" l) v.Name' dq ∗
-    "Image" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Image" l) v.Image' dq ∗
-    "Command" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Command" l) v.Command' dq ∗
-    "Args" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Args" l) v.Args' dq ∗
-    "WorkingDir" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' dq ∗
-    "Ports" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' dq ∗
-    "EnvFrom" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' dq ∗
-    "Env" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Env" l) v.Env' dq ∗
-    "Resources" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' dq ∗
-    "ResizePolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' dq ∗
-    "RestartPolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' dq ∗
-    "RestartPolicyRules" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' dq ∗
-    "VolumeMounts" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' dq ∗
-    "VolumeDevices" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' dq ∗
-    "LivenessProbe" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' dq ∗
-    "ReadinessProbe" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' dq ∗
-    "StartupProbe" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' dq ∗
-    "Lifecycle" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' dq ∗
-    "TerminationMessagePath" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' dq ∗
-    "TerminationMessagePolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq ∗
-    "ImagePullPolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' dq ∗
-    "SecurityContext" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' dq ∗
-    "Stdin" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' dq ∗
-    "StdinOnce" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' dq ∗
-    "TTY" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Name" l) v.Name' dq ∗
+    "Image" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Image" l) v.Image' dq ∗
+    "Command" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Command" l) v.Command' dq ∗
+    "Args" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Args" l) v.Args' dq ∗
+    "WorkingDir" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' dq ∗
+    "Ports" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' dq ∗
+    "EnvFrom" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' dq ∗
+    "Env" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Env" l) v.Env' dq ∗
+    "Resources" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' dq ∗
+    "ResizePolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' dq ∗
+    "RestartPolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' dq ∗
+    "RestartPolicyRules" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' dq ∗
+    "VolumeMounts" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' dq ∗
+    "VolumeDevices" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' dq ∗
+    "LivenessProbe" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' dq ∗
+    "ReadinessProbe" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' dq ∗
+    "StartupProbe" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' dq ∗
+    "Lifecycle" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' dq ∗
+    "TerminationMessagePath" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' dq ∗
+    "TerminationMessagePolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq ∗
+    "ImagePullPolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' dq ∗
+    "SecurityContext" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' dq ∗
+    "Stdin" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' dq ∗
+    "StdinOnce" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' dq ∗
+    "TTY" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Container :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.Container k8s_io.api.core.v1.Container.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Container _root_.Perennial.k8s_io.api.core.v1.Container.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Container'Name (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Name (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Name (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoString) :
+noncomputable instance access_store'Container'Name (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Image (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Image (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Image" l) v.Image' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Image" l) v.Image' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Image" l) v.Image' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Image" l) v.Image' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Image (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoString) :
+noncomputable instance access_store'Container'Image (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Image" l) v.Image' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Image" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Image' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Image" l) v.Image' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Image" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Image' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Command (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Command (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Command" l) v.Command' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Command" l) v.Command' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Command" l) v.Command' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Command" l) v.Command' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Command (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'Command (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Command" l) v.Command' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Command" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Command' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Command" l) v.Command' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Command" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Command' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Args (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Args (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Args" l) v.Args' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Args" l) v.Args' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Args" l) v.Args' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Args" l) v.Args' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Args (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'Args (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Args" l) v.Args' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Args" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Args' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Args" l) v.Args' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Args" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Args' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'WorkingDir (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'WorkingDir (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'WorkingDir (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoString) :
+noncomputable instance access_store'Container'WorkingDir (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"WorkingDir" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WorkingDir' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"WorkingDir" l) v.WorkingDir' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"WorkingDir" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WorkingDir' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Ports (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Ports (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Ports (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'Ports (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Ports" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ports' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Ports" l) v.Ports' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Ports" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ports' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'EnvFrom (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'EnvFrom (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'EnvFrom (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'EnvFrom (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"EnvFrom" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnvFrom' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"EnvFrom" l) v.EnvFrom' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"EnvFrom" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnvFrom' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Env (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Env (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Env" l) v.Env' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Env" l) v.Env' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Env" l) v.Env' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Env" l) v.Env' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Env (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'Env (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Env" l) v.Env' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Env" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Env' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Env" l) v.Env' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Env" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Env' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Resources (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Resources (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Resources (l : Loc) (v : k8s_io.api.core.v1.Container) (y : k8s_io.api.core.v1.ResourceRequirements) :
+noncomputable instance access_store'Container'Resources (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Resources" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Resources" l) v.Resources' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Resources" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'ResizePolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'ResizePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'ResizePolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'ResizePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ResizePolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResizePolicy' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ResizePolicy" l) v.ResizePolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ResizePolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResizePolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'RestartPolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'RestartPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'RestartPolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Loc) :
+noncomputable instance access_store'Container'RestartPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicy' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicy" l) v.RestartPolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'RestartPolicyRules (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'RestartPolicyRules (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'RestartPolicyRules (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'RestartPolicyRules (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicyRules' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) v.RestartPolicyRules' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"RestartPolicyRules" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicyRules' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'VolumeMounts (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'VolumeMounts (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'VolumeMounts (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'VolumeMounts (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeMounts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeMounts' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeMounts" l) v.VolumeMounts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeMounts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeMounts' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'VolumeDevices (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'VolumeDevices (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'VolumeDevices (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoSlice) :
+noncomputable instance access_store'Container'VolumeDevices (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"VolumeDevices" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeDevices' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeDevices" l) v.VolumeDevices' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"VolumeDevices" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeDevices' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'LivenessProbe (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'LivenessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'LivenessProbe (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Loc) :
+noncomputable instance access_store'Container'LivenessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"LivenessProbe" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LivenessProbe' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"LivenessProbe" l) v.LivenessProbe' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"LivenessProbe" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LivenessProbe' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'ReadinessProbe (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'ReadinessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'ReadinessProbe (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Loc) :
+noncomputable instance access_store'Container'ReadinessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ReadinessProbe" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadinessProbe' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ReadinessProbe" l) v.ReadinessProbe' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ReadinessProbe" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadinessProbe' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'StartupProbe (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'StartupProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'StartupProbe (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Loc) :
+noncomputable instance access_store'Container'StartupProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StartupProbe" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartupProbe' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StartupProbe" l) v.StartupProbe' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StartupProbe" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartupProbe' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Lifecycle (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Lifecycle (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Lifecycle (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Loc) :
+noncomputable instance access_store'Container'Lifecycle (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Lifecycle" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lifecycle' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Lifecycle" l) v.Lifecycle' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Lifecycle" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lifecycle' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'TerminationMessagePath (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'TerminationMessagePath (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'TerminationMessagePath (l : Loc) (v : k8s_io.api.core.v1.Container) (y : GoString) :
+noncomputable instance access_store'Container'TerminationMessagePath (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePath' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) v.TerminationMessagePath' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePath" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePath' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'TerminationMessagePolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'TerminationMessagePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'TerminationMessagePolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (y : k8s_io.api.core.v1.TerminationMessagePolicy) :
+noncomputable instance access_store'Container'TerminationMessagePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : _root_.Perennial.k8s_io.api.core.v1.TerminationMessagePolicy) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePolicy' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TerminationMessagePolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'ImagePullPolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'ImagePullPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'ImagePullPolicy (l : Loc) (v : k8s_io.api.core.v1.Container) (y : k8s_io.api.core.v1.PullPolicy) :
+noncomputable instance access_store'Container'ImagePullPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : _root_.Perennial.k8s_io.api.core.v1.PullPolicy) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ImagePullPolicy' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) v.ImagePullPolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"ImagePullPolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ImagePullPolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'SecurityContext (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'SecurityContext (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'SecurityContext (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Loc) :
+noncomputable instance access_store'Container'SecurityContext (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"SecurityContext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SecurityContext' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"SecurityContext" l) v.SecurityContext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"SecurityContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SecurityContext' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'Stdin (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'Stdin (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'Stdin (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Bool) :
+noncomputable instance access_store'Container'Stdin (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"Stdin" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stdin' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Stdin" l) v.Stdin' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"Stdin" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stdin' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'StdinOnce (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'StdinOnce (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'StdinOnce (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Bool) :
+noncomputable instance access_store'Container'StdinOnce (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"StdinOnce" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StdinOnce' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StdinOnce" l) v.StdinOnce' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"StdinOnce" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StdinOnce' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Container'TTY (l : Loc) (v : k8s_io.api.core.v1.Container) (dq : DFrac) :
+noncomputable instance access_load'Container'TTY (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Container'TTY (l : Loc) (v : k8s_io.api.core.v1.Container) (y : Bool) :
+noncomputable instance access_store'Container'TTY (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Container) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Container go!"TTY" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TTY' := y } : k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TTY" l) v.TTY' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Container go!"TTY" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TTY' := y } : _root_.Perennial.k8s_io.api.core.v1.Container) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -748,442 +748,442 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'EphemeralContainerCommon :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.EphemeralContainerCommon where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' dq ∗
-    "Image" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' dq ∗
-    "Command" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' dq ∗
-    "Args" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' dq ∗
-    "WorkingDir" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' dq ∗
-    "Ports" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' dq ∗
-    "EnvFrom" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' dq ∗
-    "Env" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' dq ∗
-    "Resources" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' dq ∗
-    "ResizePolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' dq ∗
-    "RestartPolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' dq ∗
-    "RestartPolicyRules" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' dq ∗
-    "VolumeMounts" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' dq ∗
-    "VolumeDevices" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' dq ∗
-    "LivenessProbe" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' dq ∗
-    "ReadinessProbe" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' dq ∗
-    "StartupProbe" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' dq ∗
-    "Lifecycle" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' dq ∗
-    "TerminationMessagePath" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' dq ∗
-    "TerminationMessagePolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq ∗
-    "ImagePullPolicy" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' dq ∗
-    "SecurityContext" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' dq ∗
-    "Stdin" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' dq ∗
-    "StdinOnce" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' dq ∗
-    "TTY" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' dq ∗
+    "Image" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' dq ∗
+    "Command" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' dq ∗
+    "Args" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' dq ∗
+    "WorkingDir" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' dq ∗
+    "Ports" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' dq ∗
+    "EnvFrom" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' dq ∗
+    "Env" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' dq ∗
+    "Resources" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' dq ∗
+    "ResizePolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' dq ∗
+    "RestartPolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' dq ∗
+    "RestartPolicyRules" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' dq ∗
+    "VolumeMounts" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' dq ∗
+    "VolumeDevices" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' dq ∗
+    "LivenessProbe" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' dq ∗
+    "ReadinessProbe" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' dq ∗
+    "StartupProbe" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' dq ∗
+    "Lifecycle" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' dq ∗
+    "TerminationMessagePath" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' dq ∗
+    "TerminationMessagePolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq ∗
+    "ImagePullPolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' dq ∗
+    "SecurityContext" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' dq ∗
+    "Stdin" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' dq ∗
+    "StdinOnce" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' dq ∗
+    "TTY" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EphemeralContainerCommon :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.EphemeralContainerCommon k8s_io.api.core.v1.EphemeralContainerCommon.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Name (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Name (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Name (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
+noncomputable instance access_store'EphemeralContainerCommon'Name (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Image (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Image (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Image (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
+noncomputable instance access_store'EphemeralContainerCommon'Image (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Image' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) v.Image' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Image" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Image' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Command (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Command (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Command (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'Command (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Command' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) v.Command' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Command" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Command' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Args (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Args (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Args (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'Args (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Args' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) v.Args' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Args" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Args' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'WorkingDir (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'WorkingDir (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'WorkingDir (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
+noncomputable instance access_store'EphemeralContainerCommon'WorkingDir (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WorkingDir' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) v.WorkingDir' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"WorkingDir" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WorkingDir' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Ports (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Ports (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Ports (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'Ports (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ports' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) v.Ports' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Ports" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ports' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'EnvFrom (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'EnvFrom (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'EnvFrom (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'EnvFrom (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnvFrom' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) v.EnvFrom' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"EnvFrom" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EnvFrom' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Env (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Env (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Env (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'Env (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Env' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) v.Env' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Env" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Env' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Resources (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Resources (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Resources (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : k8s_io.api.core.v1.ResourceRequirements) :
+noncomputable instance access_store'EphemeralContainerCommon'Resources (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : _root_.Perennial.k8s_io.api.core.v1.ResourceRequirements) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) v.Resources' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Resources" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resources' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'ResizePolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'ResizePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'ResizePolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'ResizePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResizePolicy' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) v.ResizePolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ResizePolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResizePolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'RestartPolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'RestartPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'RestartPolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
+noncomputable instance access_store'EphemeralContainerCommon'RestartPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicy' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) v.RestartPolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'RestartPolicyRules (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'RestartPolicyRules (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'RestartPolicyRules (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'RestartPolicyRules (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicyRules' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) v.RestartPolicyRules' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"RestartPolicyRules" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RestartPolicyRules' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'VolumeMounts (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'VolumeMounts (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'VolumeMounts (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'VolumeMounts (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeMounts' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) v.VolumeMounts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeMounts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeMounts' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'VolumeDevices (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'VolumeDevices (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'VolumeDevices (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
+noncomputable instance access_store'EphemeralContainerCommon'VolumeDevices (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeDevices' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) v.VolumeDevices' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"VolumeDevices" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumeDevices' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'LivenessProbe (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'LivenessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'LivenessProbe (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
+noncomputable instance access_store'EphemeralContainerCommon'LivenessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LivenessProbe' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) v.LivenessProbe' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"LivenessProbe" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LivenessProbe' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'ReadinessProbe (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'ReadinessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'ReadinessProbe (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
+noncomputable instance access_store'EphemeralContainerCommon'ReadinessProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadinessProbe' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) v.ReadinessProbe' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ReadinessProbe" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadinessProbe' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'StartupProbe (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'StartupProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'StartupProbe (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
+noncomputable instance access_store'EphemeralContainerCommon'StartupProbe (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartupProbe' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) v.StartupProbe' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StartupProbe" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StartupProbe' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Lifecycle (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Lifecycle (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Lifecycle (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
+noncomputable instance access_store'EphemeralContainerCommon'Lifecycle (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lifecycle' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) v.Lifecycle' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Lifecycle" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lifecycle' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'TerminationMessagePath (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'TerminationMessagePath (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'TerminationMessagePath (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
+noncomputable instance access_store'EphemeralContainerCommon'TerminationMessagePath (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePath' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) v.TerminationMessagePath' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePath" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePath' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'TerminationMessagePolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'TerminationMessagePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'TerminationMessagePolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : k8s_io.api.core.v1.TerminationMessagePolicy) :
+noncomputable instance access_store'EphemeralContainerCommon'TerminationMessagePolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : _root_.Perennial.k8s_io.api.core.v1.TerminationMessagePolicy) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePolicy' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) v.TerminationMessagePolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TerminationMessagePolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TerminationMessagePolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'ImagePullPolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'ImagePullPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'ImagePullPolicy (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : k8s_io.api.core.v1.PullPolicy) :
+noncomputable instance access_store'EphemeralContainerCommon'ImagePullPolicy (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : _root_.Perennial.k8s_io.api.core.v1.PullPolicy) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ImagePullPolicy' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) v.ImagePullPolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"ImagePullPolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ImagePullPolicy' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'SecurityContext (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'SecurityContext (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'SecurityContext (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
+noncomputable instance access_store'EphemeralContainerCommon'SecurityContext (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SecurityContext' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) v.SecurityContext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"SecurityContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SecurityContext' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'Stdin (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'Stdin (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'Stdin (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Bool) :
+noncomputable instance access_store'EphemeralContainerCommon'Stdin (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stdin' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) v.Stdin' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"Stdin" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stdin' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'StdinOnce (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'StdinOnce (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'StdinOnce (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Bool) :
+noncomputable instance access_store'EphemeralContainerCommon'StdinOnce (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StdinOnce' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) v.StdinOnce' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"StdinOnce" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StdinOnce' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EphemeralContainerCommon'TTY (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
+noncomputable instance access_load'EphemeralContainerCommon'TTY (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EphemeralContainerCommon'TTY (l : Loc) (v : k8s_io.api.core.v1.EphemeralContainerCommon) (y : Bool) :
+noncomputable instance access_store'EphemeralContainerCommon'TTY (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TTY' := y } : k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) v.TTY' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon go!"TTY" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TTY' := y } : _root_.Perennial.k8s_io.api.core.v1.EphemeralContainerCommon) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1196,85 +1196,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'Pod :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.Pod where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Pod where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ObjectMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' dq ∗
-    "Spec" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' dq ∗
-    "Status" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Status" l) v.Status' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ObjectMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' dq ∗
+    "Spec" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' dq ∗
+    "Status" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Status" l) v.Status' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Pod :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.Pod k8s_io.api.core.v1.Pod.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Pod _root_.Perennial.k8s_io.api.core.v1.Pod.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Pod'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Pod) (dq : DFrac) :
+noncomputable instance access_load'Pod'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pod'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Pod) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'Pod'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Pod'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Pod) (dq : DFrac) :
+noncomputable instance access_load'Pod'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pod'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Pod) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance access_store'Pod'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"ObjectMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Pod'Spec (l : Loc) (v : k8s_io.api.core.v1.Pod) (dq : DFrac) :
+noncomputable instance access_load'Pod'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pod'Spec (l : Loc) (v : k8s_io.api.core.v1.Pod) (y : k8s_io.api.core.v1.PodSpec) :
+noncomputable instance access_store'Pod'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (y : _root_.Perennial.k8s_io.api.core.v1.PodSpec) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Spec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Spec" l) v.Spec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Spec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : _root_.Perennial.k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Pod'Status (l : Loc) (v : k8s_io.api.core.v1.Pod) (dq : DFrac) :
+noncomputable instance access_load'Pod'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Status" l) v.Status' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Status" l) v.Status' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pod'Status (l : Loc) (v : k8s_io.api.core.v1.Pod) (y : k8s_io.api.core.v1.PodStatus) :
+noncomputable instance access_store'Pod'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Pod) (y : _root_.Perennial.k8s_io.api.core.v1.PodStatus) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Status" l) v.Status' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Pod go!"Status" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Status" l) v.Status' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Pod go!"Status" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : _root_.Perennial.k8s_io.api.core.v1.Pod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1287,51 +1287,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'PodTemplateSpec :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.PodTemplateSpec where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec where
   typedPointstoDef l v dq := iprop(
-    "ObjectMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' dq ∗
-    "Spec" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' dq ∗
+    "ObjectMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' dq ∗
+    "Spec" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PodTemplateSpec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.PodTemplateSpec k8s_io.api.core.v1.PodTemplateSpec.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PodTemplateSpec'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.PodTemplateSpec) (dq : DFrac) :
+noncomputable instance access_load'PodTemplateSpec'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PodTemplateSpec'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.PodTemplateSpec) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance access_store'PodTemplateSpec'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.api.core.v1.PodTemplateSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PodTemplateSpec'Spec (l : Loc) (v : k8s_io.api.core.v1.PodTemplateSpec) (dq : DFrac) :
+noncomputable instance access_load'PodTemplateSpec'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PodTemplateSpec'Spec (l : Loc) (v : k8s_io.api.core.v1.PodTemplateSpec) (y : k8s_io.api.core.v1.PodSpec) :
+noncomputable instance access_store'PodTemplateSpec'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (y : _root_.Perennial.k8s_io.api.core.v1.PodSpec) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : k8s_io.api.core.v1.PodTemplateSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) v.Spec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec go!"Spec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : _root_.Perennial.k8s_io.api.core.v1.PodTemplateSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1344,85 +1344,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'Service :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.Service where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Service where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ObjectMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' dq ∗
-    "Spec" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' dq ∗
-    "Status" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Status" l) v.Status' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ObjectMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' dq ∗
+    "Spec" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' dq ∗
+    "Status" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Status" l) v.Status' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Service :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.Service k8s_io.api.core.v1.Service.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Service _root_.Perennial.k8s_io.api.core.v1.Service.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Service'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Service) (dq : DFrac) :
+noncomputable instance access_load'Service'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Service'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Service) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'Service'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Service'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Service) (dq : DFrac) :
+noncomputable instance access_load'Service'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Service'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Service) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance access_store'Service'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"ObjectMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Service'Spec (l : Loc) (v : k8s_io.api.core.v1.Service) (dq : DFrac) :
+noncomputable instance access_load'Service'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Service'Spec (l : Loc) (v : k8s_io.api.core.v1.Service) (y : k8s_io.api.core.v1.ServiceSpec) :
+noncomputable instance access_store'Service'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (y : _root_.Perennial.k8s_io.api.core.v1.ServiceSpec) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Spec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Spec" l) v.Spec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Spec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : _root_.Perennial.k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Service'Status (l : Loc) (v : k8s_io.api.core.v1.Service) (dq : DFrac) :
+noncomputable instance access_load'Service'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Status" l) v.Status' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Status" l) v.Status' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Service'Status (l : Loc) (v : k8s_io.api.core.v1.Service) (y : k8s_io.api.core.v1.ServiceStatus) :
+noncomputable instance access_store'Service'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Service) (y : _root_.Perennial.k8s_io.api.core.v1.ServiceStatus) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Status" l) v.Status' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Service go!"Status" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Status" l) v.Status' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Service go!"Status" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : _root_.Perennial.k8s_io.api.core.v1.Service) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1435,255 +1435,255 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'NodeStatus :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.NodeStatus where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.NodeStatus where
   typedPointstoDef l v dq := iprop(
-    "Capacity" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' dq ∗
-    "Allocatable" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' dq ∗
-    "Phase" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' dq ∗
-    "Conditions" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' dq ∗
-    "Addresses" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' dq ∗
-    "DaemonEndpoints" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' dq ∗
-    "NodeInfo" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' dq ∗
-    "Images" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' dq ∗
-    "VolumesInUse" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' dq ∗
-    "VolumesAttached" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' dq ∗
-    "Config" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' dq ∗
-    "RuntimeHandlers" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' dq ∗
-    "Features" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' dq ∗
-    "DeclaredFeatures" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' dq ∗
+    "Capacity" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' dq ∗
+    "Allocatable" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' dq ∗
+    "Phase" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' dq ∗
+    "Conditions" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' dq ∗
+    "Addresses" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' dq ∗
+    "DaemonEndpoints" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' dq ∗
+    "NodeInfo" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' dq ∗
+    "Images" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' dq ∗
+    "VolumesInUse" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' dq ∗
+    "VolumesAttached" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' dq ∗
+    "Config" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' dq ∗
+    "RuntimeHandlers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' dq ∗
+    "Features" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' dq ∗
+    "DeclaredFeatures" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'NodeStatus :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.NodeStatus k8s_io.api.core.v1.NodeStatus.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.NodeStatus _root_.Perennial.k8s_io.api.core.v1.NodeStatus.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'NodeStatus'Capacity (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Capacity (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Capacity (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : k8s_io.api.core.v1.ResourceList) :
+noncomputable instance access_store'NodeStatus'Capacity (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : _root_.Perennial.k8s_io.api.core.v1.ResourceList) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Capacity" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Capacity' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Capacity" l) v.Capacity' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Capacity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Capacity' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'Allocatable (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Allocatable (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Allocatable (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : k8s_io.api.core.v1.ResourceList) :
+noncomputable instance access_store'NodeStatus'Allocatable (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : _root_.Perennial.k8s_io.api.core.v1.ResourceList) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Allocatable' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) v.Allocatable' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Allocatable" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Allocatable' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'Phase (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Phase (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Phase (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : k8s_io.api.core.v1.NodePhase) :
+noncomputable instance access_store'NodeStatus'Phase (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : _root_.Perennial.k8s_io.api.core.v1.NodePhase) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Phase" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Phase' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Phase" l) v.Phase' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Phase" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Phase' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'Conditions (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Conditions (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Conditions (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
+noncomputable instance access_store'NodeStatus'Conditions (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Conditions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Conditions' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Conditions" l) v.Conditions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Conditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Conditions' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'Addresses (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Addresses (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Addresses (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
+noncomputable instance access_store'NodeStatus'Addresses (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Addresses" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Addresses' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Addresses" l) v.Addresses' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Addresses" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Addresses' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'DaemonEndpoints (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'DaemonEndpoints (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'DaemonEndpoints (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : k8s_io.api.core.v1.NodeDaemonEndpoints) :
+noncomputable instance access_store'NodeStatus'DaemonEndpoints (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : _root_.Perennial.k8s_io.api.core.v1.NodeDaemonEndpoints) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DaemonEndpoints' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) v.DaemonEndpoints' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DaemonEndpoints" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DaemonEndpoints' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'NodeInfo (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'NodeInfo (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'NodeInfo (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : k8s_io.api.core.v1.NodeSystemInfo) :
+noncomputable instance access_store'NodeStatus'NodeInfo (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : _root_.Perennial.k8s_io.api.core.v1.NodeSystemInfo) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeInfo' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) v.NodeInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"NodeInfo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NodeInfo' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'Images (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Images (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Images (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
+noncomputable instance access_store'NodeStatus'Images (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Images" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Images' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Images" l) v.Images' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Images" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Images' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'VolumesInUse (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'VolumesInUse (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'VolumesInUse (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
+noncomputable instance access_store'NodeStatus'VolumesInUse (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumesInUse' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) v.VolumesInUse' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesInUse" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumesInUse' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'VolumesAttached (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'VolumesAttached (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'VolumesAttached (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
+noncomputable instance access_store'NodeStatus'VolumesAttached (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumesAttached' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) v.VolumesAttached' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"VolumesAttached" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with VolumesAttached' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'Config (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Config (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Config (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : Loc) :
+noncomputable instance access_store'NodeStatus'Config (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Config" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Config" l) v.Config' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Config' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'RuntimeHandlers (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'RuntimeHandlers (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'RuntimeHandlers (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
+noncomputable instance access_store'NodeStatus'RuntimeHandlers (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RuntimeHandlers' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) v.RuntimeHandlers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"RuntimeHandlers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RuntimeHandlers' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'Features (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'Features (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'Features (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : Loc) :
+noncomputable instance access_store'NodeStatus'Features (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"Features" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Features' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Features" l) v.Features' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"Features" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Features' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NodeStatus'DeclaredFeatures (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
+noncomputable instance access_load'NodeStatus'DeclaredFeatures (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeStatus'DeclaredFeatures (l : Loc) (v : k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
+noncomputable instance access_store'NodeStatus'DeclaredFeatures (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeclaredFeatures' := y } : k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) v.DeclaredFeatures' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.NodeStatus go!"DeclaredFeatures" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeclaredFeatures' := y } : _root_.Perennial.k8s_io.api.core.v1.NodeStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1696,85 +1696,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'Namespace :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.Namespace where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Namespace where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ObjectMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' dq ∗
-    "Spec" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' dq ∗
-    "Status" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ObjectMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' dq ∗
+    "Spec" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' dq ∗
+    "Status" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Namespace :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.Namespace k8s_io.api.core.v1.Namespace.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.Namespace _root_.Perennial.k8s_io.api.core.v1.Namespace.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Namespace'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Namespace) (dq : DFrac) :
+noncomputable instance access_load'Namespace'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Namespace'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.Namespace) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'Namespace'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Namespace'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Namespace) (dq : DFrac) :
+noncomputable instance access_load'Namespace'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Namespace'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.Namespace) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance access_store'Namespace'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Namespace'Spec (l : Loc) (v : k8s_io.api.core.v1.Namespace) (dq : DFrac) :
+noncomputable instance access_load'Namespace'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Namespace'Spec (l : Loc) (v : k8s_io.api.core.v1.Namespace) (y : k8s_io.api.core.v1.NamespaceSpec) :
+noncomputable instance access_store'Namespace'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (y : _root_.Perennial.k8s_io.api.core.v1.NamespaceSpec) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Spec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Spec" l) v.Spec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Spec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : _root_.Perennial.k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Namespace'Status (l : Loc) (v : k8s_io.api.core.v1.Namespace) (dq : DFrac) :
+noncomputable instance access_load'Namespace'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Namespace'Status (l : Loc) (v : k8s_io.api.core.v1.Namespace) (y : k8s_io.api.core.v1.NamespaceStatus) :
+noncomputable instance access_store'Namespace'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.Namespace) (y : _root_.Perennial.k8s_io.api.core.v1.NamespaceStatus) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.Namespace go!"Status" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Status" l) v.Status' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.Namespace go!"Status" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : _root_.Perennial.k8s_io.api.core.v1.Namespace) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1787,85 +1787,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceQuota :
-    TypedPointsto (GF := GF) k8s_io.api.core.v1.ResourceQuota where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.core.v1.ResourceQuota where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ObjectMeta" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' dq ∗
-    "Spec" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' dq ∗
-    "Status" ∷ typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ObjectMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' dq ∗
+    "Spec" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' dq ∗
+    "Status" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ResourceQuota :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.core.v1.ResourceQuota k8s_io.api.core.v1.ResourceQuota.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.core.v1.ResourceQuota _root_.Perennial.k8s_io.api.core.v1.ResourceQuota.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ResourceQuota'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
+noncomputable instance access_load'ResourceQuota'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceQuota'TypeMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'ResourceQuota'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResourceQuota'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
+noncomputable instance access_load'ResourceQuota'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceQuota'ObjectMeta (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
+noncomputable instance access_store'ResourceQuota'ObjectMeta (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) v.ObjectMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"ObjectMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ObjectMeta' := y } : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResourceQuota'Spec (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
+noncomputable instance access_load'ResourceQuota'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceQuota'Spec (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (y : k8s_io.api.core.v1.ResourceQuotaSpec) :
+noncomputable instance access_store'ResourceQuota'Spec (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (y : _root_.Perennial.k8s_io.api.core.v1.ResourceQuotaSpec) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Spec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Spec" l) v.Spec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Spec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Spec' := y } : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResourceQuota'Status (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
+noncomputable instance access_load'ResourceQuota'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' dq)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceQuota'Status (l : Loc) (v : k8s_io.api.core.v1.ResourceQuota) (y : k8s_io.api.core.v1.ResourceQuotaStatus) :
+noncomputable instance access_store'ResourceQuota'Status (l : Loc) (v : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (y : _root_.Perennial.k8s_io.api.core.v1.ResourceQuotaStatus) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.api.core.v1.ResourceQuota go!"Status" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Status" l) v.Status' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.api.core.v1.ResourceQuota go!"Status" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : _root_.Perennial.k8s_io.api.core.v1.ResourceQuota) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

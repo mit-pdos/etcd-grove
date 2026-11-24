@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.dustin.go_humanize.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.dustin.go_humanize.Assumptions]
 
 noncomputable instance typed_pointsto'RelTimeMagnitude :
-    TypedPointsto (GF := GF) github_com.dustin.go_humanize.RelTimeMagnitude :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.dustin.go_humanize.RelTimeMagnitude :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RelTimeMagnitude :
-    IntoValTypedUnderlying (GF := GF) github_com.dustin.go_humanize.RelTimeMagnitude github_com.dustin.go_humanize.RelTimeMagnitude.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.dustin.go_humanize.RelTimeMagnitude _root_.Perennial.github_com.dustin.go_humanize.RelTimeMagnitude.underlying :=
   sorry -- axiomatized type
 
 end def_

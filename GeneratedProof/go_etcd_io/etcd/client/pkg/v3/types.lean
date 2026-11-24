@@ -24,34 +24,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
 noncomputable instance typed_pointsto'unsafeSet :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.unsafeSet where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet where
   typedPointstoDef l v dq := iprop(
-    "d" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq ∗
+    "d" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'unsafeSet :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go_etcd_io.etcd.client.pkg.v3.types.unsafeSet.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'unsafeSet'd (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (dq : DFrac) :
+noncomputable instance access_load'unsafeSet'd (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unsafeSet'd (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (y : GoMap) :
+noncomputable instance access_store'unsafeSet'd (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := y } : go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) v.d' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet go!"d" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.unsafeSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,14 +64,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.Assumptions]
 
 noncomputable instance typed_pointsto'tsafeSet :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.tsafeSet :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.tsafeSet :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'tsafeSet :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.types.tsafeSet go_etcd_io.etcd.client.pkg.v3.types.tsafeSet.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.tsafeSet _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.tsafeSet.underlying :=
   sorry -- axiomatized type
 
 end def_

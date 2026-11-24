@@ -26,14 +26,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'keepaliveListener :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'keepaliveListener :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.keepaliveListener.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -45,14 +45,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'keepAliveConn :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'keepAliveConn :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.keepAliveConn.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -64,14 +64,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'tlsKeepaliveListener :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'tlsKeepaliveListener :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsKeepaliveListener.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -83,14 +83,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'limitListener :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListener :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.limitListener :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'limitListener :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListener go_etcd_io.etcd.client.pkg.v3.transport.limitListener.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.limitListener _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.limitListener.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -102,14 +102,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'limitListenerConn :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'limitListenerConn :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.limitListenerConn.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -121,408 +121,408 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'TLSInfo :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo where
   typedPointstoDef l v dq := iprop(
-    "CertFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq ∗
-    "KeyFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq ∗
-    "ClientCertFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq ∗
-    "ClientKeyFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq ∗
-    "TrustedCAFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq ∗
-    "ClientCertAuth" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq ∗
-    "CRLFile" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq ∗
-    "InsecureSkipVerify" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq ∗
-    "SkipClientSANVerify" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq ∗
-    "ServerName" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq ∗
-    "HandshakeFailure" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq ∗
-    "CipherSuites" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq ∗
-    "MinVersion" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq ∗
-    "MaxVersion" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq ∗
-    "selfCert" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq ∗
-    "parseFunc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq ∗
-    "AllowedCN" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq ∗
-    "AllowedHostname" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq ∗
-    "AllowedCNs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq ∗
-    "AllowedHostnames" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq ∗
-    "Logger" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq ∗
-    "EmptyCN" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq ∗
-    "LocalAddr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq ∗
+    "CertFile" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq ∗
+    "KeyFile" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq ∗
+    "ClientCertFile" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq ∗
+    "ClientKeyFile" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq ∗
+    "TrustedCAFile" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq ∗
+    "ClientCertAuth" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq ∗
+    "CRLFile" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq ∗
+    "InsecureSkipVerify" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq ∗
+    "SkipClientSANVerify" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq ∗
+    "ServerName" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq ∗
+    "HandshakeFailure" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq ∗
+    "CipherSuites" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq ∗
+    "MinVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq ∗
+    "MaxVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq ∗
+    "selfCert" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq ∗
+    "parseFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq ∗
+    "AllowedCN" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq ∗
+    "AllowedHostname" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq ∗
+    "AllowedCNs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq ∗
+    "AllowedHostnames" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq ∗
+    "Logger" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq ∗
+    "EmptyCN" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq ∗
+    "LocalAddr" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'TLSInfo :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'TLSInfo'CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'CertFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'CertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'CertFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CertFile' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) v.CertFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CertFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CertFile' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'KeyFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'KeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'KeyFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeyFile' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) v.KeyFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"KeyFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeyFile' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ClientCertFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'ClientCertFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'ClientCertFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertFile' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) v.ClientCertFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertFile' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ClientKeyFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'ClientKeyFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'ClientKeyFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientKeyFile' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) v.ClientKeyFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientKeyFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientKeyFile' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'TrustedCAFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'TrustedCAFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'TrustedCAFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrustedCAFile' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) v.TrustedCAFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"TrustedCAFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrustedCAFile' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ClientCertAuth (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'ClientCertAuth (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'ClientCertAuth (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertAuth' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) v.ClientCertAuth' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ClientCertAuth" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientCertAuth' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'CRLFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'CRLFile (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'CRLFile (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CRLFile' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) v.CRLFile' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CRLFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CRLFile' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'InsecureSkipVerify (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'InsecureSkipVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'InsecureSkipVerify (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InsecureSkipVerify' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) v.InsecureSkipVerify' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"InsecureSkipVerify" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InsecureSkipVerify' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'SkipClientSANVerify (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'SkipClientSANVerify (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'SkipClientSANVerify (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SkipClientSANVerify' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) v.SkipClientSANVerify' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"SkipClientSANVerify" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SkipClientSANVerify' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'ServerName (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'ServerName (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'ServerName (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerName' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) v.ServerName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"ServerName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerName' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'HandshakeFailure (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'HandshakeFailure (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
+noncomputable instance access_store'TLSInfo'HandshakeFailure (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HandshakeFailure' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) v.HandshakeFailure' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"HandshakeFailure" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HandshakeFailure' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'CipherSuites (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'CipherSuites (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
+noncomputable instance access_store'TLSInfo'CipherSuites (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CipherSuites' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) v.CipherSuites' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"CipherSuites" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CipherSuites' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'MinVersion (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'MinVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
+noncomputable instance access_store'TLSInfo'MinVersion (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinVersion' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) v.MinVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MinVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinVersion' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'MaxVersion (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'MaxVersion (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
+noncomputable instance access_store'TLSInfo'MaxVersion (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : w16) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxVersion' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) v.MaxVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"MaxVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxVersion' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'selfCert (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'selfCert (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'selfCert (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selfCert' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) v.selfCert' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"selfCert" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selfCert' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'parseFunc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'parseFunc (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
+noncomputable instance access_store'TLSInfo'parseFunc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parseFunc' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) v.parseFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"parseFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parseFunc' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedCN (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'AllowedCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'AllowedCN (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedCN' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) v.AllowedCN' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCN" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedCN' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedHostname (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'AllowedHostname (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'AllowedHostname (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedHostname' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) v.AllowedHostname' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostname" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedHostname' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedCNs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'AllowedCNs (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
+noncomputable instance access_store'TLSInfo'AllowedCNs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedCNs' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) v.AllowedCNs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedCNs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedCNs' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'AllowedHostnames (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'AllowedHostnames (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
+noncomputable instance access_store'TLSInfo'AllowedHostnames (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedHostnames' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) v.AllowedHostnames' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"AllowedHostnames" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowedHostnames' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'Logger (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'Logger (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Loc) :
+noncomputable instance access_store'TLSInfo'Logger (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) v.Logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"Logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'EmptyCN (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'EmptyCN (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
+noncomputable instance access_store'TLSInfo'EmptyCN (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EmptyCN' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) v.EmptyCN' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"EmptyCN" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EmptyCN' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TLSInfo'LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
+noncomputable instance access_load'TLSInfo'LocalAddr (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TLSInfo'LocalAddr (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
+noncomputable instance access_store'TLSInfo'LocalAddr (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LocalAddr' := y } : go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo go!"LocalAddr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LocalAddr' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.TLSInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -535,14 +535,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'ListenerOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ListenerOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.ListenerOptions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -554,14 +554,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'tlsListener :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsListener :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsListener :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'tlsListener :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsListener go_etcd_io.etcd.client.pkg.v3.transport.tlsListener.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsListener _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsListener.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -573,14 +573,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'tlsCheckFunc :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'tlsCheckFunc :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.tlsCheckFunc.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -592,14 +592,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'Controls :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.Controls :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Controls :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Controls :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.Controls go_etcd_io.etcd.client.pkg.v3.transport.Controls.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Controls _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Controls.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -611,51 +611,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'SocketOpts :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts where
   typedPointstoDef l v dq := iprop(
-    "ReusePort" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq ∗
-    "ReuseAddress" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq ∗
+    "ReusePort" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq ∗
+    "ReuseAddress" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'SocketOpts :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'SocketOpts'ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
+noncomputable instance access_load'SocketOpts'ReusePort (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SocketOpts'ReusePort (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
+noncomputable instance access_store'SocketOpts'ReusePort (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReusePort' := y } : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) v.ReusePort' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReusePort" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReusePort' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SocketOpts'ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
+noncomputable instance access_load'SocketOpts'ReuseAddress (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SocketOpts'ReuseAddress (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
+noncomputable instance access_store'SocketOpts'ReuseAddress (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReuseAddress' := y } : go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) v.ReuseAddress' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts go!"ReuseAddress" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReuseAddress' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.SocketOpts) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -668,14 +668,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'timeoutConn :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'timeoutConn :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.timeoutConn.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -687,14 +687,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'rwTimeoutDialer :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'rwTimeoutDialer :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutDialer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -706,14 +706,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'rwTimeoutListener :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'rwTimeoutListener :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.rwTimeoutListener.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -725,14 +725,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'unixTransport :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixTransport :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.unixTransport :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'unixTransport :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixTransport go_etcd_io.etcd.client.pkg.v3.transport.unixTransport.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.unixTransport _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.unixTransport.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -744,14 +744,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.Assumptions]
 
 noncomputable instance typed_pointsto'unixListener :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixListener :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.unixListener :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'unixListener :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.transport.unixListener go_etcd_io.etcd.client.pkg.v3.transport.unixListener.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.unixListener _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.unixListener.underlying :=
   sorry -- axiomatized type
 
 end def_

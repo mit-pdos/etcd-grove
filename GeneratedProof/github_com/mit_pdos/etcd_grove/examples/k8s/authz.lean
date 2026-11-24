@@ -30,51 +30,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assumptions]
 
 noncomputable instance typed_pointsto'arbCondition :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition where
   typedPointstoDef l v dq := iprop(
-    "id" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' dq ∗
-    "typ" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' dq ∗
+    "typ" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'arbCondition :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'arbCondition'id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (dq : DFrac) :
+noncomputable instance access_load'arbCondition'id (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'arbCondition'id (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (y : GoString) :
+noncomputable instance access_store'arbCondition'id (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'arbCondition'typ (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (dq : DFrac) :
+noncomputable instance access_load'arbCondition'typ (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'arbCondition'typ (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (y : GoString) :
+noncomputable instance access_store'arbCondition'typ (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with typ' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) v.typ' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition go!"typ" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with typ' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbCondition) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -87,34 +87,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assumptions]
 
 noncomputable instance typed_pointsto'arbAuthorizer :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer where
   typedPointstoDef l v dq := iprop(
-    "depth" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' dq ∗
+    "depth" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'arbAuthorizer :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'arbAuthorizer'depth (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (dq : DFrac) :
+noncomputable instance access_load'arbAuthorizer'depth (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'arbAuthorizer'depth (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (y : w64) :
+noncomputable instance access_store'arbAuthorizer'depth (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with depth' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) v.depth' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer go!"depth" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with depth' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.arbAuthorizer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,10 +127,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assumptions]
 
 noncomputable instance typed_pointsto'emptyData :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.authz.emptyData where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.emptyData where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -138,7 +138,7 @@ noncomputable instance typed_pointsto'emptyData :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'emptyData :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.authz.emptyData github_com.mit_pdos.etcd_grove.examples.k8s.authz.emptyData.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.emptyData _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.authz.emptyData.underlying := by
   solve_into_val_typed_struct
 
 end def_

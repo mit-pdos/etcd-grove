@@ -24,34 +24,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.grpclog.internal.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.grpclog.internal.Assumptions]
 
 noncomputable instance typed_pointsto'LoggerWrapper :
-    TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.internal.LoggerWrapper where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper where
   typedPointstoDef l v dq := iprop(
-    "Logger" ∷ typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' dq ∗
+    "Logger" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LoggerWrapper :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.internal.LoggerWrapper google_golang_org.grpc.grpclog.internal.LoggerWrapper.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LoggerWrapper'Logger (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerWrapper) (dq : DFrac) :
+noncomputable instance access_load'LoggerWrapper'Logger (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LoggerWrapper'Logger (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerWrapper) (y : google_golang_org.grpc.grpclog.internal.Logger) :
+noncomputable instance access_store'LoggerWrapper'Logger (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper) (y : _root_.Perennial.google_golang_org.grpc.grpclog.internal.Logger) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : google_golang_org.grpc.grpclog.internal.LoggerWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) v.Logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper go!"Logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,14 +64,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.grpclog.internal.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.grpclog.internal.Assumptions]
 
 noncomputable instance typed_pointsto'loggerT :
-    TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.internal.loggerT :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.grpclog.internal.loggerT :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'loggerT :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.internal.loggerT google_golang_org.grpc.grpclog.internal.loggerT.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.grpclog.internal.loggerT _root_.Perennial.google_golang_org.grpc.grpclog.internal.loggerT.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -83,51 +83,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.grpclog.internal.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.grpclog.internal.Assumptions]
 
 noncomputable instance typed_pointsto'LoggerV2Config :
-    TypedPointsto (GF := GF) google_golang_org.grpc.grpclog.internal.LoggerV2Config where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config where
   typedPointstoDef l v dq := iprop(
-    "Verbosity" ∷ typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' dq ∗
-    "FormatJSON" ∷ typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' dq ∗
+    "Verbosity" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' dq ∗
+    "FormatJSON" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LoggerV2Config :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.grpclog.internal.LoggerV2Config google_golang_org.grpc.grpclog.internal.LoggerV2Config.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LoggerV2Config'Verbosity (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (dq : DFrac) :
+noncomputable instance access_load'LoggerV2Config'Verbosity (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LoggerV2Config'Verbosity (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (y : w64) :
+noncomputable instance access_store'LoggerV2Config'Verbosity (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbosity' := y } : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) v.Verbosity' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"Verbosity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Verbosity' := y } : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LoggerV2Config'FormatJSON (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (dq : DFrac) :
+noncomputable instance access_load'LoggerV2Config'FormatJSON (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LoggerV2Config'FormatJSON (l : Loc) (v : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (y : Bool) :
+noncomputable instance access_store'LoggerV2Config'FormatJSON (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatJSON' := y } : google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) v.FormatJSON' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config go!"FormatJSON" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatJSON' := y } : _root_.Perennial.google_golang_org.grpc.grpclog.internal.LoggerV2Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

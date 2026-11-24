@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».internalversion.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.Assumptions]
 
 noncomputable instance typed_pointsto'ListOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.ListOptions :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.ListOptions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ListOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.ListOptions k8s_io.apimachinery.pkg.apis.«meta».internalversion.ListOptions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.ListOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.ListOptions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -42,14 +42,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».internalversion.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.Assumptions]
 
 noncomputable instance typed_pointsto'List :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'' :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'' :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'List :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'' k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List'' _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».internalversion.List''.underlying :=
   sorry -- axiomatized type
 
 end def_

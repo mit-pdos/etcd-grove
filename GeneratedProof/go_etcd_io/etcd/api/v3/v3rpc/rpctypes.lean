@@ -24,51 +24,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
 noncomputable instance typed_pointsto'EtcdError :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError where
   typedPointstoDef l v dq := iprop(
-    "code" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq ∗
-    "desc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq ∗
+    "code" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq ∗
+    "desc" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EtcdError :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'EtcdError'code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
+noncomputable instance access_load'EtcdError'code (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EtcdError'code (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code) :
+noncomputable instance access_store'EtcdError'code (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : _root_.Perennial.google_golang_org.grpc.codes.Code) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := y } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) v.code' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with code' := y } : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EtcdError'desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
+noncomputable instance access_load'EtcdError'desc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EtcdError'desc (l : Loc) (v : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : GoString) :
+noncomputable instance access_store'EtcdError'desc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with desc' := y } : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) v.desc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError go!"desc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with desc' := y } : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -81,10 +81,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
 noncomputable instance typed_pointsto'TokenFieldNameGRPCKey :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -92,7 +92,7 @@ noncomputable instance typed_pointsto'TokenFieldNameGRPCKey :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'TokenFieldNameGRPCKey :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPCKey.underlying := by
   solve_into_val_typed_struct
 
 end def_

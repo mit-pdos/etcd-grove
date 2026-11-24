@@ -45,187 +45,187 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
+variable [package_sem' : _root_.Perennial.net.http.Assumptions]
 
 noncomputable instance typed_pointsto'transferReader :
-    TypedPointsto (GF := GF) net.http.transferReader where
+    TypedPointsto (GF := GF) _root_.Perennial.net.http.transferReader where
   typedPointstoDef l v dq := iprop(
-    "Header" ∷ typedPointsto (structFieldRef net.http.transferReader go!"Header" l) v.Header' dq ∗
-    "StatusCode" ∷ typedPointsto (structFieldRef net.http.transferReader go!"StatusCode" l) v.StatusCode' dq ∗
-    "RequestMethod" ∷ typedPointsto (structFieldRef net.http.transferReader go!"RequestMethod" l) v.RequestMethod' dq ∗
-    "ProtoMajor" ∷ typedPointsto (structFieldRef net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' dq ∗
-    "ProtoMinor" ∷ typedPointsto (structFieldRef net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' dq ∗
-    "Body" ∷ typedPointsto (structFieldRef net.http.transferReader go!"Body" l) v.Body' dq ∗
-    "ContentLength" ∷ typedPointsto (structFieldRef net.http.transferReader go!"ContentLength" l) v.ContentLength' dq ∗
-    "Chunked" ∷ typedPointsto (structFieldRef net.http.transferReader go!"Chunked" l) v.Chunked' dq ∗
-    "Close" ∷ typedPointsto (structFieldRef net.http.transferReader go!"Close" l) v.Close' dq ∗
-    "Trailer" ∷ typedPointsto (structFieldRef net.http.transferReader go!"Trailer" l) v.Trailer' dq ∗
+    "Header" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Header" l) v.Header' dq ∗
+    "StatusCode" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"StatusCode" l) v.StatusCode' dq ∗
+    "RequestMethod" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"RequestMethod" l) v.RequestMethod' dq ∗
+    "ProtoMajor" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' dq ∗
+    "ProtoMinor" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' dq ∗
+    "Body" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Body" l) v.Body' dq ∗
+    "ContentLength" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ContentLength" l) v.ContentLength' dq ∗
+    "Chunked" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Chunked" l) v.Chunked' dq ∗
+    "Close" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Close" l) v.Close' dq ∗
+    "Trailer" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Trailer" l) v.Trailer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'transferReader :
-    IntoValTypedUnderlying (GF := GF) net.http.transferReader net.http.transferReader.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.http.transferReader _root_.Perennial.net.http.transferReader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'transferReader'Header (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'Header (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Header" l) v.Header' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'Header (l : Loc) (v : net.http.transferReader) (y : net.http.Header) :
+noncomputable instance access_store'transferReader'Header (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : _root_.Perennial.net.http.Header) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"Header" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Header" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'StatusCode (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'StatusCode (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"StatusCode" l) v.StatusCode' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"StatusCode" l) v.StatusCode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"StatusCode" l) v.StatusCode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"StatusCode" l) v.StatusCode' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'StatusCode (l : Loc) (v : net.http.transferReader) (y : w64) :
+noncomputable instance access_store'transferReader'StatusCode (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"StatusCode" l) v.StatusCode' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"StatusCode" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StatusCode' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"StatusCode" l) v.StatusCode' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"StatusCode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StatusCode' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'RequestMethod (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'RequestMethod (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"RequestMethod" l) v.RequestMethod' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"RequestMethod" l) v.RequestMethod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"RequestMethod" l) v.RequestMethod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"RequestMethod" l) v.RequestMethod' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'RequestMethod (l : Loc) (v : net.http.transferReader) (y : GoString) :
+noncomputable instance access_store'transferReader'RequestMethod (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"RequestMethod" l) v.RequestMethod' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"RequestMethod" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RequestMethod' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"RequestMethod" l) v.RequestMethod' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"RequestMethod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RequestMethod' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'ProtoMajor (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'ProtoMajor (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'ProtoMajor (l : Loc) (v : net.http.transferReader) (y : w64) :
+noncomputable instance access_store'transferReader'ProtoMajor (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMajor" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProtoMajor' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMajor" l) v.ProtoMajor' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMajor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProtoMajor' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'ProtoMinor (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'ProtoMinor (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'ProtoMinor (l : Loc) (v : net.http.transferReader) (y : w64) :
+noncomputable instance access_store'transferReader'ProtoMinor (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"ProtoMinor" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProtoMinor' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMinor" l) v.ProtoMinor' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ProtoMinor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProtoMinor' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'Body (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'Body (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Body" l) v.Body' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Body" l) v.Body' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Body" l) v.Body' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Body" l) v.Body' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'Body (l : Loc) (v : net.http.transferReader) (y : _root_.Perennial.io.ReadCloser) :
+noncomputable instance access_store'transferReader'Body (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Body" l) v.Body' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"Body" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Body' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Body" l) v.Body' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Body" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Body' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'ContentLength (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'ContentLength (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ContentLength" l) v.ContentLength' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ContentLength" l) v.ContentLength' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ContentLength" l) v.ContentLength' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ContentLength" l) v.ContentLength' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'ContentLength (l : Loc) (v : net.http.transferReader) (y : w64) :
+noncomputable instance access_store'transferReader'ContentLength (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"ContentLength" l) v.ContentLength' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"ContentLength" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ContentLength' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ContentLength" l) v.ContentLength' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"ContentLength" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ContentLength' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'Chunked (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'Chunked (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Chunked" l) v.Chunked' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Chunked" l) v.Chunked' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Chunked" l) v.Chunked' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Chunked" l) v.Chunked' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'Chunked (l : Loc) (v : net.http.transferReader) (y : Bool) :
+noncomputable instance access_store'transferReader'Chunked (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Chunked" l) v.Chunked' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"Chunked" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chunked' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Chunked" l) v.Chunked' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Chunked" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chunked' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'Close (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'Close (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Close" l) v.Close' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Close" l) v.Close' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Close" l) v.Close' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Close" l) v.Close' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'Close (l : Loc) (v : net.http.transferReader) (y : Bool) :
+noncomputable instance access_store'transferReader'Close (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Close" l) v.Close' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"Close" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Close' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Close" l) v.Close' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Close" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Close' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'transferReader'Trailer (l : Loc) (v : net.http.transferReader) (dq : DFrac) :
+noncomputable instance access_load'transferReader'Trailer (l : Loc) (v : _root_.Perennial.net.http.transferReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Trailer" l) v.Trailer' dq)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Trailer" l) v.Trailer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Trailer" l) v.Trailer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Trailer" l) v.Trailer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'transferReader'Trailer (l : Loc) (v : net.http.transferReader) (y : net.http.Header) :
+noncomputable instance access_store'transferReader'Trailer (l : Loc) (v : _root_.Perennial.net.http.transferReader) (y : _root_.Perennial.net.http.Header) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.transferReader go!"Trailer" l) v.Trailer' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.transferReader go!"Trailer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Trailer' := y } : net.http.transferReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Trailer" l) v.Trailer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.transferReader go!"Trailer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Trailer' := y } : _root_.Perennial.net.http.transferReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -238,765 +238,765 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
+variable [package_sem' : _root_.Perennial.net.http.Assumptions]
 
 noncomputable instance typed_pointsto'Transport :
-    TypedPointsto (GF := GF) net.http.Transport where
+    TypedPointsto (GF := GF) _root_.Perennial.net.http.Transport where
   typedPointstoDef l v dq := iprop(
-    "idleMu" ∷ typedPointsto (structFieldRef net.http.Transport go!"idleMu" l) v.idleMu' dq ∗
-    "closeIdle" ∷ typedPointsto (structFieldRef net.http.Transport go!"closeIdle" l) v.closeIdle' dq ∗
-    "idleConn" ∷ typedPointsto (structFieldRef net.http.Transport go!"idleConn" l) v.idleConn' dq ∗
-    "idleConnWait" ∷ typedPointsto (structFieldRef net.http.Transport go!"idleConnWait" l) v.idleConnWait' dq ∗
-    "idleLRU" ∷ typedPointsto (structFieldRef net.http.Transport go!"idleLRU" l) v.idleLRU' dq ∗
-    "reqMu" ∷ typedPointsto (structFieldRef net.http.Transport go!"reqMu" l) v.reqMu' dq ∗
-    "reqCanceler" ∷ typedPointsto (structFieldRef net.http.Transport go!"reqCanceler" l) v.reqCanceler' dq ∗
-    "altMu" ∷ typedPointsto (structFieldRef net.http.Transport go!"altMu" l) v.altMu' dq ∗
-    "altProto" ∷ typedPointsto (structFieldRef net.http.Transport go!"altProto" l) v.altProto' dq ∗
-    "connsPerHostMu" ∷ typedPointsto (structFieldRef net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' dq ∗
-    "connsPerHost" ∷ typedPointsto (structFieldRef net.http.Transport go!"connsPerHost" l) v.connsPerHost' dq ∗
-    "connsPerHostWait" ∷ typedPointsto (structFieldRef net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' dq ∗
-    "dialsInProgress" ∷ typedPointsto (structFieldRef net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' dq ∗
-    "Proxy" ∷ typedPointsto (structFieldRef net.http.Transport go!"Proxy" l) v.Proxy' dq ∗
-    "OnProxyConnectResponse" ∷ typedPointsto (structFieldRef net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' dq ∗
-    "DialContext" ∷ typedPointsto (structFieldRef net.http.Transport go!"DialContext" l) v.DialContext' dq ∗
-    "Dial" ∷ typedPointsto (structFieldRef net.http.Transport go!"Dial" l) v.Dial' dq ∗
-    "DialTLSContext" ∷ typedPointsto (structFieldRef net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' dq ∗
-    "DialTLS" ∷ typedPointsto (structFieldRef net.http.Transport go!"DialTLS" l) v.DialTLS' dq ∗
-    "TLSClientConfig" ∷ typedPointsto (structFieldRef net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' dq ∗
-    "TLSHandshakeTimeout" ∷ typedPointsto (structFieldRef net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' dq ∗
-    "DisableKeepAlives" ∷ typedPointsto (structFieldRef net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' dq ∗
-    "DisableCompression" ∷ typedPointsto (structFieldRef net.http.Transport go!"DisableCompression" l) v.DisableCompression' dq ∗
-    "MaxIdleConns" ∷ typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' dq ∗
-    "MaxIdleConnsPerHost" ∷ typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' dq ∗
-    "MaxConnsPerHost" ∷ typedPointsto (structFieldRef net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' dq ∗
-    "IdleConnTimeout" ∷ typedPointsto (structFieldRef net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' dq ∗
-    "ResponseHeaderTimeout" ∷ typedPointsto (structFieldRef net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' dq ∗
-    "ExpectContinueTimeout" ∷ typedPointsto (structFieldRef net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' dq ∗
-    "TLSNextProto" ∷ typedPointsto (structFieldRef net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' dq ∗
-    "ProxyConnectHeader" ∷ typedPointsto (structFieldRef net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' dq ∗
-    "GetProxyConnectHeader" ∷ typedPointsto (structFieldRef net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' dq ∗
-    "MaxResponseHeaderBytes" ∷ typedPointsto (structFieldRef net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' dq ∗
-    "WriteBufferSize" ∷ typedPointsto (structFieldRef net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' dq ∗
-    "ReadBufferSize" ∷ typedPointsto (structFieldRef net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' dq ∗
-    "nextProtoOnce" ∷ typedPointsto (structFieldRef net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' dq ∗
-    "closeIdleFunc" ∷ typedPointsto (structFieldRef net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' dq ∗
-    "h2Transport" ∷ typedPointsto (structFieldRef net.http.Transport go!"h2Transport" l) v.h2Transport' dq ∗
-    "h2Config" ∷ typedPointsto (structFieldRef net.http.Transport go!"h2Config" l) v.h2Config' dq ∗
-    "h3Transport" ∷ typedPointsto (structFieldRef net.http.Transport go!"h3Transport" l) v.h3Transport' dq ∗
-    "tlsNextProtoWasNil" ∷ typedPointsto (structFieldRef net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' dq ∗
-    "ForceAttemptHTTP2" ∷ typedPointsto (structFieldRef net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' dq ∗
-    "HTTP2" ∷ typedPointsto (structFieldRef net.http.Transport go!"HTTP2" l) v.HTTP2' dq ∗
-    "Protocols" ∷ typedPointsto (structFieldRef net.http.Transport go!"Protocols" l) v.Protocols' dq ∗
+    "idleMu" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleMu" l) v.idleMu' dq ∗
+    "closeIdle" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdle" l) v.closeIdle' dq ∗
+    "idleConn" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConn" l) v.idleConn' dq ∗
+    "idleConnWait" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConnWait" l) v.idleConnWait' dq ∗
+    "idleLRU" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleLRU" l) v.idleLRU' dq ∗
+    "reqMu" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqMu" l) v.reqMu' dq ∗
+    "reqCanceler" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqCanceler" l) v.reqCanceler' dq ∗
+    "altMu" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altMu" l) v.altMu' dq ∗
+    "altProto" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altProto" l) v.altProto' dq ∗
+    "connsPerHostMu" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' dq ∗
+    "connsPerHost" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHost" l) v.connsPerHost' dq ∗
+    "connsPerHostWait" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' dq ∗
+    "dialsInProgress" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' dq ∗
+    "Proxy" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Proxy" l) v.Proxy' dq ∗
+    "OnProxyConnectResponse" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' dq ∗
+    "DialContext" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialContext" l) v.DialContext' dq ∗
+    "Dial" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Dial" l) v.Dial' dq ∗
+    "DialTLSContext" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' dq ∗
+    "DialTLS" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLS" l) v.DialTLS' dq ∗
+    "TLSClientConfig" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' dq ∗
+    "TLSHandshakeTimeout" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' dq ∗
+    "DisableKeepAlives" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' dq ∗
+    "DisableCompression" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableCompression" l) v.DisableCompression' dq ∗
+    "MaxIdleConns" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' dq ∗
+    "MaxIdleConnsPerHost" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' dq ∗
+    "MaxConnsPerHost" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' dq ∗
+    "IdleConnTimeout" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' dq ∗
+    "ResponseHeaderTimeout" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' dq ∗
+    "ExpectContinueTimeout" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' dq ∗
+    "TLSNextProto" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' dq ∗
+    "ProxyConnectHeader" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' dq ∗
+    "GetProxyConnectHeader" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' dq ∗
+    "MaxResponseHeaderBytes" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' dq ∗
+    "WriteBufferSize" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' dq ∗
+    "ReadBufferSize" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' dq ∗
+    "nextProtoOnce" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' dq ∗
+    "closeIdleFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' dq ∗
+    "h2Transport" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Transport" l) v.h2Transport' dq ∗
+    "h2Config" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Config" l) v.h2Config' dq ∗
+    "h3Transport" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h3Transport" l) v.h3Transport' dq ∗
+    "tlsNextProtoWasNil" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' dq ∗
+    "ForceAttemptHTTP2" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' dq ∗
+    "HTTP2" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"HTTP2" l) v.HTTP2' dq ∗
+    "Protocols" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Protocols" l) v.Protocols' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Transport :
-    IntoValTypedUnderlying (GF := GF) net.http.Transport net.http.Transport.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.http.Transport _root_.Perennial.net.http.Transport.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Transport'idleMu (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'idleMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleMu" l) v.idleMu' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleMu" l) v.idleMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleMu" l) v.idleMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleMu" l) v.idleMu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'idleMu (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'Transport'idleMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleMu" l) v.idleMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"idleMu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleMu' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleMu" l) v.idleMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleMu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleMu' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'closeIdle (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'closeIdle (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdle" l) v.closeIdle' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdle" l) v.closeIdle' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdle" l) v.closeIdle' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdle" l) v.closeIdle' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'closeIdle (l : Loc) (v : net.http.Transport) (y : Bool) :
+noncomputable instance access_store'Transport'closeIdle (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdle" l) v.closeIdle' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdle" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closeIdle' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdle" l) v.closeIdle' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdle" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closeIdle' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'idleConn (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'idleConn (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConn" l) v.idleConn' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConn" l) v.idleConn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConn" l) v.idleConn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConn" l) v.idleConn' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'idleConn (l : Loc) (v : net.http.Transport) (y : GoMap) :
+noncomputable instance access_store'Transport'idleConn (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConn" l) v.idleConn' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConn" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleConn' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConn" l) v.idleConn' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleConn' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'idleConnWait (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'idleConnWait (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConnWait" l) v.idleConnWait' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConnWait" l) v.idleConnWait' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConnWait" l) v.idleConnWait' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConnWait" l) v.idleConnWait' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'idleConnWait (l : Loc) (v : net.http.Transport) (y : GoMap) :
+noncomputable instance access_store'Transport'idleConnWait (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConnWait" l) v.idleConnWait' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"idleConnWait" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleConnWait' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConnWait" l) v.idleConnWait' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleConnWait" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleConnWait' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'idleLRU (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'idleLRU (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleLRU" l) v.idleLRU' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleLRU" l) v.idleLRU' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleLRU" l) v.idleLRU' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleLRU" l) v.idleLRU' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'idleLRU (l : Loc) (v : net.http.Transport) (y : net.http.connLRU) :
+noncomputable instance access_store'Transport'idleLRU (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.net.http.connLRU) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"idleLRU" l) v.idleLRU' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"idleLRU" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleLRU' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleLRU" l) v.idleLRU' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"idleLRU" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleLRU' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'reqMu (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'reqMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"reqMu" l) v.reqMu' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"reqMu" l) v.reqMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqMu" l) v.reqMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqMu" l) v.reqMu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'reqMu (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'Transport'reqMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"reqMu" l) v.reqMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"reqMu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqMu' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqMu" l) v.reqMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqMu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqMu' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'reqCanceler (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'reqCanceler (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"reqCanceler" l) v.reqCanceler' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"reqCanceler" l) v.reqCanceler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqCanceler" l) v.reqCanceler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqCanceler" l) v.reqCanceler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'reqCanceler (l : Loc) (v : net.http.Transport) (y : GoMap) :
+noncomputable instance access_store'Transport'reqCanceler (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"reqCanceler" l) v.reqCanceler' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"reqCanceler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqCanceler' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqCanceler" l) v.reqCanceler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"reqCanceler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqCanceler' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'altMu (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'altMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"altMu" l) v.altMu' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"altMu" l) v.altMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altMu" l) v.altMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altMu" l) v.altMu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'altMu (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'Transport'altMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"altMu" l) v.altMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"altMu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with altMu' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altMu" l) v.altMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altMu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with altMu' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'altProto (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'altProto (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"altProto" l) v.altProto' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"altProto" l) v.altProto' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altProto" l) v.altProto' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altProto" l) v.altProto' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'altProto (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.sync.atomic.Value) :
+noncomputable instance access_store'Transport'altProto (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"altProto" l) v.altProto' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"altProto" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with altProto' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altProto" l) v.altProto' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"altProto" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with altProto' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'connsPerHostMu (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'connsPerHostMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'connsPerHostMu (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'Transport'connsPerHostMu (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostMu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connsPerHostMu' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostMu" l) v.connsPerHostMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostMu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connsPerHostMu' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'connsPerHost (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'connsPerHost (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHost" l) v.connsPerHost' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHost" l) v.connsPerHost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHost" l) v.connsPerHost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHost" l) v.connsPerHost' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'connsPerHost (l : Loc) (v : net.http.Transport) (y : GoMap) :
+noncomputable instance access_store'Transport'connsPerHost (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHost" l) v.connsPerHost' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHost" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connsPerHost' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHost" l) v.connsPerHost' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHost" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connsPerHost' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'connsPerHostWait (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'connsPerHostWait (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'connsPerHostWait (l : Loc) (v : net.http.Transport) (y : GoMap) :
+noncomputable instance access_store'Transport'connsPerHostWait (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"connsPerHostWait" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connsPerHostWait' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostWait" l) v.connsPerHostWait' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"connsPerHostWait" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connsPerHostWait' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'dialsInProgress (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'dialsInProgress (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'dialsInProgress (l : Loc) (v : net.http.Transport) (y : net.http.wantConnQueue) :
+noncomputable instance access_store'Transport'dialsInProgress (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.net.http.wantConnQueue) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"dialsInProgress" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dialsInProgress' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"dialsInProgress" l) v.dialsInProgress' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"dialsInProgress" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dialsInProgress' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'Proxy (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'Proxy (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"Proxy" l) v.Proxy' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"Proxy" l) v.Proxy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Proxy" l) v.Proxy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Proxy" l) v.Proxy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'Proxy (l : Loc) (v : net.http.Transport) (y : GoFunc) :
+noncomputable instance access_store'Transport'Proxy (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"Proxy" l) v.Proxy' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"Proxy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proxy' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Proxy" l) v.Proxy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Proxy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proxy' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'OnProxyConnectResponse (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'OnProxyConnectResponse (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'OnProxyConnectResponse (l : Loc) (v : net.http.Transport) (y : GoFunc) :
+noncomputable instance access_store'Transport'OnProxyConnectResponse (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"OnProxyConnectResponse" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnProxyConnectResponse' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"OnProxyConnectResponse" l) v.OnProxyConnectResponse' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"OnProxyConnectResponse" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnProxyConnectResponse' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'DialContext (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'DialContext (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialContext" l) v.DialContext' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialContext" l) v.DialContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialContext" l) v.DialContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialContext" l) v.DialContext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'DialContext (l : Loc) (v : net.http.Transport) (y : GoFunc) :
+noncomputable instance access_store'Transport'DialContext (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialContext" l) v.DialContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"DialContext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialContext' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialContext" l) v.DialContext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialContext' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'Dial (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'Dial (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"Dial" l) v.Dial' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"Dial" l) v.Dial' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Dial" l) v.Dial' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Dial" l) v.Dial' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'Dial (l : Loc) (v : net.http.Transport) (y : GoFunc) :
+noncomputable instance access_store'Transport'Dial (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"Dial" l) v.Dial' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"Dial" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dial' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Dial" l) v.Dial' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Dial" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dial' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'DialTLSContext (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'DialTLSContext (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'DialTLSContext (l : Loc) (v : net.http.Transport) (y : GoFunc) :
+noncomputable instance access_store'Transport'DialTLSContext (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLSContext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialTLSContext' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLSContext" l) v.DialTLSContext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLSContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialTLSContext' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'DialTLS (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'DialTLS (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLS" l) v.DialTLS' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLS" l) v.DialTLS' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLS" l) v.DialTLS' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLS" l) v.DialTLS' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'DialTLS (l : Loc) (v : net.http.Transport) (y : GoFunc) :
+noncomputable instance access_store'Transport'DialTLS (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLS" l) v.DialTLS' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"DialTLS" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialTLS' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLS" l) v.DialTLS' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DialTLS" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DialTLS' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'TLSClientConfig (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'TLSClientConfig (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'TLSClientConfig (l : Loc) (v : net.http.Transport) (y : Loc) :
+noncomputable instance access_store'Transport'TLSClientConfig (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSClientConfig" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TLSClientConfig' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSClientConfig" l) v.TLSClientConfig' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSClientConfig" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TLSClientConfig' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'TLSHandshakeTimeout (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'TLSHandshakeTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'TLSHandshakeTimeout (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Transport'TLSHandshakeTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSHandshakeTimeout" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TLSHandshakeTimeout' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSHandshakeTimeout" l) v.TLSHandshakeTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSHandshakeTimeout" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TLSHandshakeTimeout' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'DisableKeepAlives (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'DisableKeepAlives (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'DisableKeepAlives (l : Loc) (v : net.http.Transport) (y : Bool) :
+noncomputable instance access_store'Transport'DisableKeepAlives (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableKeepAlives" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableKeepAlives' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableKeepAlives" l) v.DisableKeepAlives' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableKeepAlives" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableKeepAlives' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'DisableCompression (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'DisableCompression (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableCompression" l) v.DisableCompression' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableCompression" l) v.DisableCompression' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableCompression" l) v.DisableCompression' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableCompression" l) v.DisableCompression' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'DisableCompression (l : Loc) (v : net.http.Transport) (y : Bool) :
+noncomputable instance access_store'Transport'DisableCompression (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableCompression" l) v.DisableCompression' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"DisableCompression" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableCompression' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableCompression" l) v.DisableCompression' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"DisableCompression" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DisableCompression' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'MaxIdleConns (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'MaxIdleConns (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'MaxIdleConns (l : Loc) (v : net.http.Transport) (y : w64) :
+noncomputable instance access_store'Transport'MaxIdleConns (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConns" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxIdleConns' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConns" l) v.MaxIdleConns' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConns" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxIdleConns' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'MaxIdleConnsPerHost (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'MaxIdleConnsPerHost (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'MaxIdleConnsPerHost (l : Loc) (v : net.http.Transport) (y : w64) :
+noncomputable instance access_store'Transport'MaxIdleConnsPerHost (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxIdleConnsPerHost" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxIdleConnsPerHost' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConnsPerHost" l) v.MaxIdleConnsPerHost' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxIdleConnsPerHost" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxIdleConnsPerHost' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'MaxConnsPerHost (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'MaxConnsPerHost (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'MaxConnsPerHost (l : Loc) (v : net.http.Transport) (y : w64) :
+noncomputable instance access_store'Transport'MaxConnsPerHost (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxConnsPerHost" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConnsPerHost' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxConnsPerHost" l) v.MaxConnsPerHost' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxConnsPerHost" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConnsPerHost' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'IdleConnTimeout (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'IdleConnTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'IdleConnTimeout (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Transport'IdleConnTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"IdleConnTimeout" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IdleConnTimeout' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"IdleConnTimeout" l) v.IdleConnTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"IdleConnTimeout" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IdleConnTimeout' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'ResponseHeaderTimeout (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'ResponseHeaderTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'ResponseHeaderTimeout (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Transport'ResponseHeaderTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"ResponseHeaderTimeout" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResponseHeaderTimeout' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ResponseHeaderTimeout" l) v.ResponseHeaderTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ResponseHeaderTimeout" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResponseHeaderTimeout' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'ExpectContinueTimeout (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'ExpectContinueTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'ExpectContinueTimeout (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Transport'ExpectContinueTimeout (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"ExpectContinueTimeout" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExpectContinueTimeout' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ExpectContinueTimeout" l) v.ExpectContinueTimeout' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ExpectContinueTimeout" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExpectContinueTimeout' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'TLSNextProto (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'TLSNextProto (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'TLSNextProto (l : Loc) (v : net.http.Transport) (y : GoMap) :
+noncomputable instance access_store'Transport'TLSNextProto (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"TLSNextProto" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TLSNextProto' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSNextProto" l) v.TLSNextProto' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"TLSNextProto" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TLSNextProto' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'ProxyConnectHeader (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'ProxyConnectHeader (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'ProxyConnectHeader (l : Loc) (v : net.http.Transport) (y : net.http.Header) :
+noncomputable instance access_store'Transport'ProxyConnectHeader (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.net.http.Header) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"ProxyConnectHeader" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProxyConnectHeader' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ProxyConnectHeader" l) v.ProxyConnectHeader' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ProxyConnectHeader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProxyConnectHeader' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'GetProxyConnectHeader (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'GetProxyConnectHeader (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'GetProxyConnectHeader (l : Loc) (v : net.http.Transport) (y : GoFunc) :
+noncomputable instance access_store'Transport'GetProxyConnectHeader (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"GetProxyConnectHeader" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetProxyConnectHeader' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"GetProxyConnectHeader" l) v.GetProxyConnectHeader' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"GetProxyConnectHeader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetProxyConnectHeader' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'MaxResponseHeaderBytes (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'MaxResponseHeaderBytes (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'MaxResponseHeaderBytes (l : Loc) (v : net.http.Transport) (y : w64) :
+noncomputable instance access_store'Transport'MaxResponseHeaderBytes (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"MaxResponseHeaderBytes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxResponseHeaderBytes' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxResponseHeaderBytes" l) v.MaxResponseHeaderBytes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"MaxResponseHeaderBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxResponseHeaderBytes' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'WriteBufferSize (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'WriteBufferSize (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'WriteBufferSize (l : Loc) (v : net.http.Transport) (y : w64) :
+noncomputable instance access_store'Transport'WriteBufferSize (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"WriteBufferSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WriteBufferSize' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"WriteBufferSize" l) v.WriteBufferSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"WriteBufferSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WriteBufferSize' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'ReadBufferSize (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'ReadBufferSize (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'ReadBufferSize (l : Loc) (v : net.http.Transport) (y : w64) :
+noncomputable instance access_store'Transport'ReadBufferSize (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"ReadBufferSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadBufferSize' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ReadBufferSize" l) v.ReadBufferSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ReadBufferSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadBufferSize' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'nextProtoOnce (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'nextProtoOnce (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'nextProtoOnce (l : Loc) (v : net.http.Transport) (y : _root_.Perennial.sync.Once) :
+noncomputable instance access_store'Transport'nextProtoOnce (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"nextProtoOnce" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextProtoOnce' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"nextProtoOnce" l) v.nextProtoOnce' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"nextProtoOnce" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nextProtoOnce' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'closeIdleFunc (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'closeIdleFunc (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'closeIdleFunc (l : Loc) (v : net.http.Transport) (y : net.http.closeIdleConnectionser) :
+noncomputable instance access_store'Transport'closeIdleFunc (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.net.http.closeIdleConnectionser) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"closeIdleFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closeIdleFunc' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdleFunc" l) v.closeIdleFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"closeIdleFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closeIdleFunc' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'h2Transport (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'h2Transport (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Transport" l) v.h2Transport' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Transport" l) v.h2Transport' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Transport" l) v.h2Transport' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Transport" l) v.h2Transport' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'h2Transport (l : Loc) (v : net.http.Transport) (y : Loc) :
+noncomputable instance access_store'Transport'h2Transport (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Transport" l) v.h2Transport' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Transport" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h2Transport' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Transport" l) v.h2Transport' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Transport" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h2Transport' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'h2Config (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'h2Config (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Config" l) v.h2Config' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Config" l) v.h2Config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Config" l) v.h2Config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Config" l) v.h2Config' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'h2Config (l : Loc) (v : net.http.Transport) (y : net.http.http2ExternalTransportConfig) :
+noncomputable instance access_store'Transport'h2Config (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.net.http.http2ExternalTransportConfig) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Config" l) v.h2Config' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"h2Config" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h2Config' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Config" l) v.h2Config' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h2Config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h2Config' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'h3Transport (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'h3Transport (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"h3Transport" l) v.h3Transport' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"h3Transport" l) v.h3Transport' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h3Transport" l) v.h3Transport' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h3Transport" l) v.h3Transport' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'h3Transport (l : Loc) (v : net.http.Transport) (y : net.http.dialClientConner) :
+noncomputable instance access_store'Transport'h3Transport (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : _root_.Perennial.net.http.dialClientConner) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"h3Transport" l) v.h3Transport' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"h3Transport" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h3Transport' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h3Transport" l) v.h3Transport' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"h3Transport" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with h3Transport' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'tlsNextProtoWasNil (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'tlsNextProtoWasNil (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'tlsNextProtoWasNil (l : Loc) (v : net.http.Transport) (y : Bool) :
+noncomputable instance access_store'Transport'tlsNextProtoWasNil (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"tlsNextProtoWasNil" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tlsNextProtoWasNil' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"tlsNextProtoWasNil" l) v.tlsNextProtoWasNil' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"tlsNextProtoWasNil" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tlsNextProtoWasNil' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'ForceAttemptHTTP2 (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'ForceAttemptHTTP2 (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'ForceAttemptHTTP2 (l : Loc) (v : net.http.Transport) (y : Bool) :
+noncomputable instance access_store'Transport'ForceAttemptHTTP2 (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"ForceAttemptHTTP2" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ForceAttemptHTTP2' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ForceAttemptHTTP2" l) v.ForceAttemptHTTP2' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"ForceAttemptHTTP2" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ForceAttemptHTTP2' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'HTTP2 (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'HTTP2 (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"HTTP2" l) v.HTTP2' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"HTTP2" l) v.HTTP2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"HTTP2" l) v.HTTP2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"HTTP2" l) v.HTTP2' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'HTTP2 (l : Loc) (v : net.http.Transport) (y : Loc) :
+noncomputable instance access_store'Transport'HTTP2 (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"HTTP2" l) v.HTTP2' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"HTTP2" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HTTP2' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"HTTP2" l) v.HTTP2' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"HTTP2" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HTTP2' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Transport'Protocols (l : Loc) (v : net.http.Transport) (dq : DFrac) :
+noncomputable instance access_load'Transport'Protocols (l : Loc) (v : _root_.Perennial.net.http.Transport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"Protocols" l) v.Protocols' dq)
-      (typedPointsto (structFieldRef net.http.Transport go!"Protocols" l) v.Protocols' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Protocols" l) v.Protocols' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Protocols" l) v.Protocols' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Transport'Protocols (l : Loc) (v : net.http.Transport) (y : Loc) :
+noncomputable instance access_store'Transport'Protocols (l : Loc) (v : _root_.Perennial.net.http.Transport) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.Transport go!"Protocols" l) v.Protocols' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.Transport go!"Protocols" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Protocols' := y } : net.http.Transport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Protocols" l) v.Protocols' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.Transport go!"Protocols" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Protocols' := y } : _root_.Perennial.net.http.Transport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1009,102 +1009,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
+variable [package_sem' : _root_.Perennial.net.http.Assumptions]
 
 noncomputable instance typed_pointsto'connectMethod :
-    TypedPointsto (GF := GF) net.http.connectMethod where
+    TypedPointsto (GF := GF) _root_.Perennial.net.http.connectMethod where
   typedPointstoDef l v dq := iprop(
-    "«_#0»" ∷ typedPointsto (structFieldRef net.http.connectMethod go!"_#0" l) v.«_#0'» dq ∗
-    "proxyURL" ∷ typedPointsto (structFieldRef net.http.connectMethod go!"proxyURL" l) v.proxyURL' dq ∗
-    "targetScheme" ∷ typedPointsto (structFieldRef net.http.connectMethod go!"targetScheme" l) v.targetScheme' dq ∗
-    "targetAddr" ∷ typedPointsto (structFieldRef net.http.connectMethod go!"targetAddr" l) v.targetAddr' dq ∗
-    "onlyH1" ∷ typedPointsto (structFieldRef net.http.connectMethod go!"onlyH1" l) v.onlyH1' dq ∗
+    "«_#0»" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"_#0" l) v.«_#0'» dq ∗
+    "proxyURL" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"proxyURL" l) v.proxyURL' dq ∗
+    "targetScheme" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetScheme" l) v.targetScheme' dq ∗
+    "targetAddr" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetAddr" l) v.targetAddr' dq ∗
+    "onlyH1" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"onlyH1" l) v.onlyH1' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'connectMethod :
-    IntoValTypedUnderlying (GF := GF) net.http.connectMethod net.http.connectMethod.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.http.connectMethod _root_.Perennial.net.http.connectMethod.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance «access_load'connectMethod'_#0» (l : Loc) (v : net.http.connectMethod) (dq : DFrac) :
+noncomputable instance «access_load'connectMethod'_#0» (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"_#0" l) v.«_#0'» dq)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"_#0" l) v.«_#0'» dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"_#0" l) v.«_#0'» dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"_#0" l) v.«_#0'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance «access_store'connectMethod'_#0» (l : Loc) (v : net.http.connectMethod) (y : net.http.incomparable) :
+noncomputable instance «access_store'connectMethod'_#0» (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (y : _root_.Perennial.net.http.incomparable) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"_#0" l) v.«_#0'» (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethod go!"_#0" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := y } : net.http.connectMethod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"_#0" l) v.«_#0'» (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"_#0" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#0'» := y } : _root_.Perennial.net.http.connectMethod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'connectMethod'proxyURL (l : Loc) (v : net.http.connectMethod) (dq : DFrac) :
+noncomputable instance access_load'connectMethod'proxyURL (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"proxyURL" l) v.proxyURL' dq)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"proxyURL" l) v.proxyURL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"proxyURL" l) v.proxyURL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"proxyURL" l) v.proxyURL' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'connectMethod'proxyURL (l : Loc) (v : net.http.connectMethod) (y : Loc) :
+noncomputable instance access_store'connectMethod'proxyURL (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"proxyURL" l) v.proxyURL' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethod go!"proxyURL" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyURL' := y } : net.http.connectMethod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"proxyURL" l) v.proxyURL' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"proxyURL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyURL' := y } : _root_.Perennial.net.http.connectMethod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'connectMethod'targetScheme (l : Loc) (v : net.http.connectMethod) (dq : DFrac) :
+noncomputable instance access_load'connectMethod'targetScheme (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetScheme" l) v.targetScheme' dq)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetScheme" l) v.targetScheme' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetScheme" l) v.targetScheme' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetScheme" l) v.targetScheme' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'connectMethod'targetScheme (l : Loc) (v : net.http.connectMethod) (y : GoString) :
+noncomputable instance access_store'connectMethod'targetScheme (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetScheme" l) v.targetScheme' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetScheme" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with targetScheme' := y } : net.http.connectMethod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetScheme" l) v.targetScheme' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetScheme" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with targetScheme' := y } : _root_.Perennial.net.http.connectMethod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'connectMethod'targetAddr (l : Loc) (v : net.http.connectMethod) (dq : DFrac) :
+noncomputable instance access_load'connectMethod'targetAddr (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetAddr" l) v.targetAddr' dq)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetAddr" l) v.targetAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetAddr" l) v.targetAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetAddr" l) v.targetAddr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'connectMethod'targetAddr (l : Loc) (v : net.http.connectMethod) (y : GoString) :
+noncomputable instance access_store'connectMethod'targetAddr (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetAddr" l) v.targetAddr' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethod go!"targetAddr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with targetAddr' := y } : net.http.connectMethod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetAddr" l) v.targetAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"targetAddr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with targetAddr' := y } : _root_.Perennial.net.http.connectMethod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'connectMethod'onlyH1 (l : Loc) (v : net.http.connectMethod) (dq : DFrac) :
+noncomputable instance access_load'connectMethod'onlyH1 (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"onlyH1" l) v.onlyH1' dq)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"onlyH1" l) v.onlyH1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"onlyH1" l) v.onlyH1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"onlyH1" l) v.onlyH1' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'connectMethod'onlyH1 (l : Loc) (v : net.http.connectMethod) (y : Bool) :
+noncomputable instance access_store'connectMethod'onlyH1 (l : Loc) (v : _root_.Perennial.net.http.connectMethod) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.connectMethod go!"onlyH1" l) v.onlyH1' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.connectMethod go!"onlyH1" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onlyH1' := y } : net.http.connectMethod) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"onlyH1" l) v.onlyH1' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.connectMethod go!"onlyH1" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onlyH1' := y } : _root_.Perennial.net.http.connectMethod) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1117,510 +1117,510 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
+variable [package_sem' : _root_.Perennial.net.http.Assumptions]
 
 noncomputable instance typed_pointsto'persistConn :
-    TypedPointsto (GF := GF) net.http.persistConn where
+    TypedPointsto (GF := GF) _root_.Perennial.net.http.persistConn where
   typedPointstoDef l v dq := iprop(
-    "alt" ∷ typedPointsto (structFieldRef net.http.persistConn go!"alt" l) v.alt' dq ∗
-    "t" ∷ typedPointsto (structFieldRef net.http.persistConn go!"t" l) v.t' dq ∗
-    "cacheKey" ∷ typedPointsto (structFieldRef net.http.persistConn go!"cacheKey" l) v.cacheKey' dq ∗
-    "conn" ∷ typedPointsto (structFieldRef net.http.persistConn go!"conn" l) v.conn' dq ∗
-    "tlsState" ∷ typedPointsto (structFieldRef net.http.persistConn go!"tlsState" l) v.tlsState' dq ∗
-    "br" ∷ typedPointsto (structFieldRef net.http.persistConn go!"br" l) v.br' dq ∗
-    "bw" ∷ typedPointsto (structFieldRef net.http.persistConn go!"bw" l) v.bw' dq ∗
-    "nwrite" ∷ typedPointsto (structFieldRef net.http.persistConn go!"nwrite" l) v.nwrite' dq ∗
-    "reqch" ∷ typedPointsto (structFieldRef net.http.persistConn go!"reqch" l) v.reqch' dq ∗
-    "writech" ∷ typedPointsto (structFieldRef net.http.persistConn go!"writech" l) v.writech' dq ∗
-    "closech" ∷ typedPointsto (structFieldRef net.http.persistConn go!"closech" l) v.closech' dq ∗
-    "availch" ∷ typedPointsto (structFieldRef net.http.persistConn go!"availch" l) v.availch' dq ∗
-    "isProxy" ∷ typedPointsto (structFieldRef net.http.persistConn go!"isProxy" l) v.isProxy' dq ∗
-    "sawEOF" ∷ typedPointsto (structFieldRef net.http.persistConn go!"sawEOF" l) v.sawEOF' dq ∗
-    "isClientConn" ∷ typedPointsto (structFieldRef net.http.persistConn go!"isClientConn" l) v.isClientConn' dq ∗
-    "readLimit" ∷ typedPointsto (structFieldRef net.http.persistConn go!"readLimit" l) v.readLimit' dq ∗
-    "writeErrCh" ∷ typedPointsto (structFieldRef net.http.persistConn go!"writeErrCh" l) v.writeErrCh' dq ∗
-    "writeLoopDone" ∷ typedPointsto (structFieldRef net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' dq ∗
-    "idleAt" ∷ typedPointsto (structFieldRef net.http.persistConn go!"idleAt" l) v.idleAt' dq ∗
-    "idleTimer" ∷ typedPointsto (structFieldRef net.http.persistConn go!"idleTimer" l) v.idleTimer' dq ∗
-    "mu" ∷ typedPointsto (structFieldRef net.http.persistConn go!"mu" l) v.mu' dq ∗
-    "numExpectedResponses" ∷ typedPointsto (structFieldRef net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' dq ∗
-    "closed" ∷ typedPointsto (structFieldRef net.http.persistConn go!"closed" l) v.closed' dq ∗
-    "canceledErr" ∷ typedPointsto (structFieldRef net.http.persistConn go!"canceledErr" l) v.canceledErr' dq ∗
-    "reused" ∷ typedPointsto (structFieldRef net.http.persistConn go!"reused" l) v.reused' dq ∗
-    "reserved" ∷ typedPointsto (structFieldRef net.http.persistConn go!"reserved" l) v.reserved' dq ∗
-    "inFlight" ∷ typedPointsto (structFieldRef net.http.persistConn go!"inFlight" l) v.inFlight' dq ∗
-    "internalStateHook" ∷ typedPointsto (structFieldRef net.http.persistConn go!"internalStateHook" l) v.internalStateHook' dq ∗
-    "mutateHeaderFunc" ∷ typedPointsto (structFieldRef net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' dq ∗
+    "alt" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"alt" l) v.alt' dq ∗
+    "t" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"t" l) v.t' dq ∗
+    "cacheKey" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"cacheKey" l) v.cacheKey' dq ∗
+    "conn" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"conn" l) v.conn' dq ∗
+    "tlsState" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"tlsState" l) v.tlsState' dq ∗
+    "br" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"br" l) v.br' dq ∗
+    "bw" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"bw" l) v.bw' dq ∗
+    "nwrite" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"nwrite" l) v.nwrite' dq ∗
+    "reqch" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reqch" l) v.reqch' dq ∗
+    "writech" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writech" l) v.writech' dq ∗
+    "closech" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closech" l) v.closech' dq ∗
+    "availch" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"availch" l) v.availch' dq ∗
+    "isProxy" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isProxy" l) v.isProxy' dq ∗
+    "sawEOF" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"sawEOF" l) v.sawEOF' dq ∗
+    "isClientConn" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isClientConn" l) v.isClientConn' dq ∗
+    "readLimit" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"readLimit" l) v.readLimit' dq ∗
+    "writeErrCh" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeErrCh" l) v.writeErrCh' dq ∗
+    "writeLoopDone" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' dq ∗
+    "idleAt" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleAt" l) v.idleAt' dq ∗
+    "idleTimer" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleTimer" l) v.idleTimer' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mu" l) v.mu' dq ∗
+    "numExpectedResponses" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' dq ∗
+    "closed" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closed" l) v.closed' dq ∗
+    "canceledErr" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"canceledErr" l) v.canceledErr' dq ∗
+    "reused" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reused" l) v.reused' dq ∗
+    "reserved" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reserved" l) v.reserved' dq ∗
+    "inFlight" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"inFlight" l) v.inFlight' dq ∗
+    "internalStateHook" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"internalStateHook" l) v.internalStateHook' dq ∗
+    "mutateHeaderFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'persistConn :
-    IntoValTypedUnderlying (GF := GF) net.http.persistConn net.http.persistConn.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.http.persistConn _root_.Perennial.net.http.persistConn.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'persistConn'alt (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'alt (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"alt" l) v.alt' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"alt" l) v.alt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"alt" l) v.alt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"alt" l) v.alt' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'alt (l : Loc) (v : net.http.persistConn) (y : net.http.RoundTripper) :
+noncomputable instance access_store'persistConn'alt (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : _root_.Perennial.net.http.RoundTripper) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"alt" l) v.alt' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"alt" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alt' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"alt" l) v.alt' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"alt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alt' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn't (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn't (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"t" l) v.t' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"t" l) v.t' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"t" l) v.t' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"t" l) v.t' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn't (l : Loc) (v : net.http.persistConn) (y : Loc) :
+noncomputable instance access_store'persistConn't (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"t" l) v.t' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"t" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"t" l) v.t' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"t" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'cacheKey (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'cacheKey (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"cacheKey" l) v.cacheKey' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"cacheKey" l) v.cacheKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"cacheKey" l) v.cacheKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"cacheKey" l) v.cacheKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'cacheKey (l : Loc) (v : net.http.persistConn) (y : net.http.connectMethodKey) :
+noncomputable instance access_store'persistConn'cacheKey (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : _root_.Perennial.net.http.connectMethodKey) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"cacheKey" l) v.cacheKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"cacheKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cacheKey' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"cacheKey" l) v.cacheKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"cacheKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cacheKey' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'conn (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'conn (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"conn" l) v.conn' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"conn" l) v.conn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"conn" l) v.conn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"conn" l) v.conn' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'conn (l : Loc) (v : net.http.persistConn) (y : _root_.Perennial.net.Conn) :
+noncomputable instance access_store'persistConn'conn (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"conn" l) v.conn' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"conn" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conn' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"conn" l) v.conn' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"conn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conn' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'tlsState (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'tlsState (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"tlsState" l) v.tlsState' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"tlsState" l) v.tlsState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"tlsState" l) v.tlsState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"tlsState" l) v.tlsState' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'tlsState (l : Loc) (v : net.http.persistConn) (y : Loc) :
+noncomputable instance access_store'persistConn'tlsState (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"tlsState" l) v.tlsState' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"tlsState" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tlsState' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"tlsState" l) v.tlsState' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"tlsState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tlsState' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'br (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'br (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"br" l) v.br' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"br" l) v.br' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"br" l) v.br' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"br" l) v.br' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'br (l : Loc) (v : net.http.persistConn) (y : Loc) :
+noncomputable instance access_store'persistConn'br (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"br" l) v.br' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"br" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with br' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"br" l) v.br' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"br" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with br' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'bw (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'bw (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"bw" l) v.bw' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"bw" l) v.bw' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"bw" l) v.bw' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"bw" l) v.bw' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'bw (l : Loc) (v : net.http.persistConn) (y : Loc) :
+noncomputable instance access_store'persistConn'bw (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"bw" l) v.bw' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"bw" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bw' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"bw" l) v.bw' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"bw" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bw' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'nwrite (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'nwrite (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"nwrite" l) v.nwrite' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"nwrite" l) v.nwrite' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"nwrite" l) v.nwrite' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"nwrite" l) v.nwrite' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'nwrite (l : Loc) (v : net.http.persistConn) (y : w64) :
+noncomputable instance access_store'persistConn'nwrite (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"nwrite" l) v.nwrite' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"nwrite" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nwrite' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"nwrite" l) v.nwrite' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"nwrite" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nwrite' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'reqch (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'reqch (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reqch" l) v.reqch' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reqch" l) v.reqch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reqch" l) v.reqch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reqch" l) v.reqch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'reqch (l : Loc) (v : net.http.persistConn) (y : GoChan) :
+noncomputable instance access_store'persistConn'reqch (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reqch" l) v.reqch' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"reqch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqch' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reqch" l) v.reqch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reqch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqch' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'writech (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'writech (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writech" l) v.writech' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writech" l) v.writech' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writech" l) v.writech' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writech" l) v.writech' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'writech (l : Loc) (v : net.http.persistConn) (y : GoChan) :
+noncomputable instance access_store'persistConn'writech (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writech" l) v.writech' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"writech" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writech' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writech" l) v.writech' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writech" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writech' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'closech (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'closech (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"closech" l) v.closech' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"closech" l) v.closech' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closech" l) v.closech' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closech" l) v.closech' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'closech (l : Loc) (v : net.http.persistConn) (y : GoChan) :
+noncomputable instance access_store'persistConn'closech (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"closech" l) v.closech' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"closech" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closech' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closech" l) v.closech' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closech" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closech' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'availch (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'availch (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"availch" l) v.availch' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"availch" l) v.availch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"availch" l) v.availch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"availch" l) v.availch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'availch (l : Loc) (v : net.http.persistConn) (y : GoChan) :
+noncomputable instance access_store'persistConn'availch (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"availch" l) v.availch' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"availch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with availch' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"availch" l) v.availch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"availch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with availch' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'isProxy (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'isProxy (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"isProxy" l) v.isProxy' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"isProxy" l) v.isProxy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isProxy" l) v.isProxy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isProxy" l) v.isProxy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'isProxy (l : Loc) (v : net.http.persistConn) (y : Bool) :
+noncomputable instance access_store'persistConn'isProxy (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"isProxy" l) v.isProxy' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"isProxy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isProxy' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isProxy" l) v.isProxy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isProxy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isProxy' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'sawEOF (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'sawEOF (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"sawEOF" l) v.sawEOF' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"sawEOF" l) v.sawEOF' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"sawEOF" l) v.sawEOF' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"sawEOF" l) v.sawEOF' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'sawEOF (l : Loc) (v : net.http.persistConn) (y : Bool) :
+noncomputable instance access_store'persistConn'sawEOF (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"sawEOF" l) v.sawEOF' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"sawEOF" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sawEOF' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"sawEOF" l) v.sawEOF' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"sawEOF" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sawEOF' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'isClientConn (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'isClientConn (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"isClientConn" l) v.isClientConn' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"isClientConn" l) v.isClientConn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isClientConn" l) v.isClientConn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isClientConn" l) v.isClientConn' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'isClientConn (l : Loc) (v : net.http.persistConn) (y : Bool) :
+noncomputable instance access_store'persistConn'isClientConn (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"isClientConn" l) v.isClientConn' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"isClientConn" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isClientConn' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isClientConn" l) v.isClientConn' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"isClientConn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isClientConn' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'readLimit (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'readLimit (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"readLimit" l) v.readLimit' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"readLimit" l) v.readLimit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"readLimit" l) v.readLimit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"readLimit" l) v.readLimit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'readLimit (l : Loc) (v : net.http.persistConn) (y : w64) :
+noncomputable instance access_store'persistConn'readLimit (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"readLimit" l) v.readLimit' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"readLimit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readLimit' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"readLimit" l) v.readLimit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"readLimit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readLimit' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'writeErrCh (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'writeErrCh (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeErrCh" l) v.writeErrCh' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeErrCh" l) v.writeErrCh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeErrCh" l) v.writeErrCh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeErrCh" l) v.writeErrCh' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'writeErrCh (l : Loc) (v : net.http.persistConn) (y : GoChan) :
+noncomputable instance access_store'persistConn'writeErrCh (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeErrCh" l) v.writeErrCh' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeErrCh" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeErrCh' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeErrCh" l) v.writeErrCh' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeErrCh" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeErrCh' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'writeLoopDone (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'writeLoopDone (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'writeLoopDone (l : Loc) (v : net.http.persistConn) (y : GoChan) :
+noncomputable instance access_store'persistConn'writeLoopDone (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"writeLoopDone" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeLoopDone' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeLoopDone" l) v.writeLoopDone' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"writeLoopDone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeLoopDone' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'idleAt (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'idleAt (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleAt" l) v.idleAt' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleAt" l) v.idleAt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleAt" l) v.idleAt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleAt" l) v.idleAt' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'idleAt (l : Loc) (v : net.http.persistConn) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'persistConn'idleAt (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleAt" l) v.idleAt' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleAt" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleAt' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleAt" l) v.idleAt' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleAt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleAt' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'idleTimer (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'idleTimer (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleTimer" l) v.idleTimer' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleTimer" l) v.idleTimer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleTimer" l) v.idleTimer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleTimer" l) v.idleTimer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'idleTimer (l : Loc) (v : net.http.persistConn) (y : Loc) :
+noncomputable instance access_store'persistConn'idleTimer (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleTimer" l) v.idleTimer' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"idleTimer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleTimer' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleTimer" l) v.idleTimer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"idleTimer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with idleTimer' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'mu (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'mu (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'mu (l : Loc) (v : net.http.persistConn) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'persistConn'mu (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'numExpectedResponses (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'numExpectedResponses (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'numExpectedResponses (l : Loc) (v : net.http.persistConn) (y : w64) :
+noncomputable instance access_store'persistConn'numExpectedResponses (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"numExpectedResponses" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numExpectedResponses' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"numExpectedResponses" l) v.numExpectedResponses' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"numExpectedResponses" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numExpectedResponses' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'closed (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'closed (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"closed" l) v.closed' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"closed" l) v.closed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closed" l) v.closed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closed" l) v.closed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'closed (l : Loc) (v : net.http.persistConn) (y : GoError) :
+noncomputable instance access_store'persistConn'closed (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"closed" l) v.closed' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"closed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closed' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closed" l) v.closed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"closed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closed' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'canceledErr (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'canceledErr (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"canceledErr" l) v.canceledErr' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"canceledErr" l) v.canceledErr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"canceledErr" l) v.canceledErr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"canceledErr" l) v.canceledErr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'canceledErr (l : Loc) (v : net.http.persistConn) (y : GoError) :
+noncomputable instance access_store'persistConn'canceledErr (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"canceledErr" l) v.canceledErr' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"canceledErr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with canceledErr' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"canceledErr" l) v.canceledErr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"canceledErr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with canceledErr' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'reused (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'reused (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reused" l) v.reused' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reused" l) v.reused' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reused" l) v.reused' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reused" l) v.reused' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'reused (l : Loc) (v : net.http.persistConn) (y : Bool) :
+noncomputable instance access_store'persistConn'reused (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reused" l) v.reused' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"reused" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reused' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reused" l) v.reused' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reused" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reused' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'reserved (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'reserved (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reserved" l) v.reserved' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reserved" l) v.reserved' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reserved" l) v.reserved' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reserved" l) v.reserved' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'reserved (l : Loc) (v : net.http.persistConn) (y : Bool) :
+noncomputable instance access_store'persistConn'reserved (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"reserved" l) v.reserved' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"reserved" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reserved' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reserved" l) v.reserved' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"reserved" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reserved' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'inFlight (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'inFlight (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"inFlight" l) v.inFlight' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"inFlight" l) v.inFlight' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"inFlight" l) v.inFlight' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"inFlight" l) v.inFlight' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'inFlight (l : Loc) (v : net.http.persistConn) (y : Bool) :
+noncomputable instance access_store'persistConn'inFlight (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"inFlight" l) v.inFlight' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"inFlight" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with inFlight' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"inFlight" l) v.inFlight' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"inFlight" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with inFlight' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'internalStateHook (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'internalStateHook (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"internalStateHook" l) v.internalStateHook' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"internalStateHook" l) v.internalStateHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"internalStateHook" l) v.internalStateHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"internalStateHook" l) v.internalStateHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'internalStateHook (l : Loc) (v : net.http.persistConn) (y : GoFunc) :
+noncomputable instance access_store'persistConn'internalStateHook (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"internalStateHook" l) v.internalStateHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"internalStateHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with internalStateHook' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"internalStateHook" l) v.internalStateHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"internalStateHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with internalStateHook' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'persistConn'mutateHeaderFunc (l : Loc) (v : net.http.persistConn) (dq : DFrac) :
+noncomputable instance access_load'persistConn'mutateHeaderFunc (l : Loc) (v : _root_.Perennial.net.http.persistConn) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' dq)
-      (typedPointsto (structFieldRef net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'persistConn'mutateHeaderFunc (l : Loc) (v : net.http.persistConn) (y : GoFunc) :
+noncomputable instance access_store'persistConn'mutateHeaderFunc (l : Loc) (v : _root_.Perennial.net.http.persistConn) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.persistConn go!"mutateHeaderFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mutateHeaderFunc' := y } : net.http.persistConn) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mutateHeaderFunc" l) v.mutateHeaderFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.persistConn go!"mutateHeaderFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mutateHeaderFunc' := y } : _root_.Perennial.net.http.persistConn) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

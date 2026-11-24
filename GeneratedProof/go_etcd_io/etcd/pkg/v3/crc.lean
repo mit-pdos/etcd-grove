@@ -24,51 +24,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.pkg.v3.crc.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.Assumptions]
 
 noncomputable instance typed_pointsto'digest :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.crc.digest where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest where
   typedPointstoDef l v dq := iprop(
-    "crc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq ∗
-    "tab" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq ∗
+    "crc" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq ∗
+    "tab" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'digest :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.crc.digest go_etcd_io.etcd.pkg.v3.crc.digest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'digest'crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
+noncomputable instance access_load'digest'crc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'digest'crc (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : w32) :
+noncomputable instance access_store'digest'crc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := y } : go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) v.crc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"crc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := y } : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'digest'tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
+noncomputable instance access_load'digest'tab (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'digest'tab (l : Loc) (v : go_etcd_io.etcd.pkg.v3.crc.digest) (y : Loc) :
+noncomputable instance access_store'digest'tab (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := y } : go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) v.tab' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest go!"tab" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := y } : _root_.Perennial.go_etcd_io.etcd.pkg.v3.crc.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -22,136 +22,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'Stats :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.Stats where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Stats where
   typedPointstoDef l v dq := iprop(
-    "Emalloc" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' dq ∗
-    "Dmalloc" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' dq ∗
-    "Encode" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' dq ∗
-    "Decode" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' dq ∗
-    "Chit" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' dq ∗
-    "Cmiss" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' dq ∗
-    "Size" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' dq ∗
+    "Emalloc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' dq ∗
+    "Dmalloc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' dq ∗
+    "Encode" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' dq ∗
+    "Decode" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' dq ∗
+    "Chit" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' dq ∗
+    "Cmiss" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' dq ∗
+    "Size" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Stats :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.Stats github_com.gogo.protobuf.proto.Stats.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Stats _root_.Perennial.github_com.gogo.protobuf.proto.Stats.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Stats'Emalloc (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
+noncomputable instance access_load'Stats'Emalloc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stats'Emalloc (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (y : w64) :
+noncomputable instance access_store'Stats'Emalloc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Emalloc' := y } : github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) v.Emalloc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Emalloc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Emalloc' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stats'Dmalloc (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
+noncomputable instance access_load'Stats'Dmalloc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stats'Dmalloc (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (y : w64) :
+noncomputable instance access_store'Stats'Dmalloc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dmalloc' := y } : github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) v.Dmalloc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Dmalloc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Dmalloc' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stats'Encode (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
+noncomputable instance access_load'Stats'Encode (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stats'Encode (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (y : w64) :
+noncomputable instance access_store'Stats'Encode (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Encode" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Encode' := y } : github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Encode" l) v.Encode' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Encode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Encode' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stats'Decode (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
+noncomputable instance access_load'Stats'Decode (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stats'Decode (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (y : w64) :
+noncomputable instance access_store'Stats'Decode (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Decode" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Decode' := y } : github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Decode" l) v.Decode' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Decode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Decode' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stats'Chit (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
+noncomputable instance access_load'Stats'Chit (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stats'Chit (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (y : w64) :
+noncomputable instance access_store'Stats'Chit (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Chit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chit' := y } : github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Chit" l) v.Chit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Chit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Chit' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stats'Cmiss (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
+noncomputable instance access_load'Stats'Cmiss (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stats'Cmiss (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (y : w64) :
+noncomputable instance access_store'Stats'Cmiss (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cmiss' := y } : github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) v.Cmiss' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Cmiss" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cmiss' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stats'Size (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
+noncomputable instance access_load'Stats'Size (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stats'Size (l : Loc) (v : github_com.gogo.protobuf.proto.Stats) (y : w64) :
+noncomputable instance access_store'Stats'Size (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Stats go!"Size" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := y } : github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Size" l) v.Size' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Stats go!"Size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Size' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Stats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -164,14 +164,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'discardInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.discardInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.discardInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'discardInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.discardInfo github_com.gogo.protobuf.proto.discardInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.discardInfo _root_.Perennial.github_com.gogo.protobuf.proto.discardInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -183,51 +183,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'discardFieldInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.discardFieldInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo where
   typedPointstoDef l v dq := iprop(
-    "field" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' dq ∗
-    "discard" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' dq ∗
+    "discard" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'discardFieldInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.discardFieldInfo github_com.gogo.protobuf.proto.discardFieldInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'discardFieldInfo'field (l : Loc) (v : github_com.gogo.protobuf.proto.discardFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'discardFieldInfo'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'discardFieldInfo'field (l : Loc) (v : github_com.gogo.protobuf.proto.discardFieldInfo) (y : github_com.gogo.protobuf.proto.field) :
+noncomputable instance access_store'discardFieldInfo'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo) (y : _root_.Perennial.github_com.gogo.protobuf.proto.field) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : github_com.gogo.protobuf.proto.discardFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'discardFieldInfo'discard (l : Loc) (v : github_com.gogo.protobuf.proto.discardFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'discardFieldInfo'discard (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'discardFieldInfo'discard (l : Loc) (v : github_com.gogo.protobuf.proto.discardFieldInfo) (y : GoFunc) :
+noncomputable instance access_store'discardFieldInfo'discard (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with discard' := y } : github_com.gogo.protobuf.proto.discardFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) v.discard' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo go!"discard" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with discard' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.discardFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -240,51 +240,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'duration :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.duration where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.duration where
   typedPointstoDef l v dq := iprop(
-    "Seconds" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' dq ∗
-    "Nanos" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' dq ∗
+    "Seconds" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' dq ∗
+    "Nanos" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'duration :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.duration github_com.gogo.protobuf.proto.duration.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.duration _root_.Perennial.github_com.gogo.protobuf.proto.duration.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'duration'Seconds (l : Loc) (v : github_com.gogo.protobuf.proto.duration) (dq : DFrac) :
+noncomputable instance access_load'duration'Seconds (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.duration) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'duration'Seconds (l : Loc) (v : github_com.gogo.protobuf.proto.duration) (y : w64) :
+noncomputable instance access_store'duration'Seconds (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.duration) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Seconds" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Seconds' := y } : github_com.gogo.protobuf.proto.duration) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Seconds" l) v.Seconds' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Seconds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Seconds' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.duration) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'duration'Nanos (l : Loc) (v : github_com.gogo.protobuf.proto.duration) (dq : DFrac) :
+noncomputable instance access_load'duration'Nanos (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.duration) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'duration'Nanos (l : Loc) (v : github_com.gogo.protobuf.proto.duration) (y : w32) :
+noncomputable instance access_store'duration'Nanos (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.duration) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.duration go!"Nanos" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Nanos' := y } : github_com.gogo.protobuf.proto.duration) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Nanos" l) v.Nanos' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.duration go!"Nanos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Nanos' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.duration) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -297,51 +297,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'ExtensionRange :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.ExtensionRange where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange where
   typedPointstoDef l v dq := iprop(
-    "Start" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' dq ∗
-    "End" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' dq ∗
+    "Start" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' dq ∗
+    "End" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ExtensionRange :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.ExtensionRange github_com.gogo.protobuf.proto.ExtensionRange.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ExtensionRange'Start (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionRange) (dq : DFrac) :
+noncomputable instance access_load'ExtensionRange'Start (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionRange'Start (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionRange) (y : w32) :
+noncomputable instance access_store'ExtensionRange'Start (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : github_com.gogo.protobuf.proto.ExtensionRange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) v.Start' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ExtensionRange'End (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionRange) (dq : DFrac) :
+noncomputable instance access_load'ExtensionRange'End (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionRange'End (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionRange) (y : w32) :
+noncomputable instance access_store'ExtensionRange'End (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : github_com.gogo.protobuf.proto.ExtensionRange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) v.End' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionRange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -354,14 +354,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'extendableProto :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.extendableProto :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.extendableProto :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'extendableProto :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.extendableProto github_com.gogo.protobuf.proto.extendableProto.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.extendableProto _root_.Perennial.github_com.gogo.protobuf.proto.extendableProto.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -373,34 +373,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'extensionAdapter :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.extensionAdapter where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter where
   typedPointstoDef l v dq := iprop(
-    "extendableProtoV1" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' dq ∗
+    "extendableProtoV1" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'extensionAdapter :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.extensionAdapter github_com.gogo.protobuf.proto.extensionAdapter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'extensionAdapter'extendableProtoV1 (l : Loc) (v : github_com.gogo.protobuf.proto.extensionAdapter) (dq : DFrac) :
+noncomputable instance access_load'extensionAdapter'extendableProtoV1 (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'extensionAdapter'extendableProtoV1 (l : Loc) (v : github_com.gogo.protobuf.proto.extensionAdapter) (y : github_com.gogo.protobuf.proto.extendableProtoV1) :
+noncomputable instance access_store'extensionAdapter'extendableProtoV1 (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter) (y : _root_.Perennial.github_com.gogo.protobuf.proto.extendableProtoV1) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with extendableProtoV1' := y } : github_com.gogo.protobuf.proto.extensionAdapter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) v.extendableProtoV1' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter go!"extendableProtoV1" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with extendableProtoV1' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.extensionAdapter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -413,10 +413,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'notLocker :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.notLocker where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.notLocker where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -424,7 +424,7 @@ noncomputable instance typed_pointsto'notLocker :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'notLocker :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.notLocker github_com.gogo.protobuf.proto.notLocker.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.notLocker _root_.Perennial.github_com.gogo.protobuf.proto.notLocker.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -436,14 +436,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'XXX_InternalExtensions :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.XXX_InternalExtensions :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.XXX_InternalExtensions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XXX_InternalExtensions :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.XXX_InternalExtensions github_com.gogo.protobuf.proto.XXX_InternalExtensions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.XXX_InternalExtensions _root_.Perennial.github_com.gogo.protobuf.proto.XXX_InternalExtensions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -455,119 +455,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'ExtensionDesc :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.ExtensionDesc where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc where
   typedPointstoDef l v dq := iprop(
-    "ExtendedType" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' dq ∗
-    "ExtensionType" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' dq ∗
-    "Field" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' dq ∗
-    "Name" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' dq ∗
-    "Tag" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' dq ∗
-    "Filename" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' dq ∗
+    "ExtendedType" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' dq ∗
+    "ExtensionType" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' dq ∗
+    "Field" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' dq ∗
+    "Tag" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' dq ∗
+    "Filename" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ExtensionDesc :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.ExtensionDesc github_com.gogo.protobuf.proto.ExtensionDesc.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ExtensionDesc'ExtendedType (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
+noncomputable instance access_load'ExtensionDesc'ExtendedType (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionDesc'ExtendedType (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (y : github_com.gogo.protobuf.proto.Message) :
+noncomputable instance access_store'ExtensionDesc'ExtendedType (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (y : _root_.Perennial.github_com.gogo.protobuf.proto.Message) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExtendedType' := y } : github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) v.ExtendedType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtendedType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExtendedType' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ExtensionDesc'ExtensionType (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
+noncomputable instance access_load'ExtensionDesc'ExtensionType (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionDesc'ExtensionType (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoInterface) :
+noncomputable instance access_store'ExtensionDesc'ExtensionType (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExtensionType' := y } : github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) v.ExtensionType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"ExtensionType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExtensionType' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ExtensionDesc'Field (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
+noncomputable instance access_load'ExtensionDesc'Field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionDesc'Field (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (y : w32) :
+noncomputable instance access_store'ExtensionDesc'Field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) v.Field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ExtensionDesc'Name (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
+noncomputable instance access_load'ExtensionDesc'Name (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionDesc'Name (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoString) :
+noncomputable instance access_store'ExtensionDesc'Name (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ExtensionDesc'Tag (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
+noncomputable instance access_load'ExtensionDesc'Tag (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionDesc'Tag (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoString) :
+noncomputable instance access_store'ExtensionDesc'Tag (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tag' := y } : github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) v.Tag' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Tag" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tag' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ExtensionDesc'Filename (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
+noncomputable instance access_load'ExtensionDesc'Filename (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ExtensionDesc'Filename (l : Loc) (v : github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoString) :
+noncomputable instance access_store'ExtensionDesc'Filename (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := y } : github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) v.Filename' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc go!"Filename" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Filename' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ExtensionDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -580,68 +580,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'Extension :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.Extension where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Extension where
   typedPointstoDef l v dq := iprop(
-    "desc" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' dq ∗
-    "value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' dq ∗
-    "enc" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' dq ∗
+    "desc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' dq ∗
+    "value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' dq ∗
+    "enc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Extension :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.Extension github_com.gogo.protobuf.proto.Extension.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Extension _root_.Perennial.github_com.gogo.protobuf.proto.Extension.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Extension'desc (l : Loc) (v : github_com.gogo.protobuf.proto.Extension) (dq : DFrac) :
+noncomputable instance access_load'Extension'desc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Extension'desc (l : Loc) (v : github_com.gogo.protobuf.proto.Extension) (y : Loc) :
+noncomputable instance access_store'Extension'desc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"desc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with desc' := y } : github_com.gogo.protobuf.proto.Extension) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"desc" l) v.desc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"desc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with desc' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Extension'value (l : Loc) (v : github_com.gogo.protobuf.proto.Extension) (dq : DFrac) :
+noncomputable instance access_load'Extension'value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Extension'value (l : Loc) (v : github_com.gogo.protobuf.proto.Extension) (y : GoInterface) :
+noncomputable instance access_store'Extension'value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : github_com.gogo.protobuf.proto.Extension) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Extension'enc (l : Loc) (v : github_com.gogo.protobuf.proto.Extension) (dq : DFrac) :
+noncomputable instance access_load'Extension'enc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Extension'enc (l : Loc) (v : github_com.gogo.protobuf.proto.Extension) (y : GoSlice) :
+noncomputable instance access_store'Extension'enc (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Extension go!"enc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := y } : github_com.gogo.protobuf.proto.Extension) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"enc" l) v.enc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Extension go!"enc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -654,14 +654,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'extPropKey :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.extPropKey :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.extPropKey :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'extPropKey :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.extPropKey github_com.gogo.protobuf.proto.extPropKey.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.extPropKey _root_.Perennial.github_com.gogo.protobuf.proto.extPropKey.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -673,34 +673,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'slowExtensionAdapter :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.slowExtensionAdapter where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter where
   typedPointstoDef l v dq := iprop(
-    "extensionsBytes" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' dq ∗
+    "extensionsBytes" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'slowExtensionAdapter :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.slowExtensionAdapter github_com.gogo.protobuf.proto.slowExtensionAdapter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'slowExtensionAdapter'extensionsBytes (l : Loc) (v : github_com.gogo.protobuf.proto.slowExtensionAdapter) (dq : DFrac) :
+noncomputable instance access_load'slowExtensionAdapter'extensionsBytes (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'slowExtensionAdapter'extensionsBytes (l : Loc) (v : github_com.gogo.protobuf.proto.slowExtensionAdapter) (y : github_com.gogo.protobuf.proto.extensionsBytes) :
+noncomputable instance access_store'slowExtensionAdapter'extensionsBytes (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter) (y : _root_.Perennial.github_com.gogo.protobuf.proto.extensionsBytes) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with extensionsBytes' := y } : github_com.gogo.protobuf.proto.slowExtensionAdapter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) v.extensionsBytes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter go!"extensionsBytes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with extensionsBytes' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.slowExtensionAdapter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -713,51 +713,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'sortableMapElem :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.sortableMapElem where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem where
   typedPointstoDef l v dq := iprop(
-    "field" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' dq ∗
-    "ext" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' dq ∗
+    "ext" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'sortableMapElem :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.sortableMapElem github_com.gogo.protobuf.proto.sortableMapElem.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'sortableMapElem'field (l : Loc) (v : github_com.gogo.protobuf.proto.sortableMapElem) (dq : DFrac) :
+noncomputable instance access_load'sortableMapElem'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sortableMapElem'field (l : Loc) (v : github_com.gogo.protobuf.proto.sortableMapElem) (y : w32) :
+noncomputable instance access_store'sortableMapElem'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : github_com.gogo.protobuf.proto.sortableMapElem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sortableMapElem'ext (l : Loc) (v : github_com.gogo.protobuf.proto.sortableMapElem) (dq : DFrac) :
+noncomputable instance access_load'sortableMapElem'ext (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sortableMapElem'ext (l : Loc) (v : github_com.gogo.protobuf.proto.sortableMapElem) (y : github_com.gogo.protobuf.proto.Extension) :
+noncomputable instance access_store'sortableMapElem'ext (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem) (y : _root_.Perennial.github_com.gogo.protobuf.proto.Extension) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ext' := y } : github_com.gogo.protobuf.proto.sortableMapElem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) v.ext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem go!"ext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ext' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.sortableMapElem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -770,34 +770,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'RequiredNotSetError :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.RequiredNotSetError where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError where
   typedPointstoDef l v dq := iprop(
-    "field" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'RequiredNotSetError :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.RequiredNotSetError github_com.gogo.protobuf.proto.RequiredNotSetError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'RequiredNotSetError'field (l : Loc) (v : github_com.gogo.protobuf.proto.RequiredNotSetError) (dq : DFrac) :
+noncomputable instance access_load'RequiredNotSetError'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RequiredNotSetError'field (l : Loc) (v : github_com.gogo.protobuf.proto.RequiredNotSetError) (y : GoString) :
+noncomputable instance access_store'RequiredNotSetError'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : github_com.gogo.protobuf.proto.RequiredNotSetError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.RequiredNotSetError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -810,34 +810,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'invalidUTF8Error :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.invalidUTF8Error where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error where
   typedPointstoDef l v dq := iprop(
-    "field" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'invalidUTF8Error :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.invalidUTF8Error github_com.gogo.protobuf.proto.invalidUTF8Error.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'invalidUTF8Error'field (l : Loc) (v : github_com.gogo.protobuf.proto.invalidUTF8Error) (dq : DFrac) :
+noncomputable instance access_load'invalidUTF8Error'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'invalidUTF8Error'field (l : Loc) (v : github_com.gogo.protobuf.proto.invalidUTF8Error) (y : GoString) :
+noncomputable instance access_store'invalidUTF8Error'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : github_com.gogo.protobuf.proto.invalidUTF8Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.invalidUTF8Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -850,34 +850,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'nonFatal :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.nonFatal where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal where
   typedPointstoDef l v dq := iprop(
-    "E" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' dq ∗
+    "E" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'nonFatal :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.nonFatal github_com.gogo.protobuf.proto.nonFatal.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'nonFatal'E (l : Loc) (v : github_com.gogo.protobuf.proto.nonFatal) (dq : DFrac) :
+noncomputable instance access_load'nonFatal'E (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'nonFatal'E (l : Loc) (v : github_com.gogo.protobuf.proto.nonFatal) (y : GoError) :
+noncomputable instance access_store'nonFatal'E (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.nonFatal go!"E" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with E' := y } : github_com.gogo.protobuf.proto.nonFatal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal go!"E" l) v.E' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal go!"E" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with E' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.nonFatal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -890,68 +890,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'Buffer :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.Buffer where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Buffer where
   typedPointstoDef l v dq := iprop(
-    "buf" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' dq ∗
-    "index" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' dq ∗
-    "deterministic" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' dq ∗
+    "index" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' dq ∗
+    "deterministic" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Buffer :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.Buffer github_com.gogo.protobuf.proto.Buffer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Buffer _root_.Perennial.github_com.gogo.protobuf.proto.Buffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Buffer'buf (l : Loc) (v : github_com.gogo.protobuf.proto.Buffer) (dq : DFrac) :
+noncomputable instance access_load'Buffer'buf (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Buffer'buf (l : Loc) (v : github_com.gogo.protobuf.proto.Buffer) (y : GoSlice) :
+noncomputable instance access_store'Buffer'buf (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"buf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : github_com.gogo.protobuf.proto.Buffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Buffer'index (l : Loc) (v : github_com.gogo.protobuf.proto.Buffer) (dq : DFrac) :
+noncomputable instance access_load'Buffer'index (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Buffer'index (l : Loc) (v : github_com.gogo.protobuf.proto.Buffer) (y : w64) :
+noncomputable instance access_store'Buffer'index (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"index" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : github_com.gogo.protobuf.proto.Buffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"index" l) v.index' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Buffer'deterministic (l : Loc) (v : github_com.gogo.protobuf.proto.Buffer) (dq : DFrac) :
+noncomputable instance access_load'Buffer'deterministic (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Buffer'deterministic (l : Loc) (v : github_com.gogo.protobuf.proto.Buffer) (y : Bool) :
+noncomputable instance access_store'Buffer'deterministic (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with deterministic' := y } : github_com.gogo.protobuf.proto.Buffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) v.deterministic' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.Buffer go!"deterministic" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with deterministic' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.Buffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -964,51 +964,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'defaultMessage :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.defaultMessage where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage where
   typedPointstoDef l v dq := iprop(
-    "scalars" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' dq ∗
-    "nested" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' dq ∗
+    "scalars" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' dq ∗
+    "nested" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'defaultMessage :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.defaultMessage github_com.gogo.protobuf.proto.defaultMessage.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'defaultMessage'scalars (l : Loc) (v : github_com.gogo.protobuf.proto.defaultMessage) (dq : DFrac) :
+noncomputable instance access_load'defaultMessage'scalars (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'defaultMessage'scalars (l : Loc) (v : github_com.gogo.protobuf.proto.defaultMessage) (y : GoSlice) :
+noncomputable instance access_store'defaultMessage'scalars (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scalars' := y } : github_com.gogo.protobuf.proto.defaultMessage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) v.scalars' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"scalars" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scalars' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'defaultMessage'nested (l : Loc) (v : github_com.gogo.protobuf.proto.defaultMessage) (dq : DFrac) :
+noncomputable instance access_load'defaultMessage'nested (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'defaultMessage'nested (l : Loc) (v : github_com.gogo.protobuf.proto.defaultMessage) (y : GoSlice) :
+noncomputable instance access_store'defaultMessage'nested (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nested' := y } : github_com.gogo.protobuf.proto.defaultMessage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) v.nested' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage go!"nested" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nested' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.defaultMessage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1021,14 +1021,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'scalarField :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.scalarField :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.scalarField :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'scalarField :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.scalarField github_com.gogo.protobuf.proto.scalarField.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.scalarField _root_.Perennial.github_com.gogo.protobuf.proto.scalarField.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1040,14 +1040,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'mapKeySorter :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.mapKeySorter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.mapKeySorter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'mapKeySorter :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.mapKeySorter github_com.gogo.protobuf.proto.mapKeySorter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.mapKeySorter _root_.Perennial.github_com.gogo.protobuf.proto.mapKeySorter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1059,85 +1059,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'InternalMessageInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.InternalMessageInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo where
   typedPointstoDef l v dq := iprop(
-    "marshal" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' dq ∗
-    "unmarshal" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' dq ∗
-    "merge" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' dq ∗
-    "discard" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' dq ∗
+    "marshal" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' dq ∗
+    "unmarshal" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' dq ∗
+    "merge" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' dq ∗
+    "discard" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'InternalMessageInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.InternalMessageInfo github_com.gogo.protobuf.proto.InternalMessageInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'InternalMessageInfo'marshal (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
+noncomputable instance access_load'InternalMessageInfo'marshal (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InternalMessageInfo'marshal (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
+noncomputable instance access_store'InternalMessageInfo'marshal (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with marshal' := y } : github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) v.marshal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"marshal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with marshal' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InternalMessageInfo'unmarshal (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
+noncomputable instance access_load'InternalMessageInfo'unmarshal (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InternalMessageInfo'unmarshal (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
+noncomputable instance access_store'InternalMessageInfo'unmarshal (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unmarshal' := y } : github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) v.unmarshal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"unmarshal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unmarshal' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InternalMessageInfo'merge (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
+noncomputable instance access_load'InternalMessageInfo'merge (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InternalMessageInfo'merge (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
+noncomputable instance access_store'InternalMessageInfo'merge (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with merge' := y } : github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) v.merge' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"merge" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with merge' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InternalMessageInfo'discard (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
+noncomputable instance access_load'InternalMessageInfo'discard (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InternalMessageInfo'discard (l : Loc) (v : github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
+noncomputable instance access_store'InternalMessageInfo'discard (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with discard' := y } : github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) v.discard' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo go!"discard" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with discard' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.InternalMessageInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1150,51 +1150,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'_MessageSet_Item :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto._MessageSet_Item where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item where
   typedPointstoDef l v dq := iprop(
-    "TypeId" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' dq ∗
-    "Message" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' dq ∗
+    "TypeId" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'_MessageSet_Item :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto._MessageSet_Item github_com.gogo.protobuf.proto._MessageSet_Item.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'_MessageSet_Item'TypeId (l : Loc) (v : github_com.gogo.protobuf.proto._MessageSet_Item) (dq : DFrac) :
+noncomputable instance access_load'_MessageSet_Item'TypeId (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'_MessageSet_Item'TypeId (l : Loc) (v : github_com.gogo.protobuf.proto._MessageSet_Item) (y : Loc) :
+noncomputable instance access_store'_MessageSet_Item'TypeId (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeId' := y } : github_com.gogo.protobuf.proto._MessageSet_Item) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) v.TypeId' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"TypeId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeId' := y } : _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'_MessageSet_Item'Message (l : Loc) (v : github_com.gogo.protobuf.proto._MessageSet_Item) (dq : DFrac) :
+noncomputable instance access_load'_MessageSet_Item'Message (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'_MessageSet_Item'Message (l : Loc) (v : github_com.gogo.protobuf.proto._MessageSet_Item) (y : GoSlice) :
+noncomputable instance access_store'_MessageSet_Item'Message (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : github_com.gogo.protobuf.proto._MessageSet_Item) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : _root_.Perennial.github_com.gogo.protobuf.proto._MessageSet_Item) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1207,51 +1207,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'messageSet :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.messageSet where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.messageSet where
   typedPointstoDef l v dq := iprop(
-    "Item" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' dq ∗
-    "XXX_unrecognized" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' dq ∗
+    "Item" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' dq ∗
+    "XXX_unrecognized" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'messageSet :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.messageSet github_com.gogo.protobuf.proto.messageSet.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.messageSet _root_.Perennial.github_com.gogo.protobuf.proto.messageSet.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'messageSet'Item (l : Loc) (v : github_com.gogo.protobuf.proto.messageSet) (dq : DFrac) :
+noncomputable instance access_load'messageSet'Item (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.messageSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'messageSet'Item (l : Loc) (v : github_com.gogo.protobuf.proto.messageSet) (y : GoSlice) :
+noncomputable instance access_store'messageSet'Item (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.messageSet) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"Item" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Item' := y } : github_com.gogo.protobuf.proto.messageSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"Item" l) v.Item' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"Item" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Item' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.messageSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'messageSet'XXX_unrecognized (l : Loc) (v : github_com.gogo.protobuf.proto.messageSet) (dq : DFrac) :
+noncomputable instance access_load'messageSet'XXX_unrecognized (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.messageSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'messageSet'XXX_unrecognized (l : Loc) (v : github_com.gogo.protobuf.proto.messageSet) (y : GoSlice) :
+noncomputable instance access_store'messageSet'XXX_unrecognized (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.messageSet) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with XXX_unrecognized' := y } : github_com.gogo.protobuf.proto.messageSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) v.XXX_unrecognized' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.messageSet go!"XXX_unrecognized" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with XXX_unrecognized' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.messageSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1264,34 +1264,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'pointer :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.pointer where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.pointer where
   typedPointstoDef l v dq := iprop(
-    "p" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' dq ∗
+    "p" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'pointer :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.pointer github_com.gogo.protobuf.proto.pointer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.pointer _root_.Perennial.github_com.gogo.protobuf.proto.pointer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'pointer'p (l : Loc) (v : github_com.gogo.protobuf.proto.pointer) (dq : DFrac) :
+noncomputable instance access_load'pointer'p (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.pointer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'pointer'p (l : Loc) (v : github_com.gogo.protobuf.proto.pointer) (y : Loc) :
+noncomputable instance access_store'pointer'p (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.pointer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.pointer go!"p" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with p' := y } : github_com.gogo.protobuf.proto.pointer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.pointer go!"p" l) v.p' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.pointer go!"p" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with p' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.pointer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1304,51 +1304,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'tagMap :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.tagMap where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.tagMap where
   typedPointstoDef l v dq := iprop(
-    "fastTags" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' dq ∗
-    "slowTags" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' dq ∗
+    "fastTags" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' dq ∗
+    "slowTags" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'tagMap :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.tagMap github_com.gogo.protobuf.proto.tagMap.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.tagMap _root_.Perennial.github_com.gogo.protobuf.proto.tagMap.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'tagMap'fastTags (l : Loc) (v : github_com.gogo.protobuf.proto.tagMap) (dq : DFrac) :
+noncomputable instance access_load'tagMap'fastTags (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.tagMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'tagMap'fastTags (l : Loc) (v : github_com.gogo.protobuf.proto.tagMap) (y : GoSlice) :
+noncomputable instance access_store'tagMap'fastTags (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.tagMap) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fastTags' := y } : github_com.gogo.protobuf.proto.tagMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) v.fastTags' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"fastTags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fastTags' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.tagMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'tagMap'slowTags (l : Loc) (v : github_com.gogo.protobuf.proto.tagMap) (dq : DFrac) :
+noncomputable instance access_load'tagMap'slowTags (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.tagMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'tagMap'slowTags (l : Loc) (v : github_com.gogo.protobuf.proto.tagMap) (y : GoMap) :
+noncomputable instance access_store'tagMap'slowTags (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.tagMap) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with slowTags' := y } : github_com.gogo.protobuf.proto.tagMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) v.slowTags' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.tagMap go!"slowTags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with slowTags' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.tagMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1361,119 +1361,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'StructProperties :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.StructProperties where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties where
   typedPointstoDef l v dq := iprop(
-    "Prop'" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' dq ∗
-    "reqCount" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' dq ∗
-    "decoderTags" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' dq ∗
-    "decoderOrigNames" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' dq ∗
-    "order" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' dq ∗
-    "OneofTypes" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' dq ∗
+    "Prop'" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' dq ∗
+    "reqCount" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' dq ∗
+    "decoderTags" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' dq ∗
+    "decoderOrigNames" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' dq ∗
+    "order" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' dq ∗
+    "OneofTypes" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'StructProperties :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.StructProperties github_com.gogo.protobuf.proto.StructProperties.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'StructProperties'Prop (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
+noncomputable instance access_load'StructProperties'Prop (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StructProperties'Prop (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (y : GoSlice) :
+noncomputable instance access_store'StructProperties'Prop (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Prop' := y } : github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) v.Prop' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"Prop" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Prop' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'StructProperties'reqCount (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
+noncomputable instance access_load'StructProperties'reqCount (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StructProperties'reqCount (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (y : w64) :
+noncomputable instance access_store'StructProperties'reqCount (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqCount' := y } : github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) v.reqCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"reqCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqCount' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'StructProperties'decoderTags (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
+noncomputable instance access_load'StructProperties'decoderTags (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StructProperties'decoderTags (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (y : github_com.gogo.protobuf.proto.tagMap) :
+noncomputable instance access_store'StructProperties'decoderTags (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (y : _root_.Perennial.github_com.gogo.protobuf.proto.tagMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decoderTags' := y } : github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) v.decoderTags' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderTags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decoderTags' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'StructProperties'decoderOrigNames (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
+noncomputable instance access_load'StructProperties'decoderOrigNames (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StructProperties'decoderOrigNames (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (y : GoMap) :
+noncomputable instance access_store'StructProperties'decoderOrigNames (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decoderOrigNames' := y } : github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) v.decoderOrigNames' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"decoderOrigNames" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decoderOrigNames' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'StructProperties'order (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
+noncomputable instance access_load'StructProperties'order (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StructProperties'order (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (y : GoSlice) :
+noncomputable instance access_store'StructProperties'order (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"order" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with order' := y } : github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"order" l) v.order' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"order" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with order' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'StructProperties'OneofTypes (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
+noncomputable instance access_load'StructProperties'OneofTypes (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StructProperties'OneofTypes (l : Loc) (v : github_com.gogo.protobuf.proto.StructProperties) (y : GoMap) :
+noncomputable instance access_store'StructProperties'OneofTypes (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OneofTypes' := y } : github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) v.OneofTypes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties go!"OneofTypes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OneofTypes' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.StructProperties) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1486,14 +1486,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'OneofProperties :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.OneofProperties :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.OneofProperties :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'OneofProperties :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.OneofProperties github_com.gogo.protobuf.proto.OneofProperties.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.OneofProperties _root_.Perennial.github_com.gogo.protobuf.proto.OneofProperties.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1505,14 +1505,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'Properties :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.Properties :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Properties :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Properties :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.Properties github_com.gogo.protobuf.proto.Properties.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.Properties _root_.Perennial.github_com.gogo.protobuf.proto.Properties.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1524,14 +1524,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'marshalInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.marshalInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.marshalInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'marshalInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.marshalInfo github_com.gogo.protobuf.proto.marshalInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.marshalInfo _root_.Perennial.github_com.gogo.protobuf.proto.marshalInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1543,14 +1543,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'marshalFieldInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.marshalFieldInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.marshalFieldInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'marshalFieldInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.marshalFieldInfo github_com.gogo.protobuf.proto.marshalFieldInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.marshalFieldInfo _root_.Perennial.github_com.gogo.protobuf.proto.marshalFieldInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1562,102 +1562,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'marshalElemInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.marshalElemInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo where
   typedPointstoDef l v dq := iprop(
-    "wiretag" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' dq ∗
-    "tagsize" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' dq ∗
-    "sizer" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' dq ∗
-    "marshaler" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' dq ∗
-    "isptr" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' dq ∗
+    "wiretag" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' dq ∗
+    "tagsize" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' dq ∗
+    "sizer" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' dq ∗
+    "marshaler" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' dq ∗
+    "isptr" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'marshalElemInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.marshalElemInfo github_com.gogo.protobuf.proto.marshalElemInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'marshalElemInfo'wiretag (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
+noncomputable instance access_load'marshalElemInfo'wiretag (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'marshalElemInfo'wiretag (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (y : w64) :
+noncomputable instance access_store'marshalElemInfo'wiretag (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wiretag' := y } : github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) v.wiretag' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"wiretag" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wiretag' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'marshalElemInfo'tagsize (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
+noncomputable instance access_load'marshalElemInfo'tagsize (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'marshalElemInfo'tagsize (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (y : w64) :
+noncomputable instance access_store'marshalElemInfo'tagsize (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tagsize' := y } : github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) v.tagsize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"tagsize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tagsize' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'marshalElemInfo'sizer (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
+noncomputable instance access_load'marshalElemInfo'sizer (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'marshalElemInfo'sizer (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (y : github_com.gogo.protobuf.proto.sizer) :
+noncomputable instance access_store'marshalElemInfo'sizer (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (y : _root_.Perennial.github_com.gogo.protobuf.proto.sizer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizer' := y } : github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) v.sizer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"sizer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizer' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'marshalElemInfo'marshaler (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
+noncomputable instance access_load'marshalElemInfo'marshaler (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'marshalElemInfo'marshaler (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (y : github_com.gogo.protobuf.proto.marshaler) :
+noncomputable instance access_store'marshalElemInfo'marshaler (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (y : _root_.Perennial.github_com.gogo.protobuf.proto.marshaler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with marshaler' := y } : github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) v.marshaler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"marshaler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with marshaler' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'marshalElemInfo'isptr (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
+noncomputable instance access_load'marshalElemInfo'isptr (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'marshalElemInfo'isptr (l : Loc) (v : github_com.gogo.protobuf.proto.marshalElemInfo) (y : Bool) :
+noncomputable instance access_store'marshalElemInfo'isptr (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isptr' := y } : github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) v.isptr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo go!"isptr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isptr' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.marshalElemInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1670,14 +1670,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'mergeInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.mergeInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.mergeInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'mergeInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.mergeInfo github_com.gogo.protobuf.proto.mergeInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.mergeInfo _root_.Perennial.github_com.gogo.protobuf.proto.mergeInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1689,85 +1689,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'mergeFieldInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.mergeFieldInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo where
   typedPointstoDef l v dq := iprop(
-    "field" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' dq ∗
-    "isPointer" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' dq ∗
-    "basicWidth" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' dq ∗
-    "merge" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' dq ∗
+    "isPointer" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' dq ∗
+    "basicWidth" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' dq ∗
+    "merge" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'mergeFieldInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.mergeFieldInfo github_com.gogo.protobuf.proto.mergeFieldInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'mergeFieldInfo'field (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'mergeFieldInfo'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'mergeFieldInfo'field (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (y : github_com.gogo.protobuf.proto.field) :
+noncomputable instance access_store'mergeFieldInfo'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (y : _root_.Perennial.github_com.gogo.protobuf.proto.field) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'mergeFieldInfo'isPointer (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'mergeFieldInfo'isPointer (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'mergeFieldInfo'isPointer (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (y : Bool) :
+noncomputable instance access_store'mergeFieldInfo'isPointer (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isPointer' := y } : github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) v.isPointer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"isPointer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isPointer' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'mergeFieldInfo'basicWidth (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'mergeFieldInfo'basicWidth (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'mergeFieldInfo'basicWidth (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (y : w64) :
+noncomputable instance access_store'mergeFieldInfo'basicWidth (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with basicWidth' := y } : github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) v.basicWidth' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"basicWidth" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with basicWidth' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'mergeFieldInfo'merge (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'mergeFieldInfo'merge (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'mergeFieldInfo'merge (l : Loc) (v : github_com.gogo.protobuf.proto.mergeFieldInfo) (y : GoFunc) :
+noncomputable instance access_store'mergeFieldInfo'merge (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with merge' := y } : github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) v.merge' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo go!"merge" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with merge' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.mergeFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1780,14 +1780,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'unmarshalInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.unmarshalInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'unmarshalInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.unmarshalInfo github_com.gogo.protobuf.proto.unmarshalInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalInfo _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1799,85 +1799,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'unmarshalFieldInfo :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.unmarshalFieldInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo where
   typedPointstoDef l v dq := iprop(
-    "field" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' dq ∗
-    "unmarshal" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' dq ∗
-    "reqMask" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' dq ∗
-    "name" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' dq ∗
+    "unmarshal" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' dq ∗
+    "reqMask" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'unmarshalFieldInfo :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.unmarshalFieldInfo github_com.gogo.protobuf.proto.unmarshalFieldInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'unmarshalFieldInfo'field (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'unmarshalFieldInfo'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unmarshalFieldInfo'field (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : github_com.gogo.protobuf.proto.field) :
+noncomputable instance access_store'unmarshalFieldInfo'field (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : _root_.Perennial.github_com.gogo.protobuf.proto.field) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'unmarshalFieldInfo'unmarshal (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'unmarshalFieldInfo'unmarshal (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unmarshalFieldInfo'unmarshal (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : github_com.gogo.protobuf.proto.unmarshaler) :
+noncomputable instance access_store'unmarshalFieldInfo'unmarshal (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshaler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unmarshal' := y } : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) v.unmarshal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"unmarshal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unmarshal' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'unmarshalFieldInfo'reqMask (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'unmarshalFieldInfo'reqMask (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unmarshalFieldInfo'reqMask (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : w64) :
+noncomputable instance access_store'unmarshalFieldInfo'reqMask (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqMask' := y } : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) v.reqMask' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"reqMask" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reqMask' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'unmarshalFieldInfo'name (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
+noncomputable instance access_load'unmarshalFieldInfo'name (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unmarshalFieldInfo'name (l : Loc) (v : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : GoString) :
+noncomputable instance access_store'unmarshalFieldInfo'name (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.unmarshalFieldInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1890,14 +1890,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'writer :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.writer :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.writer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'writer :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.writer github_com.gogo.protobuf.proto.writer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.writer _root_.Perennial.github_com.gogo.protobuf.proto.writer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1909,85 +1909,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'textWriter :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.textWriter where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.textWriter where
   typedPointstoDef l v dq := iprop(
-    "ind" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' dq ∗
-    "complete" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' dq ∗
-    "compact" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' dq ∗
-    "w" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' dq ∗
+    "ind" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' dq ∗
+    "complete" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' dq ∗
+    "compact" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' dq ∗
+    "w" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'textWriter :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.textWriter github_com.gogo.protobuf.proto.textWriter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.textWriter _root_.Perennial.github_com.gogo.protobuf.proto.textWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'textWriter'ind (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
+noncomputable instance access_load'textWriter'ind (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textWriter'ind (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (y : w64) :
+noncomputable instance access_store'textWriter'ind (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"ind" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ind' := y } : github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"ind" l) v.ind' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"ind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ind' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textWriter'complete (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
+noncomputable instance access_load'textWriter'complete (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textWriter'complete (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (y : Bool) :
+noncomputable instance access_store'textWriter'complete (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"complete" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with complete' := y } : github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"complete" l) v.complete' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"complete" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with complete' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textWriter'compact (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
+noncomputable instance access_load'textWriter'compact (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textWriter'compact (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (y : Bool) :
+noncomputable instance access_store'textWriter'compact (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"compact" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compact' := y } : github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"compact" l) v.compact' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"compact" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compact' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textWriter'w (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
+noncomputable instance access_load'textWriter'w (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textWriter'w (l : Loc) (v : github_com.gogo.protobuf.proto.textWriter) (y : github_com.gogo.protobuf.proto.writer) :
+noncomputable instance access_store'textWriter'w (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (y : _root_.Perennial.github_com.gogo.protobuf.proto.writer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textWriter go!"w" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textWriter go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2000,51 +2000,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'TextMarshaler :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.TextMarshaler where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler where
   typedPointstoDef l v dq := iprop(
-    "Compact" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' dq ∗
-    "ExpandAny" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' dq ∗
+    "Compact" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' dq ∗
+    "ExpandAny" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'TextMarshaler :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.TextMarshaler github_com.gogo.protobuf.proto.TextMarshaler.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'TextMarshaler'Compact (l : Loc) (v : github_com.gogo.protobuf.proto.TextMarshaler) (dq : DFrac) :
+noncomputable instance access_load'TextMarshaler'Compact (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TextMarshaler'Compact (l : Loc) (v : github_com.gogo.protobuf.proto.TextMarshaler) (y : Bool) :
+noncomputable instance access_store'TextMarshaler'Compact (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Compact' := y } : github_com.gogo.protobuf.proto.TextMarshaler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) v.Compact' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"Compact" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Compact' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TextMarshaler'ExpandAny (l : Loc) (v : github_com.gogo.protobuf.proto.TextMarshaler) (dq : DFrac) :
+noncomputable instance access_load'TextMarshaler'ExpandAny (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TextMarshaler'ExpandAny (l : Loc) (v : github_com.gogo.protobuf.proto.TextMarshaler) (y : Bool) :
+noncomputable instance access_store'TextMarshaler'ExpandAny (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExpandAny' := y } : github_com.gogo.protobuf.proto.TextMarshaler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) v.ExpandAny' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler go!"ExpandAny" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ExpandAny' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.TextMarshaler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2057,68 +2057,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'ParseError :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.ParseError where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.ParseError where
   typedPointstoDef l v dq := iprop(
-    "Message" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' dq ∗
-    "Line" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' dq ∗
-    "Offset" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' dq ∗
+    "Line" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' dq ∗
+    "Offset" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ParseError :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.ParseError github_com.gogo.protobuf.proto.ParseError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.ParseError _root_.Perennial.github_com.gogo.protobuf.proto.ParseError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ParseError'Message (l : Loc) (v : github_com.gogo.protobuf.proto.ParseError) (dq : DFrac) :
+noncomputable instance access_load'ParseError'Message (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ParseError'Message (l : Loc) (v : github_com.gogo.protobuf.proto.ParseError) (y : GoString) :
+noncomputable instance access_store'ParseError'Message (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Message" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : github_com.gogo.protobuf.proto.ParseError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ParseError'Line (l : Loc) (v : github_com.gogo.protobuf.proto.ParseError) (dq : DFrac) :
+noncomputable instance access_load'ParseError'Line (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ParseError'Line (l : Loc) (v : github_com.gogo.protobuf.proto.ParseError) (y : w64) :
+noncomputable instance access_store'ParseError'Line (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Line" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := y } : github_com.gogo.protobuf.proto.ParseError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Line" l) v.Line' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Line" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ParseError'Offset (l : Loc) (v : github_com.gogo.protobuf.proto.ParseError) (dq : DFrac) :
+noncomputable instance access_load'ParseError'Offset (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ParseError'Offset (l : Loc) (v : github_com.gogo.protobuf.proto.ParseError) (y : w64) :
+noncomputable instance access_store'ParseError'Offset (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.ParseError go!"Offset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : github_com.gogo.protobuf.proto.ParseError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Offset" l) v.Offset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.ParseError go!"Offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.ParseError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2131,102 +2131,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'token :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.token where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.token where
   typedPointstoDef l v dq := iprop(
-    "value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"value" l) v.value' dq ∗
-    "err" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"err" l) v.err' dq ∗
-    "line" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"line" l) v.line' dq ∗
-    "offset" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' dq ∗
-    "unquoted" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' dq ∗
+    "value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"value" l) v.value' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"err" l) v.err' dq ∗
+    "line" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"line" l) v.line' dq ∗
+    "offset" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' dq ∗
+    "unquoted" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'token :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.token github_com.gogo.protobuf.proto.token.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.token _root_.Perennial.github_com.gogo.protobuf.proto.token.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'token'value (l : Loc) (v : github_com.gogo.protobuf.proto.token) (dq : DFrac) :
+noncomputable instance access_load'token'value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'token'value (l : Loc) (v : github_com.gogo.protobuf.proto.token) (y : GoString) :
+noncomputable instance access_store'token'value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'token'err (l : Loc) (v : github_com.gogo.protobuf.proto.token) (dq : DFrac) :
+noncomputable instance access_load'token'err (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'token'err (l : Loc) (v : github_com.gogo.protobuf.proto.token) (y : Loc) :
+noncomputable instance access_store'token'err (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'token'line (l : Loc) (v : github_com.gogo.protobuf.proto.token) (dq : DFrac) :
+noncomputable instance access_load'token'line (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"line" l) v.line' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"line" l) v.line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"line" l) v.line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"line" l) v.line' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'token'line (l : Loc) (v : github_com.gogo.protobuf.proto.token) (y : w64) :
+noncomputable instance access_store'token'line (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"line" l) v.line' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"line" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with line' := y } : github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"line" l) v.line' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"line" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with line' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'token'offset (l : Loc) (v : github_com.gogo.protobuf.proto.token) (dq : DFrac) :
+noncomputable instance access_load'token'offset (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'token'offset (l : Loc) (v : github_com.gogo.protobuf.proto.token) (y : w64) :
+noncomputable instance access_store'token'offset (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"offset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := y } : github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"offset" l) v.offset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'token'unquoted (l : Loc) (v : github_com.gogo.protobuf.proto.token) (dq : DFrac) :
+noncomputable instance access_load'token'unquoted (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'token'unquoted (l : Loc) (v : github_com.gogo.protobuf.proto.token) (y : GoString) :
+noncomputable instance access_store'token'unquoted (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.token) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.token go!"unquoted" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unquoted' := y } : github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"unquoted" l) v.unquoted' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.token go!"unquoted" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unquoted' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.token) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2239,119 +2239,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'textParser :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.textParser where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.textParser where
   typedPointstoDef l v dq := iprop(
-    "s" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' dq ∗
-    "done" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' dq ∗
-    "backed" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' dq ∗
-    "offset" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' dq ∗
-    "line" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' dq ∗
-    "cur" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' dq ∗
+    "s" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' dq ∗
+    "done" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' dq ∗
+    "backed" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' dq ∗
+    "offset" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' dq ∗
+    "line" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' dq ∗
+    "cur" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'textParser :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.textParser github_com.gogo.protobuf.proto.textParser.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.textParser _root_.Perennial.github_com.gogo.protobuf.proto.textParser.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'textParser's (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
+noncomputable instance access_load'textParser's (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textParser's (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (y : GoString) :
+noncomputable instance access_store'textParser's (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"s" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textParser'done (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
+noncomputable instance access_load'textParser'done (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textParser'done (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (y : Bool) :
+noncomputable instance access_store'textParser'done (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"done" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := y } : github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"done" l) v.done' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"done" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textParser'backed (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
+noncomputable instance access_load'textParser'backed (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textParser'backed (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (y : Bool) :
+noncomputable instance access_store'textParser'backed (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"backed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backed' := y } : github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"backed" l) v.backed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"backed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backed' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textParser'offset (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
+noncomputable instance access_load'textParser'offset (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textParser'offset (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (y : w64) :
+noncomputable instance access_store'textParser'offset (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"offset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := y } : github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"offset" l) v.offset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textParser'line (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
+noncomputable instance access_load'textParser'line (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textParser'line (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (y : w64) :
+noncomputable instance access_store'textParser'line (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"line" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with line' := y } : github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"line" l) v.line' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"line" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with line' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'textParser'cur (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
+noncomputable instance access_load'textParser'cur (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'textParser'cur (l : Loc) (v : github_com.gogo.protobuf.proto.textParser) (y : github_com.gogo.protobuf.proto.token) :
+noncomputable instance access_store'textParser'cur (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (y : _root_.Perennial.github_com.gogo.protobuf.proto.token) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.textParser go!"cur" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cur' := y } : github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"cur" l) v.cur' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.textParser go!"cur" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cur' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.textParser) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2364,51 +2364,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'timestamp :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.timestamp where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.timestamp where
   typedPointstoDef l v dq := iprop(
-    "Seconds" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' dq ∗
-    "Nanos" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' dq ∗
+    "Seconds" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' dq ∗
+    "Nanos" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'timestamp :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.timestamp github_com.gogo.protobuf.proto.timestamp.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.timestamp _root_.Perennial.github_com.gogo.protobuf.proto.timestamp.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'timestamp'Seconds (l : Loc) (v : github_com.gogo.protobuf.proto.timestamp) (dq : DFrac) :
+noncomputable instance access_load'timestamp'Seconds (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.timestamp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timestamp'Seconds (l : Loc) (v : github_com.gogo.protobuf.proto.timestamp) (y : w64) :
+noncomputable instance access_store'timestamp'Seconds (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.timestamp) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Seconds' := y } : github_com.gogo.protobuf.proto.timestamp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) v.Seconds' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Seconds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Seconds' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.timestamp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'timestamp'Nanos (l : Loc) (v : github_com.gogo.protobuf.proto.timestamp) (dq : DFrac) :
+noncomputable instance access_load'timestamp'Nanos (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.timestamp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timestamp'Nanos (l : Loc) (v : github_com.gogo.protobuf.proto.timestamp) (y : w32) :
+noncomputable instance access_store'timestamp'Nanos (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.timestamp) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Nanos' := y } : github_com.gogo.protobuf.proto.timestamp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) v.Nanos' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.timestamp go!"Nanos" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Nanos' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.timestamp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2421,34 +2421,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'float64Value :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.float64Value where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.float64Value where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'float64Value :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.float64Value github_com.gogo.protobuf.proto.float64Value.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.float64Value _root_.Perennial.github_com.gogo.protobuf.proto.float64Value.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'float64Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.float64Value) (dq : DFrac) :
+noncomputable instance access_load'float64Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.float64Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'float64Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.float64Value) (y : w64) :
+noncomputable instance access_store'float64Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.float64Value) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float64Value go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.float64Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float64Value go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float64Value go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.float64Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2461,34 +2461,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'float32Value :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.float32Value where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.float32Value where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'float32Value :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.float32Value github_com.gogo.protobuf.proto.float32Value.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.float32Value _root_.Perennial.github_com.gogo.protobuf.proto.float32Value.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'float32Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.float32Value) (dq : DFrac) :
+noncomputable instance access_load'float32Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.float32Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'float32Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.float32Value) (y : w32) :
+noncomputable instance access_store'float32Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.float32Value) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.float32Value go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.float32Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float32Value go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.float32Value go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.float32Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2501,34 +2501,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'int64Value :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.int64Value where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.int64Value where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'int64Value :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.int64Value github_com.gogo.protobuf.proto.int64Value.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.int64Value _root_.Perennial.github_com.gogo.protobuf.proto.int64Value.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'int64Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.int64Value) (dq : DFrac) :
+noncomputable instance access_load'int64Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.int64Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'int64Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.int64Value) (y : w64) :
+noncomputable instance access_store'int64Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.int64Value) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int64Value go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.int64Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int64Value go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int64Value go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.int64Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2541,34 +2541,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'uint64Value :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.uint64Value where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'uint64Value :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.uint64Value github_com.gogo.protobuf.proto.uint64Value.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'uint64Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.uint64Value) (dq : DFrac) :
+noncomputable instance access_load'uint64Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'uint64Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.uint64Value) (y : w64) :
+noncomputable instance access_store'uint64Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint64Value go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.uint64Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.uint64Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2581,34 +2581,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'int32Value :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.int32Value where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.int32Value where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'int32Value :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.int32Value github_com.gogo.protobuf.proto.int32Value.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.int32Value _root_.Perennial.github_com.gogo.protobuf.proto.int32Value.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'int32Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.int32Value) (dq : DFrac) :
+noncomputable instance access_load'int32Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.int32Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'int32Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.int32Value) (y : w32) :
+noncomputable instance access_store'int32Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.int32Value) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.int32Value go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.int32Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int32Value go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.int32Value go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.int32Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2621,34 +2621,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'uint32Value :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.uint32Value where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'uint32Value :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.uint32Value github_com.gogo.protobuf.proto.uint32Value.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'uint32Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.uint32Value) (dq : DFrac) :
+noncomputable instance access_load'uint32Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'uint32Value'Value (l : Loc) (v : github_com.gogo.protobuf.proto.uint32Value) (y : w32) :
+noncomputable instance access_store'uint32Value'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.uint32Value go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.uint32Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.uint32Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2661,34 +2661,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'boolValue :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.boolValue where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.boolValue where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'boolValue :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.boolValue github_com.gogo.protobuf.proto.boolValue.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.boolValue _root_.Perennial.github_com.gogo.protobuf.proto.boolValue.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'boolValue'Value (l : Loc) (v : github_com.gogo.protobuf.proto.boolValue) (dq : DFrac) :
+noncomputable instance access_load'boolValue'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.boolValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'boolValue'Value (l : Loc) (v : github_com.gogo.protobuf.proto.boolValue) (y : Bool) :
+noncomputable instance access_store'boolValue'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.boolValue) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.boolValue go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.boolValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.boolValue go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.boolValue go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.boolValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2701,34 +2701,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'stringValue :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.stringValue where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.stringValue where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'stringValue :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.stringValue github_com.gogo.protobuf.proto.stringValue.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.stringValue _root_.Perennial.github_com.gogo.protobuf.proto.stringValue.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'stringValue'Value (l : Loc) (v : github_com.gogo.protobuf.proto.stringValue) (dq : DFrac) :
+noncomputable instance access_load'stringValue'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.stringValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stringValue'Value (l : Loc) (v : github_com.gogo.protobuf.proto.stringValue) (y : GoString) :
+noncomputable instance access_store'stringValue'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.stringValue) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.stringValue go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.stringValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.stringValue go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.stringValue go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.stringValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2741,34 +2741,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'bytesValue :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.proto.bytesValue where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue where
   typedPointstoDef l v dq := iprop(
-    "Value" ∷ typedPointsto (structFieldRef github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'bytesValue :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.proto.bytesValue github_com.gogo.protobuf.proto.bytesValue.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'bytesValue'Value (l : Loc) (v : github_com.gogo.protobuf.proto.bytesValue) (dq : DFrac) :
+noncomputable instance access_load'bytesValue'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'bytesValue'Value (l : Loc) (v : github_com.gogo.protobuf.proto.bytesValue) (y : GoSlice) :
+noncomputable instance access_store'bytesValue'Value (l : Loc) (v : _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.gogo.protobuf.proto.bytesValue go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.gogo.protobuf.proto.bytesValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.gogo.protobuf.proto.bytesValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -27,51 +27,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : hash.crc32.Assumptions]
+variable [package_sem' : _root_.Perennial.hash.crc32.Assumptions]
 
 noncomputable instance typed_pointsto'digest :
-    TypedPointsto (GF := GF) hash.crc32.digest where
+    TypedPointsto (GF := GF) _root_.Perennial.hash.crc32.digest where
   typedPointstoDef l v dq := iprop(
-    "crc" ∷ typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) v.crc' dq ∗
-    "tab" ∷ typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) v.tab' dq ∗
+    "crc" ∷ typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"crc" l) v.crc' dq ∗
+    "tab" ∷ typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"tab" l) v.tab' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'digest :
-    IntoValTypedUnderlying (GF := GF) hash.crc32.digest hash.crc32.digest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.hash.crc32.digest _root_.Perennial.hash.crc32.digest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'digest'crc (l : Loc) (v : hash.crc32.digest) (dq : DFrac) :
+noncomputable instance access_load'digest'crc (l : Loc) (v : _root_.Perennial.hash.crc32.digest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) v.crc' dq)
-      (typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) v.crc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"crc" l) v.crc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"crc" l) v.crc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'digest'crc (l : Loc) (v : hash.crc32.digest) (y : w32) :
+noncomputable instance access_store'digest'crc (l : Loc) (v : _root_.Perennial.hash.crc32.digest) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) v.crc' (DFrac.own 1))
-      (typedPointsto (structFieldRef hash.crc32.digest go!"crc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := y } : hash.crc32.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"crc" l) v.crc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"crc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with crc' := y } : _root_.Perennial.hash.crc32.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'digest'tab (l : Loc) (v : hash.crc32.digest) (dq : DFrac) :
+noncomputable instance access_load'digest'tab (l : Loc) (v : _root_.Perennial.hash.crc32.digest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) v.tab' dq)
-      (typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) v.tab' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"tab" l) v.tab' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"tab" l) v.tab' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'digest'tab (l : Loc) (v : hash.crc32.digest) (y : Loc) :
+noncomputable instance access_store'digest'tab (l : Loc) (v : _root_.Perennial.hash.crc32.digest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) v.tab' (DFrac.own 1))
-      (typedPointsto (structFieldRef hash.crc32.digest go!"tab" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := y } : hash.crc32.digest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"tab" l) v.tab' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.hash.crc32.digest go!"tab" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tab' := y } : _root_.Perennial.hash.crc32.digest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

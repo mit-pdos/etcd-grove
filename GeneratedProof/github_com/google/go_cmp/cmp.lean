@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'state :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.state :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.state :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'state :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.state github_com.google.go_cmp.cmp.state.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.state _root_.Perennial.github_com.google.go_cmp.cmp.state.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'recChecker :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.recChecker :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.recChecker :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'recChecker :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.recChecker github_com.google.go_cmp.cmp.recChecker.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.recChecker _root_.Perennial.github_com.google.go_cmp.cmp.recChecker.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'dynChecker :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.dynChecker :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.dynChecker :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'dynChecker :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.dynChecker github_com.google.go_cmp.cmp.dynChecker.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.dynChecker _root_.Perennial.github_com.google.go_cmp.cmp.dynChecker.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'coreOption :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.coreOption :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.coreOption :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'coreOption :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.coreOption github_com.google.go_cmp.cmp.coreOption.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.coreOption _root_.Perennial.github_com.google.go_cmp.cmp.coreOption.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'core :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.core :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.core :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'core :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.core github_com.google.go_cmp.cmp.core.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.core _root_.Perennial.github_com.google.go_cmp.cmp.core.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'Options :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Options :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Options :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Options :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Options github_com.google.go_cmp.cmp.Options.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Options _root_.Perennial.github_com.google.go_cmp.cmp.Options.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'pathFilter :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pathFilter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pathFilter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'pathFilter :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pathFilter github_com.google.go_cmp.cmp.pathFilter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pathFilter _root_.Perennial.github_com.google.go_cmp.cmp.pathFilter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'valuesFilter :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.valuesFilter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.valuesFilter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'valuesFilter :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.valuesFilter github_com.google.go_cmp.cmp.valuesFilter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.valuesFilter _root_.Perennial.github_com.google.go_cmp.cmp.valuesFilter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'ignore :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.ignore :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.ignore :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ignore :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.ignore github_com.google.go_cmp.cmp.ignore.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.ignore _root_.Perennial.github_com.google.go_cmp.cmp.ignore.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'validator :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.validator :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.validator :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'validator :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.validator github_com.google.go_cmp.cmp.validator.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.validator _root_.Perennial.github_com.google.go_cmp.cmp.validator.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'transformer :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.transformer :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.transformer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'transformer :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.transformer github_com.google.go_cmp.cmp.transformer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.transformer _root_.Perennial.github_com.google.go_cmp.cmp.transformer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'comparer :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.comparer :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.comparer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'comparer :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.comparer github_com.google.go_cmp.cmp.comparer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.comparer _root_.Perennial.github_com.google.go_cmp.cmp.comparer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'exporter :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.exporter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.exporter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'exporter :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.exporter github_com.google.go_cmp.cmp.exporter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.exporter _root_.Perennial.github_com.google.go_cmp.cmp.exporter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'Result :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Result :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Result :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Result :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Result github_com.google.go_cmp.cmp.Result.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Result _root_.Perennial.github_com.google.go_cmp.cmp.Result.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'resultFlags :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.resultFlags :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.resultFlags :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'resultFlags :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.resultFlags github_com.google.go_cmp.cmp.resultFlags.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.resultFlags _root_.Perennial.github_com.google.go_cmp.cmp.resultFlags.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'reporter :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.reporter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.reporter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'reporter :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.reporter github_com.google.go_cmp.cmp.reporter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.reporter _root_.Perennial.github_com.google.go_cmp.cmp.reporter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'reporterIface :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.reporterIface :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.reporterIface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'reporterIface :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.reporterIface github_com.google.go_cmp.cmp.reporterIface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.reporterIface _root_.Perennial.github_com.google.go_cmp.cmp.reporterIface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'Path :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Path :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Path :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Path :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Path github_com.google.go_cmp.cmp.Path.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Path _root_.Perennial.github_com.google.go_cmp.cmp.Path.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -364,14 +364,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'PathStep :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.PathStep :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.PathStep :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PathStep :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.PathStep github_com.google.go_cmp.cmp.PathStep.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.PathStep _root_.Perennial.github_com.google.go_cmp.cmp.PathStep.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -383,14 +383,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'pathStep :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pathStep :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pathStep :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'pathStep :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pathStep github_com.google.go_cmp.cmp.pathStep.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pathStep _root_.Perennial.github_com.google.go_cmp.cmp.pathStep.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -402,14 +402,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'StructField :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.StructField :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.StructField :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StructField :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.StructField github_com.google.go_cmp.cmp.StructField.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.StructField _root_.Perennial.github_com.google.go_cmp.cmp.StructField.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -421,14 +421,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'structField :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.structField :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.structField :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'structField :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.structField github_com.google.go_cmp.cmp.structField.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.structField _root_.Perennial.github_com.google.go_cmp.cmp.structField.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -440,14 +440,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'SliceIndex :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.SliceIndex :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.SliceIndex :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SliceIndex :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.SliceIndex github_com.google.go_cmp.cmp.SliceIndex.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.SliceIndex _root_.Perennial.github_com.google.go_cmp.cmp.SliceIndex.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -459,14 +459,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'sliceIndex :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.sliceIndex :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.sliceIndex :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'sliceIndex :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.sliceIndex github_com.google.go_cmp.cmp.sliceIndex.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.sliceIndex _root_.Perennial.github_com.google.go_cmp.cmp.sliceIndex.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -478,14 +478,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'MapIndex :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.MapIndex :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.MapIndex :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MapIndex :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.MapIndex github_com.google.go_cmp.cmp.MapIndex.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.MapIndex _root_.Perennial.github_com.google.go_cmp.cmp.MapIndex.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -497,14 +497,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'mapIndex :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.mapIndex :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.mapIndex :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'mapIndex :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.mapIndex github_com.google.go_cmp.cmp.mapIndex.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.mapIndex _root_.Perennial.github_com.google.go_cmp.cmp.mapIndex.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -516,14 +516,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'Indirect :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Indirect :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Indirect :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Indirect :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Indirect github_com.google.go_cmp.cmp.Indirect.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Indirect _root_.Perennial.github_com.google.go_cmp.cmp.Indirect.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -535,14 +535,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'indirect :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.indirect :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.indirect :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'indirect :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.indirect github_com.google.go_cmp.cmp.indirect.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.indirect _root_.Perennial.github_com.google.go_cmp.cmp.indirect.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -554,14 +554,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'TypeAssertion :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.TypeAssertion :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.TypeAssertion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TypeAssertion :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.TypeAssertion github_com.google.go_cmp.cmp.TypeAssertion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.TypeAssertion _root_.Perennial.github_com.google.go_cmp.cmp.TypeAssertion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -573,14 +573,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'typeAssertion :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.typeAssertion :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.typeAssertion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'typeAssertion :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.typeAssertion github_com.google.go_cmp.cmp.typeAssertion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.typeAssertion _root_.Perennial.github_com.google.go_cmp.cmp.typeAssertion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -592,14 +592,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'Transform :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.Transform :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Transform :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Transform :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.Transform github_com.google.go_cmp.cmp.Transform.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.Transform _root_.Perennial.github_com.google.go_cmp.cmp.Transform.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -611,14 +611,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'transform :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.transform :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.transform :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'transform :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.transform github_com.google.go_cmp.cmp.transform.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.transform _root_.Perennial.github_com.google.go_cmp.cmp.transform.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -630,14 +630,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'pointerPath :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pointerPath :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pointerPath :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'pointerPath :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pointerPath github_com.google.go_cmp.cmp.pointerPath.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pointerPath _root_.Perennial.github_com.google.go_cmp.cmp.pointerPath.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -649,14 +649,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'defaultReporter :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.defaultReporter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.defaultReporter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'defaultReporter :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.defaultReporter github_com.google.go_cmp.cmp.defaultReporter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.defaultReporter _root_.Perennial.github_com.google.go_cmp.cmp.defaultReporter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -668,14 +668,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'diffMode :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.diffMode :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.diffMode :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'diffMode :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.diffMode github_com.google.go_cmp.cmp.diffMode.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.diffMode _root_.Perennial.github_com.google.go_cmp.cmp.diffMode.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -687,14 +687,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'typeMode :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.typeMode :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.typeMode :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'typeMode :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.typeMode github_com.google.go_cmp.cmp.typeMode.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.typeMode _root_.Perennial.github_com.google.go_cmp.cmp.typeMode.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -706,14 +706,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'formatOptions :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.formatOptions :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.formatOptions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'formatOptions :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.formatOptions github_com.google.go_cmp.cmp.formatOptions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.formatOptions _root_.Perennial.github_com.google.go_cmp.cmp.formatOptions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -725,14 +725,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'pointerReferences :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.pointerReferences :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pointerReferences :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'pointerReferences :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.pointerReferences github_com.google.go_cmp.cmp.pointerReferences.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.pointerReferences _root_.Perennial.github_com.google.go_cmp.cmp.pointerReferences.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -744,14 +744,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'trunkReferences :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.trunkReferences :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.trunkReferences :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'trunkReferences :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.trunkReferences github_com.google.go_cmp.cmp.trunkReferences.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.trunkReferences _root_.Perennial.github_com.google.go_cmp.cmp.trunkReferences.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -763,14 +763,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'trunkReference :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.trunkReference :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.trunkReference :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'trunkReference :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.trunkReference github_com.google.go_cmp.cmp.trunkReference.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.trunkReference _root_.Perennial.github_com.google.go_cmp.cmp.trunkReference.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -782,14 +782,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'leafReference :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.leafReference :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.leafReference :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'leafReference :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.leafReference github_com.google.go_cmp.cmp.leafReference.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.leafReference _root_.Perennial.github_com.google.go_cmp.cmp.leafReference.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -801,14 +801,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'formatValueOptions :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.formatValueOptions :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.formatValueOptions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'formatValueOptions :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.formatValueOptions github_com.google.go_cmp.cmp.formatValueOptions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.formatValueOptions _root_.Perennial.github_com.google.go_cmp.cmp.formatValueOptions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -820,14 +820,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'indentMode :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.indentMode :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.indentMode :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'indentMode :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.indentMode github_com.google.go_cmp.cmp.indentMode.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.indentMode _root_.Perennial.github_com.google.go_cmp.cmp.indentMode.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -839,14 +839,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'repeatCount :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.repeatCount :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.repeatCount :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'repeatCount :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.repeatCount github_com.google.go_cmp.cmp.repeatCount.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.repeatCount _root_.Perennial.github_com.google.go_cmp.cmp.repeatCount.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -858,14 +858,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'textNode :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textNode :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textNode :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'textNode :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textNode github_com.google.go_cmp.cmp.textNode.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textNode _root_.Perennial.github_com.google.go_cmp.cmp.textNode.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -877,14 +877,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'textWrap :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textWrap :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textWrap :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'textWrap :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textWrap github_com.google.go_cmp.cmp.textWrap.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textWrap _root_.Perennial.github_com.google.go_cmp.cmp.textWrap.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -896,14 +896,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'textList :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textList :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textList :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'textList :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textList github_com.google.go_cmp.cmp.textList.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textList _root_.Perennial.github_com.google.go_cmp.cmp.textList.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -915,14 +915,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'textRecord :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textRecord :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textRecord :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'textRecord :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textRecord github_com.google.go_cmp.cmp.textRecord.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textRecord _root_.Perennial.github_com.google.go_cmp.cmp.textRecord.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -934,14 +934,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'textLine :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.textLine :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textLine :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'textLine :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.textLine github_com.google.go_cmp.cmp.textLine.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.textLine _root_.Perennial.github_com.google.go_cmp.cmp.textLine.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -953,14 +953,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'diffStats :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.diffStats :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.diffStats :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'diffStats :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.diffStats github_com.google.go_cmp.cmp.diffStats.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.diffStats _root_.Perennial.github_com.google.go_cmp.cmp.diffStats.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -972,14 +972,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'commentString :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.commentString :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.commentString :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'commentString :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.commentString github_com.google.go_cmp.cmp.commentString.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.commentString _root_.Perennial.github_com.google.go_cmp.cmp.commentString.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -991,14 +991,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'valueNode :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.valueNode :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.valueNode :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'valueNode :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.valueNode github_com.google.go_cmp.cmp.valueNode.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.valueNode _root_.Perennial.github_com.google.go_cmp.cmp.valueNode.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1010,14 +1010,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.google.go_cmp.cmp.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.google.go_cmp.cmp.Assumptions]
 
 noncomputable instance typed_pointsto'reportRecord :
-    TypedPointsto (GF := GF) github_com.google.go_cmp.cmp.reportRecord :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.reportRecord :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'reportRecord :
-    IntoValTypedUnderlying (GF := GF) github_com.google.go_cmp.cmp.reportRecord github_com.google.go_cmp.cmp.reportRecord.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.google.go_cmp.cmp.reportRecord _root_.Perennial.github_com.google.go_cmp.cmp.reportRecord.underlying :=
   sorry -- axiomatized type
 
 end def_

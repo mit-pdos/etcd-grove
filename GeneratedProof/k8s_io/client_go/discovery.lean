@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'StaleGroupVersionError :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.StaleGroupVersionError :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.StaleGroupVersionError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StaleGroupVersionError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.StaleGroupVersionError k8s_io.client_go.discovery.StaleGroupVersionError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.StaleGroupVersionError _root_.Perennial.k8s_io.client_go.discovery.StaleGroupVersionError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'DiscoveryInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DiscoveryInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryInterface k8s_io.client_go.discovery.DiscoveryInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterface _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'DiscoveryInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DiscoveryInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaceWithContext k8s_io.client_go.discovery.DiscoveryInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'DiscoveryInterfaces :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaces :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterfaces :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DiscoveryInterfaces :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryInterfaces k8s_io.client_go.discovery.DiscoveryInterfaces.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterfaces _root_.Perennial.k8s_io.client_go.discovery.DiscoveryInterfaces.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'discoveryInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.discoveryInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.discoveryInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'discoveryInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.discoveryInterfaceWrapper k8s_io.client_go.discovery.discoveryInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.discoveryInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.discoveryInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'AggregatedDiscoveryInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.AggregatedDiscoveryInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AggregatedDiscoveryInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterface k8s_io.client_go.discovery.AggregatedDiscoveryInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.AggregatedDiscoveryInterface _root_.Perennial.k8s_io.client_go.discovery.AggregatedDiscoveryInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'AggregatedDiscoveryInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AggregatedDiscoveryInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.AggregatedDiscoveryInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'aggregatedDiscoveryInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'aggregatedDiscoveryInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.aggregatedDiscoveryInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'CachedDiscoveryInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.CachedDiscoveryInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CachedDiscoveryInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterface k8s_io.client_go.discovery.CachedDiscoveryInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.CachedDiscoveryInterface _root_.Perennial.k8s_io.client_go.discovery.CachedDiscoveryInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'CachedDiscoveryInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CachedDiscoveryInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.CachedDiscoveryInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'cachedDiscoveryInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cachedDiscoveryInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.cachedDiscoveryInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ServerGroupsInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerGroupsInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServerGroupsInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterface k8s_io.client_go.discovery.ServerGroupsInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerGroupsInterface _root_.Perennial.k8s_io.client_go.discovery.ServerGroupsInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ServerGroupsInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServerGroupsInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.ServerGroupsInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'serverGroupsInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.serverGroupsInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.serverGroupsInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'serverGroupsInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.serverGroupsInterfaceWrapper k8s_io.client_go.discovery.serverGroupsInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.serverGroupsInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.serverGroupsInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ServerResourcesInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerResourcesInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServerResourcesInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterface k8s_io.client_go.discovery.ServerResourcesInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerResourcesInterface _root_.Perennial.k8s_io.client_go.discovery.ServerResourcesInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ServerResourcesInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServerResourcesInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.ServerResourcesInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'serverResourcesInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.serverResourcesInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.serverResourcesInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'serverResourcesInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.serverResourcesInterfaceWrapper k8s_io.client_go.discovery.serverResourcesInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.serverResourcesInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.serverResourcesInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ServerVersionInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerVersionInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerVersionInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServerVersionInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerVersionInterface k8s_io.client_go.discovery.ServerVersionInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerVersionInterface _root_.Perennial.k8s_io.client_go.discovery.ServerVersionInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -364,14 +364,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ServerVersionInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ServerVersionInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerVersionInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServerVersionInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ServerVersionInterfaceWithContext k8s_io.client_go.discovery.ServerVersionInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ServerVersionInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.ServerVersionInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -383,14 +383,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'serverVersionInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.serverVersionInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.serverVersionInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'serverVersionInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.serverVersionInterfaceWrapper k8s_io.client_go.discovery.serverVersionInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.serverVersionInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.serverVersionInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -402,14 +402,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'OpenAPISchemaInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPISchemaInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'OpenAPISchemaInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterface k8s_io.client_go.discovery.OpenAPISchemaInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPISchemaInterface _root_.Perennial.k8s_io.client_go.discovery.OpenAPISchemaInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -421,14 +421,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'OpenAPISchemaInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'OpenAPISchemaInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.OpenAPISchemaInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -440,14 +440,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'openAPISchemaInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'openAPISchemaInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.openAPISchemaInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -459,14 +459,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'OpenAPIV3SchemaInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPIV3SchemaInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'OpenAPIV3SchemaInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterface k8s_io.client_go.discovery.OpenAPIV3SchemaInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPIV3SchemaInterface _root_.Perennial.k8s_io.client_go.discovery.OpenAPIV3SchemaInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -478,14 +478,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'OpenAPIV3SchemaInterfaceWithContext :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'OpenAPIV3SchemaInterfaceWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext _root_.Perennial.k8s_io.client_go.discovery.OpenAPIV3SchemaInterfaceWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -497,14 +497,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'openAPIV3SchemaInterfaceWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'openAPIV3SchemaInterfaceWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper _root_.Perennial.k8s_io.client_go.discovery.openAPIV3SchemaInterfaceWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -516,14 +516,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'openAPIClientWrapper :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.openAPIClientWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.openAPIClientWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'openAPIClientWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.openAPIClientWrapper k8s_io.client_go.discovery.openAPIClientWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.openAPIClientWrapper _root_.Perennial.k8s_io.client_go.discovery.openAPIClientWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -535,14 +535,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'DiscoveryClient :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.DiscoveryClient :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryClient :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DiscoveryClient :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.DiscoveryClient k8s_io.client_go.discovery.DiscoveryClient.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.DiscoveryClient _root_.Perennial.k8s_io.client_go.discovery.DiscoveryClient.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -554,14 +554,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ErrGroupDiscoveryFailed :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ErrGroupDiscoveryFailed :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ErrGroupDiscoveryFailed :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ErrGroupDiscoveryFailed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ErrGroupDiscoveryFailed k8s_io.client_go.discovery.ErrGroupDiscoveryFailed.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ErrGroupDiscoveryFailed _root_.Perennial.k8s_io.client_go.discovery.ErrGroupDiscoveryFailed.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -573,14 +573,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ResourcePredicate :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ResourcePredicate :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ResourcePredicate :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourcePredicate :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ResourcePredicate k8s_io.client_go.discovery.ResourcePredicate.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ResourcePredicate _root_.Perennial.k8s_io.client_go.discovery.ResourcePredicate.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -592,14 +592,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'ResourcePredicateFunc :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.ResourcePredicateFunc :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ResourcePredicateFunc :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourcePredicateFunc :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.ResourcePredicateFunc k8s_io.client_go.discovery.ResourcePredicateFunc.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.ResourcePredicateFunc _root_.Perennial.k8s_io.client_go.discovery.ResourcePredicateFunc.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -611,14 +611,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.discovery.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.discovery.Assumptions]
 
 noncomputable instance typed_pointsto'SupportsAllVerbs :
-    TypedPointsto (GF := GF) k8s_io.client_go.discovery.SupportsAllVerbs :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.SupportsAllVerbs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SupportsAllVerbs :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.discovery.SupportsAllVerbs k8s_io.client_go.discovery.SupportsAllVerbs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.discovery.SupportsAllVerbs _root_.Perennial.k8s_io.client_go.discovery.SupportsAllVerbs.underlying :=
   sorry -- axiomatized type
 
 end def_

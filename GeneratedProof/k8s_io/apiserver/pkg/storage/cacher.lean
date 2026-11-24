@@ -67,14 +67,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'cacheWatcher :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.cacheWatcher :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cacheWatcher :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cacheWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.cacheWatcher k8s_io.apiserver.pkg.storage.cacher.cacheWatcher.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cacheWatcher _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cacheWatcher.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -86,238 +86,238 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'Config :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.Config where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config where
   typedPointstoDef l v dq := iprop(
-    "Storage" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' dq ∗
-    "Versioner" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' dq ∗
-    "GroupResource" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' dq ∗
-    "EventsHistoryWindow" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' dq ∗
-    "ResourcePrefix" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' dq ∗
-    "KeyFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' dq ∗
-    "GetAttrsFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' dq ∗
-    "IndexerFuncs" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' dq ∗
-    "Indexers" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' dq ∗
-    "NewFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' dq ∗
-    "NewListFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' dq ∗
-    "Codec" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' dq ∗
-    "Clock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' dq ∗
+    "Storage" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' dq ∗
+    "Versioner" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' dq ∗
+    "GroupResource" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' dq ∗
+    "EventsHistoryWindow" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' dq ∗
+    "ResourcePrefix" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' dq ∗
+    "KeyFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' dq ∗
+    "GetAttrsFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' dq ∗
+    "IndexerFuncs" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' dq ∗
+    "Indexers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' dq ∗
+    "NewFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' dq ∗
+    "NewListFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' dq ∗
+    "Codec" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' dq ∗
+    "Clock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Config :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.Config k8s_io.apiserver.pkg.storage.cacher.Config.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Config'Storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
+noncomputable instance access_store'Config'Storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Storage' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) v.Storage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Storage' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Versioner (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Versioner (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Versioner (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
+noncomputable instance access_store'Config'Versioner (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Versioner' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) v.Versioner' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Versioner" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Versioner' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'GroupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'GroupResource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'GroupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'Config'GroupResource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GroupResource' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) v.GroupResource' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GroupResource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GroupResource' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'EventsHistoryWindow (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'EventsHistoryWindow (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'EventsHistoryWindow (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Config'EventsHistoryWindow (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EventsHistoryWindow' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) v.EventsHistoryWindow' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"EventsHistoryWindow" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EventsHistoryWindow' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'ResourcePrefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'ResourcePrefix (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'ResourcePrefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoString) :
+noncomputable instance access_store'Config'ResourcePrefix (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourcePrefix' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) v.ResourcePrefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"ResourcePrefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourcePrefix' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'KeyFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'KeyFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'KeyFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
+noncomputable instance access_store'Config'KeyFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeyFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) v.KeyFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"KeyFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KeyFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'GetAttrsFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'GetAttrsFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'GetAttrsFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
+noncomputable instance access_store'Config'GetAttrsFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetAttrsFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) v.GetAttrsFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"GetAttrsFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetAttrsFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'IndexerFuncs (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'IndexerFuncs (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'IndexerFuncs (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFuncs) :
+noncomputable instance access_store'Config'IndexerFuncs (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFuncs) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IndexerFuncs' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) v.IndexerFuncs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"IndexerFuncs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IndexerFuncs' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Indexers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Indexers (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Indexers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : Loc) :
+noncomputable instance access_store'Config'Indexers (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Indexers' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) v.Indexers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Indexers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Indexers' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'NewFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NewFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'NewFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
+noncomputable instance access_store'Config'NewFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) v.NewFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'NewListFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'NewListFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'NewListFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
+noncomputable instance access_store'Config'NewListFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewListFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) v.NewListFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"NewListFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewListFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Codec (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Codec (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Codec (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Codec) :
+noncomputable instance access_store'Config'Codec (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Codec) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Codec' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) v.Codec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Codec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Codec' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.utils.clock.WithTicker) :
+noncomputable instance access_store'Config'Clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (y : _root_.Perennial.k8s_io.utils.clock.WithTicker) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Clock' := y } : k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) v.Clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config go!"Clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Clock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -330,51 +330,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'indexedWatchers :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.indexedWatchers where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers where
   typedPointstoDef l v dq := iprop(
-    "scopeWatchers" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' dq ∗
-    "indexWatchers" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' dq ∗
+    "scopeWatchers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' dq ∗
+    "indexWatchers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'indexedWatchers :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.indexedWatchers k8s_io.apiserver.pkg.storage.cacher.indexedWatchers.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'indexedWatchers'scopeWatchers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (dq : DFrac) :
+noncomputable instance access_load'indexedWatchers'scopeWatchers (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'indexedWatchers'scopeWatchers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (y : GoMap) :
+noncomputable instance access_store'indexedWatchers'scopeWatchers (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scopeWatchers' := y } : k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) v.scopeWatchers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"scopeWatchers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scopeWatchers' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'indexedWatchers'indexWatchers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (dq : DFrac) :
+noncomputable instance access_load'indexedWatchers'indexWatchers (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'indexedWatchers'indexWatchers (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (y : GoMap) :
+noncomputable instance access_store'indexedWatchers'indexWatchers (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexWatchers' := y } : k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) v.indexWatchers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers go!"indexWatchers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexWatchers' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedWatchers) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -387,51 +387,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'namespacedName :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.namespacedName where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName where
   typedPointstoDef l v dq := iprop(
-    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' dq ∗
-    "name" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'namespacedName :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.namespacedName k8s_io.apiserver.pkg.storage.cacher.namespacedName.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'namespacedName'namespace (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.namespacedName) (dq : DFrac) :
+noncomputable instance access_load'namespacedName'namespace (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'namespacedName'namespace (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.namespacedName) (y : GoString) :
+noncomputable instance access_store'namespacedName'namespace (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : k8s_io.apiserver.pkg.storage.cacher.namespacedName) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'namespacedName'name (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.namespacedName) (dq : DFrac) :
+noncomputable instance access_load'namespacedName'name (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'namespacedName'name (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.namespacedName) (y : GoString) :
+noncomputable instance access_store'namespacedName'name (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.apiserver.pkg.storage.cacher.namespacedName) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -444,51 +444,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watchSelector :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchSelector where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector where
   typedPointstoDef l v dq := iprop(
-    "scope" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' dq ∗
-    "indexValue" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' dq ∗
+    "scope" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' dq ∗
+    "indexValue" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watchSelector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchSelector k8s_io.apiserver.pkg.storage.cacher.watchSelector.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watchSelector'scope (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchSelector) (dq : DFrac) :
+noncomputable instance access_load'watchSelector'scope (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchSelector'scope (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchSelector) (y : k8s_io.apiserver.pkg.storage.cacher.namespacedName) :
+noncomputable instance access_store'watchSelector'scope (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.namespacedName) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scope' := y } : k8s_io.apiserver.pkg.storage.cacher.watchSelector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) v.scope' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"scope" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scope' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchSelector'indexValue (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchSelector) (dq : DFrac) :
+noncomputable instance access_load'watchSelector'indexValue (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchSelector'indexValue (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchSelector) (y : Loc) :
+noncomputable instance access_store'watchSelector'indexValue (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexValue' := y } : k8s_io.apiserver.pkg.storage.cacher.watchSelector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) v.indexValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector go!"indexValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexValue' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchSelector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -501,102 +501,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watcherBookmarkTimeBuckets :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets where
   typedPointstoDef l v dq := iprop(
-    "watchersBuckets" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' dq ∗
-    "createTime" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' dq ∗
-    "startBucketID" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' dq ∗
-    "clock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' dq ∗
-    "bookmarkFrequency" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' dq ∗
+    "watchersBuckets" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' dq ∗
+    "createTime" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' dq ∗
+    "startBucketID" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' dq ∗
+    "bookmarkFrequency" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watcherBookmarkTimeBuckets :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watcherBookmarkTimeBuckets'watchersBuckets (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
+noncomputable instance access_load'watcherBookmarkTimeBuckets'watchersBuckets (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watcherBookmarkTimeBuckets'watchersBuckets (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : GoMap) :
+noncomputable instance access_store'watcherBookmarkTimeBuckets'watchersBuckets (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with watchersBuckets' := y } : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) v.watchersBuckets' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"watchersBuckets" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with watchersBuckets' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watcherBookmarkTimeBuckets'createTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
+noncomputable instance access_load'watcherBookmarkTimeBuckets'createTime (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watcherBookmarkTimeBuckets'createTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'watcherBookmarkTimeBuckets'createTime (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with createTime' := y } : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) v.createTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"createTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with createTime' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watcherBookmarkTimeBuckets'startBucketID (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
+noncomputable instance access_load'watcherBookmarkTimeBuckets'startBucketID (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watcherBookmarkTimeBuckets'startBucketID (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : w64) :
+noncomputable instance access_store'watcherBookmarkTimeBuckets'startBucketID (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startBucketID' := y } : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) v.startBucketID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"startBucketID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startBucketID' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watcherBookmarkTimeBuckets'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
+noncomputable instance access_load'watcherBookmarkTimeBuckets'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watcherBookmarkTimeBuckets'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'watcherBookmarkTimeBuckets'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watcherBookmarkTimeBuckets'bookmarkFrequency (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
+noncomputable instance access_load'watcherBookmarkTimeBuckets'bookmarkFrequency (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watcherBookmarkTimeBuckets'bookmarkFrequency (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'watcherBookmarkTimeBuckets'bookmarkFrequency (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bookmarkFrequency' := y } : k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) v.bookmarkFrequency' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets go!"bookmarkFrequency" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with bookmarkFrequency' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watcherBookmarkTimeBuckets) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -609,51 +609,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'indexedTriggerFunc :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc where
   typedPointstoDef l v dq := iprop(
-    "indexName" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' dq ∗
-    "indexerFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' dq ∗
+    "indexName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' dq ∗
+    "indexerFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'indexedTriggerFunc :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'indexedTriggerFunc'indexName (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (dq : DFrac) :
+noncomputable instance access_load'indexedTriggerFunc'indexName (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'indexedTriggerFunc'indexName (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (y : GoString) :
+noncomputable instance access_store'indexedTriggerFunc'indexName (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexName' := y } : k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) v.indexName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexName' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'indexedTriggerFunc'indexerFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (dq : DFrac) :
+noncomputable instance access_load'indexedTriggerFunc'indexerFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'indexedTriggerFunc'indexerFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFunc) :
+noncomputable instance access_store'indexedTriggerFunc'indexerFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.IndexerFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexerFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) v.indexerFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc go!"indexerFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexerFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexedTriggerFunc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -666,14 +666,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'Cacher :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.Cacher :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Cacher :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Cacher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.Cacher k8s_io.apiserver.pkg.storage.cacher.Cacher.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Cacher _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Cacher.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -685,51 +685,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'listResp :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.listResp where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp where
   typedPointstoDef l v dq := iprop(
-    "ResourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' dq ∗
-    "Range" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "Range" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'listResp :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.listResp k8s_io.apiserver.pkg.storage.cacher.listResp.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'listResp'ResourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listResp) (dq : DFrac) :
+noncomputable instance access_load'listResp'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listResp'ResourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listResp) (y : w64) :
+noncomputable instance access_store'listResp'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : k8s_io.apiserver.pkg.storage.cacher.listResp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'listResp'Range (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listResp) (dq : DFrac) :
+noncomputable instance access_load'listResp'Range (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listResp'Range (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listResp) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Range) :
+noncomputable instance access_store'listResp'Range (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Range) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Range' := y } : k8s_io.apiserver.pkg.storage.cacher.listResp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) v.Range' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp go!"Range" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Range' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listResp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -742,68 +742,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watchEventFilter :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchEventFilter where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter where
   typedPointstoDef l v dq := iprop(
-    "prefix'" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' dq ∗
-    "opts" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' dq ∗
-    "groupResource" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' dq ∗
+    "prefix'" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' dq ∗
+    "opts" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' dq ∗
+    "groupResource" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watchEventFilter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchEventFilter k8s_io.apiserver.pkg.storage.cacher.watchEventFilter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watchEventFilter'prefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (dq : DFrac) :
+noncomputable instance access_load'watchEventFilter'prefix (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchEventFilter'prefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (y : GoString) :
+noncomputable instance access_store'watchEventFilter'prefix (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) v.prefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchEventFilter'opts (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (dq : DFrac) :
+noncomputable instance access_load'watchEventFilter'opts (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchEventFilter'opts (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions) :
+noncomputable instance access_store'watchEventFilter'opts (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) v.opts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"opts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchEventFilter'groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (dq : DFrac) :
+noncomputable instance access_load'watchEventFilter'groupResource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchEventFilter'groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'watchEventFilter'groupResource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groupResource' := y } : k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) v.groupResource' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter go!"groupResource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groupResource' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchEventFilter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -816,34 +816,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'errWatcher :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.errWatcher where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher where
   typedPointstoDef l v dq := iprop(
-    "result" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' dq ∗
+    "result" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'errWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.errWatcher k8s_io.apiserver.pkg.storage.cacher.errWatcher.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'errWatcher'result (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.errWatcher) (dq : DFrac) :
+noncomputable instance access_load'errWatcher'result (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'errWatcher'result (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.errWatcher) (y : GoChan) :
+noncomputable instance access_store'errWatcher'result (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := y } : k8s_io.apiserver.pkg.storage.cacher.errWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) v.result' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher go!"result" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.errWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -856,34 +856,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'immediateCloseWatcher :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher where
   typedPointstoDef l v dq := iprop(
-    "result" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' dq ∗
+    "result" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'immediateCloseWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'immediateCloseWatcher'result (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher) (dq : DFrac) :
+noncomputable instance access_load'immediateCloseWatcher'result (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'immediateCloseWatcher'result (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher) (y : GoChan) :
+noncomputable instance access_store'immediateCloseWatcher'result (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := y } : k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) v.result' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher go!"result" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.immediateCloseWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -896,68 +896,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'serializationResult :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.serializationResult where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult where
   typedPointstoDef l v dq := iprop(
-    "once" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' dq ∗
-    "raw" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' dq ∗
-    "err" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' dq ∗
+    "once" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' dq ∗
+    "raw" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'serializationResult :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.serializationResult k8s_io.apiserver.pkg.storage.cacher.serializationResult.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'serializationResult'once (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (dq : DFrac) :
+noncomputable instance access_load'serializationResult'once (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serializationResult'once (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (y : _root_.Perennial.sync.Once) :
+noncomputable instance access_store'serializationResult'once (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (y : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with once' := y } : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) v.once' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"once" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with once' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serializationResult'raw (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (dq : DFrac) :
+noncomputable instance access_load'serializationResult'raw (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serializationResult'raw (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (y : GoSlice) :
+noncomputable instance access_store'serializationResult'raw (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raw' := y } : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) v.raw' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"raw" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with raw' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serializationResult'err (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (dq : DFrac) :
+noncomputable instance access_load'serializationResult'err (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serializationResult'err (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (y : GoError) :
+noncomputable instance access_store'serializationResult'err (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : k8s_io.apiserver.pkg.storage.cacher.serializationResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.serializationResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -970,85 +970,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'cachingObject :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.cachingObject where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject where
   typedPointstoDef l v dq := iprop(
-    "lock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' dq ∗
-    "deepCopied" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' dq ∗
-    "object" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' dq ∗
-    "serializations" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' dq ∗
+    "lock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' dq ∗
+    "deepCopied" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' dq ∗
+    "object" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' dq ∗
+    "serializations" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'cachingObject :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.cachingObject k8s_io.apiserver.pkg.storage.cacher.cachingObject.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'cachingObject'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
+noncomputable instance access_load'cachingObject'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cachingObject'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'cachingObject'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) v.lock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"lock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cachingObject'deepCopied (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
+noncomputable instance access_load'cachingObject'deepCopied (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cachingObject'deepCopied (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : Bool) :
+noncomputable instance access_store'cachingObject'deepCopied (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with deepCopied' := y } : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) v.deepCopied' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"deepCopied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with deepCopied' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cachingObject'object (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
+noncomputable instance access_load'cachingObject'object (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cachingObject'object (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : k8s_io.apiserver.pkg.storage.cacher.metaRuntimeInterface) :
+noncomputable instance access_store'cachingObject'object (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metaRuntimeInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with object' := y } : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) v.object' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with object' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cachingObject'serializations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
+noncomputable instance access_load'cachingObject'serializations (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cachingObject'serializations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : _root_.Perennial.sync.atomic.Value) :
+noncomputable instance access_store'cachingObject'serializations (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (y : _root_.Perennial.sync.atomic.Value) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serializations' := y } : k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) v.serializations' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject go!"serializations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serializations' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cachingObject) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1061,102 +1061,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'compactor :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.compactor where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor where
   typedPointstoDef l v dq := iprop(
-    "clock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' dq ∗
-    "store" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' dq ∗
-    "wc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' dq ∗
-    "lock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' dq ∗
-    "compactRevision" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' dq ∗
+    "store" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' dq ∗
+    "wc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' dq ∗
+    "lock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' dq ∗
+    "compactRevision" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'compactor :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.compactor k8s_io.apiserver.pkg.storage.cacher.compactor.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'compactor'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
+noncomputable instance access_load'compactor'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'compactor'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'compactor'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'compactor'store (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
+noncomputable instance access_load'compactor'store (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'compactor'store (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
+noncomputable instance access_store'compactor'store (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with store' := y } : k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) v.store' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"store" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with store' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'compactor'wc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
+noncomputable instance access_load'compactor'wc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'compactor'wc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (y : Loc) :
+noncomputable instance access_store'compactor'wc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wc' := y } : k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) v.wc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"wc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'compactor'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
+noncomputable instance access_load'compactor'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'compactor'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'compactor'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) v.lock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"lock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'compactor'compactRevision (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
+noncomputable instance access_load'compactor'compactRevision (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'compactor'compactRevision (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.compactor) (y : w64) :
+noncomputable instance access_store'compactor'compactRevision (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compactRevision' := y } : k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) v.compactRevision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor go!"compactRevision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compactRevision' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.compactor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1169,119 +1169,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'CacheDelegator :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.CacheDelegator where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator where
   typedPointstoDef l v dq := iprop(
-    "cacher" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' dq ∗
-    "storage" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' dq ∗
-    "checker" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' dq ∗
-    "wg" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' dq ∗
-    "stopOnce" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' dq ∗
-    "stopCh" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' dq ∗
+    "cacher" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' dq ∗
+    "storage" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' dq ∗
+    "checker" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' dq ∗
+    "wg" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' dq ∗
+    "stopOnce" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' dq ∗
+    "stopCh" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CacheDelegator :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.CacheDelegator k8s_io.apiserver.pkg.storage.cacher.CacheDelegator.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CacheDelegator'cacher (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
+noncomputable instance access_load'CacheDelegator'cacher (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CacheDelegator'cacher (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : Loc) :
+noncomputable instance access_store'CacheDelegator'cacher (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cacher' := y } : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) v.cacher' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"cacher" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cacher' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CacheDelegator'storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
+noncomputable instance access_load'CacheDelegator'storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CacheDelegator'storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
+noncomputable instance access_store'CacheDelegator'storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) v.storage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CacheDelegator'checker (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
+noncomputable instance access_load'CacheDelegator'checker (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CacheDelegator'checker (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : Loc) :
+noncomputable instance access_store'CacheDelegator'checker (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with checker' := y } : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) v.checker' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"checker" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with checker' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CacheDelegator'wg (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
+noncomputable instance access_load'CacheDelegator'wg (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CacheDelegator'wg (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : _root_.Perennial.sync.WaitGroup) :
+noncomputable instance access_store'CacheDelegator'wg (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wg' := y } : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) v.wg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"wg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wg' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CacheDelegator'stopOnce (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
+noncomputable instance access_load'CacheDelegator'stopOnce (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CacheDelegator'stopOnce (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : _root_.Perennial.sync.Once) :
+noncomputable instance access_store'CacheDelegator'stopOnce (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopOnce' := y } : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) v.stopOnce' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopOnce" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopOnce' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CacheDelegator'stopCh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
+noncomputable instance access_load'CacheDelegator'stopCh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CacheDelegator'stopCh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : GoChan) :
+noncomputable instance access_store'CacheDelegator'stopCh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopCh' := y } : k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) v.stopCh' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator go!"stopCh" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stopCh' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.CacheDelegator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1294,119 +1294,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'listerWatcher :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.listerWatcher where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher where
   typedPointstoDef l v dq := iprop(
-    "storage" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' dq ∗
-    "resourcePrefix" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' dq ∗
-    "newListFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' dq ∗
-    "contextMetadata" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' dq ∗
-    "unsupportedWatchListSemantics" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' dq ∗
-    "watchListConsistencyCheckEnabled" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' dq ∗
+    "storage" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' dq ∗
+    "resourcePrefix" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' dq ∗
+    "newListFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' dq ∗
+    "contextMetadata" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' dq ∗
+    "unsupportedWatchListSemantics" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' dq ∗
+    "watchListConsistencyCheckEnabled" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'listerWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.listerWatcher k8s_io.apiserver.pkg.storage.cacher.listerWatcher.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'listerWatcher'storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
+noncomputable instance access_load'listerWatcher'storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listerWatcher'storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
+noncomputable instance access_store'listerWatcher'storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) v.storage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'listerWatcher'resourcePrefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
+noncomputable instance access_load'listerWatcher'resourcePrefix (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listerWatcher'resourcePrefix (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : GoString) :
+noncomputable instance access_store'listerWatcher'resourcePrefix (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourcePrefix' := y } : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) v.resourcePrefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"resourcePrefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourcePrefix' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'listerWatcher'newListFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
+noncomputable instance access_load'listerWatcher'newListFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listerWatcher'newListFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : GoFunc) :
+noncomputable instance access_store'listerWatcher'newListFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with newListFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) v.newListFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"newListFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with newListFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'listerWatcher'contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
+noncomputable instance access_load'listerWatcher'contextMetadata (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listerWatcher'contextMetadata (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
+noncomputable instance access_store'listerWatcher'contextMetadata (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : _root_.Perennial.google_golang_org.grpc.metadata.MD) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextMetadata' := y } : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) v.contextMetadata' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"contextMetadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with contextMetadata' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'listerWatcher'unsupportedWatchListSemantics (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
+noncomputable instance access_load'listerWatcher'unsupportedWatchListSemantics (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listerWatcher'unsupportedWatchListSemantics (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : Bool) :
+noncomputable instance access_store'listerWatcher'unsupportedWatchListSemantics (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unsupportedWatchListSemantics' := y } : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) v.unsupportedWatchListSemantics' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"unsupportedWatchListSemantics" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unsupportedWatchListSemantics' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'listerWatcher'watchListConsistencyCheckEnabled (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
+noncomputable instance access_load'listerWatcher'watchListConsistencyCheckEnabled (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'listerWatcher'watchListConsistencyCheckEnabled (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : Bool) :
+noncomputable instance access_store'listerWatcher'watchListConsistencyCheckEnabled (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with watchListConsistencyCheckEnabled' := y } : k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) v.watchListConsistencyCheckEnabled' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher go!"watchListConsistencyCheckEnabled" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with watchListConsistencyCheckEnabled' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.listerWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1419,153 +1419,153 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'ready :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.ready where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' dq ∗
-    "lastErr" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' dq ∗
-    "generation" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' dq ∗
-    "lock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' dq ∗
-    "restartLock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' dq ∗
-    "waitCh" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' dq ∗
-    "clock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' dq ∗
-    "lastStateChangeTime" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' dq ∗
+    "lastErr" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' dq ∗
+    "generation" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' dq ∗
+    "lock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' dq ∗
+    "restartLock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' dq ∗
+    "waitCh" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' dq ∗
+    "lastStateChangeTime" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ready :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.ready k8s_io.apiserver.pkg.storage.cacher.ready.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ready'state (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'state (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'state (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : k8s_io.apiserver.pkg.storage.cacher.status) :
+noncomputable instance access_store'ready'state (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.status) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ready'lastErr (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'lastErr (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'lastErr (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : GoError) :
+noncomputable instance access_store'ready'lastErr (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastErr' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) v.lastErr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastErr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastErr' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ready'generation (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'generation (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'generation (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : w64) :
+noncomputable instance access_store'ready'generation (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with generation' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) v.generation' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"generation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with generation' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ready'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'ready'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) v.lock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ready'restartLock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'restartLock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'restartLock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'ready'restartLock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with restartLock' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) v.restartLock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"restartLock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with restartLock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ready'waitCh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'waitCh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'waitCh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : GoChan) :
+noncomputable instance access_store'ready'waitCh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitCh' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) v.waitCh' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"waitCh" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitCh' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ready'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'ready'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ready'lastStateChangeTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
+noncomputable instance access_load'ready'lastStateChangeTime (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ready'lastStateChangeTime (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'ready'lastStateChangeTime (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastStateChangeTime' := y } : k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) v.lastStateChangeTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready go!"lastStateChangeTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastStateChangeTime' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ready) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1578,119 +1578,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'timeBudgetImpl :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl where
   typedPointstoDef l v dq := iprop(
-    "Mutex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' dq ∗
-    "clock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' dq ∗
-    "budget" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' dq ∗
-    "maxBudget" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' dq ∗
-    "refresh" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' dq ∗
-    "last" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' dq ∗
+    "Mutex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' dq ∗
+    "budget" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' dq ∗
+    "maxBudget" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' dq ∗
+    "refresh" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' dq ∗
+    "last" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'timeBudgetImpl :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'timeBudgetImpl'Mutex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
+noncomputable instance access_load'timeBudgetImpl'Mutex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timeBudgetImpl'Mutex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'timeBudgetImpl'Mutex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'timeBudgetImpl'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
+noncomputable instance access_load'timeBudgetImpl'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timeBudgetImpl'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'timeBudgetImpl'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'timeBudgetImpl'budget (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
+noncomputable instance access_load'timeBudgetImpl'budget (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timeBudgetImpl'budget (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'timeBudgetImpl'budget (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with budget' := y } : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) v.budget' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"budget" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with budget' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'timeBudgetImpl'maxBudget (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
+noncomputable instance access_load'timeBudgetImpl'maxBudget (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timeBudgetImpl'maxBudget (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'timeBudgetImpl'maxBudget (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxBudget' := y } : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) v.maxBudget' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"maxBudget" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxBudget' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'timeBudgetImpl'refresh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
+noncomputable instance access_load'timeBudgetImpl'refresh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timeBudgetImpl'refresh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'timeBudgetImpl'refresh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with refresh' := y } : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) v.refresh' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"refresh" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with refresh' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'timeBudgetImpl'last (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
+noncomputable instance access_load'timeBudgetImpl'last (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'timeBudgetImpl'last (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'timeBudgetImpl'last (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with last' := y } : k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) v.last' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl go!"last" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with last' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.timeBudgetImpl) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1703,14 +1703,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watchCacheEvent :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheEvent :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheEvent :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'watchCacheEvent :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheEvent k8s_io.apiserver.pkg.storage.cacher.watchCacheEvent.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheEvent _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheEvent.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1722,136 +1722,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watchCache :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCache where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache where
   typedPointstoDef l v dq := iprop(
-    "RWMutex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' dq ∗
-    "cond" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' dq ∗
-    "resourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' dq ∗
-    "onReplace" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' dq ∗
-    "history" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' dq ∗
-    "storage" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' dq ∗
-    "config" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' dq ∗
+    "RWMutex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' dq ∗
+    "cond" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' dq ∗
+    "resourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' dq ∗
+    "onReplace" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' dq ∗
+    "history" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' dq ∗
+    "storage" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' dq ∗
+    "config" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watchCache :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCache k8s_io.apiserver.pkg.storage.cacher.watchCache.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watchCache'RWMutex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
+noncomputable instance access_load'watchCache'RWMutex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCache'RWMutex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'watchCache'RWMutex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RWMutex' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) v.RWMutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"RWMutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RWMutex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCache'cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
+noncomputable instance access_load'watchCache'cond (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCache'cond (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
+noncomputable instance access_store'watchCache'cond (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) v.cond' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"cond" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCache'resourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
+noncomputable instance access_load'watchCache'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCache'resourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : w64) :
+noncomputable instance access_store'watchCache'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"resourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCache'onReplace (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
+noncomputable instance access_load'watchCache'onReplace (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCache'onReplace (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : GoFunc) :
+noncomputable instance access_store'watchCache'onReplace (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onReplace' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) v.onReplace' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"onReplace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with onReplace' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCache'history (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
+noncomputable instance access_load'watchCache'history (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCache'history (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
+noncomputable instance access_store'watchCache'history (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with history' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) v.history' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"history" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with history' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCache'storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
+noncomputable instance access_load'watchCache'storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCache'storage (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
+noncomputable instance access_store'watchCache'storage (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) v.storage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCache'config (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
+noncomputable instance access_load'watchCache'config (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCache'config (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
+noncomputable instance access_store'watchCache'config (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with config' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) v.config' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache go!"config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with config' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCache) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1864,170 +1864,170 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'ImmutableWatchCacheConfig :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig where
   typedPointstoDef l v dq := iprop(
-    "keyFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' dq ∗
-    "getAttrsFunc" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' dq ∗
-    "eventHandler" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' dq ∗
-    "clock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' dq ∗
-    "versioner" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' dq ∗
-    "groupResource" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' dq ∗
-    "indexValidator" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' dq ∗
-    "waitingUntilFresh" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' dq ∗
-    "getCurrentRV" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' dq ∗
+    "keyFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' dq ∗
+    "getAttrsFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' dq ∗
+    "eventHandler" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' dq ∗
+    "versioner" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' dq ∗
+    "groupResource" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' dq ∗
+    "indexValidator" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' dq ∗
+    "waitingUntilFresh" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' dq ∗
+    "getCurrentRV" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ImmutableWatchCacheConfig :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'keyFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'keyFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'keyFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'keyFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) v.keyFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"keyFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'getAttrsFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'getAttrsFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'getAttrsFunc (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'getAttrsFunc (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with getAttrsFunc' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) v.getAttrsFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getAttrsFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with getAttrsFunc' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'eventHandler (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'eventHandler (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'eventHandler (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'eventHandler (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with eventHandler' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) v.eventHandler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"eventHandler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with eventHandler' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'clock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'clock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'versioner (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'versioner (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'versioner (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'versioner (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versioner' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) v.versioner' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"versioner" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versioner' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'groupResource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'groupResource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groupResource' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) v.groupResource' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"groupResource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groupResource' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'indexValidator (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'indexValidator (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'indexValidator (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : k8s_io.apiserver.pkg.storage.cacher.indexValidator) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'indexValidator (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexValidator) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexValidator' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) v.indexValidator' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"indexValidator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexValidator' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'waitingUntilFresh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'waitingUntilFresh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'waitingUntilFresh (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : Loc) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'waitingUntilFresh (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitingUntilFresh' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) v.waitingUntilFresh' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"waitingUntilFresh" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waitingUntilFresh' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ImmutableWatchCacheConfig'getCurrentRV (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
+noncomputable instance access_load'ImmutableWatchCacheConfig'getCurrentRV (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ImmutableWatchCacheConfig'getCurrentRV (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
+noncomputable instance access_store'ImmutableWatchCacheConfig'getCurrentRV (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with getCurrentRV' := y } : k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) v.getCurrentRV' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig go!"getCurrentRV" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with getCurrentRV' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.ImmutableWatchCacheConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2040,187 +2040,187 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watchCacheHistory :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory where
   typedPointstoDef l v dq := iprop(
-    "config" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' dq ∗
-    "capacity" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' dq ∗
-    "upperBoundCapacity" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' dq ∗
-    "lowerBoundCapacity" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' dq ∗
-    "cache" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' dq ∗
-    "startIndex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' dq ∗
-    "endIndex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' dq ∗
-    "removedEventSinceRelist" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' dq ∗
-    "listResourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' dq ∗
-    "eventFreshDuration" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' dq ∗
+    "config" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' dq ∗
+    "capacity" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' dq ∗
+    "upperBoundCapacity" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' dq ∗
+    "lowerBoundCapacity" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' dq ∗
+    "cache" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' dq ∗
+    "startIndex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' dq ∗
+    "endIndex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' dq ∗
+    "removedEventSinceRelist" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' dq ∗
+    "listResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' dq ∗
+    "eventFreshDuration" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watchCacheHistory :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watchCacheHistory'config (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'config (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'config (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : Loc) :
+noncomputable instance access_store'watchCacheHistory'config (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with config' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) v.config' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with config' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'capacity (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'capacity (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'capacity (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
+noncomputable instance access_store'watchCacheHistory'capacity (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with capacity' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) v.capacity' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"capacity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with capacity' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'upperBoundCapacity (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'upperBoundCapacity (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'upperBoundCapacity (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
+noncomputable instance access_store'watchCacheHistory'upperBoundCapacity (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with upperBoundCapacity' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) v.upperBoundCapacity' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"upperBoundCapacity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with upperBoundCapacity' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'lowerBoundCapacity (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'lowerBoundCapacity (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'lowerBoundCapacity (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
+noncomputable instance access_store'watchCacheHistory'lowerBoundCapacity (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lowerBoundCapacity' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) v.lowerBoundCapacity' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"lowerBoundCapacity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lowerBoundCapacity' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'cache (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'cache (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'cache (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : GoSlice) :
+noncomputable instance access_store'watchCacheHistory'cache (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cache' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) v.cache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"cache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cache' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'startIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'startIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'startIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
+noncomputable instance access_store'watchCacheHistory'startIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startIndex' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) v.startIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"startIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startIndex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'endIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'endIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'endIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
+noncomputable instance access_store'watchCacheHistory'endIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endIndex' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) v.endIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"endIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endIndex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'removedEventSinceRelist (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'removedEventSinceRelist (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'removedEventSinceRelist (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : Bool) :
+noncomputable instance access_store'watchCacheHistory'removedEventSinceRelist (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with removedEventSinceRelist' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) v.removedEventSinceRelist' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"removedEventSinceRelist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with removedEventSinceRelist' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'listResourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'listResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'listResourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
+noncomputable instance access_store'watchCacheHistory'listResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with listResourceVersion' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) v.listResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"listResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with listResourceVersion' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheHistory'eventFreshDuration (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
+noncomputable instance access_load'watchCacheHistory'eventFreshDuration (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheHistory'eventFreshDuration (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'watchCacheHistory'eventFreshDuration (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with eventFreshDuration' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) v.eventFreshDuration' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory go!"eventFreshDuration" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with eventFreshDuration' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheHistory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2233,68 +2233,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watchCacheInterval :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval where
   typedPointstoDef l v dq := iprop(
-    "source" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' dq ∗
-    "resourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' dq ∗
-    "initialEventsEndBookmark" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' dq ∗
+    "source" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' dq ∗
+    "resourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' dq ∗
+    "initialEventsEndBookmark" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watchCacheInterval :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watchCacheInterval'source (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (dq : DFrac) :
+noncomputable instance access_load'watchCacheInterval'source (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheInterval'source (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (y : k8s_io.apiserver.pkg.storage.cacher.cacheIntervalSource) :
+noncomputable instance access_store'watchCacheInterval'source (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.cacheIntervalSource) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with source' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) v.source' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"source" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with source' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheInterval'resourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (dq : DFrac) :
+noncomputable instance access_load'watchCacheInterval'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheInterval'resourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (y : w64) :
+noncomputable instance access_store'watchCacheInterval'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"resourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheInterval'initialEventsEndBookmark (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (dq : DFrac) :
+noncomputable instance access_load'watchCacheInterval'initialEventsEndBookmark (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheInterval'initialEventsEndBookmark (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (y : Loc) :
+noncomputable instance access_store'watchCacheInterval'initialEventsEndBookmark (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with initialEventsEndBookmark' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) v.initialEventsEndBookmark' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval go!"initialEventsEndBookmark" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with initialEventsEndBookmark' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheInterval) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2307,119 +2307,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'historyCacheIntervalSource :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource where
   typedPointstoDef l v dq := iprop(
-    "startIndex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' dq ∗
-    "endIndex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' dq ∗
-    "indexer" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' dq ∗
-    "indexValidator" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' dq ∗
-    "buffer" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' dq ∗
-    "lock" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' dq ∗
+    "startIndex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' dq ∗
+    "endIndex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' dq ∗
+    "indexer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' dq ∗
+    "indexValidator" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' dq ∗
+    "buffer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' dq ∗
+    "lock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'historyCacheIntervalSource :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'historyCacheIntervalSource'startIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'historyCacheIntervalSource'startIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'historyCacheIntervalSource'startIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : w64) :
+noncomputable instance access_store'historyCacheIntervalSource'startIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startIndex' := y } : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) v.startIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"startIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startIndex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'historyCacheIntervalSource'endIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'historyCacheIntervalSource'endIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'historyCacheIntervalSource'endIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : w64) :
+noncomputable instance access_store'historyCacheIntervalSource'endIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endIndex' := y } : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) v.endIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"endIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endIndex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'historyCacheIntervalSource'indexer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'historyCacheIntervalSource'indexer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'historyCacheIntervalSource'indexer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : k8s_io.apiserver.pkg.storage.cacher.indexerFunc) :
+noncomputable instance access_store'historyCacheIntervalSource'indexer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexerFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexer' := y } : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) v.indexer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexer' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'historyCacheIntervalSource'indexValidator (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'historyCacheIntervalSource'indexValidator (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'historyCacheIntervalSource'indexValidator (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : k8s_io.apiserver.pkg.storage.cacher.indexValidator) :
+noncomputable instance access_store'historyCacheIntervalSource'indexValidator (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.indexValidator) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexValidator' := y } : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) v.indexValidator' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"indexValidator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexValidator' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'historyCacheIntervalSource'buffer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'historyCacheIntervalSource'buffer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'historyCacheIntervalSource'buffer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : Loc) :
+noncomputable instance access_store'historyCacheIntervalSource'buffer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buffer' := y } : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) v.buffer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"buffer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buffer' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'historyCacheIntervalSource'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'historyCacheIntervalSource'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'historyCacheIntervalSource'lock (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : _root_.Perennial.sync.Locker) :
+noncomputable instance access_store'historyCacheIntervalSource'lock (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (y : _root_.Perennial.sync.Locker) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) v.lock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource go!"lock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.historyCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2432,34 +2432,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'snapshotCacheIntervalSource :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource where
   typedPointstoDef l v dq := iprop(
-    "buffer" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' dq ∗
+    "buffer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'snapshotCacheIntervalSource :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'snapshotCacheIntervalSource'buffer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'snapshotCacheIntervalSource'buffer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'snapshotCacheIntervalSource'buffer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource) (y : Loc) :
+noncomputable instance access_store'snapshotCacheIntervalSource'buffer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buffer' := y } : k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) v.buffer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource go!"buffer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buffer' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.snapshotCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2472,85 +2472,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'lazySnapshotCacheIntervalSource :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource where
   typedPointstoDef l v dq := iprop(
-    "snapshot" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' dq ∗
-    "resourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' dq ∗
-    "key" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' dq ∗
-    "recursive" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' dq ∗
+    "snapshot" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' dq ∗
+    "resourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' dq ∗
+    "key" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' dq ∗
+    "recursive" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'lazySnapshotCacheIntervalSource :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'lazySnapshotCacheIntervalSource'snapshot (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'lazySnapshotCacheIntervalSource'snapshot (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazySnapshotCacheIntervalSource'snapshot (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot) :
+noncomputable instance access_store'lazySnapshotCacheIntervalSource'snapshot (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.store.Snapshot) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshot' := y } : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) v.snapshot' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"snapshot" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with snapshot' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazySnapshotCacheIntervalSource'resourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'lazySnapshotCacheIntervalSource'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazySnapshotCacheIntervalSource'resourceVersion (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : w64) :
+noncomputable instance access_store'lazySnapshotCacheIntervalSource'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"resourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazySnapshotCacheIntervalSource'key (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'lazySnapshotCacheIntervalSource'key (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazySnapshotCacheIntervalSource'key (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : GoString) :
+noncomputable instance access_store'lazySnapshotCacheIntervalSource'key (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) v.key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazySnapshotCacheIntervalSource'recursive (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
+noncomputable instance access_load'lazySnapshotCacheIntervalSource'recursive (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazySnapshotCacheIntervalSource'recursive (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : Bool) :
+noncomputable instance access_store'lazySnapshotCacheIntervalSource'recursive (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recursive' := y } : k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) v.recursive' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource go!"recursive" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recursive' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.lazySnapshotCacheIntervalSource) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -2563,68 +2563,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.Assumptions]
 
 noncomputable instance typed_pointsto'watchCacheIntervalBuffer :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer where
   typedPointstoDef l v dq := iprop(
-    "buffer" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' dq ∗
-    "startIndex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' dq ∗
-    "endIndex" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' dq ∗
+    "buffer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' dq ∗
+    "startIndex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' dq ∗
+    "endIndex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watchCacheIntervalBuffer :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watchCacheIntervalBuffer'buffer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (dq : DFrac) :
+noncomputable instance access_load'watchCacheIntervalBuffer'buffer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheIntervalBuffer'buffer (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (y : GoSlice) :
+noncomputable instance access_store'watchCacheIntervalBuffer'buffer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buffer' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) v.buffer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"buffer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buffer' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheIntervalBuffer'startIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (dq : DFrac) :
+noncomputable instance access_load'watchCacheIntervalBuffer'startIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheIntervalBuffer'startIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (y : w64) :
+noncomputable instance access_store'watchCacheIntervalBuffer'startIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startIndex' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) v.startIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"startIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startIndex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchCacheIntervalBuffer'endIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (dq : DFrac) :
+noncomputable instance access_load'watchCacheIntervalBuffer'endIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchCacheIntervalBuffer'endIndex (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (y : w64) :
+noncomputable instance access_store'watchCacheIntervalBuffer'endIndex (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endIndex' := y } : k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) v.endIndex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer go!"endIndex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endIndex' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.watchCacheIntervalBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

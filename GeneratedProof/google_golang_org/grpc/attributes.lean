@@ -22,68 +22,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.attributes.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.attributes.Assumptions]
 
 noncomputable instance typed_pointsto'Attributes :
-    TypedPointsto (GF := GF) google_golang_org.grpc.attributes.Attributes where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.attributes.Attributes where
   typedPointstoDef l v dq := iprop(
-    "parent" ∷ typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq ∗
-    "key" ∷ typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq ∗
-    "value" ∷ typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq ∗
+    "parent" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq ∗
+    "key" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq ∗
+    "value" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Attributes :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.attributes.Attributes google_golang_org.grpc.attributes.Attributes.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.attributes.Attributes _root_.Perennial.google_golang_org.grpc.attributes.Attributes.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Attributes'parent (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'parent (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Attributes'parent (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : Loc) :
+noncomputable instance access_store'Attributes'parent (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"parent" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := y } : google_golang_org.grpc.attributes.Attributes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"parent" l) v.parent' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"parent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := y } : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Attributes'key (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'key (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Attributes'key (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
+noncomputable instance access_store'Attributes'key (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : google_golang_org.grpc.attributes.Attributes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"key" l) v.key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with key' := y } : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Attributes'value (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'value (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Attributes'value (l : Loc) (v : google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
+noncomputable instance access_store'Attributes'value (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.attributes.Attributes go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : google_golang_org.grpc.attributes.Attributes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.attributes.Attributes go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : _root_.Perennial.google_golang_org.grpc.attributes.Attributes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

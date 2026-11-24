@@ -36,34 +36,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 noncomputable instance typed_pointsto'fileReader :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader where
   typedPointstoDef l v dq := iprop(
-    "File" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' dq ∗
+    "File" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'fileReader :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'fileReader'File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (dq : DFrac) :
+noncomputable instance access_load'fileReader'File (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'fileReader'File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (y : Loc) :
+noncomputable instance access_store'fileReader'File (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) v.File' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader go!"File" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.fileReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -76,68 +76,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 noncomputable instance typed_pointsto'FileBufReader :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader where
   typedPointstoDef l v dq := iprop(
-    "Reader" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' dq ∗
-    "fi" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' dq ∗
-    "err" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq ∗
+    "Reader" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' dq ∗
+    "fi" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'FileBufReader :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'FileBufReader'Reader (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (dq : DFrac) :
+noncomputable instance access_load'FileBufReader'Reader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FileBufReader'Reader (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : Loc) :
+noncomputable instance access_store'FileBufReader'Reader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) v.Reader' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"Reader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reader' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FileBufReader'fi (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (dq : DFrac) :
+noncomputable instance access_load'FileBufReader'fi (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FileBufReader'fi (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : _root_.Perennial.io.fs.FileInfo) :
+noncomputable instance access_store'FileBufReader'fi (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : _root_.Perennial.io.fs.FileInfo) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fi' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) v.fi' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"fi" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fi' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FileBufReader'err (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (dq : DFrac) :
+noncomputable instance access_load'FileBufReader'err (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FileBufReader'err (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : GoError) :
+noncomputable instance access_store'FileBufReader'err (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.FileBufReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -150,34 +150,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 noncomputable instance typed_pointsto'LockedFile :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile where
   typedPointstoDef l v dq := iprop(
-    "File" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' dq ∗
+    "File" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LockedFile :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LockedFile'File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (dq : DFrac) :
+noncomputable instance access_load'LockedFile'File (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LockedFile'File (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (y : Loc) :
+noncomputable instance access_store'LockedFile'File (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) v.File' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile go!"File" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -190,34 +190,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
 
 noncomputable instance typed_pointsto'ReadDirOp :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp where
   typedPointstoDef l v dq := iprop(
-    "ext" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' dq ∗
+    "ext" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ReadDirOp :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ReadDirOp'ext (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (dq : DFrac) :
+noncomputable instance access_load'ReadDirOp'ext (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ReadDirOp'ext (l : Loc) (v : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (y : GoString) :
+noncomputable instance access_store'ReadDirOp'ext (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ext' := y } : go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) v.ext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp go!"ext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ext' := y } : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDirOp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

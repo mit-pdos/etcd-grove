@@ -1,5 +1,5 @@
 /-
-Package initialization of `github_com.prometheus.client_model.go`
+Package initialization of `github_com.prometheus.client_model.go''`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact is `True`. Its initializer initializes its imports (it has no initialized
@@ -31,16 +31,16 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
-namespace github_com.prometheus.client_model.go
+namespace github_com.prometheus.client_model.go''
 
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go get_is_pkg_init) (σ0 : GMap GoString Bool) :
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go'' get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
       (App (Val initialize') (Val #()))
     {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go }} := by
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go'' }} := by
   wp_start as Hown
   iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
   iframe Hown
@@ -55,15 +55,15 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go get_is_pkg_init) :
+    (Hinit : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go'' get_is_pkg_init) :
     {{ ownInitializing get_is_pkg_init }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go }} :=
+        isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go'' }} :=
   EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
 
 
-end github_com.prometheus.client_model.go
+end github_com.prometheus.client_model.go''
 
 end init
 

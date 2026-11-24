@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'DispatchTimeline :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DispatchTimeline :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.DispatchTimeline.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -42,34 +42,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'WatcherMetricsObservers :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers where
   typedPointstoDef l v dq := iprop(
-    "stageDurations" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq ∗
+    "stageDurations" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'WatcherMetricsObservers :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'WatcherMetricsObservers'stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (dq : DFrac) :
+noncomputable instance access_load'WatcherMetricsObservers'stageDurations (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatcherMetricsObservers'stageDurations (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (y : GoSlice) :
+noncomputable instance access_store'WatcherMetricsObservers'stageDurations (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stageDurations' := y } : k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) v.stageDurations' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers go!"stageDurations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stageDurations' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.WatcherMetricsObservers) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -82,10 +82,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'noopObserver :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -93,7 +93,7 @@ noncomputable instance typed_pointsto'noopObserver :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'noopObserver :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.noopObserver.underlying := by
   solve_into_val_typed_struct
 
 end def_

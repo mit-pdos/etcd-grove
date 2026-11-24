@@ -27,51 +27,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.Assumptions]
 
 noncomputable instance typed_pointsto'electionServer :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer where
   typedPointstoDef l v dq := iprop(
-    "c" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' dq ∗
-    "UnsafeElectionServer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' dq ∗
+    "c" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' dq ∗
+    "UnsafeElectionServer" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'electionServer :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'electionServer'c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (dq : DFrac) :
+noncomputable instance access_load'electionServer'c (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'electionServer'c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (y : Loc) :
+noncomputable instance access_store'electionServer'c (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) v.c' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"c" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'electionServer'UnsafeElectionServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (dq : DFrac) :
+noncomputable instance access_load'electionServer'UnsafeElectionServer (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'electionServer'UnsafeElectionServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer) :
+noncomputable instance access_store'electionServer'UnsafeElectionServer (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnsafeElectionServer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeElectionServer' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) v.UnsafeElectionServer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer go!"UnsafeElectionServer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeElectionServer' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.electionServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

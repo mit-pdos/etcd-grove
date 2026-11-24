@@ -5904,7 +5904,7 @@ noncomputable def Replica.executeCommands.impl [GooseExts] [GoGlobalContext] : v
   (Lam BAnon
   (Seq (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Replica.ty)))) (Var "r"))
-  (let SLEEP_TIME_NS₀ := #(1000000 : Int);
+  (let SLEEP_TIME_NS₁ := #(1000000 : Int);
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.int32)]))) (Val #())) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.Replica.ty go!"N"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))))))
   (Let "problemInstance" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.int32)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.int32)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -5926,7 +5926,7 @@ noncomputable def Replica.executeCommands.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt _root_.Perennial.time.Duration.ty))) (Val SLEEP_TIME_NS₀))
+  (Let "$a0" (App (Val (GoInstruction (Convert go.untypedInt _root_.Perennial.time.Duration.ty))) (Val SLEEP_TIME_NS₁))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Sleep []))) (Val #())) (Var "$a0"))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.Replica.ty go!"M"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.replica.Replica.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"Replica"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))))) (Val #()))))))
@@ -6020,7 +6020,7 @@ noncomputable def Replica.executeCommands.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #())))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "timeout")) (App (Val (GoInstruction (Convert go.int32 go.int))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "q"))))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "timeout")) (App (Val (GoInstruction (Convert go.int32 go.int))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "q")))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val SLEEP_TIME_NS₀))))))))
+  (App (Val (GoInstruction (GoStore go.uint64))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "timeout")) (App (Val (GoInstruction (Convert go.int32 go.int))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "q"))))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.uint64)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.uint64)))) (Var "timeout")) (App (Val (GoInstruction (Convert go.int32 go.int))) (App (Val (GoInstruction (GoLoad go.int32))) (Var "q")))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val SLEEP_TIME_NS₁))))))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.int32))) (Var "inst"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 0))

@@ -26,85 +26,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
 noncomputable instance typed_pointsto'Message :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message where
   typedPointstoDef l v dq := iprop(
-    "Message" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq ∗
-    "ReadCloser" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq ∗
-    "TotalSize" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq ∗
-    "closeC" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq ∗
+    "ReadCloser" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq ∗
+    "TotalSize" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq ∗
+    "closeC" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Message :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Message'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'Message (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Message'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : Loc) :
+noncomputable instance access_store'Message'Message (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Message'ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'ReadCloser (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Message'ReadCloser (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : _root_.Perennial.io.ReadCloser) :
+noncomputable instance access_store'Message'ReadCloser (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : _root_.Perennial.io.ReadCloser) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadCloser' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) v.ReadCloser' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"ReadCloser" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ReadCloser' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Message'TotalSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'TotalSize (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Message'TotalSize (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : w64) :
+noncomputable instance access_store'Message'TotalSize (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalSize' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) v.TotalSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"TotalSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalSize' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Message'closeC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
+noncomputable instance access_load'Message'closeC (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Message'closeC (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : GoChan) :
+noncomputable instance access_store'Message'closeC (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closeC' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) v.closeC' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message go!"closeC" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closeC' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Assumptions]
 
 noncomputable instance typed_pointsto'Snapshotter :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Snapshotter :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.underlying :=
   sorry -- axiomatized type
 
 end def_

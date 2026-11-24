@@ -28,51 +28,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.bbolt.internal.freelist.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 noncomputable instance typed_pointsto'array :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.internal.freelist.array'' where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' where
   typedPointstoDef l v dq := iprop(
-    "shared" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' dq ∗
-    "ids" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' dq ∗
+    "shared" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' dq ∗
+    "ids" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'array :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.internal.freelist.array'' go_etcd_io.bbolt.internal.freelist.array''.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array''.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'array'shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array'') (dq : DFrac) :
+noncomputable instance access_load'array'shared (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'array'shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array'') (y : Loc) :
+noncomputable instance access_store'array'shared (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'') (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shared' := y } : go_etcd_io.bbolt.internal.freelist.array'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) v.shared' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"shared" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shared' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'array'ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array'') (dq : DFrac) :
+noncomputable instance access_load'array'ids (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'array'ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.array'') (y : GoSlice) :
+noncomputable instance access_store'array'ids (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'') (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := y } : go_etcd_io.bbolt.internal.freelist.array'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) v.ids' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'' go!"ids" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.array'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -85,102 +85,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.bbolt.internal.freelist.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 noncomputable instance typed_pointsto'hashMap :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.internal.freelist.hashMap where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap where
   typedPointstoDef l v dq := iprop(
-    "shared" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' dq ∗
-    "freePagesCount" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' dq ∗
-    "freemaps" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' dq ∗
-    "forwardMap" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' dq ∗
-    "backwardMap" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' dq ∗
+    "shared" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' dq ∗
+    "freePagesCount" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' dq ∗
+    "freemaps" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' dq ∗
+    "forwardMap" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' dq ∗
+    "backwardMap" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'hashMap :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.internal.freelist.hashMap go_etcd_io.bbolt.internal.freelist.hashMap.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'hashMap'shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
+noncomputable instance access_load'hashMap'shared (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashMap'shared (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (y : Loc) :
+noncomputable instance access_store'hashMap'shared (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shared' := y } : go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) v.shared' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"shared" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shared' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashMap'freePagesCount (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
+noncomputable instance access_load'hashMap'freePagesCount (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashMap'freePagesCount (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (y : w64) :
+noncomputable instance access_store'hashMap'freePagesCount (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freePagesCount' := y } : go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) v.freePagesCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freePagesCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freePagesCount' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashMap'freemaps (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
+noncomputable instance access_load'hashMap'freemaps (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashMap'freemaps (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (y : GoMap) :
+noncomputable instance access_store'hashMap'freemaps (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freemaps' := y } : go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) v.freemaps' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"freemaps" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with freemaps' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashMap'forwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
+noncomputable instance access_load'hashMap'forwardMap (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashMap'forwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (y : GoMap) :
+noncomputable instance access_store'hashMap'forwardMap (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with forwardMap' := y } : go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) v.forwardMap' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"forwardMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with forwardMap' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashMap'backwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
+noncomputable instance access_load'hashMap'backwardMap (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashMap'backwardMap (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.hashMap) (y : GoMap) :
+noncomputable instance access_store'hashMap'backwardMap (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backwardMap' := y } : go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) v.backwardMap' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap go!"backwardMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backwardMap' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.hashMap) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -193,68 +193,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.bbolt.internal.freelist.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 noncomputable instance typed_pointsto'txPending :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.internal.freelist.txPending where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending where
   typedPointstoDef l v dq := iprop(
-    "ids" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' dq ∗
-    "alloctx" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' dq ∗
-    "lastReleaseBegin" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' dq ∗
+    "ids" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' dq ∗
+    "alloctx" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' dq ∗
+    "lastReleaseBegin" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'txPending :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.internal.freelist.txPending go_etcd_io.bbolt.internal.freelist.txPending.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'txPending'ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (dq : DFrac) :
+noncomputable instance access_load'txPending'ids (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'txPending'ids (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (y : GoSlice) :
+noncomputable instance access_store'txPending'ids (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := y } : go_etcd_io.bbolt.internal.freelist.txPending) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) v.ids' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"ids" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'txPending'alloctx (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (dq : DFrac) :
+noncomputable instance access_load'txPending'alloctx (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'txPending'alloctx (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (y : GoSlice) :
+noncomputable instance access_store'txPending'alloctx (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alloctx' := y } : go_etcd_io.bbolt.internal.freelist.txPending) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) v.alloctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"alloctx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alloctx' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'txPending'lastReleaseBegin (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (dq : DFrac) :
+noncomputable instance access_load'txPending'lastReleaseBegin (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'txPending'lastReleaseBegin (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.txPending) (y : _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid) :
+noncomputable instance access_store'txPending'lastReleaseBegin (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (y : _root_.Perennial.go_etcd_io.bbolt.internal.common.Txid) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastReleaseBegin' := y } : go_etcd_io.bbolt.internal.freelist.txPending) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) v.lastReleaseBegin' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending go!"lastReleaseBegin" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastReleaseBegin' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.txPending) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -267,102 +267,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.bbolt.internal.freelist.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Assumptions]
 
 noncomputable instance typed_pointsto'shared :
-    TypedPointsto (GF := GF) go_etcd_io.bbolt.internal.freelist.shared where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared where
   typedPointstoDef l v dq := iprop(
-    "Interface" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' dq ∗
-    "readonlyTXIDs" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' dq ∗
-    "allocs" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' dq ∗
-    "cache" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' dq ∗
-    "pending" ∷ typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' dq ∗
+    "Interface" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' dq ∗
+    "readonlyTXIDs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' dq ∗
+    "allocs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' dq ∗
+    "cache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' dq ∗
+    "pending" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'shared :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.bbolt.internal.freelist.shared go_etcd_io.bbolt.internal.freelist.shared.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'shared'Interface (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
+noncomputable instance access_load'shared'Interface (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'shared'Interface (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (y : go_etcd_io.bbolt.internal.freelist.Interface) :
+noncomputable instance access_store'shared'Interface (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (y : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Interface' := y } : go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) v.Interface' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"Interface" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Interface' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'shared'readonlyTXIDs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
+noncomputable instance access_load'shared'readonlyTXIDs (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'shared'readonlyTXIDs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (y : GoSlice) :
+noncomputable instance access_store'shared'readonlyTXIDs (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readonlyTXIDs' := y } : go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) v.readonlyTXIDs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"readonlyTXIDs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with readonlyTXIDs' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'shared'allocs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
+noncomputable instance access_load'shared'allocs (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'shared'allocs (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (y : GoMap) :
+noncomputable instance access_store'shared'allocs (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with allocs' := y } : go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) v.allocs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"allocs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with allocs' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'shared'cache (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
+noncomputable instance access_load'shared'cache (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'shared'cache (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (y : GoMap) :
+noncomputable instance access_store'shared'cache (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cache' := y } : go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) v.cache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"cache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cache' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'shared'pending (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
+noncomputable instance access_load'shared'pending (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' dq)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'shared'pending (l : Loc) (v : go_etcd_io.bbolt.internal.freelist.shared) (y : GoMap) :
+noncomputable instance access_store'shared'pending (l : Loc) (v : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pending' := y } : go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) v.pending' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared go!"pending" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pending' := y } : _root_.Perennial.go_etcd_io.bbolt.internal.freelist.shared) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

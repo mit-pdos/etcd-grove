@@ -24,34 +24,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.resourceversion.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.Assumptions]
 
 noncomputable instance typed_pointsto'InvalidResourceVersion :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion where
   typedPointstoDef l v dq := iprop(
-    "rv" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' dq ∗
+    "rv" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'InvalidResourceVersion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'InvalidResourceVersion'rv (l : Loc) (v : k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (dq : DFrac) :
+noncomputable instance access_load'InvalidResourceVersion'rv (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InvalidResourceVersion'rv (l : Loc) (v : k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (y : GoString) :
+noncomputable instance access_store'InvalidResourceVersion'rv (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rv' := y } : k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) v.rv' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion go!"rv" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rv' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.resourceversion.InvalidResourceVersion) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

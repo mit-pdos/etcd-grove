@@ -31,7 +31,7 @@ set_option linter.iris.style.nameCheck false
 
 namespace Perennial
 
-namespace go.token
+namespace go''.token
 
 section code
 variable [GooseExts] [GoGlobalContext]
@@ -49,6 +49,6 @@ noncomputable def IsExported.impl : val :=
         ((ArbitraryInt &⟨go.uint64⟩ #(W64 1)) =⟨go.uint64⟩ #(W64 1))
 
 end code
-end go.token
+end go''.token
 
 end Perennial

@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'EvictionsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EvictionsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionsGetter k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'EvictionInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EvictionInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionInterface k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'evictions :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictions :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'evictions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictions k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictions _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'EvictionRequestsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EvictionRequestsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestsGetter k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'EvictionRequestInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EvictionRequestInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestInterface k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'evictionRequests :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictionRequests :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictionRequests :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'evictionRequests :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictionRequests k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictionRequests.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictionRequests _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.evictionRequests.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'EvictionExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EvictionExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionExpansion k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'EvictionRequestExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EvictionRequestExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestExpansion k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.EvictionRequestExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'LifecycleV1alpha1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LifecycleV1alpha1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Interface k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'LifecycleV1alpha1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LifecycleV1alpha1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Client k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1.LifecycleV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
 end def_

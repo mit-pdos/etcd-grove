@@ -24,51 +24,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.imdea_software.swiftpaxos.dlog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Assumptions]
 
 noncomputable instance typed_pointsto'Logger :
-    TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos.dlog.Logger where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger where
   typedPointstoDef l v dq := iprop(
-    "logger" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq ∗
-    "verbose" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq ∗
+    "logger" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq ∗
+    "verbose" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Logger :
-    IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos.dlog.Logger github_com.imdea_software.swiftpaxos.dlog.Logger.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Logger'logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'logger (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'logger (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Loc) :
+noncomputable instance access_store'Logger'logger (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : github_com.imdea_software.swiftpaxos.dlog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) v.logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Logger'verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'verbose (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Bool) :
+noncomputable instance access_store'Logger'verbose (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verbose' := y } : github_com.imdea_software.swiftpaxos.dlog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) v.verbose' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger go!"verbose" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verbose' := y } : _root_.Perennial.github_com.imdea_software.swiftpaxos.dlog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

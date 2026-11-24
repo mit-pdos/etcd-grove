@@ -27,119 +27,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'message :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.message where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.message where
   typedPointstoDef l v dq := iprop(
-    "from'" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"from" l) v.from' dq ∗
-    "to" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"to" l) v.to' dq ∗
-    "typ" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"typ" l) v.typ' dq ∗
-    "n" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"n" l) v.n' dq ∗
-    "prevn" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"prevn" l) v.prevn' dq ∗
-    "value" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"value" l) v.value' dq ∗
+    "from'" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"from" l) v.from' dq ∗
+    "to" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"to" l) v.to' dq ∗
+    "typ" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"typ" l) v.typ' dq ∗
+    "n" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"n" l) v.n' dq ∗
+    "prevn" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"prevn" l) v.prevn' dq ∗
+    "value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"value" l) v.value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'message :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.message github_com.xiang90.paxos.message.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.message _root_.Perennial.github_com.xiang90.paxos.message.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'message'from (l : Loc) (v : github_com.xiang90.paxos.message) (dq : DFrac) :
+noncomputable instance access_load'message'from (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"from" l) v.from' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"from" l) v.from' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"from" l) v.from' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"from" l) v.from' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'message'from (l : Loc) (v : github_com.xiang90.paxos.message) (y : w64) :
+noncomputable instance access_store'message'from (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"from" l) v.from' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"from" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with from' := y } : github_com.xiang90.paxos.message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"from" l) v.from' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"from" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with from' := y } : _root_.Perennial.github_com.xiang90.paxos.message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'message'to (l : Loc) (v : github_com.xiang90.paxos.message) (dq : DFrac) :
+noncomputable instance access_load'message'to (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"to" l) v.to' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"to" l) v.to' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"to" l) v.to' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"to" l) v.to' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'message'to (l : Loc) (v : github_com.xiang90.paxos.message) (y : w64) :
+noncomputable instance access_store'message'to (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"to" l) v.to' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"to" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with to' := y } : github_com.xiang90.paxos.message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"to" l) v.to' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"to" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with to' := y } : _root_.Perennial.github_com.xiang90.paxos.message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'message'typ (l : Loc) (v : github_com.xiang90.paxos.message) (dq : DFrac) :
+noncomputable instance access_load'message'typ (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"typ" l) v.typ' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"typ" l) v.typ' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"typ" l) v.typ' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"typ" l) v.typ' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'message'typ (l : Loc) (v : github_com.xiang90.paxos.message) (y : github_com.xiang90.paxos.msgType) :
+noncomputable instance access_store'message'typ (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (y : _root_.Perennial.github_com.xiang90.paxos.msgType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"typ" l) v.typ' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"typ" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with typ' := y } : github_com.xiang90.paxos.message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"typ" l) v.typ' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"typ" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with typ' := y } : _root_.Perennial.github_com.xiang90.paxos.message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'message'n (l : Loc) (v : github_com.xiang90.paxos.message) (dq : DFrac) :
+noncomputable instance access_load'message'n (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"n" l) v.n' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"n" l) v.n' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"n" l) v.n' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"n" l) v.n' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'message'n (l : Loc) (v : github_com.xiang90.paxos.message) (y : w64) :
+noncomputable instance access_store'message'n (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"n" l) v.n' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"n" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := y } : github_com.xiang90.paxos.message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"n" l) v.n' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"n" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with n' := y } : _root_.Perennial.github_com.xiang90.paxos.message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'message'prevn (l : Loc) (v : github_com.xiang90.paxos.message) (dq : DFrac) :
+noncomputable instance access_load'message'prevn (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"prevn" l) v.prevn' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"prevn" l) v.prevn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"prevn" l) v.prevn' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"prevn" l) v.prevn' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'message'prevn (l : Loc) (v : github_com.xiang90.paxos.message) (y : w64) :
+noncomputable instance access_store'message'prevn (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"prevn" l) v.prevn' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"prevn" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prevn' := y } : github_com.xiang90.paxos.message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"prevn" l) v.prevn' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"prevn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prevn' := y } : _root_.Perennial.github_com.xiang90.paxos.message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'message'value (l : Loc) (v : github_com.xiang90.paxos.message) (dq : DFrac) :
+noncomputable instance access_load'message'value (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'message'value (l : Loc) (v : github_com.xiang90.paxos.message) (y : GoString) :
+noncomputable instance access_store'message'value (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.message) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.message go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : github_com.xiang90.paxos.message) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.message go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : _root_.Perennial.github_com.xiang90.paxos.message) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -152,102 +152,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'acceptor :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.acceptor where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.acceptor where
   typedPointstoDef l v dq := iprop(
-    "id" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"id" l) v.id' dq ∗
-    "learners" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' dq ∗
-    "accept" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' dq ∗
-    "promised" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' dq ∗
-    "nt" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"id" l) v.id' dq ∗
+    "learners" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' dq ∗
+    "accept" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' dq ∗
+    "promised" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' dq ∗
+    "nt" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'acceptor :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.acceptor github_com.xiang90.paxos.acceptor.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.acceptor _root_.Perennial.github_com.xiang90.paxos.acceptor.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'acceptor'id (l : Loc) (v : github_com.xiang90.paxos.acceptor) (dq : DFrac) :
+noncomputable instance access_load'acceptor'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'acceptor'id (l : Loc) (v : github_com.xiang90.paxos.acceptor) (y : w64) :
+noncomputable instance access_store'acceptor'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'acceptor'learners (l : Loc) (v : github_com.xiang90.paxos.acceptor) (dq : DFrac) :
+noncomputable instance access_load'acceptor'learners (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'acceptor'learners (l : Loc) (v : github_com.xiang90.paxos.acceptor) (y : GoSlice) :
+noncomputable instance access_store'acceptor'learners (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"learners" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with learners' := y } : github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"learners" l) v.learners' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"learners" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with learners' := y } : _root_.Perennial.github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'acceptor'accept (l : Loc) (v : github_com.xiang90.paxos.acceptor) (dq : DFrac) :
+noncomputable instance access_load'acceptor'accept (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'acceptor'accept (l : Loc) (v : github_com.xiang90.paxos.acceptor) (y : github_com.xiang90.paxos.message) :
+noncomputable instance access_store'acceptor'accept (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (y : _root_.Perennial.github_com.xiang90.paxos.message) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"accept" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with accept' := y } : github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"accept" l) v.accept' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"accept" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with accept' := y } : _root_.Perennial.github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'acceptor'promised (l : Loc) (v : github_com.xiang90.paxos.acceptor) (dq : DFrac) :
+noncomputable instance access_load'acceptor'promised (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'acceptor'promised (l : Loc) (v : github_com.xiang90.paxos.acceptor) (y : github_com.xiang90.paxos.promise) :
+noncomputable instance access_store'acceptor'promised (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (y : _root_.Perennial.github_com.xiang90.paxos.promise) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"promised" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with promised' := y } : github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"promised" l) v.promised' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"promised" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with promised' := y } : _root_.Perennial.github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'acceptor'nt (l : Loc) (v : github_com.xiang90.paxos.acceptor) (dq : DFrac) :
+noncomputable instance access_load'acceptor'nt (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'acceptor'nt (l : Loc) (v : github_com.xiang90.paxos.acceptor) (y : github_com.xiang90.paxos.network) :
+noncomputable instance access_store'acceptor'nt (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.acceptor) (y : _root_.Perennial.github_com.xiang90.paxos.network) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.acceptor go!"nt" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nt' := y } : github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"nt" l) v.nt' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.acceptor go!"nt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nt' := y } : _root_.Perennial.github_com.xiang90.paxos.acceptor) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -260,68 +260,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'learner :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.learner where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.learner where
   typedPointstoDef l v dq := iprop(
-    "id" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"id" l) v.id' dq ∗
-    "acceptors" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' dq ∗
-    "nt" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"nt" l) v.nt' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"id" l) v.id' dq ∗
+    "acceptors" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' dq ∗
+    "nt" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"nt" l) v.nt' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'learner :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.learner github_com.xiang90.paxos.learner.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.learner _root_.Perennial.github_com.xiang90.paxos.learner.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'learner'id (l : Loc) (v : github_com.xiang90.paxos.learner) (dq : DFrac) :
+noncomputable instance access_load'learner'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.learner) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'learner'id (l : Loc) (v : github_com.xiang90.paxos.learner) (y : w64) :
+noncomputable instance access_store'learner'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.learner) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.xiang90.paxos.learner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.github_com.xiang90.paxos.learner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'learner'acceptors (l : Loc) (v : github_com.xiang90.paxos.learner) (dq : DFrac) :
+noncomputable instance access_load'learner'acceptors (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.learner) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'learner'acceptors (l : Loc) (v : github_com.xiang90.paxos.learner) (y : GoMap) :
+noncomputable instance access_store'learner'acceptors (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.learner) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"acceptors" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with acceptors' := y } : github_com.xiang90.paxos.learner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"acceptors" l) v.acceptors' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"acceptors" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with acceptors' := y } : _root_.Perennial.github_com.xiang90.paxos.learner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'learner'nt (l : Loc) (v : github_com.xiang90.paxos.learner) (dq : DFrac) :
+noncomputable instance access_load'learner'nt (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.learner) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"nt" l) v.nt' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"nt" l) v.nt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"nt" l) v.nt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"nt" l) v.nt' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'learner'nt (l : Loc) (v : github_com.xiang90.paxos.learner) (y : github_com.xiang90.paxos.network) :
+noncomputable instance access_store'learner'nt (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.learner) (y : _root_.Perennial.github_com.xiang90.paxos.network) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"nt" l) v.nt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.learner go!"nt" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nt' := y } : github_com.xiang90.paxos.learner) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"nt" l) v.nt' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.learner go!"nt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nt' := y } : _root_.Perennial.github_com.xiang90.paxos.learner) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -334,85 +334,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'decision :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.decision where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.decision where
   typedPointstoDef l v dq := iprop(
-    "mu" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"mu" l) v.mu' dq ∗
-    "value" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"value" l) v.value' dq ∗
-    "known" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"known" l) v.known' dq ∗
-    "changes" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"changes" l) v.changes' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"mu" l) v.mu' dq ∗
+    "value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"value" l) v.value' dq ∗
+    "known" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"known" l) v.known' dq ∗
+    "changes" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"changes" l) v.changes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'decision :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.decision github_com.xiang90.paxos.decision.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.decision _root_.Perennial.github_com.xiang90.paxos.decision.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'decision'mu (l : Loc) (v : github_com.xiang90.paxos.decision) (dq : DFrac) :
+noncomputable instance access_load'decision'mu (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decision'mu (l : Loc) (v : github_com.xiang90.paxos.decision) (y : Loc) :
+noncomputable instance access_store'decision'mu (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decision'value (l : Loc) (v : github_com.xiang90.paxos.decision) (dq : DFrac) :
+noncomputable instance access_load'decision'value (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decision'value (l : Loc) (v : github_com.xiang90.paxos.decision) (y : GoString) :
+noncomputable instance access_store'decision'value (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : _root_.Perennial.github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decision'known (l : Loc) (v : github_com.xiang90.paxos.decision) (dq : DFrac) :
+noncomputable instance access_load'decision'known (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"known" l) v.known' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"known" l) v.known' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"known" l) v.known' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"known" l) v.known' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decision'known (l : Loc) (v : github_com.xiang90.paxos.decision) (y : Bool) :
+noncomputable instance access_store'decision'known (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"known" l) v.known' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"known" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with known' := y } : github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"known" l) v.known' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"known" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with known' := y } : _root_.Perennial.github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decision'changes (l : Loc) (v : github_com.xiang90.paxos.decision) (dq : DFrac) :
+noncomputable instance access_load'decision'changes (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"changes" l) v.changes' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"changes" l) v.changes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"changes" l) v.changes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"changes" l) v.changes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decision'changes (l : Loc) (v : github_com.xiang90.paxos.decision) (y : w64) :
+noncomputable instance access_store'decision'changes (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.decision) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"changes" l) v.changes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.decision go!"changes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with changes' := y } : github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"changes" l) v.changes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.decision go!"changes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with changes' := y } : _root_.Perennial.github_com.xiang90.paxos.decision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -425,85 +425,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'NetCluster :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.NetCluster where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.NetCluster where
   typedPointstoDef l v dq := iprop(
-    "node" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"node" l) v.node' dq ∗
-    "acceptors" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' dq ∗
-    "mu" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' dq ∗
-    "used" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"used" l) v.used' dq ∗
+    "node" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"node" l) v.node' dq ∗
+    "acceptors" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' dq ∗
+    "used" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"used" l) v.used' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'NetCluster :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.NetCluster github_com.xiang90.paxos.NetCluster.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.NetCluster _root_.Perennial.github_com.xiang90.paxos.NetCluster.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'NetCluster'node (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
+noncomputable instance access_load'NetCluster'node (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"node" l) v.node' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"node" l) v.node' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"node" l) v.node' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"node" l) v.node' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NetCluster'node (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (y : Loc) :
+noncomputable instance access_store'NetCluster'node (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"node" l) v.node' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"node" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"node" l) v.node' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"node" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NetCluster'acceptors (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
+noncomputable instance access_load'NetCluster'acceptors (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NetCluster'acceptors (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (y : GoSlice) :
+noncomputable instance access_store'NetCluster'acceptors (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"acceptors" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with acceptors' := y } : github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"acceptors" l) v.acceptors' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"acceptors" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with acceptors' := y } : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NetCluster'mu (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
+noncomputable instance access_load'NetCluster'mu (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NetCluster'mu (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (y : Loc) :
+noncomputable instance access_store'NetCluster'mu (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NetCluster'used (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
+noncomputable instance access_load'NetCluster'used (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"used" l) v.used' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"used" l) v.used' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"used" l) v.used' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"used" l) v.used' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NetCluster'used (l : Loc) (v : github_com.xiang90.paxos.NetCluster) (y : GoSlice) :
+noncomputable instance access_store'NetCluster'used (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"used" l) v.used' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.NetCluster go!"used" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with used' := y } : github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"used" l) v.used' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.NetCluster go!"used" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with used' := y } : _root_.Perennial.github_com.xiang90.paxos.NetCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -516,34 +516,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'paxosNetwork :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.paxosNetwork where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.paxosNetwork where
   typedPointstoDef l v dq := iprop(
-    "recvQueues" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' dq ∗
+    "recvQueues" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'paxosNetwork :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.paxosNetwork github_com.xiang90.paxos.paxosNetwork.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.paxosNetwork _root_.Perennial.github_com.xiang90.paxos.paxosNetwork.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'paxosNetwork'recvQueues (l : Loc) (v : github_com.xiang90.paxos.paxosNetwork) (dq : DFrac) :
+noncomputable instance access_load'paxosNetwork'recvQueues (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.paxosNetwork) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'paxosNetwork'recvQueues (l : Loc) (v : github_com.xiang90.paxos.paxosNetwork) (y : GoMap) :
+noncomputable instance access_store'paxosNetwork'recvQueues (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.paxosNetwork) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recvQueues' := y } : github_com.xiang90.paxos.paxosNetwork) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) v.recvQueues' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.paxosNetwork go!"recvQueues" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recvQueues' := y } : _root_.Perennial.github_com.xiang90.paxos.paxosNetwork) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -556,51 +556,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'agentNetwork :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.agentNetwork where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.agentNetwork where
   typedPointstoDef l v dq := iprop(
-    "id" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' dq ∗
-    "paxosNetwork" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' dq ∗
+    "paxosNetwork" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'agentNetwork :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.agentNetwork github_com.xiang90.paxos.agentNetwork.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.agentNetwork _root_.Perennial.github_com.xiang90.paxos.agentNetwork.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'agentNetwork'id (l : Loc) (v : github_com.xiang90.paxos.agentNetwork) (dq : DFrac) :
+noncomputable instance access_load'agentNetwork'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.agentNetwork) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'agentNetwork'id (l : Loc) (v : github_com.xiang90.paxos.agentNetwork) (y : w64) :
+noncomputable instance access_store'agentNetwork'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.agentNetwork) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.xiang90.paxos.agentNetwork) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.github_com.xiang90.paxos.agentNetwork) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'agentNetwork'paxosNetwork (l : Loc) (v : github_com.xiang90.paxos.agentNetwork) (dq : DFrac) :
+noncomputable instance access_load'agentNetwork'paxosNetwork (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.agentNetwork) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'agentNetwork'paxosNetwork (l : Loc) (v : github_com.xiang90.paxos.agentNetwork) (y : Loc) :
+noncomputable instance access_store'agentNetwork'paxosNetwork (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.agentNetwork) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with paxosNetwork' := y } : github_com.xiang90.paxos.agentNetwork) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) v.paxosNetwork' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.agentNetwork go!"paxosNetwork" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with paxosNetwork' := y } : _root_.Perennial.github_com.xiang90.paxos.agentNetwork) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -613,119 +613,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'proposer :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.proposer where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.proposer where
   typedPointstoDef l v dq := iprop(
-    "id" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"id" l) v.id' dq ∗
-    "lastSeq" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' dq ∗
-    "value" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"value" l) v.value' dq ∗
-    "valueN" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' dq ∗
-    "acceptors" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' dq ∗
-    "nt" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"nt" l) v.nt' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"id" l) v.id' dq ∗
+    "lastSeq" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' dq ∗
+    "value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"value" l) v.value' dq ∗
+    "valueN" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' dq ∗
+    "acceptors" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' dq ∗
+    "nt" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"nt" l) v.nt' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'proposer :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.proposer github_com.xiang90.paxos.proposer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.proposer _root_.Perennial.github_com.xiang90.paxos.proposer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'proposer'id (l : Loc) (v : github_com.xiang90.paxos.proposer) (dq : DFrac) :
+noncomputable instance access_load'proposer'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'proposer'id (l : Loc) (v : github_com.xiang90.paxos.proposer) (y : w64) :
+noncomputable instance access_store'proposer'id (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'proposer'lastSeq (l : Loc) (v : github_com.xiang90.paxos.proposer) (dq : DFrac) :
+noncomputable instance access_load'proposer'lastSeq (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'proposer'lastSeq (l : Loc) (v : github_com.xiang90.paxos.proposer) (y : w64) :
+noncomputable instance access_store'proposer'lastSeq (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"lastSeq" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastSeq' := y } : github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"lastSeq" l) v.lastSeq' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"lastSeq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastSeq' := y } : _root_.Perennial.github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'proposer'value (l : Loc) (v : github_com.xiang90.paxos.proposer) (dq : DFrac) :
+noncomputable instance access_load'proposer'value (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'proposer'value (l : Loc) (v : github_com.xiang90.paxos.proposer) (y : GoString) :
+noncomputable instance access_store'proposer'value (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : _root_.Perennial.github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'proposer'valueN (l : Loc) (v : github_com.xiang90.paxos.proposer) (dq : DFrac) :
+noncomputable instance access_load'proposer'valueN (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'proposer'valueN (l : Loc) (v : github_com.xiang90.paxos.proposer) (y : w64) :
+noncomputable instance access_store'proposer'valueN (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"valueN" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with valueN' := y } : github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"valueN" l) v.valueN' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"valueN" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with valueN' := y } : _root_.Perennial.github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'proposer'acceptors (l : Loc) (v : github_com.xiang90.paxos.proposer) (dq : DFrac) :
+noncomputable instance access_load'proposer'acceptors (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'proposer'acceptors (l : Loc) (v : github_com.xiang90.paxos.proposer) (y : GoMap) :
+noncomputable instance access_store'proposer'acceptors (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"acceptors" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with acceptors' := y } : github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"acceptors" l) v.acceptors' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"acceptors" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with acceptors' := y } : _root_.Perennial.github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'proposer'nt (l : Loc) (v : github_com.xiang90.paxos.proposer) (dq : DFrac) :
+noncomputable instance access_load'proposer'nt (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"nt" l) v.nt' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"nt" l) v.nt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"nt" l) v.nt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"nt" l) v.nt' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'proposer'nt (l : Loc) (v : github_com.xiang90.paxos.proposer) (y : github_com.xiang90.paxos.network) :
+noncomputable instance access_store'proposer'nt (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.proposer) (y : _root_.Perennial.github_com.xiang90.paxos.network) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"nt" l) v.nt' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.proposer go!"nt" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nt' := y } : github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"nt" l) v.nt' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.proposer go!"nt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nt' := y } : _root_.Perennial.github_com.xiang90.paxos.proposer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -738,51 +738,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'tcpNode :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.tcpNode where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.tcpNode where
   typedPointstoDef l v dq := iprop(
-    "addrs" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' dq ∗
-    "inbox" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' dq ∗
+    "addrs" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' dq ∗
+    "inbox" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'tcpNode :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.tcpNode github_com.xiang90.paxos.tcpNode.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.tcpNode _root_.Perennial.github_com.xiang90.paxos.tcpNode.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'tcpNode'addrs (l : Loc) (v : github_com.xiang90.paxos.tcpNode) (dq : DFrac) :
+noncomputable instance access_load'tcpNode'addrs (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'tcpNode'addrs (l : Loc) (v : github_com.xiang90.paxos.tcpNode) (y : GoMap) :
+noncomputable instance access_store'tcpNode'addrs (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNode) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"addrs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addrs' := y } : github_com.xiang90.paxos.tcpNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"addrs" l) v.addrs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"addrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addrs' := y } : _root_.Perennial.github_com.xiang90.paxos.tcpNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'tcpNode'inbox (l : Loc) (v : github_com.xiang90.paxos.tcpNode) (dq : DFrac) :
+noncomputable instance access_load'tcpNode'inbox (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNode) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'tcpNode'inbox (l : Loc) (v : github_com.xiang90.paxos.tcpNode) (y : GoMap) :
+noncomputable instance access_store'tcpNode'inbox (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNode) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNode go!"inbox" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with inbox' := y } : github_com.xiang90.paxos.tcpNode) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"inbox" l) v.inbox' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNode go!"inbox" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with inbox' := y } : _root_.Perennial.github_com.xiang90.paxos.tcpNode) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -795,68 +795,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.paxos.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.paxos.Assumptions]
 
 noncomputable instance typed_pointsto'tcpNetwork :
-    TypedPointsto (GF := GF) github_com.xiang90.paxos.tcpNetwork where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.paxos.tcpNetwork where
   typedPointstoDef l v dq := iprop(
-    "node" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' dq ∗
-    "me" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' dq ∗
-    "conns" ∷ typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' dq ∗
+    "node" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' dq ∗
+    "me" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' dq ∗
+    "conns" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'tcpNetwork :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.paxos.tcpNetwork github_com.xiang90.paxos.tcpNetwork.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.paxos.tcpNetwork _root_.Perennial.github_com.xiang90.paxos.tcpNetwork.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'tcpNetwork'node (l : Loc) (v : github_com.xiang90.paxos.tcpNetwork) (dq : DFrac) :
+noncomputable instance access_load'tcpNetwork'node (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'tcpNetwork'node (l : Loc) (v : github_com.xiang90.paxos.tcpNetwork) (y : Loc) :
+noncomputable instance access_store'tcpNetwork'node (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"node" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : github_com.xiang90.paxos.tcpNetwork) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"node" l) v.node' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"node" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'tcpNetwork'me (l : Loc) (v : github_com.xiang90.paxos.tcpNetwork) (dq : DFrac) :
+noncomputable instance access_load'tcpNetwork'me (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'tcpNetwork'me (l : Loc) (v : github_com.xiang90.paxos.tcpNetwork) (y : w64) :
+noncomputable instance access_store'tcpNetwork'me (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"me" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with me' := y } : github_com.xiang90.paxos.tcpNetwork) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"me" l) v.me' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"me" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with me' := y } : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'tcpNetwork'conns (l : Loc) (v : github_com.xiang90.paxos.tcpNetwork) (dq : DFrac) :
+noncomputable instance access_load'tcpNetwork'conns (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'tcpNetwork'conns (l : Loc) (v : github_com.xiang90.paxos.tcpNetwork) (y : GoMap) :
+noncomputable instance access_store'tcpNetwork'conns (l : Loc) (v : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.paxos.tcpNetwork go!"conns" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conns' := y } : github_com.xiang90.paxos.tcpNetwork) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"conns" l) v.conns' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.paxos.tcpNetwork go!"conns" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conns' := y } : _root_.Perennial.github_com.xiang90.paxos.tcpNetwork) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

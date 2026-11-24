@@ -23,34 +23,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'Array :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.Array where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.Array where
   typedPointstoDef l v dq := iprop(
-    "buf" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Array go!"buf" l) v.buf' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Array go!"buf" l) v.buf' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Array :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.Array github_com.rs.zerolog.Array.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.Array _root_.Perennial.github_com.rs.zerolog.Array.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Array'buf (l : Loc) (v : github_com.rs.zerolog.Array) (dq : DFrac) :
+noncomputable instance access_load'Array'buf (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Array) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Array go!"buf" l) v.buf' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Array go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Array go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Array go!"buf" l) v.buf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Array'buf (l : Loc) (v : github_com.rs.zerolog.Array) (y : GoSlice) :
+noncomputable instance access_store'Array'buf (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Array) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Array go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Array go!"buf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : github_com.rs.zerolog.Array) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Array go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Array go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : _root_.Perennial.github_com.rs.zerolog.Array) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -63,238 +63,238 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'ConsoleWriter :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.ConsoleWriter where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.ConsoleWriter where
   typedPointstoDef l v dq := iprop(
-    "Out" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' dq ∗
-    "NoColor" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' dq ∗
-    "TimeFormat" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' dq ∗
-    "PartsOrder" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' dq ∗
-    "PartsExclude" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' dq ∗
-    "FormatTimestamp" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' dq ∗
-    "FormatLevel" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' dq ∗
-    "FormatCaller" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' dq ∗
-    "FormatMessage" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' dq ∗
-    "FormatFieldName" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' dq ∗
-    "FormatFieldValue" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' dq ∗
-    "FormatErrFieldName" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' dq ∗
-    "FormatErrFieldValue" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' dq ∗
+    "Out" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' dq ∗
+    "NoColor" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' dq ∗
+    "TimeFormat" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' dq ∗
+    "PartsOrder" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' dq ∗
+    "PartsExclude" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' dq ∗
+    "FormatTimestamp" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' dq ∗
+    "FormatLevel" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' dq ∗
+    "FormatCaller" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' dq ∗
+    "FormatMessage" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' dq ∗
+    "FormatFieldName" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' dq ∗
+    "FormatFieldValue" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' dq ∗
+    "FormatErrFieldName" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' dq ∗
+    "FormatErrFieldValue" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ConsoleWriter :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.ConsoleWriter github_com.rs.zerolog.ConsoleWriter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.ConsoleWriter _root_.Perennial.github_com.rs.zerolog.ConsoleWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ConsoleWriter'Out (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'Out (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'Out (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.io.Writer) :
+noncomputable instance access_store'ConsoleWriter'Out (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"Out" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Out' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"Out" l) v.Out' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"Out" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Out' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'NoColor (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'NoColor (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'NoColor (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : Bool) :
+noncomputable instance access_store'ConsoleWriter'NoColor (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoColor' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) v.NoColor' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"NoColor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoColor' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'TimeFormat (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'TimeFormat (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'TimeFormat (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : GoString) :
+noncomputable instance access_store'ConsoleWriter'TimeFormat (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeFormat' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) v.TimeFormat' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"TimeFormat" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeFormat' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'PartsOrder (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'PartsOrder (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'PartsOrder (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : GoSlice) :
+noncomputable instance access_store'ConsoleWriter'PartsOrder (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartsOrder' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) v.PartsOrder' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsOrder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartsOrder' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'PartsExclude (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'PartsExclude (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'PartsExclude (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : GoSlice) :
+noncomputable instance access_store'ConsoleWriter'PartsExclude (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartsExclude' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) v.PartsExclude' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"PartsExclude" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PartsExclude' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatTimestamp (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatTimestamp (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatTimestamp (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatTimestamp (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatTimestamp' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) v.FormatTimestamp' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatTimestamp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatTimestamp' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatLevel (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatLevel (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatLevel (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatLevel (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatLevel' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) v.FormatLevel' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatLevel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatLevel' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatCaller (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatCaller (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatCaller (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatCaller (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatCaller' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) v.FormatCaller' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatCaller" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatCaller' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatMessage (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatMessage (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatMessage (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatMessage (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatMessage' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) v.FormatMessage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatMessage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatMessage' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatFieldName (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatFieldName (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatFieldName (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatFieldName (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatFieldName' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) v.FormatFieldName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatFieldName' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatFieldValue (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatFieldValue (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatFieldValue (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatFieldValue (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatFieldValue' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) v.FormatFieldValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatFieldValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatFieldValue' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatErrFieldName (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatErrFieldName (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatErrFieldName (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatErrFieldName (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatErrFieldName' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) v.FormatErrFieldName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatErrFieldName' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConsoleWriter'FormatErrFieldValue (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
+noncomputable instance access_load'ConsoleWriter'FormatErrFieldValue (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConsoleWriter'FormatErrFieldValue (l : Loc) (v : github_com.rs.zerolog.ConsoleWriter) (y : github_com.rs.zerolog.Formatter) :
+noncomputable instance access_store'ConsoleWriter'FormatErrFieldValue (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (y : _root_.Perennial.github_com.rs.zerolog.Formatter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatErrFieldValue' := y } : github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) v.FormatErrFieldValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.ConsoleWriter go!"FormatErrFieldValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FormatErrFieldValue' := y } : _root_.Perennial.github_com.rs.zerolog.ConsoleWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -307,119 +307,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'Logger :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.Logger where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.Logger where
   typedPointstoDef l v dq := iprop(
-    "w" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"w" l) v.w' dq ∗
-    "level" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"level" l) v.level' dq ∗
-    "sampler" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' dq ∗
-    "context" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"context" l) v.context' dq ∗
-    "hooks" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' dq ∗
-    "stack" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"stack" l) v.stack' dq ∗
+    "w" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"w" l) v.w' dq ∗
+    "level" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"level" l) v.level' dq ∗
+    "sampler" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' dq ∗
+    "context" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"context" l) v.context' dq ∗
+    "hooks" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' dq ∗
+    "stack" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"stack" l) v.stack' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Logger :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.Logger github_com.rs.zerolog.Logger.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.Logger _root_.Perennial.github_com.rs.zerolog.Logger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Logger'w (l : Loc) (v : github_com.rs.zerolog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'w (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"w" l) v.w' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"w" l) v.w' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'w (l : Loc) (v : github_com.rs.zerolog.Logger) (y : github_com.rs.zerolog.LevelWriter) :
+noncomputable instance access_store'Logger'w (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (y : _root_.Perennial.github_com.rs.zerolog.LevelWriter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"w" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : _root_.Perennial.github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Logger'level (l : Loc) (v : github_com.rs.zerolog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'level (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"level" l) v.level' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"level" l) v.level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"level" l) v.level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"level" l) v.level' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'level (l : Loc) (v : github_com.rs.zerolog.Logger) (y : github_com.rs.zerolog.Level) :
+noncomputable instance access_store'Logger'level (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (y : _root_.Perennial.github_com.rs.zerolog.Level) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"level" l) v.level' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"level" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"level" l) v.level' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : _root_.Perennial.github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Logger'sampler (l : Loc) (v : github_com.rs.zerolog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'sampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'sampler (l : Loc) (v : github_com.rs.zerolog.Logger) (y : github_com.rs.zerolog.Sampler) :
+noncomputable instance access_store'Logger'sampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (y : _root_.Perennial.github_com.rs.zerolog.Sampler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"sampler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sampler' := y } : github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"sampler" l) v.sampler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"sampler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sampler' := y } : _root_.Perennial.github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Logger'context (l : Loc) (v : github_com.rs.zerolog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'context (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"context" l) v.context' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"context" l) v.context' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"context" l) v.context' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"context" l) v.context' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'context (l : Loc) (v : github_com.rs.zerolog.Logger) (y : GoSlice) :
+noncomputable instance access_store'Logger'context (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"context" l) v.context' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"context" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with context' := y } : github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"context" l) v.context' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"context" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with context' := y } : _root_.Perennial.github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Logger'hooks (l : Loc) (v : github_com.rs.zerolog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'hooks (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'hooks (l : Loc) (v : github_com.rs.zerolog.Logger) (y : GoSlice) :
+noncomputable instance access_store'Logger'hooks (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"hooks" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hooks' := y } : github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"hooks" l) v.hooks' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"hooks" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hooks' := y } : _root_.Perennial.github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Logger'stack (l : Loc) (v : github_com.rs.zerolog.Logger) (dq : DFrac) :
+noncomputable instance access_load'Logger'stack (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"stack" l) v.stack' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"stack" l) v.stack' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"stack" l) v.stack' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"stack" l) v.stack' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Logger'stack (l : Loc) (v : github_com.rs.zerolog.Logger) (y : Bool) :
+noncomputable instance access_store'Logger'stack (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Logger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"stack" l) v.stack' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Logger go!"stack" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stack' := y } : github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"stack" l) v.stack' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Logger go!"stack" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stack' := y } : _root_.Perennial.github_com.rs.zerolog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -432,34 +432,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'Context :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.Context where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.Context where
   typedPointstoDef l v dq := iprop(
-    "l" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Context go!"l" l) v.l' dq ∗
+    "l" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Context go!"l" l) v.l' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Context :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.Context github_com.rs.zerolog.Context.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.Context _root_.Perennial.github_com.rs.zerolog.Context.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Context'l (l : Loc) (v : github_com.rs.zerolog.Context) (dq : DFrac) :
+noncomputable instance access_load'Context'l (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Context) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Context go!"l" l) v.l' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Context go!"l" l) v.l' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Context go!"l" l) v.l' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Context go!"l" l) v.l' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Context'l (l : Loc) (v : github_com.rs.zerolog.Context) (y : github_com.rs.zerolog.Logger) :
+noncomputable instance access_store'Context'l (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Context) (y : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Context go!"l" l) v.l' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Context go!"l" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with l' := y } : github_com.rs.zerolog.Context) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Context go!"l" l) v.l' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Context go!"l" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with l' := y } : _root_.Perennial.github_com.rs.zerolog.Context) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -472,10 +472,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'timestampHook :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.timestampHook where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.timestampHook where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -483,7 +483,7 @@ noncomputable instance typed_pointsto'timestampHook :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'timestampHook :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.timestampHook github_com.rs.zerolog.timestampHook.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.timestampHook _root_.Perennial.github_com.rs.zerolog.timestampHook.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -495,34 +495,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'callerHook :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.callerHook where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.callerHook where
   typedPointstoDef l v dq := iprop(
-    "callerSkipFrameCount" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' dq ∗
+    "callerSkipFrameCount" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'callerHook :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.callerHook github_com.rs.zerolog.callerHook.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.callerHook _root_.Perennial.github_com.rs.zerolog.callerHook.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'callerHook'callerSkipFrameCount (l : Loc) (v : github_com.rs.zerolog.callerHook) (dq : DFrac) :
+noncomputable instance access_load'callerHook'callerSkipFrameCount (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.callerHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'callerHook'callerSkipFrameCount (l : Loc) (v : github_com.rs.zerolog.callerHook) (y : w64) :
+noncomputable instance access_store'callerHook'callerSkipFrameCount (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.callerHook) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callerSkipFrameCount' := y } : github_com.rs.zerolog.callerHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) v.callerSkipFrameCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.callerHook go!"callerSkipFrameCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with callerSkipFrameCount' := y } : _root_.Perennial.github_com.rs.zerolog.callerHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -535,10 +535,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'ctxKey :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.ctxKey where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.ctxKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -546,7 +546,7 @@ noncomputable instance typed_pointsto'ctxKey :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ctxKey :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.ctxKey github_com.rs.zerolog.ctxKey.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.ctxKey _root_.Perennial.github_com.rs.zerolog.ctxKey.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -558,14 +558,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'encoder :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.encoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.encoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'encoder :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.encoder github_com.rs.zerolog.encoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.encoder _root_.Perennial.github_com.rs.zerolog.encoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -577,136 +577,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'Event :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.Event where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.Event where
   typedPointstoDef l v dq := iprop(
-    "buf" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"buf" l) v.buf' dq ∗
-    "w" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"w" l) v.w' dq ∗
-    "level" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"level" l) v.level' dq ∗
-    "done" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"done" l) v.done' dq ∗
-    "stack" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"stack" l) v.stack' dq ∗
-    "ch" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"ch" l) v.ch' dq ∗
-    "skipFrame" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"buf" l) v.buf' dq ∗
+    "w" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"w" l) v.w' dq ∗
+    "level" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"level" l) v.level' dq ∗
+    "done" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"done" l) v.done' dq ∗
+    "stack" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"stack" l) v.stack' dq ∗
+    "ch" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"ch" l) v.ch' dq ∗
+    "skipFrame" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Event :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.Event github_com.rs.zerolog.Event.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.Event _root_.Perennial.github_com.rs.zerolog.Event.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Event'buf (l : Loc) (v : github_com.rs.zerolog.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'buf (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"buf" l) v.buf' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"buf" l) v.buf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'buf (l : Loc) (v : github_com.rs.zerolog.Event) (y : GoSlice) :
+noncomputable instance access_store'Event'buf (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"buf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : github_com.rs.zerolog.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : _root_.Perennial.github_com.rs.zerolog.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Event'w (l : Loc) (v : github_com.rs.zerolog.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'w (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"w" l) v.w' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"w" l) v.w' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'w (l : Loc) (v : github_com.rs.zerolog.Event) (y : github_com.rs.zerolog.LevelWriter) :
+noncomputable instance access_store'Event'w (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (y : _root_.Perennial.github_com.rs.zerolog.LevelWriter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"w" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : github_com.rs.zerolog.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : _root_.Perennial.github_com.rs.zerolog.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Event'level (l : Loc) (v : github_com.rs.zerolog.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'level (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"level" l) v.level' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"level" l) v.level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"level" l) v.level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"level" l) v.level' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'level (l : Loc) (v : github_com.rs.zerolog.Event) (y : github_com.rs.zerolog.Level) :
+noncomputable instance access_store'Event'level (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (y : _root_.Perennial.github_com.rs.zerolog.Level) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"level" l) v.level' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"level" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : github_com.rs.zerolog.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"level" l) v.level' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : _root_.Perennial.github_com.rs.zerolog.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Event'done (l : Loc) (v : github_com.rs.zerolog.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'done (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"done" l) v.done' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"done" l) v.done' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"done" l) v.done' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"done" l) v.done' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'done (l : Loc) (v : github_com.rs.zerolog.Event) (y : GoFunc) :
+noncomputable instance access_store'Event'done (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"done" l) v.done' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"done" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := y } : github_com.rs.zerolog.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"done" l) v.done' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"done" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := y } : _root_.Perennial.github_com.rs.zerolog.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Event'stack (l : Loc) (v : github_com.rs.zerolog.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'stack (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"stack" l) v.stack' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"stack" l) v.stack' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"stack" l) v.stack' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"stack" l) v.stack' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'stack (l : Loc) (v : github_com.rs.zerolog.Event) (y : Bool) :
+noncomputable instance access_store'Event'stack (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"stack" l) v.stack' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"stack" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stack' := y } : github_com.rs.zerolog.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"stack" l) v.stack' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"stack" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stack' := y } : _root_.Perennial.github_com.rs.zerolog.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Event'ch (l : Loc) (v : github_com.rs.zerolog.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'ch (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"ch" l) v.ch' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"ch" l) v.ch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"ch" l) v.ch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"ch" l) v.ch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'ch (l : Loc) (v : github_com.rs.zerolog.Event) (y : GoSlice) :
+noncomputable instance access_store'Event'ch (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"ch" l) v.ch' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"ch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ch' := y } : github_com.rs.zerolog.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"ch" l) v.ch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"ch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ch' := y } : _root_.Perennial.github_com.rs.zerolog.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Event'skipFrame (l : Loc) (v : github_com.rs.zerolog.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'skipFrame (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'skipFrame (l : Loc) (v : github_com.rs.zerolog.Event) (y : w64) :
+noncomputable instance access_store'Event'skipFrame (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.Event) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.Event go!"skipFrame" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with skipFrame' := y } : github_com.rs.zerolog.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"skipFrame" l) v.skipFrame' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.Event go!"skipFrame" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with skipFrame' := y } : _root_.Perennial.github_com.rs.zerolog.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -719,153 +719,153 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'LevelHook :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.LevelHook where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.LevelHook where
   typedPointstoDef l v dq := iprop(
-    "NoLevelHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' dq ∗
-    "TraceHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' dq ∗
-    "DebugHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' dq ∗
-    "InfoHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' dq ∗
-    "WarnHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' dq ∗
-    "ErrorHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' dq ∗
-    "FatalHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' dq ∗
-    "PanicHook" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' dq ∗
+    "NoLevelHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' dq ∗
+    "TraceHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' dq ∗
+    "DebugHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' dq ∗
+    "InfoHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' dq ∗
+    "WarnHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' dq ∗
+    "ErrorHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' dq ∗
+    "FatalHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' dq ∗
+    "PanicHook" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LevelHook :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.LevelHook github_com.rs.zerolog.LevelHook.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.LevelHook _root_.Perennial.github_com.rs.zerolog.LevelHook.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LevelHook'NoLevelHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'NoLevelHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'NoLevelHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'NoLevelHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoLevelHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) v.NoLevelHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"NoLevelHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoLevelHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelHook'TraceHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'TraceHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'TraceHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'TraceHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"TraceHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"TraceHook" l) v.TraceHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"TraceHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelHook'DebugHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'DebugHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'DebugHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'DebugHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"DebugHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DebugHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"DebugHook" l) v.DebugHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"DebugHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DebugHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelHook'InfoHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'InfoHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'InfoHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'InfoHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"InfoHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InfoHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"InfoHook" l) v.InfoHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"InfoHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InfoHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelHook'WarnHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'WarnHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'WarnHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'WarnHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"WarnHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarnHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"WarnHook" l) v.WarnHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"WarnHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarnHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelHook'ErrorHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'ErrorHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'ErrorHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'ErrorHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"ErrorHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"ErrorHook" l) v.ErrorHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"ErrorHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelHook'FatalHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'FatalHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'FatalHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'FatalHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"FatalHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FatalHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"FatalHook" l) v.FatalHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"FatalHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FatalHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelHook'PanicHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (dq : DFrac) :
+noncomputable instance access_load'LevelHook'PanicHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelHook'PanicHook (l : Loc) (v : github_com.rs.zerolog.LevelHook) (y : github_com.rs.zerolog.Hook) :
+noncomputable instance access_store'LevelHook'PanicHook (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelHook) (y : _root_.Perennial.github_com.rs.zerolog.Hook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelHook go!"PanicHook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PanicHook' := y } : github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"PanicHook" l) v.PanicHook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelHook go!"PanicHook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PanicHook' := y } : _root_.Perennial.github_com.rs.zerolog.LevelHook) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -878,51 +878,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'BasicSampler :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.BasicSampler where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.BasicSampler where
   typedPointstoDef l v dq := iprop(
-    "N" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"N" l) v.N' dq ∗
-    "counter" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' dq ∗
+    "N" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"N" l) v.N' dq ∗
+    "counter" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'BasicSampler :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.BasicSampler github_com.rs.zerolog.BasicSampler.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.BasicSampler _root_.Perennial.github_com.rs.zerolog.BasicSampler.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'BasicSampler'N (l : Loc) (v : github_com.rs.zerolog.BasicSampler) (dq : DFrac) :
+noncomputable instance access_load'BasicSampler'N (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.BasicSampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"N" l) v.N' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"N" l) v.N' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"N" l) v.N' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"N" l) v.N' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BasicSampler'N (l : Loc) (v : github_com.rs.zerolog.BasicSampler) (y : w32) :
+noncomputable instance access_store'BasicSampler'N (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.BasicSampler) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"N" l) v.N' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"N" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : github_com.rs.zerolog.BasicSampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"N" l) v.N' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"N" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : _root_.Perennial.github_com.rs.zerolog.BasicSampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'BasicSampler'counter (l : Loc) (v : github_com.rs.zerolog.BasicSampler) (dq : DFrac) :
+noncomputable instance access_load'BasicSampler'counter (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.BasicSampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BasicSampler'counter (l : Loc) (v : github_com.rs.zerolog.BasicSampler) (y : w32) :
+noncomputable instance access_store'BasicSampler'counter (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.BasicSampler) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.BasicSampler go!"counter" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with counter' := y } : github_com.rs.zerolog.BasicSampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"counter" l) v.counter' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.BasicSampler go!"counter" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with counter' := y } : _root_.Perennial.github_com.rs.zerolog.BasicSampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -935,14 +935,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'BurstSampler :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.BurstSampler :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.BurstSampler :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BurstSampler :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.BurstSampler github_com.rs.zerolog.BurstSampler.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.BurstSampler _root_.Perennial.github_com.rs.zerolog.BurstSampler.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -954,102 +954,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'LevelSampler :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.LevelSampler where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.LevelSampler where
   typedPointstoDef l v dq := iprop(
-    "TraceSampler" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' dq ∗
-    "DebugSampler" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' dq ∗
-    "InfoSampler" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' dq ∗
-    "WarnSampler" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' dq ∗
-    "ErrorSampler" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' dq ∗
+    "TraceSampler" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' dq ∗
+    "DebugSampler" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' dq ∗
+    "InfoSampler" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' dq ∗
+    "WarnSampler" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' dq ∗
+    "ErrorSampler" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LevelSampler :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.LevelSampler github_com.rs.zerolog.LevelSampler.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.LevelSampler _root_.Perennial.github_com.rs.zerolog.LevelSampler.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LevelSampler'TraceSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
+noncomputable instance access_load'LevelSampler'TraceSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelSampler'TraceSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (y : github_com.rs.zerolog.Sampler) :
+noncomputable instance access_store'LevelSampler'TraceSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (y : _root_.Perennial.github_com.rs.zerolog.Sampler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceSampler' := y } : github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) v.TraceSampler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"TraceSampler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceSampler' := y } : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelSampler'DebugSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
+noncomputable instance access_load'LevelSampler'DebugSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelSampler'DebugSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (y : github_com.rs.zerolog.Sampler) :
+noncomputable instance access_store'LevelSampler'DebugSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (y : _root_.Perennial.github_com.rs.zerolog.Sampler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DebugSampler' := y } : github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) v.DebugSampler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"DebugSampler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DebugSampler' := y } : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelSampler'InfoSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
+noncomputable instance access_load'LevelSampler'InfoSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelSampler'InfoSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (y : github_com.rs.zerolog.Sampler) :
+noncomputable instance access_store'LevelSampler'InfoSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (y : _root_.Perennial.github_com.rs.zerolog.Sampler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InfoSampler' := y } : github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) v.InfoSampler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"InfoSampler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InfoSampler' := y } : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelSampler'WarnSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
+noncomputable instance access_load'LevelSampler'WarnSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelSampler'WarnSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (y : github_com.rs.zerolog.Sampler) :
+noncomputable instance access_store'LevelSampler'WarnSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (y : _root_.Perennial.github_com.rs.zerolog.Sampler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarnSampler' := y } : github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) v.WarnSampler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"WarnSampler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with WarnSampler' := y } : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LevelSampler'ErrorSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
+noncomputable instance access_load'LevelSampler'ErrorSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LevelSampler'ErrorSampler (l : Loc) (v : github_com.rs.zerolog.LevelSampler) (y : github_com.rs.zerolog.Sampler) :
+noncomputable instance access_store'LevelSampler'ErrorSampler (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (y : _root_.Perennial.github_com.rs.zerolog.Sampler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorSampler' := y } : github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) v.ErrorSampler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.LevelSampler go!"ErrorSampler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorSampler' := y } : _root_.Perennial.github_com.rs.zerolog.LevelSampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1062,51 +1062,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'syslogWriter :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.syslogWriter where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.syslogWriter where
   typedPointstoDef l v dq := iprop(
-    "w" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"w" l) v.w' dq ∗
-    "prefix'" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' dq ∗
+    "w" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"w" l) v.w' dq ∗
+    "prefix'" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'syslogWriter :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.syslogWriter github_com.rs.zerolog.syslogWriter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.syslogWriter _root_.Perennial.github_com.rs.zerolog.syslogWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'syslogWriter'w (l : Loc) (v : github_com.rs.zerolog.syslogWriter) (dq : DFrac) :
+noncomputable instance access_load'syslogWriter'w (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.syslogWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"w" l) v.w' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"w" l) v.w' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'syslogWriter'w (l : Loc) (v : github_com.rs.zerolog.syslogWriter) (y : github_com.rs.zerolog.SyslogWriter) :
+noncomputable instance access_store'syslogWriter'w (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.syslogWriter) (y : _root_.Perennial.github_com.rs.zerolog.SyslogWriter) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"w" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : github_com.rs.zerolog.syslogWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : _root_.Perennial.github_com.rs.zerolog.syslogWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'syslogWriter'prefix (l : Loc) (v : github_com.rs.zerolog.syslogWriter) (dq : DFrac) :
+noncomputable instance access_load'syslogWriter'prefix (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.syslogWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'syslogWriter'prefix (l : Loc) (v : github_com.rs.zerolog.syslogWriter) (y : GoString) :
+noncomputable instance access_store'syslogWriter'prefix (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.syslogWriter) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.syslogWriter go!"prefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : github_com.rs.zerolog.syslogWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"prefix" l) v.prefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.syslogWriter go!"prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : _root_.Perennial.github_com.rs.zerolog.syslogWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1119,34 +1119,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'levelWriterAdapter :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.levelWriterAdapter where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter where
   typedPointstoDef l v dq := iprop(
-    "Writer" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' dq ∗
+    "Writer" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'levelWriterAdapter :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.levelWriterAdapter github_com.rs.zerolog.levelWriterAdapter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'levelWriterAdapter'Writer (l : Loc) (v : github_com.rs.zerolog.levelWriterAdapter) (dq : DFrac) :
+noncomputable instance access_load'levelWriterAdapter'Writer (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'levelWriterAdapter'Writer (l : Loc) (v : github_com.rs.zerolog.levelWriterAdapter) (y : _root_.Perennial.io.Writer) :
+noncomputable instance access_store'levelWriterAdapter'Writer (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Writer' := y } : github_com.rs.zerolog.levelWriterAdapter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) v.Writer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter go!"Writer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Writer' := y } : _root_.Perennial.github_com.rs.zerolog.levelWriterAdapter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1159,14 +1159,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'syncWriter :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.syncWriter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.syncWriter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'syncWriter :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.syncWriter github_com.rs.zerolog.syncWriter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.syncWriter _root_.Perennial.github_com.rs.zerolog.syncWriter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1178,34 +1178,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.rs.zerolog.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.rs.zerolog.Assumptions]
 
 noncomputable instance typed_pointsto'multiLevelWriter :
-    TypedPointsto (GF := GF) github_com.rs.zerolog.multiLevelWriter where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.rs.zerolog.multiLevelWriter where
   typedPointstoDef l v dq := iprop(
-    "writers" ∷ typedPointsto (structFieldRef github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' dq ∗
+    "writers" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'multiLevelWriter :
-    IntoValTypedUnderlying (GF := GF) github_com.rs.zerolog.multiLevelWriter github_com.rs.zerolog.multiLevelWriter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.rs.zerolog.multiLevelWriter _root_.Perennial.github_com.rs.zerolog.multiLevelWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'multiLevelWriter'writers (l : Loc) (v : github_com.rs.zerolog.multiLevelWriter) (dq : DFrac) :
+noncomputable instance access_load'multiLevelWriter'writers (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.multiLevelWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' dq)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'multiLevelWriter'writers (l : Loc) (v : github_com.rs.zerolog.multiLevelWriter) (y : GoSlice) :
+noncomputable instance access_store'multiLevelWriter'writers (l : Loc) (v : _root_.Perennial.github_com.rs.zerolog.multiLevelWriter) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.rs.zerolog.multiLevelWriter go!"writers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writers' := y } : github_com.rs.zerolog.multiLevelWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.multiLevelWriter go!"writers" l) v.writers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.rs.zerolog.multiLevelWriter go!"writers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writers' := y } : _root_.Perennial.github_com.rs.zerolog.multiLevelWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

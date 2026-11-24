@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.audit.Assumptions]
 
 noncomputable instance typed_pointsto'AuditContext :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.AuditContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.AuditContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuditContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.AuditContext k8s_io.apiserver.pkg.audit.AuditContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.AuditContext _root_.Perennial.k8s_io.apiserver.pkg.audit.AuditContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -42,14 +42,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.audit.Assumptions]
 
 noncomputable instance typed_pointsto'RequestAuditConfig :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.RequestAuditConfig :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.RequestAuditConfig :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RequestAuditConfig :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.RequestAuditConfig k8s_io.apiserver.pkg.audit.RequestAuditConfig.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.RequestAuditConfig _root_.Perennial.k8s_io.apiserver.pkg.audit.RequestAuditConfig.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -61,14 +61,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.audit.Assumptions]
 
 noncomputable instance typed_pointsto'PolicyRuleEvaluator :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PolicyRuleEvaluator :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator _root_.Perennial.k8s_io.apiserver.pkg.audit.PolicyRuleEvaluator.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -80,14 +80,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.audit.Assumptions]
 
 noncomputable instance typed_pointsto'Sink :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.Sink :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.Sink :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Sink :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.Sink k8s_io.apiserver.pkg.audit.Sink.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.Sink _root_.Perennial.k8s_io.apiserver.pkg.audit.Sink.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -99,34 +99,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.audit.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.audit.Assumptions]
 
 noncomputable instance typed_pointsto'union :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.audit.union where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.union where
   typedPointstoDef l v dq := iprop(
-    "backends" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq ∗
+    "backends" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'union :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.audit.union k8s_io.apiserver.pkg.audit.union.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.audit.union _root_.Perennial.k8s_io.apiserver.pkg.audit.union.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'union'backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (dq : DFrac) :
+noncomputable instance access_load'union'backends (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.audit.union) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'union'backends (l : Loc) (v : k8s_io.apiserver.pkg.audit.union) (y : GoSlice) :
+noncomputable instance access_store'union'backends (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.audit.union) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.audit.union go!"backends" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backends' := y } : k8s_io.apiserver.pkg.audit.union) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.audit.union go!"backends" l) v.backends' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.audit.union go!"backends" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backends' := y } : _root_.Perennial.k8s_io.apiserver.pkg.audit.union) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

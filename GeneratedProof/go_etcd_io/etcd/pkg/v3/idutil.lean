@@ -26,51 +26,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.pkg.v3.idutil.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Assumptions]
 
 noncomputable instance typed_pointsto'Generator :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.pkg.v3.idutil.Generator where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator where
   typedPointstoDef l v dq := iprop(
-    "prefix'" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' dq ∗
-    "suffix" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' dq ∗
+    "prefix'" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' dq ∗
+    "suffix" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Generator :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.pkg.v3.idutil.Generator go_etcd_io.etcd.pkg.v3.idutil.Generator.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Generator'prefix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (dq : DFrac) :
+noncomputable instance access_load'Generator'prefix (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Generator'prefix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (y : w64) :
+noncomputable instance access_store'Generator'prefix (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) v.prefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefix' := y } : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Generator'suffix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (dq : DFrac) :
+noncomputable instance access_load'Generator'suffix (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Generator'suffix (l : Loc) (v : go_etcd_io.etcd.pkg.v3.idutil.Generator) (y : w64) :
+noncomputable instance access_store'Generator'suffix (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffix' := y } : go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) v.suffix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator go!"suffix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with suffix' := y } : _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

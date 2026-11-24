@@ -27,85 +27,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.internalinterfaces.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.Assumptions]
 
 noncomputable instance typed_pointsto'InformerOptions :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.internalinterfaces.InformerOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions where
   typedPointstoDef l v dq := iprop(
-    "ResyncPeriod" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq ∗
-    "Indexers" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq ∗
-    "InformerName" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq ∗
-    "TweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq ∗
+    "ResyncPeriod" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq ∗
+    "Indexers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq ∗
+    "InformerName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq ∗
+    "TweakListOptions" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'InformerOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.internalinterfaces.InformerOptions k8s_io.client_go.informers.internalinterfaces.InformerOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'InformerOptions'ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'ResyncPeriod (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InformerOptions'ResyncPeriod (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'InformerOptions'ResyncPeriod (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResyncPeriod' := y } : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) v.ResyncPeriod' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"ResyncPeriod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResyncPeriod' := y } : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InformerOptions'Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'Indexers (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InformerOptions'Indexers (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers) :
+noncomputable instance access_store'InformerOptions'Indexers (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexers) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Indexers' := y } : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) v.Indexers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"Indexers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Indexers' := y } : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InformerOptions'InformerName (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'InformerName (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InformerOptions'InformerName (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : Loc) :
+noncomputable instance access_store'InformerOptions'InformerName (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InformerName' := y } : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) v.InformerName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"InformerName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InformerName' := y } : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InformerOptions'TweakListOptions (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
+noncomputable instance access_load'InformerOptions'TweakListOptions (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InformerOptions'TweakListOptions (l : Loc) (v : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'InformerOptions'TweakListOptions (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TweakListOptions' := y } : k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) v.TweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions go!"TweakListOptions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TweakListOptions' := y } : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.InformerOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

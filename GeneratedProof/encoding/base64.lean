@@ -24,85 +24,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.base64.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.base64.Assumptions]
 
 noncomputable instance typed_pointsto'Encoding :
-    TypedPointsto (GF := GF) encoding.base64.Encoding where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.base64.Encoding where
   typedPointstoDef l v dq := iprop(
-    "encode" ∷ typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' dq ∗
-    "decodeMap" ∷ typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq ∗
-    "padChar" ∷ typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' dq ∗
-    "strict" ∷ typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' dq ∗
+    "encode" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"encode" l) v.encode' dq ∗
+    "decodeMap" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq ∗
+    "padChar" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"padChar" l) v.padChar' dq ∗
+    "strict" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"strict" l) v.strict' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Encoding :
-    IntoValTypedUnderlying (GF := GF) encoding.base64.Encoding encoding.base64.Encoding.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.base64.Encoding _root_.Perennial.encoding.base64.Encoding.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Encoding'encode (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'encode (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' dq)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"encode" l) v.encode' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"encode" l) v.encode' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoding'encode (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 64)) :
+noncomputable instance access_store'Encoding'encode (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (y : (GoArray w8 64)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) v.encode' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"encode" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encode' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"encode" l) v.encode' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"encode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encode' := y } : _root_.Perennial.encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Encoding'decodeMap (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'decodeMap (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoding'decodeMap (l : Loc) (v : encoding.base64.Encoding) (y : (GoArray w8 256)) :
+noncomputable instance access_store'Encoding'decodeMap (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (y : (GoArray w8 256)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"decodeMap" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decodeMap' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"decodeMap" l) v.decodeMap' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"decodeMap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decodeMap' := y } : _root_.Perennial.encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Encoding'padChar (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'padChar (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' dq)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"padChar" l) v.padChar' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"padChar" l) v.padChar' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoding'padChar (l : Loc) (v : encoding.base64.Encoding) (y : w32) :
+noncomputable instance access_store'Encoding'padChar (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) v.padChar' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"padChar" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with padChar' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"padChar" l) v.padChar' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"padChar" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with padChar' := y } : _root_.Perennial.encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Encoding'strict (l : Loc) (v : encoding.base64.Encoding) (dq : DFrac) :
+noncomputable instance access_load'Encoding'strict (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' dq)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"strict" l) v.strict' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"strict" l) v.strict' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoding'strict (l : Loc) (v : encoding.base64.Encoding) (y : Bool) :
+noncomputable instance access_store'Encoding'strict (l : Loc) (v : _root_.Perennial.encoding.base64.Encoding) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) v.strict' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.base64.Encoding go!"strict" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with strict' := y } : encoding.base64.Encoding) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"strict" l) v.strict' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.base64.Encoding go!"strict" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with strict' := y } : _root_.Perennial.encoding.base64.Encoding) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -115,14 +115,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.base64.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.base64.Assumptions]
 
 noncomputable instance typed_pointsto'encoder :
-    TypedPointsto (GF := GF) encoding.base64.encoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.base64.encoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'encoder :
-    IntoValTypedUnderlying (GF := GF) encoding.base64.encoder encoding.base64.encoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.base64.encoder _root_.Perennial.encoding.base64.encoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -134,14 +134,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.base64.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.base64.Assumptions]
 
 noncomputable instance typed_pointsto'decoder :
-    TypedPointsto (GF := GF) encoding.base64.decoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.base64.decoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'decoder :
-    IntoValTypedUnderlying (GF := GF) encoding.base64.decoder encoding.base64.decoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.base64.decoder _root_.Perennial.encoding.base64.decoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -153,14 +153,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.base64.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.base64.Assumptions]
 
 noncomputable instance typed_pointsto'newlineFilteringReader :
-    TypedPointsto (GF := GF) encoding.base64.newlineFilteringReader :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.base64.newlineFilteringReader :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'newlineFilteringReader :
-    IntoValTypedUnderlying (GF := GF) encoding.base64.newlineFilteringReader encoding.base64.newlineFilteringReader.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.base64.newlineFilteringReader _root_.Perennial.encoding.base64.newlineFilteringReader.underlying :=
   sorry -- axiomatized type
 
 end def_

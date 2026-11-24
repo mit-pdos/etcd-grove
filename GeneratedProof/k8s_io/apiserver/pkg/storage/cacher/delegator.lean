@@ -22,51 +22,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.delegator.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Assumptions]
 
 noncomputable instance typed_pointsto'Result :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.Result where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result where
   typedPointstoDef l v dq := iprop(
-    "ShouldDelegate" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq ∗
-    "ConsistentRead" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq ∗
+    "ShouldDelegate" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq ∗
+    "ConsistentRead" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Result :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.Result k8s_io.apiserver.pkg.storage.cacher.delegator.Result.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Result'ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'ShouldDelegate (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Result'ShouldDelegate (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
+noncomputable instance access_store'Result'ShouldDelegate (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShouldDelegate' := y } : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) v.ShouldDelegate' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ShouldDelegate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShouldDelegate' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Result'ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'ConsistentRead (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Result'ConsistentRead (l : Loc) (v : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
+noncomputable instance access_store'Result'ConsistentRead (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsistentRead' := y } : k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) v.ConsistentRead' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result go!"ConsistentRead" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsistentRead' := y } : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Result) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -79,10 +79,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.cacher.delegator.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.Assumptions]
 
 noncomputable instance typed_pointsto'CacheWithoutSnapshots :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -90,7 +90,7 @@ noncomputable instance typed_pointsto'CacheWithoutSnapshots :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CacheWithoutSnapshots :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.delegator.CacheWithoutSnapshots.underlying := by
   solve_into_val_typed_struct
 
 end def_

@@ -16,10 +16,10 @@ namespace Perennial
 noncomputable section
 
 namespace pkg_id
-noncomputable def go.token : GoString := go!"go/token"
+noncomputable def go''.token : GoString := go!"go/token"
 end pkg_id
 
-namespace go.token
+namespace go''.token
 
 noncomputable def Position.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go/token.Position" [])
@@ -305,14 +305,14 @@ noncomputable def IsIdentifier [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def compareKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go/token.compareKey"
 
-noncomputable instance info' : PkgInfo pkg_id.go.token where
+noncomputable instance info' : PkgInfo pkg_id.go''.token where
   pkgImportedPkgs := []
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val (package.init pkg_id.go.token)) (Lam BAnon
+  (App (Val (package.init pkg_id.go''.token)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -766,7 +766,7 @@ attribute [instance] Assumptions.instance'Position
   Assumptions.instance'key
   Assumptions.unfold'IsExported
 
-end go.token
+end go''.token
 
 end
 end Perennial

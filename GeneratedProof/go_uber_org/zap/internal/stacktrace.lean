@@ -23,68 +23,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.internal.stacktrace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Assumptions]
 
 noncomputable instance typed_pointsto'Stack :
-    TypedPointsto (GF := GF) go_uber_org.zap.internal.stacktrace.Stack where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack where
   typedPointstoDef l v dq := iprop(
-    "pcs" ∷ typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' dq ∗
-    "frames" ∷ typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' dq ∗
-    "storage" ∷ typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' dq ∗
+    "pcs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' dq ∗
+    "frames" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' dq ∗
+    "storage" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Stack :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.internal.stacktrace.Stack go_uber_org.zap.internal.stacktrace.Stack.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Stack'pcs (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (dq : DFrac) :
+noncomputable instance access_load'Stack'pcs (l : Loc) (v : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stack'pcs (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (y : GoSlice) :
+noncomputable instance access_store'Stack'pcs (l : Loc) (v : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pcs' := y } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) v.pcs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"pcs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pcs' := y } : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stack'frames (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (dq : DFrac) :
+noncomputable instance access_load'Stack'frames (l : Loc) (v : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stack'frames (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (y : Loc) :
+noncomputable instance access_store'Stack'frames (l : Loc) (v : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frames' := y } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) v.frames' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"frames" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with frames' := y } : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Stack'storage (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (dq : DFrac) :
+noncomputable instance access_load'Stack'storage (l : Loc) (v : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Stack'storage (l : Loc) (v : go_uber_org.zap.internal.stacktrace.Stack) (y : GoSlice) :
+noncomputable instance access_store'Stack'storage (l : Loc) (v : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) v.storage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -97,14 +97,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.internal.stacktrace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.internal.stacktrace.Assumptions]
 
 noncomputable instance typed_pointsto'Formatter :
-    TypedPointsto (GF := GF) go_uber_org.zap.internal.stacktrace.Formatter :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.internal.stacktrace.Formatter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Formatter :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.internal.stacktrace.Formatter go_uber_org.zap.internal.stacktrace.Formatter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.internal.stacktrace.Formatter _root_.Perennial.go_uber_org.zap.internal.stacktrace.Formatter.underlying :=
   sorry -- axiomatized type
 
 end def_

@@ -27,51 +27,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
 
 noncomputable instance typed_pointsto'Out :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out where
   typedPointstoDef l v dq := iprop(
-    "Unknown" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' dq ∗
-    "N" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' dq ∗
+    "Unknown" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' dq ∗
+    "N" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Out :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Out'Unknown (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (dq : DFrac) :
+noncomputable instance access_load'Out'Unknown (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Out'Unknown (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (y : Bool) :
+noncomputable instance access_store'Out'Unknown (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"Unknown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Out'N (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (dq : DFrac) :
+noncomputable instance access_load'Out'N (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Out'N (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (y : w64) :
+noncomputable instance access_store'Out'N (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) v.N' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out go!"N" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -84,51 +84,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Assumptions]
 
 noncomputable instance typed_pointsto'State :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State where
   typedPointstoDef l v dq := iprop(
-    "Lo" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' dq ∗
-    "K" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' dq ∗
+    "Lo" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' dq ∗
+    "K" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'State :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'State'Lo (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (dq : DFrac) :
+noncomputable instance access_load'State'Lo (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'State'Lo (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (y : w64) :
+noncomputable instance access_store'State'Lo (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lo' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) v.Lo' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"Lo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lo' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'State'K (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (dq : DFrac) :
+noncomputable instance access_load'State'K (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'State'K (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (y : w64) :
+noncomputable instance access_store'State'K (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) v.K' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -29,119 +29,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 noncomputable instance typed_pointsto'Record :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Record where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq ∗
-    "Type'" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq ∗
-    "Crc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq ∗
-    "Data" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq ∗
+    "Type'" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq ∗
+    "Crc" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq ∗
+    "Data" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Record :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Record'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Record'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'Record'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Record'Type (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'Type (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Record'Type (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
+noncomputable instance access_store'Record'Type (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Record'Crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'Crc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Record'Crc (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
+noncomputable instance access_store'Record'Crc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Crc' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) v.Crc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Crc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Crc' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Record'Data (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'Data (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Record'Data (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
+noncomputable instance access_store'Record'Data (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Data' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) v.Data' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"Data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Data' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Record'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Record'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
+noncomputable instance access_store'Record'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Record'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
+noncomputable instance access_load'Record'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Record'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : w32) :
+noncomputable instance access_store'Record'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Record) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -154,119 +154,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
 noncomputable instance typed_pointsto'Snapshot :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq ∗
-    "Index" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq ∗
-    "Term" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq ∗
-    "ConfState" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq ∗
+    "Index" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq ∗
+    "Term" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq ∗
+    "ConfState" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Snapshot :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Snapshot'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Snapshot'state (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'Snapshot'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Snapshot'Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'Index (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Snapshot'Index (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
+noncomputable instance access_store'Snapshot'Index (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) v.Index' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Index' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Snapshot'Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'Term (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Snapshot'Term (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
+noncomputable instance access_store'Snapshot'Term (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) v.Term' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"Term" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Snapshot'ConfState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'ConfState (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Snapshot'ConfState (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
+noncomputable instance access_store'Snapshot'ConfState (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfState' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) v.ConfState' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"ConfState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConfState' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Snapshot'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Snapshot'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : GoSlice) :
+noncomputable instance access_store'Snapshot'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Snapshot'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
+noncomputable instance access_load'Snapshot'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Snapshot'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : w32) :
+noncomputable instance access_store'Snapshot'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

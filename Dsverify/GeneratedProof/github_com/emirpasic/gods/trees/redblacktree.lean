@@ -27,68 +27,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.emirpasic.gods.trees.redblacktree.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Assumptions]
 
 noncomputable instance typed_pointsto'Iterator :
-    TypedPointsto (GF := GF) github_com.emirpasic.gods.trees.redblacktree.Iterator where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator where
   typedPointstoDef l v dq := iprop(
-    "tree" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' dq ∗
-    "node" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' dq ∗
-    "position" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' dq ∗
+    "tree" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' dq ∗
+    "node" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' dq ∗
+    "position" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Iterator :
-    IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.trees.redblacktree.Iterator github_com.emirpasic.gods.trees.redblacktree.Iterator.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Iterator'tree (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Iterator) (dq : DFrac) :
+noncomputable instance access_load'Iterator'tree (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Iterator'tree (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Iterator) (y : Loc) :
+noncomputable instance access_store'Iterator'tree (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tree' := y } : github_com.emirpasic.gods.trees.redblacktree.Iterator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) v.tree' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"tree" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tree' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Iterator'node (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Iterator) (dq : DFrac) :
+noncomputable instance access_load'Iterator'node (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Iterator'node (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Iterator) (y : Loc) :
+noncomputable instance access_store'Iterator'node (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : github_com.emirpasic.gods.trees.redblacktree.Iterator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) v.node' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"node" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with node' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Iterator'position (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Iterator) (dq : DFrac) :
+noncomputable instance access_load'Iterator'position (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Iterator'position (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Iterator) (y : github_com.emirpasic.gods.trees.redblacktree.position) :
+noncomputable instance access_store'Iterator'position (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (y : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.position) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with position' := y } : github_com.emirpasic.gods.trees.redblacktree.Iterator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) v.position' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator go!"position" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with position' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -101,68 +101,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.emirpasic.gods.trees.redblacktree.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Assumptions]
 
 noncomputable instance typed_pointsto'Tree :
-    TypedPointsto (GF := GF) github_com.emirpasic.gods.trees.redblacktree.Tree where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree where
   typedPointstoDef l v dq := iprop(
-    "Root" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' dq ∗
-    "size" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' dq ∗
-    "Comparator" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' dq ∗
+    "Root" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' dq ∗
+    "size" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' dq ∗
+    "Comparator" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Tree :
-    IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.trees.redblacktree.Tree github_com.emirpasic.gods.trees.redblacktree.Tree.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Tree'Root (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (dq : DFrac) :
+noncomputable instance access_load'Tree'Root (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Tree'Root (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (y : Loc) :
+noncomputable instance access_store'Tree'Root (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Root' := y } : github_com.emirpasic.gods.trees.redblacktree.Tree) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) v.Root' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Root" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Root' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Tree'size (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (dq : DFrac) :
+noncomputable instance access_load'Tree'size (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Tree'size (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (y : w64) :
+noncomputable instance access_store'Tree'size (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := y } : github_com.emirpasic.gods.trees.redblacktree.Tree) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) v.size' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"size" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with size' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Tree'Comparator (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (dq : DFrac) :
+noncomputable instance access_load'Tree'Comparator (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Tree'Comparator (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Tree) (y : _root_.Perennial.github_com.emirpasic.gods.utils.Comparator) :
+noncomputable instance access_store'Tree'Comparator (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (y : _root_.Perennial.github_com.emirpasic.gods.utils.Comparator) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Comparator' := y } : github_com.emirpasic.gods.trees.redblacktree.Tree) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) v.Comparator' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree go!"Comparator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Comparator' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Tree) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -175,119 +175,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.emirpasic.gods.trees.redblacktree.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Assumptions]
 
 noncomputable instance typed_pointsto'Node :
-    TypedPointsto (GF := GF) github_com.emirpasic.gods.trees.redblacktree.Node where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' dq ∗
-    "Value" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' dq ∗
-    "color" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' dq ∗
-    "Left" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' dq ∗
-    "Right" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' dq ∗
-    "Parent" ∷ typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' dq ∗
+    "color" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' dq ∗
+    "Left" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' dq ∗
+    "Right" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' dq ∗
+    "Parent" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Node :
-    IntoValTypedUnderlying (GF := GF) github_com.emirpasic.gods.trees.redblacktree.Node github_com.emirpasic.gods.trees.redblacktree.Node.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Node'Key (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
+noncomputable instance access_load'Node'Key (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Node'Key (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (y : GoInterface) :
+noncomputable instance access_store'Node'Key (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Node'Value (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
+noncomputable instance access_load'Node'Value (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Node'Value (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (y : GoInterface) :
+noncomputable instance access_store'Node'Value (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Node'color (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
+noncomputable instance access_load'Node'color (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Node'color (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (y : github_com.emirpasic.gods.trees.redblacktree.color) :
+noncomputable instance access_store'Node'color (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (y : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.color) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with color' := y } : github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) v.color' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"color" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with color' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Node'Left (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
+noncomputable instance access_load'Node'Left (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Node'Left (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (y : Loc) :
+noncomputable instance access_store'Node'Left (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Left' := y } : github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) v.Left' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Left" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Left' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Node'Right (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
+noncomputable instance access_load'Node'Right (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Node'Right (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (y : Loc) :
+noncomputable instance access_store'Node'Right (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Right' := y } : github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) v.Right' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Right" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Right' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Node'Parent (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
+noncomputable instance access_load'Node'Parent (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' dq)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Node'Parent (l : Loc) (v : github_com.emirpasic.gods.trees.redblacktree.Node) (y : Loc) :
+noncomputable instance access_store'Node'Parent (l : Loc) (v : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Parent' := y } : github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) v.Parent' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node go!"Parent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Parent' := y } : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Node) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

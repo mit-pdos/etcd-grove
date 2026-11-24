@@ -22,51 +22,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.Assumptions]
 
 noncomputable instance typed_pointsto'HTTPError :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError where
   typedPointstoDef l v dq := iprop(
-    "Message" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq ∗
-    "Code" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq ∗
+    "Code" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'HTTPError :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'HTTPError'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
+noncomputable instance access_load'HTTPError'Message (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'HTTPError'Message (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : GoString) :
+noncomputable instance access_store'HTTPError'Message (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'HTTPError'Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
+noncomputable instance access_load'HTTPError'Code (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'HTTPError'Code (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : w64) :
+noncomputable instance access_store'HTTPError'Code (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) v.Code' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError go!"Code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types.HTTPError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

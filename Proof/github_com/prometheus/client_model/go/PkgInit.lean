@@ -25,14 +25,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-namespace github_com.prometheus.client_model.go
+namespace github_com.prometheus.client_model.go''
 
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_model.go :=
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_model.go'' :=
   define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.prometheus.client_model.go :=
+instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.prometheus.client_model.go'' :=
   build_get_is_pkg_init_wf
 
-end github_com.prometheus.client_model.go
+end github_com.prometheus.client_model.go''
 
 end init
 

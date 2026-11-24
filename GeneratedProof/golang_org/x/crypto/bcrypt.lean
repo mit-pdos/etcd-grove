@@ -24,102 +24,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.crypto.bcrypt.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.crypto.bcrypt.Assumptions]
 
 noncomputable instance typed_pointsto'hashed :
-    TypedPointsto (GF := GF) golang_org.x.crypto.bcrypt.hashed where
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.crypto.bcrypt.hashed where
   typedPointstoDef l v dq := iprop(
-    "hash" ∷ typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' dq ∗
-    "salt" ∷ typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' dq ∗
-    "cost" ∷ typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' dq ∗
-    "major" ∷ typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' dq ∗
-    "minor" ∷ typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' dq ∗
+    "hash" ∷ typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' dq ∗
+    "salt" ∷ typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' dq ∗
+    "cost" ∷ typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' dq ∗
+    "major" ∷ typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' dq ∗
+    "minor" ∷ typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'hashed :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.crypto.bcrypt.hashed golang_org.x.crypto.bcrypt.hashed.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.crypto.bcrypt.hashed _root_.Perennial.golang_org.x.crypto.bcrypt.hashed.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'hashed'hash (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
+noncomputable instance access_load'hashed'hash (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' dq)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashed'hash (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : GoSlice) :
+noncomputable instance access_store'hashed'hash (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"hash" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hash' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"hash" l) v.hash' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"hash" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hash' := y } : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashed'salt (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
+noncomputable instance access_load'hashed'salt (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' dq)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashed'salt (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : GoSlice) :
+noncomputable instance access_store'hashed'salt (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"salt" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with salt' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"salt" l) v.salt' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"salt" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with salt' := y } : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashed'cost (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
+noncomputable instance access_load'hashed'cost (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' dq)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashed'cost (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : w64) :
+noncomputable instance access_store'hashed'cost (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"cost" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cost' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"cost" l) v.cost' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"cost" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cost' := y } : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashed'major (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
+noncomputable instance access_load'hashed'major (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' dq)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashed'major (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : w8) :
+noncomputable instance access_store'hashed'major (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (y : w8) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"major" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with major' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"major" l) v.major' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"major" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with major' := y } : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hashed'minor (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
+noncomputable instance access_load'hashed'minor (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' dq)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hashed'minor (l : Loc) (v : golang_org.x.crypto.bcrypt.hashed) (y : w8) :
+noncomputable instance access_store'hashed'minor (l : Loc) (v : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (y : w8) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' (DFrac.own 1))
-      (typedPointsto (structFieldRef golang_org.x.crypto.bcrypt.hashed go!"minor" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minor' := y } : golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"minor" l) v.minor' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.golang_org.x.crypto.bcrypt.hashed go!"minor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minor' := y } : _root_.Perennial.golang_org.x.crypto.bcrypt.hashed) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.runtime.protoimpl.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.Assumptions]
 
 noncomputable instance typed_pointsto'EnforceVersion :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.runtime.protoimpl.EnforceVersion :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.EnforceVersion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EnforceVersion :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.runtime.protoimpl.EnforceVersion google_golang_org.protobuf.runtime.protoimpl.EnforceVersion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.EnforceVersion _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.EnforceVersion.underlying :=
   sorry -- axiomatized type
 
 end def_

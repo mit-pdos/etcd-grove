@@ -30,7 +30,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt] [go_gctx : G
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem' : net.rpc.Assumptions] [field_sem : net.FieldAssumptions]
-variable [π : NetProtoGS] [sync.Assumptions] [errors.Assumptions] [go.token.Assumptions]
+variable [π : NetProtoGS] [sync.Assumptions] [errors.Assumptions] [go''.token.Assumptions]
 
 theorem keys_fresh {K : Type} (keys : List K) (i : Nat) (key : K) (hnd : keys.Nodup)
     (hk : keys[i]? = some key) : key ∉ keys.take i := by
@@ -53,7 +53,7 @@ theorem take_succ_mem {K : Type} (keys : List K) (i : Nat) (key k : K) (hk : key
 theorem Server.register.wp_proof (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
     (wp_getCodec : getCodec.spec (GF := GF) (hG := hG))
-    (wp_IsExported : go.token.IsExported.spec (GF := GF) (hG := hG)) :
+    (wp_IsExported : go''.token.IsExported.spec (GF := GF) (hG := hG)) :
     Server.register.spec (GF := GF) (hG := hG) := by
   intro s γ C rcvr S nm np name useName hname
   wp_start as ⟨#Hs, #Hset, Hrcv⟩

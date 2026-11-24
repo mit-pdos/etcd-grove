@@ -36,238 +36,238 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.informers.Assumptions]
 
 noncomputable instance typed_pointsto'sharedInformerFactory :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.sharedInformerFactory where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory where
   typedPointstoDef l v dq := iprop(
-    "client" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' dq ∗
-    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' dq ∗
-    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' dq ∗
-    "lock" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' dq ∗
-    "defaultResync" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' dq ∗
-    "customResync" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' dq ∗
-    "transform" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' dq ∗
-    "shardSelector" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' dq ∗
-    "informerName" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' dq ∗
-    "informers" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' dq ∗
-    "startedInformers" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' dq ∗
-    "wg" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' dq ∗
-    "shuttingDown" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' dq ∗
+    "client" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "lock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' dq ∗
+    "defaultResync" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' dq ∗
+    "customResync" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' dq ∗
+    "transform" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' dq ∗
+    "shardSelector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' dq ∗
+    "informerName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' dq ∗
+    "informers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' dq ∗
+    "startedInformers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' dq ∗
+    "wg" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' dq ∗
+    "shuttingDown" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'sharedInformerFactory :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.sharedInformerFactory k8s_io.client_go.informers.sharedInformerFactory.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'sharedInformerFactory'client (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'client (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'client (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
+noncomputable instance access_store'sharedInformerFactory'client (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.kubernetes.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"client" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"client" l) v.client' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"client" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'namespace (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'namespace (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'namespace (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : GoString) :
+noncomputable instance access_store'sharedInformerFactory'namespace (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'tweakListOptions (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+noncomputable instance access_store'sharedInformerFactory'tweakListOptions (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"tweakListOptions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'lock (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'lock (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'lock (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'sharedInformerFactory'lock (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) v.lock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"lock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lock' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'defaultResync (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'defaultResync (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'defaultResync (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'sharedInformerFactory'defaultResync (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with defaultResync' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) v.defaultResync' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"defaultResync" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with defaultResync' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'customResync (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'customResync (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'customResync (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : GoMap) :
+noncomputable instance access_store'sharedInformerFactory'customResync (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with customResync' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) v.customResync' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"customResync" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with customResync' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'transform (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'transform (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'transform (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.tools.cache.TransformFunc) :
+noncomputable instance access_store'sharedInformerFactory'transform (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.client_go.tools.cache.TransformFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with transform' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) v.transform' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"transform" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with transform' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'shardSelector (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'shardSelector (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'shardSelector (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector) :
+noncomputable instance access_store'sharedInformerFactory'shardSelector (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shardSelector' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) v.shardSelector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shardSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shardSelector' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'informerName (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'informerName (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'informerName (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : Loc) :
+noncomputable instance access_store'sharedInformerFactory'informerName (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with informerName' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) v.informerName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informerName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with informerName' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'informers (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'informers (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'informers (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : GoMap) :
+noncomputable instance access_store'sharedInformerFactory'informers (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with informers' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) v.informers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"informers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with informers' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'startedInformers (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'startedInformers (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'startedInformers (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : GoMap) :
+noncomputable instance access_store'sharedInformerFactory'startedInformers (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startedInformers' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) v.startedInformers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"startedInformers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startedInformers' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'wg (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'wg (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'wg (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.sync.WaitGroup) :
+noncomputable instance access_store'sharedInformerFactory'wg (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : _root_.Perennial.sync.WaitGroup) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wg' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) v.wg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"wg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wg' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sharedInformerFactory'shuttingDown (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
+noncomputable instance access_load'sharedInformerFactory'shuttingDown (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sharedInformerFactory'shuttingDown (l : Loc) (v : k8s_io.client_go.informers.sharedInformerFactory) (y : Bool) :
+noncomputable instance access_store'sharedInformerFactory'shuttingDown (l : Loc) (v : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shuttingDown' := y } : k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) v.shuttingDown' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory go!"shuttingDown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shuttingDown' := y } : _root_.Perennial.k8s_io.client_go.informers.sharedInformerFactory) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -280,14 +280,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.informers.Assumptions]
 
 noncomputable instance typed_pointsto'SharedInformerFactory :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.SharedInformerFactory :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.informers.SharedInformerFactory :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SharedInformerFactory :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.SharedInformerFactory k8s_io.client_go.informers.SharedInformerFactory.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.informers.SharedInformerFactory _root_.Perennial.k8s_io.client_go.informers.SharedInformerFactory.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -299,14 +299,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.informers.Assumptions]
 
 noncomputable instance typed_pointsto'GenericInformer :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.GenericInformer :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.informers.GenericInformer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'GenericInformer :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.GenericInformer k8s_io.client_go.informers.GenericInformer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.informers.GenericInformer _root_.Perennial.k8s_io.client_go.informers.GenericInformer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -318,14 +318,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.informers.Assumptions]
 
 noncomputable instance typed_pointsto'genericInformer :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.genericInformer :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.informers.genericInformer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'genericInformer :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.genericInformer k8s_io.client_go.informers.genericInformer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.informers.genericInformer _root_.Perennial.k8s_io.client_go.informers.genericInformer.underlying :=
   sorry -- axiomatized type
 
 end def_

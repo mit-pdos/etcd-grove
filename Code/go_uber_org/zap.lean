@@ -1346,7 +1346,7 @@ noncomputable def Logger.check.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "log" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Logger.ty)))) (Var "log"))
   (Let "msg" (App (Val (GoInstruction (GoAlloc go.string))) (Var "msg"))
   (Let "lvl" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.zapcore.Level.ty))) (Var "lvl"))
-  (let callerSkipOffset₀ := #(2 : Int);
+  (let callerSkipOffset₁ := #(2 : Int);
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))))
   (Let "$v1" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_uber_org.zap.zapcore.Clock.ty go!"Now"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.zapcore.Clock.ty))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"clock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log"))))) (Val #()))
@@ -1376,7 +1376,7 @@ noncomputable def Logger.check.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "stackDepth" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_uber_org.zap.internal.stacktrace.Depth.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_uber_org.zap.internal.stacktrace.Depth.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"callerSkip"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log")))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val callerSkipOffset₀))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef Logger.ty go!"callerSkip"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Logger.ty)))) (Var "log")))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val callerSkipOffset₁))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_uber_org.zap.internal.stacktrace.Depth.ty))) (Var "stackDepth"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.internal.stacktrace.Capture []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "stack" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.internal.stacktrace.Stack.ty)))) (Val #())))

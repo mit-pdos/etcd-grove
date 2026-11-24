@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'AuthenticationV1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuthenticationV1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'AuthenticationV1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuthenticationV1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.AuthenticationV1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SelfSubjectReviewExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SelfSubjectReviewExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenReviewExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenReviewExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SelfSubjectReviewsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SelfSubjectReviewsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SelfSubjectReviewInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SelfSubjectReviewInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.SelfSubjectReviewInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'selfSubjectReviews :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'selfSubjectReviews :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.selfSubjectReviews.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenReviewsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenReviewsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenReviewInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenReviewInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.TokenReviewInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'tokenReviews :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'tokenReviews :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews _root_.Perennial.k8s_io.client_go.kubernetes.typed.authentication.v1.tokenReviews.underlying :=
   sorry -- axiomatized type
 
 end def_

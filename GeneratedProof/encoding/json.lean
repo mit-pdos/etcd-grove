@@ -24,68 +24,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'Codec :
-    TypedPointsto (GF := GF) encoding.json.Codec where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.Codec where
   typedPointstoDef l v dq := iprop(
-    "Marshal" ∷ typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' dq ∗
-    "Unmarshal" ∷ typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq ∗
-    "Scan" ∷ typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' dq ∗
+    "Marshal" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Marshal" l) v.Marshal' dq ∗
+    "Unmarshal" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq ∗
+    "Scan" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Scan" l) v.Scan' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Codec :
-    IntoValTypedUnderlying (GF := GF) encoding.json.Codec encoding.json.Codec.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.Codec _root_.Perennial.encoding.json.Codec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Codec'Marshal (l : Loc) (v : encoding.json.Codec) (dq : DFrac) :
+noncomputable instance access_load'Codec'Marshal (l : Loc) (v : _root_.Perennial.encoding.json.Codec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' dq)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Marshal" l) v.Marshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Marshal" l) v.Marshal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Codec'Marshal (l : Loc) (v : encoding.json.Codec) (y : GoFunc) :
+noncomputable instance access_store'Codec'Marshal (l : Loc) (v : _root_.Perennial.encoding.json.Codec) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) v.Marshal' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Marshal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Marshal' := y } : encoding.json.Codec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Marshal" l) v.Marshal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Marshal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Marshal' := y } : _root_.Perennial.encoding.json.Codec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Codec'Unmarshal (l : Loc) (v : encoding.json.Codec) (dq : DFrac) :
+noncomputable instance access_load'Codec'Unmarshal (l : Loc) (v : _root_.Perennial.encoding.json.Codec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Codec'Unmarshal (l : Loc) (v : encoding.json.Codec) (y : GoFunc) :
+noncomputable instance access_store'Codec'Unmarshal (l : Loc) (v : _root_.Perennial.encoding.json.Codec) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Unmarshal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unmarshal' := y } : encoding.json.Codec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Unmarshal" l) v.Unmarshal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Unmarshal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unmarshal' := y } : _root_.Perennial.encoding.json.Codec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Codec'Scan (l : Loc) (v : encoding.json.Codec) (dq : DFrac) :
+noncomputable instance access_load'Codec'Scan (l : Loc) (v : _root_.Perennial.encoding.json.Codec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' dq)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Scan" l) v.Scan' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Scan" l) v.Scan' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Codec'Scan (l : Loc) (v : encoding.json.Codec) (y : GoFunc) :
+noncomputable instance access_store'Codec'Scan (l : Loc) (v : _root_.Perennial.encoding.json.Codec) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) v.Scan' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Codec go!"Scan" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Scan' := y } : encoding.json.Codec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Scan" l) v.Scan' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Codec go!"Scan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Scan' := y } : _root_.Perennial.encoding.json.Codec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'UnmarshalTypeError :
-    TypedPointsto (GF := GF) encoding.json.UnmarshalTypeError :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.UnmarshalTypeError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'UnmarshalTypeError :
-    IntoValTypedUnderlying (GF := GF) encoding.json.UnmarshalTypeError encoding.json.UnmarshalTypeError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.UnmarshalTypeError _root_.Perennial.encoding.json.UnmarshalTypeError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'UnmarshalFieldError :
-    TypedPointsto (GF := GF) encoding.json.UnmarshalFieldError :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.UnmarshalFieldError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'UnmarshalFieldError :
-    IntoValTypedUnderlying (GF := GF) encoding.json.UnmarshalFieldError encoding.json.UnmarshalFieldError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.UnmarshalFieldError _root_.Perennial.encoding.json.UnmarshalFieldError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'InvalidUnmarshalError :
-    TypedPointsto (GF := GF) encoding.json.InvalidUnmarshalError :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.InvalidUnmarshalError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'InvalidUnmarshalError :
-    IntoValTypedUnderlying (GF := GF) encoding.json.InvalidUnmarshalError encoding.json.InvalidUnmarshalError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.InvalidUnmarshalError _root_.Perennial.encoding.json.InvalidUnmarshalError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'UnsupportedTypeError :
-    TypedPointsto (GF := GF) encoding.json.UnsupportedTypeError :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.UnsupportedTypeError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'UnsupportedTypeError :
-    IntoValTypedUnderlying (GF := GF) encoding.json.UnsupportedTypeError encoding.json.UnsupportedTypeError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.UnsupportedTypeError _root_.Perennial.encoding.json.UnsupportedTypeError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'UnsupportedValueError :
-    TypedPointsto (GF := GF) encoding.json.UnsupportedValueError :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.UnsupportedValueError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'UnsupportedValueError :
-    IntoValTypedUnderlying (GF := GF) encoding.json.UnsupportedValueError encoding.json.UnsupportedValueError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.UnsupportedValueError _root_.Perennial.encoding.json.UnsupportedValueError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,34 +193,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'InvalidUTF8Error :
-    TypedPointsto (GF := GF) encoding.json.InvalidUTF8Error where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.InvalidUTF8Error where
   typedPointstoDef l v dq := iprop(
-    "S" ∷ typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' dq ∗
+    "S" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.InvalidUTF8Error go!"S" l) v.S' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'InvalidUTF8Error :
-    IntoValTypedUnderlying (GF := GF) encoding.json.InvalidUTF8Error encoding.json.InvalidUTF8Error.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.InvalidUTF8Error _root_.Perennial.encoding.json.InvalidUTF8Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'InvalidUTF8Error'S (l : Loc) (v : encoding.json.InvalidUTF8Error) (dq : DFrac) :
+noncomputable instance access_load'InvalidUTF8Error'S (l : Loc) (v : _root_.Perennial.encoding.json.InvalidUTF8Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' dq)
-      (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.InvalidUTF8Error go!"S" l) v.S' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.InvalidUTF8Error go!"S" l) v.S' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InvalidUTF8Error'S (l : Loc) (v : encoding.json.InvalidUTF8Error) (y : GoString) :
+noncomputable instance access_store'InvalidUTF8Error'S (l : Loc) (v : _root_.Perennial.encoding.json.InvalidUTF8Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) v.S' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.InvalidUTF8Error go!"S" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with S' := y } : encoding.json.InvalidUTF8Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.InvalidUTF8Error go!"S" l) v.S' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.InvalidUTF8Error go!"S" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with S' := y } : _root_.Perennial.encoding.json.InvalidUTF8Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -233,14 +233,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'MarshalerError :
-    TypedPointsto (GF := GF) encoding.json.MarshalerError :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.MarshalerError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MarshalerError :
-    IntoValTypedUnderlying (GF := GF) encoding.json.MarshalerError encoding.json.MarshalerError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.MarshalerError _root_.Perennial.encoding.json.MarshalerError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -252,51 +252,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'SyntaxError :
-    TypedPointsto (GF := GF) encoding.json.SyntaxError where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.SyntaxError where
   typedPointstoDef l v dq := iprop(
-    "msg" ∷ typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' dq ∗
-    "Offset" ∷ typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) v.Offset' dq ∗
+    "msg" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"msg" l) v.msg' dq ∗
+    "Offset" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"Offset" l) v.Offset' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'SyntaxError :
-    IntoValTypedUnderlying (GF := GF) encoding.json.SyntaxError encoding.json.SyntaxError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.SyntaxError _root_.Perennial.encoding.json.SyntaxError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'SyntaxError'msg (l : Loc) (v : encoding.json.SyntaxError) (dq : DFrac) :
+noncomputable instance access_load'SyntaxError'msg (l : Loc) (v : _root_.Perennial.encoding.json.SyntaxError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' dq)
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"msg" l) v.msg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"msg" l) v.msg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SyntaxError'msg (l : Loc) (v : encoding.json.SyntaxError) (y : GoString) :
+noncomputable instance access_store'SyntaxError'msg (l : Loc) (v : _root_.Perennial.encoding.json.SyntaxError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) v.msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"msg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msg' := y } : encoding.json.SyntaxError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"msg" l) v.msg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with msg' := y } : _root_.Perennial.encoding.json.SyntaxError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SyntaxError'Offset (l : Loc) (v : encoding.json.SyntaxError) (dq : DFrac) :
+noncomputable instance access_load'SyntaxError'Offset (l : Loc) (v : _root_.Perennial.encoding.json.SyntaxError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) v.Offset' dq)
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"Offset" l) v.Offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"Offset" l) v.Offset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SyntaxError'Offset (l : Loc) (v : encoding.json.SyntaxError) (y : w64) :
+noncomputable instance access_store'SyntaxError'Offset (l : Loc) (v : _root_.Perennial.encoding.json.SyntaxError) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) v.Offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.SyntaxError go!"Offset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : encoding.json.SyntaxError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"Offset" l) v.Offset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.SyntaxError go!"Offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Offset' := y } : _root_.Perennial.encoding.json.SyntaxError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -309,136 +309,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'Decoder :
-    TypedPointsto (GF := GF) encoding.json.Decoder where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.Decoder where
   typedPointstoDef l v dq := iprop(
-    "r" ∷ typedPointsto (structFieldRef encoding.json.Decoder go!"r" l) v.r' dq ∗
-    "buf" ∷ typedPointsto (structFieldRef encoding.json.Decoder go!"buf" l) v.buf' dq ∗
-    "prevStart" ∷ typedPointsto (structFieldRef encoding.json.Decoder go!"prevStart" l) v.prevStart' dq ∗
-    "prevEnd" ∷ typedPointsto (structFieldRef encoding.json.Decoder go!"prevEnd" l) v.prevEnd' dq ∗
-    "baseOffset" ∷ typedPointsto (structFieldRef encoding.json.Decoder go!"baseOffset" l) v.baseOffset' dq ∗
-    "err" ∷ typedPointsto (structFieldRef encoding.json.Decoder go!"err" l) v.err' dq ∗
-    "useNumber" ∷ typedPointsto (structFieldRef encoding.json.Decoder go!"useNumber" l) v.useNumber' dq ∗
+    "r" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"r" l) v.r' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"buf" l) v.buf' dq ∗
+    "prevStart" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevStart" l) v.prevStart' dq ∗
+    "prevEnd" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevEnd" l) v.prevEnd' dq ∗
+    "baseOffset" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"baseOffset" l) v.baseOffset' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"err" l) v.err' dq ∗
+    "useNumber" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"useNumber" l) v.useNumber' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Decoder :
-    IntoValTypedUnderlying (GF := GF) encoding.json.Decoder encoding.json.Decoder.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.Decoder _root_.Perennial.encoding.json.Decoder.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Decoder'r (l : Loc) (v : encoding.json.Decoder) (dq : DFrac) :
+noncomputable instance access_load'Decoder'r (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"r" l) v.r' dq)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"r" l) v.r' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Decoder'r (l : Loc) (v : encoding.json.Decoder) (y : _root_.Perennial.io.Reader) :
+noncomputable instance access_store'Decoder'r (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (y : _root_.Perennial.io.Reader) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"r" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : encoding.json.Decoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"r" l) v.r' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : _root_.Perennial.encoding.json.Decoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Decoder'buf (l : Loc) (v : encoding.json.Decoder) (dq : DFrac) :
+noncomputable instance access_load'Decoder'buf (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"buf" l) v.buf' dq)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"buf" l) v.buf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Decoder'buf (l : Loc) (v : encoding.json.Decoder) (y : GoSlice) :
+noncomputable instance access_store'Decoder'buf (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"buf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : encoding.json.Decoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : _root_.Perennial.encoding.json.Decoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Decoder'prevStart (l : Loc) (v : encoding.json.Decoder) (dq : DFrac) :
+noncomputable instance access_load'Decoder'prevStart (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevStart" l) v.prevStart' dq)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevStart" l) v.prevStart' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevStart" l) v.prevStart' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevStart" l) v.prevStart' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Decoder'prevStart (l : Loc) (v : encoding.json.Decoder) (y : w64) :
+noncomputable instance access_store'Decoder'prevStart (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevStart" l) v.prevStart' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevStart" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prevStart' := y } : encoding.json.Decoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevStart" l) v.prevStart' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevStart" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prevStart' := y } : _root_.Perennial.encoding.json.Decoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Decoder'prevEnd (l : Loc) (v : encoding.json.Decoder) (dq : DFrac) :
+noncomputable instance access_load'Decoder'prevEnd (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevEnd" l) v.prevEnd' dq)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevEnd" l) v.prevEnd' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevEnd" l) v.prevEnd' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevEnd" l) v.prevEnd' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Decoder'prevEnd (l : Loc) (v : encoding.json.Decoder) (y : w64) :
+noncomputable instance access_store'Decoder'prevEnd (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevEnd" l) v.prevEnd' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"prevEnd" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prevEnd' := y } : encoding.json.Decoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevEnd" l) v.prevEnd' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"prevEnd" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prevEnd' := y } : _root_.Perennial.encoding.json.Decoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Decoder'baseOffset (l : Loc) (v : encoding.json.Decoder) (dq : DFrac) :
+noncomputable instance access_load'Decoder'baseOffset (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"baseOffset" l) v.baseOffset' dq)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"baseOffset" l) v.baseOffset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"baseOffset" l) v.baseOffset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"baseOffset" l) v.baseOffset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Decoder'baseOffset (l : Loc) (v : encoding.json.Decoder) (y : w64) :
+noncomputable instance access_store'Decoder'baseOffset (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"baseOffset" l) v.baseOffset' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"baseOffset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseOffset' := y } : encoding.json.Decoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"baseOffset" l) v.baseOffset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"baseOffset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with baseOffset' := y } : _root_.Perennial.encoding.json.Decoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Decoder'err (l : Loc) (v : encoding.json.Decoder) (dq : DFrac) :
+noncomputable instance access_load'Decoder'err (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Decoder'err (l : Loc) (v : encoding.json.Decoder) (y : GoError) :
+noncomputable instance access_store'Decoder'err (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : encoding.json.Decoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.encoding.json.Decoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Decoder'useNumber (l : Loc) (v : encoding.json.Decoder) (dq : DFrac) :
+noncomputable instance access_load'Decoder'useNumber (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"useNumber" l) v.useNumber' dq)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"useNumber" l) v.useNumber' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"useNumber" l) v.useNumber' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"useNumber" l) v.useNumber' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Decoder'useNumber (l : Loc) (v : encoding.json.Decoder) (y : Bool) :
+noncomputable instance access_store'Decoder'useNumber (l : Loc) (v : _root_.Perennial.encoding.json.Decoder) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"useNumber" l) v.useNumber' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Decoder go!"useNumber" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with useNumber' := y } : encoding.json.Decoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"useNumber" l) v.useNumber' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Decoder go!"useNumber" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with useNumber' := y } : _root_.Perennial.encoding.json.Decoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -451,102 +451,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.json.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.json.Assumptions]
 
 noncomputable instance typed_pointsto'Encoder :
-    TypedPointsto (GF := GF) encoding.json.Encoder where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.json.Encoder where
   typedPointstoDef l v dq := iprop(
-    "w" ∷ typedPointsto (structFieldRef encoding.json.Encoder go!"w" l) v.w' dq ∗
-    "err" ∷ typedPointsto (structFieldRef encoding.json.Encoder go!"err" l) v.err' dq ∗
-    "escapeHTML" ∷ typedPointsto (structFieldRef encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' dq ∗
-    "indentPrefix" ∷ typedPointsto (structFieldRef encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' dq ∗
-    "indentValue" ∷ typedPointsto (structFieldRef encoding.json.Encoder go!"indentValue" l) v.indentValue' dq ∗
+    "w" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"w" l) v.w' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"err" l) v.err' dq ∗
+    "escapeHTML" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' dq ∗
+    "indentPrefix" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' dq ∗
+    "indentValue" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentValue" l) v.indentValue' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Encoder :
-    IntoValTypedUnderlying (GF := GF) encoding.json.Encoder encoding.json.Encoder.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.json.Encoder _root_.Perennial.encoding.json.Encoder.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Encoder'w (l : Loc) (v : encoding.json.Encoder) (dq : DFrac) :
+noncomputable instance access_load'Encoder'w (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"w" l) v.w' dq)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"w" l) v.w' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoder'w (l : Loc) (v : encoding.json.Encoder) (y : _root_.Perennial.io.Writer) :
+noncomputable instance access_store'Encoder'w (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"w" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : encoding.json.Encoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : _root_.Perennial.encoding.json.Encoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Encoder'err (l : Loc) (v : encoding.json.Encoder) (dq : DFrac) :
+noncomputable instance access_load'Encoder'err (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoder'err (l : Loc) (v : encoding.json.Encoder) (y : GoError) :
+noncomputable instance access_store'Encoder'err (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : encoding.json.Encoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.encoding.json.Encoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Encoder'escapeHTML (l : Loc) (v : encoding.json.Encoder) (dq : DFrac) :
+noncomputable instance access_load'Encoder'escapeHTML (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' dq)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoder'escapeHTML (l : Loc) (v : encoding.json.Encoder) (y : Bool) :
+noncomputable instance access_store'Encoder'escapeHTML (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"escapeHTML" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with escapeHTML' := y } : encoding.json.Encoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"escapeHTML" l) v.escapeHTML' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"escapeHTML" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with escapeHTML' := y } : _root_.Perennial.encoding.json.Encoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Encoder'indentPrefix (l : Loc) (v : encoding.json.Encoder) (dq : DFrac) :
+noncomputable instance access_load'Encoder'indentPrefix (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' dq)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoder'indentPrefix (l : Loc) (v : encoding.json.Encoder) (y : GoString) :
+noncomputable instance access_store'Encoder'indentPrefix (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentPrefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indentPrefix' := y } : encoding.json.Encoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentPrefix" l) v.indentPrefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentPrefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indentPrefix' := y } : _root_.Perennial.encoding.json.Encoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Encoder'indentValue (l : Loc) (v : encoding.json.Encoder) (dq : DFrac) :
+noncomputable instance access_load'Encoder'indentValue (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentValue" l) v.indentValue' dq)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentValue" l) v.indentValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentValue" l) v.indentValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentValue" l) v.indentValue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Encoder'indentValue (l : Loc) (v : encoding.json.Encoder) (y : GoString) :
+noncomputable instance access_store'Encoder'indentValue (l : Loc) (v : _root_.Perennial.encoding.json.Encoder) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentValue" l) v.indentValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.json.Encoder go!"indentValue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indentValue' := y } : encoding.json.Encoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentValue" l) v.indentValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.json.Encoder go!"indentValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indentValue' := y } : _root_.Perennial.encoding.json.Encoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

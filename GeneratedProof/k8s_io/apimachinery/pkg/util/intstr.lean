@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.intstr.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.Assumptions]
 
 noncomputable instance typed_pointsto'IntOrString :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.intstr.IntOrString :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IntOrString :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.intstr.IntOrString k8s_io.apimachinery.pkg.util.intstr.IntOrString.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString _root_.Perennial.k8s_io.apimachinery.pkg.util.intstr.IntOrString.underlying :=
   sorry -- axiomatized type
 
 end def_

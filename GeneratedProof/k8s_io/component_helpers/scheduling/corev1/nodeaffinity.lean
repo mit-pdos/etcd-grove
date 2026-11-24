@@ -28,34 +28,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
 noncomputable instance typed_pointsto'LazyErrorNodeSelector :
-    TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector where
   typedPointstoDef l v dq := iprop(
-    "terms" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq ∗
+    "terms" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LazyErrorNodeSelector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LazyErrorNodeSelector'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (dq : DFrac) :
+noncomputable instance access_load'LazyErrorNodeSelector'terms (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LazyErrorNodeSelector'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (y : GoSlice) :
+noncomputable instance access_store'LazyErrorNodeSelector'terms (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with terms' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) v.terms' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector go!"terms" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with terms' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -68,34 +68,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
 noncomputable instance typed_pointsto'NodeSelector :
-    TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector where
   typedPointstoDef l v dq := iprop(
-    "lazy" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq ∗
+    "lazy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'NodeSelector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'NodeSelector'lazy (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (dq : DFrac) :
+noncomputable instance access_load'NodeSelector'lazy (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NodeSelector'lazy (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (y : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) :
+noncomputable instance access_store'NodeSelector'lazy (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (y : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.LazyErrorNodeSelector) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lazy' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) v.lazy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector go!"lazy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lazy' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.NodeSelector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -108,34 +108,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
 noncomputable instance typed_pointsto'PreferredSchedulingTerms :
-    TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms where
   typedPointstoDef l v dq := iprop(
-    "terms" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq ∗
+    "terms" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PreferredSchedulingTerms :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PreferredSchedulingTerms'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (dq : DFrac) :
+noncomputable instance access_load'PreferredSchedulingTerms'terms (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PreferredSchedulingTerms'terms (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (y : GoSlice) :
+noncomputable instance access_store'PreferredSchedulingTerms'terms (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with terms' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) v.terms' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms go!"terms" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with terms' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.PreferredSchedulingTerms) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -148,68 +148,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
 noncomputable instance typed_pointsto'nodeSelectorTerm :
-    TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm where
   typedPointstoDef l v dq := iprop(
-    "matchLabels" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq ∗
-    "matchFields" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq ∗
-    "parseErrs" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq ∗
+    "matchLabels" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq ∗
+    "matchFields" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq ∗
+    "parseErrs" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'nodeSelectorTerm :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'nodeSelectorTerm'matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
+noncomputable instance access_load'nodeSelectorTerm'matchLabels (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'nodeSelectorTerm'matchLabels (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance access_store'nodeSelectorTerm'matchLabels (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchLabels' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) v.matchLabels' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchLabels" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchLabels' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'nodeSelectorTerm'matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
+noncomputable instance access_load'nodeSelectorTerm'matchFields (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'nodeSelectorTerm'matchFields (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector) :
+noncomputable instance access_store'nodeSelectorTerm'matchFields (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchFields' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) v.matchFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"matchFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchFields' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'nodeSelectorTerm'parseErrs (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
+noncomputable instance access_load'nodeSelectorTerm'parseErrs (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'nodeSelectorTerm'parseErrs (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : GoSlice) :
+noncomputable instance access_store'nodeSelectorTerm'parseErrs (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parseErrs' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) v.parseErrs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm go!"parseErrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parseErrs' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -222,51 +222,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
 noncomputable instance typed_pointsto'preferredSchedulingTerm :
-    TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm where
   typedPointstoDef l v dq := iprop(
-    "nodeSelectorTerm" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq ∗
-    "weight" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq ∗
+    "nodeSelectorTerm" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq ∗
+    "weight" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'preferredSchedulingTerm :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'preferredSchedulingTerm'nodeSelectorTerm (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
+noncomputable instance access_load'preferredSchedulingTerm'nodeSelectorTerm (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'preferredSchedulingTerm'nodeSelectorTerm (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) :
+noncomputable instance access_store'preferredSchedulingTerm'nodeSelectorTerm (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.nodeSelectorTerm) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nodeSelectorTerm' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) v.nodeSelectorTerm' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"nodeSelectorTerm" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nodeSelectorTerm' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'preferredSchedulingTerm'weight (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
+noncomputable instance access_load'preferredSchedulingTerm'weight (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'preferredSchedulingTerm'weight (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : w64) :
+noncomputable instance access_store'preferredSchedulingTerm'weight (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with weight' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) v.weight' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm go!"weight" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with weight' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.preferredSchedulingTerm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -279,51 +279,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.Assumptions]
 
 noncomputable instance typed_pointsto'RequiredNodeAffinity :
-    TypedPointsto (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity where
   typedPointstoDef l v dq := iprop(
-    "labelSelector" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq ∗
-    "nodeSelector" ∷ typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq ∗
+    "labelSelector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq ∗
+    "nodeSelector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'RequiredNodeAffinity :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'RequiredNodeAffinity'labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
+noncomputable instance access_load'RequiredNodeAffinity'labelSelector (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RequiredNodeAffinity'labelSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
+noncomputable instance access_store'RequiredNodeAffinity'labelSelector (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with labelSelector' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) v.labelSelector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"labelSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with labelSelector' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RequiredNodeAffinity'nodeSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
+noncomputable instance access_load'RequiredNodeAffinity'nodeSelector (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RequiredNodeAffinity'nodeSelector (l : Loc) (v : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : Loc) :
+noncomputable instance access_store'RequiredNodeAffinity'nodeSelector (l : Loc) (v : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nodeSelector' := y } : k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) v.nodeSelector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity go!"nodeSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nodeSelector' := y } : _root_.Perennial.k8s_io.component_helpers.scheduling.corev1.nodeaffinity.RequiredNodeAffinity) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

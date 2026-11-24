@@ -24,68 +24,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.peer.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.peer.Assumptions]
 
 noncomputable instance typed_pointsto'Peer :
-    TypedPointsto (GF := GF) google_golang_org.grpc.peer.Peer where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.peer.Peer where
   typedPointstoDef l v dq := iprop(
-    "Addr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq ∗
-    "LocalAddr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq ∗
-    "AuthInfo" ∷ typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq ∗
+    "Addr" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq ∗
+    "LocalAddr" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq ∗
+    "AuthInfo" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Peer :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.peer.Peer google_golang_org.grpc.peer.Peer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.peer.Peer _root_.Perennial.google_golang_org.grpc.peer.Peer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Peer'Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
+noncomputable instance access_load'Peer'Addr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.peer.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Peer'Addr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (y : _root_.Perennial.net.Addr) :
+noncomputable instance access_store'Peer'Addr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.peer.Peer) (y : _root_.Perennial.net.Addr) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"Addr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Addr' := y } : google_golang_org.grpc.peer.Peer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"Addr" l) v.Addr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"Addr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Addr' := y } : _root_.Perennial.google_golang_org.grpc.peer.Peer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Peer'LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
+noncomputable instance access_load'Peer'LocalAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.peer.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Peer'LocalAddr (l : Loc) (v : google_golang_org.grpc.peer.Peer) (y : _root_.Perennial.net.Addr) :
+noncomputable instance access_store'Peer'LocalAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.peer.Peer) (y : _root_.Perennial.net.Addr) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"LocalAddr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LocalAddr' := y } : google_golang_org.grpc.peer.Peer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"LocalAddr" l) v.LocalAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"LocalAddr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LocalAddr' := y } : _root_.Perennial.google_golang_org.grpc.peer.Peer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Peer'AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (dq : DFrac) :
+noncomputable instance access_load'Peer'AuthInfo (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.peer.Peer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Peer'AuthInfo (l : Loc) (v : google_golang_org.grpc.peer.Peer) (y : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo) :
+noncomputable instance access_store'Peer'AuthInfo (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.peer.Peer) (y : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.peer.Peer go!"AuthInfo" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AuthInfo' := y } : google_golang_org.grpc.peer.Peer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"AuthInfo" l) v.AuthInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.peer.Peer go!"AuthInfo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AuthInfo' := y } : _root_.Perennial.google_golang_org.grpc.peer.Peer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -98,10 +98,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.peer.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.peer.Assumptions]
 
 noncomputable instance typed_pointsto'peerKey :
-    TypedPointsto (GF := GF) google_golang_org.grpc.peer.peerKey where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.peer.peerKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -109,7 +109,7 @@ noncomputable instance typed_pointsto'peerKey :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'peerKey :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.peer.peerKey google_golang_org.grpc.peer.peerKey.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.peer.peerKey _root_.Perennial.google_golang_org.grpc.peer.peerKey.underlying := by
   solve_into_val_typed_struct
 
 end def_

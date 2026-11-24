@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.internal.status.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.internal.status.Assumptions]
 
 noncomputable instance typed_pointsto'Status :
-    TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Status :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.internal.status.Status :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Status :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Status google_golang_org.grpc.internal.status.Status.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.internal.status.Status _root_.Perennial.google_golang_org.grpc.internal.status.Status.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.internal.status.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.internal.status.Assumptions]
 
 noncomputable instance typed_pointsto'Error :
-    TypedPointsto (GF := GF) google_golang_org.grpc.internal.status.Error :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.internal.status.Error :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Error :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.internal.status.Error google_golang_org.grpc.internal.status.Error.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.internal.status.Error _root_.Perennial.google_golang_org.grpc.internal.status.Error.underlying :=
   sorry -- axiomatized type
 
 end def_

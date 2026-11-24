@@ -6111,10 +6111,10 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType Request.ty)))) (Pair (Var "req") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
-  (let errorHeaders₀ := #(go!"\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n");
+  (let errorHeaders₁ := #(go!"\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n");
   (Let "$sw" (Val #true)
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr errTooLarge))) (Val #())))))))
-  (let publicErr₀ := #(go!"431 Request Header Fields Too Large");
+  (let publicErr₁ := #(go!"431 Request Header Fields Too Large");
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
@@ -6140,7 +6140,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a2" (Let "$sl0" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (Var "code")))
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (Var "code"))
   (App (App (Val (GoInstruction (FuncResolve StatusText []))) (Val #())) (Var "$a0"))))
-  (Let "$sl2" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val errorHeaders₀)))
+  (Let "$sl2" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val errorHeaders₁)))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1"))), (KeyedElement none (ElementExpression go.any (Var "$sl2")))])))))
   (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Fprintf []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))))
   (App (Val doExecute)
@@ -6150,7 +6150,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doReturn)
   (Val #()))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (let publicErr₀ := #(go!"400 Bad Request");
+  (let publicErr₁ := #(go!"400 Bad Request");
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -6179,7 +6179,7 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statusError.ty go!"code"))) (Var "v")))
   (App (App (Val (GoInstruction (FuncResolve StatusText []))) (Val #())) (Var "$a0"))))
   (Let "$sl2" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef statusError.ty go!"text"))) (Var "v"))))
-  (Let "$sl3" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val errorHeaders₀)))
+  (Let "$sl3" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val errorHeaders₁)))
   (Let "$sl4" (App (Val (GoInstruction (Convert go.int go.any))) (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statusError.ty go!"code"))) (Var "v"))))
   (Let "$sl5" (App (Val (GoInstruction (Convert go.string go.any))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef statusError.ty go!"code"))) (Var "v")))
   (App (App (Val (GoInstruction (FuncResolve StatusText []))) (Val #())) (Var "$a0"))))
@@ -6340,8 +6340,8 @@ noncomputable def conn.serve.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.InterfaceType [])))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.InterfaceType [])))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.InterfaceType [])))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [])))) (Var "err")) (App (Val (GoInstruction (Convert go.error (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrAbortHandler))) (Val #()))))))) (Val #false)))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (let size₀ := #(65536 : Int);
-  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val size₀)))
+  (let size₁ := #(65536 : Int);
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val size₁)))
   (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "buf"))

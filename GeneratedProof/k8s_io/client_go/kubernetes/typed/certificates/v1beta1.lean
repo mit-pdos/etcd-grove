@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CertificatesV1beta1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CertificatesV1beta1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Interface k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CertificatesV1beta1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CertificatesV1beta1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Client k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificatesV1beta1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CertificateSigningRequestsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CertificateSigningRequestsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestsGetter k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CertificateSigningRequestInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CertificateSigningRequestInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestInterface k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'certificateSigningRequests :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.certificateSigningRequests :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.certificateSigningRequests :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'certificateSigningRequests :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.certificateSigningRequests k8s_io.client_go.kubernetes.typed.certificates.v1beta1.certificateSigningRequests.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.certificateSigningRequests _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.certificateSigningRequests.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CertificateSigningRequestExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CertificateSigningRequestExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestExpansion k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.CertificateSigningRequestExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterTrustBundlesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundlesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundlesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterTrustBundlesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundlesGetter k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundlesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundlesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundlesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterTrustBundleInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterTrustBundleInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleInterface k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'clusterTrustBundles :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.clusterTrustBundles :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.clusterTrustBundles :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'clusterTrustBundles :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.clusterTrustBundles k8s_io.client_go.kubernetes.typed.certificates.v1beta1.clusterTrustBundles.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.clusterTrustBundles _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.clusterTrustBundles.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterTrustBundleExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterTrustBundleExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleExpansion k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.ClusterTrustBundleExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PodCertificateRequestExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PodCertificateRequestExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestExpansion k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PodCertificateRequestsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PodCertificateRequestsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestsGetter k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PodCertificateRequestInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PodCertificateRequestInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestInterface k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.PodCertificateRequestInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'podCertificateRequests :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.podCertificateRequests :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.podCertificateRequests :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'podCertificateRequests :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.certificates.v1beta1.podCertificateRequests k8s_io.client_go.kubernetes.typed.certificates.v1beta1.podCertificateRequests.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.podCertificateRequests _root_.Perennial.k8s_io.client_go.kubernetes.typed.certificates.v1beta1.podCertificateRequests.underlying :=
   sorry -- axiomatized type
 
 end def_

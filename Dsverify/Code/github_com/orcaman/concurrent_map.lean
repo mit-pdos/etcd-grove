@@ -1101,7 +1101,7 @@ noncomputable def fnv32.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Val #(W32 2166136261))
   (Let "hash" (App (Val (GoInstruction (GoAlloc go.uint32))) (App (Val (GoInstruction (GoZeroVal go.uint32))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (let prime32₀ := #(W32 16777619);
+  (let prime32₁ := #(W32 16777619);
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "key"))
   (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0")))
   (Let "keyLength" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1122,7 +1122,7 @@ noncomputable def fnv32.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoXor go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (Var "hash")) (App (Val (GoInstruction (Convert go.byte go.uint32))) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "key")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoMul go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (Var "hash")) (Val prime32₀)))))))))
+  (App (Val (GoInstruction (GoStore go.uint32))) (Pair (Var "hash") (App (Val (GoInstruction (GoOp GoMul go.uint32))) (Pair (App (Val (GoInstruction (GoLoad go.uint32))) (Var "hash")) (Val prime32₁)))))))))
   (Lam BAnon
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))

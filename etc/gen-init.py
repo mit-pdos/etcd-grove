@@ -4259,8 +4259,13 @@ trust-boundary axiom `opaqueInitsOk`).'''), ['ErrPreconditionViolated'])
 def plain(ns):
     return ns.replace('«', '').replace('»', '')
 
+# goose's framework namespaces (glang.FrameworkNamespaces): a package-path component that is one
+# is c'' in the package's namespace (`go/token` is `go''.token`), but its files keep the path
+FRAMEWORK_NAMESPACES = set('go chan map func interface package slice array string pkg_id Iris Classical DFrac Perennial'.split())
+
 def dirof(ns):
-    return plain(ns).replace('.', '/')
+    return '/'.join(c[:-2] if c.endswith("''") and c[:-2] in FRAMEWORK_NAMESPACES else c
+                    for c in plain(ns).split('.'))
 
 
 # (mustreg, 2026-11-20) the packages whose translated `init()` only registers their metrics

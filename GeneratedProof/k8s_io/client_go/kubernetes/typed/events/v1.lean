@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
 
 noncomputable instance typed_pointsto'EventsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventsGetter k8s_io.client_go.kubernetes.typed.events.v1.EventsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
 
 noncomputable instance typed_pointsto'EventInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventInterface k8s_io.client_go.kubernetes.typed.events.v1.EventInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
 
 noncomputable instance typed_pointsto'events :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.events :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.events :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'events :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.events k8s_io.client_go.kubernetes.typed.events.v1.events.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.events _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.events.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
 
 noncomputable instance typed_pointsto'EventsV1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventsV1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Interface k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
 
 noncomputable instance typed_pointsto'EventsV1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventsV1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Client k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventsV1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.Assumptions]
 
 noncomputable instance typed_pointsto'EventExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.events.v1.EventExpansion k8s_io.client_go.kubernetes.typed.events.v1.EventExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.events.v1.EventExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_

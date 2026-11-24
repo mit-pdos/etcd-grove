@@ -24,51 +24,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.orcaman.concurrent_map.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.orcaman.concurrent_map.Assumptions]
 
 noncomputable instance typed_pointsto'ConcurrentMapShared :
-    TypedPointsto (GF := GF) github_com.orcaman.concurrent_map.ConcurrentMapShared where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared where
   typedPointstoDef l v dq := iprop(
-    "items" ∷ typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' dq ∗
-    "RWMutex" ∷ typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' dq ∗
+    "items" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' dq ∗
+    "RWMutex" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ConcurrentMapShared :
-    IntoValTypedUnderlying (GF := GF) github_com.orcaman.concurrent_map.ConcurrentMapShared github_com.orcaman.concurrent_map.ConcurrentMapShared.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ConcurrentMapShared'items (l : Loc) (v : github_com.orcaman.concurrent_map.ConcurrentMapShared) (dq : DFrac) :
+noncomputable instance access_load'ConcurrentMapShared'items (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' dq)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConcurrentMapShared'items (l : Loc) (v : github_com.orcaman.concurrent_map.ConcurrentMapShared) (y : GoMap) :
+noncomputable instance access_store'ConcurrentMapShared'items (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := y } : github_com.orcaman.concurrent_map.ConcurrentMapShared) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) v.items' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"items" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := y } : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConcurrentMapShared'RWMutex (l : Loc) (v : github_com.orcaman.concurrent_map.ConcurrentMapShared) (dq : DFrac) :
+noncomputable instance access_load'ConcurrentMapShared'RWMutex (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' dq)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConcurrentMapShared'RWMutex (l : Loc) (v : github_com.orcaman.concurrent_map.ConcurrentMapShared) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'ConcurrentMapShared'RWMutex (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RWMutex' := y } : github_com.orcaman.concurrent_map.ConcurrentMapShared) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) v.RWMutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared go!"RWMutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RWMutex' := y } : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMapShared) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -81,51 +81,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.orcaman.concurrent_map.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.orcaman.concurrent_map.Assumptions]
 
 noncomputable instance typed_pointsto'Tuple :
-    TypedPointsto (GF := GF) github_com.orcaman.concurrent_map.Tuple where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.orcaman.concurrent_map.Tuple where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' dq ∗
-    "Val" ∷ typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' dq ∗
+    "Val" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Tuple :
-    IntoValTypedUnderlying (GF := GF) github_com.orcaman.concurrent_map.Tuple github_com.orcaman.concurrent_map.Tuple.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.orcaman.concurrent_map.Tuple _root_.Perennial.github_com.orcaman.concurrent_map.Tuple.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Tuple'Key (l : Loc) (v : github_com.orcaman.concurrent_map.Tuple) (dq : DFrac) :
+noncomputable instance access_load'Tuple'Key (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.Tuple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Tuple'Key (l : Loc) (v : github_com.orcaman.concurrent_map.Tuple) (y : GoString) :
+noncomputable instance access_store'Tuple'Key (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.Tuple) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : github_com.orcaman.concurrent_map.Tuple) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.github_com.orcaman.concurrent_map.Tuple) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Tuple'Val (l : Loc) (v : github_com.orcaman.concurrent_map.Tuple) (dq : DFrac) :
+noncomputable instance access_load'Tuple'Val (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.Tuple) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' dq)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Tuple'Val (l : Loc) (v : github_com.orcaman.concurrent_map.Tuple) (y : GoInterface) :
+noncomputable instance access_store'Tuple'Val (l : Loc) (v : _root_.Perennial.github_com.orcaman.concurrent_map.Tuple) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.orcaman.concurrent_map.Tuple go!"Val" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Val' := y } : github_com.orcaman.concurrent_map.Tuple) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Val" l) v.Val' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.orcaman.concurrent_map.Tuple go!"Val" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Val' := y } : _root_.Perennial.github_com.orcaman.concurrent_map.Tuple) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

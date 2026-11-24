@@ -5834,7 +5834,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (Seq (App (Val exceptionDo)
   (Let "walDir" (App (Val (GoInstruction (GoAlloc go.string))) (Var "walDir"))
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (let maxReadAttempts₀ := #(3 : Int);
+  (let maxReadAttempts₁ := #(3 : Int);
   (Let "lastErr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty))))) (Val UntypedNil))
@@ -5851,7 +5851,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (Let "attempt" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (App (Val doFor) (Lam BAnon
-  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₀)))))) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₁)))))) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (Var "walDir"))
   (App (App (App (Val (GoInstruction (FuncResolve validSnapshotEntries []))) (Val #())) (Var "$a0")) (Var "$a1"))))
@@ -5867,7 +5867,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₀)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₁)))))
   (App (Val doExecute)
   (Let "$a0" (Val #(go!"retrying WAL snapshot scan after transient file removal"))
   (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"wal-dir"))
@@ -5877,7 +5877,7 @@ noncomputable def ValidSnapshotEntries.impl [GooseExts] [GoGlobalContext] : val 
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.int))) (Var "attempt"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$sl2" (Let "$a0" (Val #(go!"max-attempts"))
-  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₀))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val maxReadAttempts₁))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Int'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$sl3" (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Error []))) (Val #())) (Var "$a0")))

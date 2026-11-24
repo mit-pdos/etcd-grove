@@ -25,102 +25,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions]
 
 noncomputable instance typed_pointsto'FeatureSpec :
-    TypedPointsto (GF := GF) k8s_io.component_base.featuregate.FeatureSpec where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec where
   typedPointstoDef l v dq := iprop(
-    "Default" ∷ typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' dq ∗
-    "LockToDefault" ∷ typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq ∗
-    "PreRelease" ∷ typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq ∗
-    "Version" ∷ typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' dq ∗
-    "MinCompatibilityVersion" ∷ typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' dq ∗
+    "Default" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' dq ∗
+    "LockToDefault" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq ∗
+    "PreRelease" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq ∗
+    "Version" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' dq ∗
+    "MinCompatibilityVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'FeatureSpec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.FeatureSpec k8s_io.component_base.featuregate.FeatureSpec.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'FeatureSpec'Default (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'Default (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FeatureSpec'Default (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Bool) :
+noncomputable instance access_store'FeatureSpec'Default (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Default' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) v.Default' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Default" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Default' := y } : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FeatureSpec'LockToDefault (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'LockToDefault (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FeatureSpec'LockToDefault (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Bool) :
+noncomputable instance access_store'FeatureSpec'LockToDefault (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LockToDefault' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) v.LockToDefault' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"LockToDefault" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LockToDefault' := y } : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FeatureSpec'PreRelease (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'PreRelease (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FeatureSpec'PreRelease (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : k8s_io.component_base.featuregate.prerelease) :
+noncomputable instance access_store'FeatureSpec'PreRelease (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (y : _root_.Perennial.k8s_io.component_base.featuregate.prerelease) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreRelease' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) v.PreRelease' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"PreRelease" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PreRelease' := y } : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FeatureSpec'Version (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'Version (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' dq)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FeatureSpec'Version (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Loc) :
+noncomputable instance access_store'FeatureSpec'Version (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) v.Version' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"Version" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Version' := y } : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FeatureSpec'MinCompatibilityVersion (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
+noncomputable instance access_load'FeatureSpec'MinCompatibilityVersion (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FeatureSpec'MinCompatibilityVersion (l : Loc) (v : k8s_io.component_base.featuregate.FeatureSpec) (y : Loc) :
+noncomputable instance access_store'FeatureSpec'MinCompatibilityVersion (l : Loc) (v : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinCompatibilityVersion' := y } : k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) v.MinCompatibilityVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec go!"MinCompatibilityVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MinCompatibilityVersion' := y } : _root_.Perennial.k8s_io.component_base.featuregate.FeatureSpec) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -133,14 +133,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions]
 
 noncomputable instance typed_pointsto'MutableFeatureGateWithLogger :
-    TypedPointsto (GF := GF) k8s_io.component_base.featuregate.MutableFeatureGateWithLogger :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGateWithLogger :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutableFeatureGateWithLogger :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.MutableFeatureGateWithLogger k8s_io.component_base.featuregate.MutableFeatureGateWithLogger.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGateWithLogger _root_.Perennial.k8s_io.component_base.featuregate.MutableFeatureGateWithLogger.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -152,14 +152,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions]
 
 noncomputable instance typed_pointsto'MutableVersionedFeatureGateWithLogger :
-    TypedPointsto (GF := GF) k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MutableVersionedFeatureGateWithLogger :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGateWithLogger.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -171,14 +171,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.featuregate.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.featuregate.Assumptions]
 
 noncomputable instance typed_pointsto'featureGate :
-    TypedPointsto (GF := GF) k8s_io.component_base.featuregate.featureGate :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.featureGate :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'featureGate :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.featuregate.featureGate k8s_io.component_base.featuregate.featureGate.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.featuregate.featureGate _root_.Perennial.k8s_io.component_base.featuregate.featureGate.underlying :=
   sorry -- axiomatized type
 
 end def_

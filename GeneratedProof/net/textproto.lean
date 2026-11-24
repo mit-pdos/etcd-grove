@@ -24,68 +24,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'sequencer :
-    TypedPointsto (GF := GF) net.textproto.sequencer where
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.sequencer where
   typedPointstoDef l v dq := iprop(
-    "mu" ∷ typedPointsto (structFieldRef net.textproto.sequencer go!"mu" l) v.mu' dq ∗
-    "id" ∷ typedPointsto (structFieldRef net.textproto.sequencer go!"id" l) v.id' dq ∗
-    "wait" ∷ typedPointsto (structFieldRef net.textproto.sequencer go!"wait" l) v.wait' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"mu" l) v.mu' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"id" l) v.id' dq ∗
+    "wait" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"wait" l) v.wait' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'sequencer :
-    IntoValTypedUnderlying (GF := GF) net.textproto.sequencer net.textproto.sequencer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.sequencer _root_.Perennial.net.textproto.sequencer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'sequencer'mu (l : Loc) (v : net.textproto.sequencer) (dq : DFrac) :
+noncomputable instance access_load'sequencer'mu (l : Loc) (v : _root_.Perennial.net.textproto.sequencer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sequencer'mu (l : Loc) (v : net.textproto.sequencer) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'sequencer'mu (l : Loc) (v : _root_.Perennial.net.textproto.sequencer) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : net.textproto.sequencer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.net.textproto.sequencer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sequencer'id (l : Loc) (v : net.textproto.sequencer) (dq : DFrac) :
+noncomputable instance access_load'sequencer'id (l : Loc) (v : _root_.Perennial.net.textproto.sequencer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sequencer'id (l : Loc) (v : net.textproto.sequencer) (y : w64) :
+noncomputable instance access_store'sequencer'id (l : Loc) (v : _root_.Perennial.net.textproto.sequencer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : net.textproto.sequencer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.net.textproto.sequencer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sequencer'wait (l : Loc) (v : net.textproto.sequencer) (dq : DFrac) :
+noncomputable instance access_load'sequencer'wait (l : Loc) (v : _root_.Perennial.net.textproto.sequencer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"wait" l) v.wait' dq)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"wait" l) v.wait' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"wait" l) v.wait' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"wait" l) v.wait' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sequencer'wait (l : Loc) (v : net.textproto.sequencer) (y : GoMap) :
+noncomputable instance access_store'sequencer'wait (l : Loc) (v : _root_.Perennial.net.textproto.sequencer) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"wait" l) v.wait' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.sequencer go!"wait" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wait' := y } : net.textproto.sequencer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"wait" l) v.wait' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.sequencer go!"wait" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wait' := y } : _root_.Perennial.net.textproto.sequencer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -98,85 +98,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'Pipeline :
-    TypedPointsto (GF := GF) net.textproto.Pipeline where
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.Pipeline where
   typedPointstoDef l v dq := iprop(
-    "mu" ∷ typedPointsto (structFieldRef net.textproto.Pipeline go!"mu" l) v.mu' dq ∗
-    "id" ∷ typedPointsto (structFieldRef net.textproto.Pipeline go!"id" l) v.id' dq ∗
-    "request" ∷ typedPointsto (structFieldRef net.textproto.Pipeline go!"request" l) v.request' dq ∗
-    "response" ∷ typedPointsto (structFieldRef net.textproto.Pipeline go!"response" l) v.response' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"mu" l) v.mu' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"id" l) v.id' dq ∗
+    "request" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"request" l) v.request' dq ∗
+    "response" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"response" l) v.response' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Pipeline :
-    IntoValTypedUnderlying (GF := GF) net.textproto.Pipeline net.textproto.Pipeline.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.Pipeline _root_.Perennial.net.textproto.Pipeline.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Pipeline'mu (l : Loc) (v : net.textproto.Pipeline) (dq : DFrac) :
+noncomputable instance access_load'Pipeline'mu (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pipeline'mu (l : Loc) (v : net.textproto.Pipeline) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'Pipeline'mu (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : net.textproto.Pipeline) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.net.textproto.Pipeline) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Pipeline'id (l : Loc) (v : net.textproto.Pipeline) (dq : DFrac) :
+noncomputable instance access_load'Pipeline'id (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pipeline'id (l : Loc) (v : net.textproto.Pipeline) (y : w64) :
+noncomputable instance access_store'Pipeline'id (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : net.textproto.Pipeline) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.net.textproto.Pipeline) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Pipeline'request (l : Loc) (v : net.textproto.Pipeline) (dq : DFrac) :
+noncomputable instance access_load'Pipeline'request (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"request" l) v.request' dq)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"request" l) v.request' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"request" l) v.request' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"request" l) v.request' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pipeline'request (l : Loc) (v : net.textproto.Pipeline) (y : net.textproto.sequencer) :
+noncomputable instance access_store'Pipeline'request (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (y : _root_.Perennial.net.textproto.sequencer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"request" l) v.request' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"request" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with request' := y } : net.textproto.Pipeline) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"request" l) v.request' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"request" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with request' := y } : _root_.Perennial.net.textproto.Pipeline) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Pipeline'response (l : Loc) (v : net.textproto.Pipeline) (dq : DFrac) :
+noncomputable instance access_load'Pipeline'response (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"response" l) v.response' dq)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"response" l) v.response' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"response" l) v.response' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"response" l) v.response' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pipeline'response (l : Loc) (v : net.textproto.Pipeline) (y : net.textproto.sequencer) :
+noncomputable instance access_store'Pipeline'response (l : Loc) (v : _root_.Perennial.net.textproto.Pipeline) (y : _root_.Perennial.net.textproto.sequencer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"response" l) v.response' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Pipeline go!"response" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with response' := y } : net.textproto.Pipeline) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"response" l) v.response' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Pipeline go!"response" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with response' := y } : _root_.Perennial.net.textproto.Pipeline) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -189,14 +189,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'Reader :
-    TypedPointsto (GF := GF) net.textproto.Reader :=
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.Reader :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Reader :
-    IntoValTypedUnderlying (GF := GF) net.textproto.Reader net.textproto.Reader.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.Reader _root_.Perennial.net.textproto.Reader.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -208,51 +208,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'dotReader :
-    TypedPointsto (GF := GF) net.textproto.dotReader where
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.dotReader where
   typedPointstoDef l v dq := iprop(
-    "r" ∷ typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' dq ∗
-    "state" ∷ typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' dq ∗
+    "r" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"r" l) v.r' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"state" l) v.state' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'dotReader :
-    IntoValTypedUnderlying (GF := GF) net.textproto.dotReader net.textproto.dotReader.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.dotReader _root_.Perennial.net.textproto.dotReader.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'dotReader'r (l : Loc) (v : net.textproto.dotReader) (dq : DFrac) :
+noncomputable instance access_load'dotReader'r (l : Loc) (v : _root_.Perennial.net.textproto.dotReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' dq)
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"r" l) v.r' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"r" l) v.r' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'dotReader'r (l : Loc) (v : net.textproto.dotReader) (y : Loc) :
+noncomputable instance access_store'dotReader'r (l : Loc) (v : _root_.Perennial.net.textproto.dotReader) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) v.r' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"r" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : net.textproto.dotReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"r" l) v.r' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"r" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with r' := y } : _root_.Perennial.net.textproto.dotReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'dotReader'state (l : Loc) (v : net.textproto.dotReader) (dq : DFrac) :
+noncomputable instance access_load'dotReader'state (l : Loc) (v : _root_.Perennial.net.textproto.dotReader) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'dotReader'state (l : Loc) (v : net.textproto.dotReader) (y : w64) :
+noncomputable instance access_store'dotReader'state (l : Loc) (v : _root_.Perennial.net.textproto.dotReader) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotReader go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : net.textproto.dotReader) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotReader go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.net.textproto.dotReader) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -265,51 +265,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'Error :
-    TypedPointsto (GF := GF) net.textproto.Error where
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.Error where
   typedPointstoDef l v dq := iprop(
-    "Code" ∷ typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' dq ∗
-    "Msg" ∷ typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' dq ∗
+    "Code" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Code" l) v.Code' dq ∗
+    "Msg" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Msg" l) v.Msg' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Error :
-    IntoValTypedUnderlying (GF := GF) net.textproto.Error net.textproto.Error.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.Error _root_.Perennial.net.textproto.Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Error'Code (l : Loc) (v : net.textproto.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Code (l : Loc) (v : _root_.Perennial.net.textproto.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' dq)
-      (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Code" l) v.Code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Code" l) v.Code' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'Code (l : Loc) (v : net.textproto.Error) (y : w64) :
+noncomputable instance access_store'Error'Code (l : Loc) (v : _root_.Perennial.net.textproto.Error) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) v.Code' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Error go!"Code" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : net.textproto.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Code" l) v.Code' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : _root_.Perennial.net.textproto.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'Msg (l : Loc) (v : net.textproto.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Msg (l : Loc) (v : _root_.Perennial.net.textproto.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' dq)
-      (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Msg" l) v.Msg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Msg" l) v.Msg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'Msg (l : Loc) (v : net.textproto.Error) (y : GoString) :
+noncomputable instance access_store'Error'Msg (l : Loc) (v : _root_.Perennial.net.textproto.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) v.Msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.Error go!"Msg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := y } : net.textproto.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Msg" l) v.Msg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.Error go!"Msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := y } : _root_.Perennial.net.textproto.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -322,14 +322,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'Conn :
-    TypedPointsto (GF := GF) net.textproto.Conn :=
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.Conn :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Conn :
-    IntoValTypedUnderlying (GF := GF) net.textproto.Conn net.textproto.Conn.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.Conn _root_.Perennial.net.textproto.Conn.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -341,14 +341,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'Writer :
-    TypedPointsto (GF := GF) net.textproto.Writer :=
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.Writer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Writer :
-    IntoValTypedUnderlying (GF := GF) net.textproto.Writer net.textproto.Writer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.Writer _root_.Perennial.net.textproto.Writer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -360,51 +360,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.textproto.Assumptions]
+variable [package_sem' : _root_.Perennial.net.textproto.Assumptions]
 
 noncomputable instance typed_pointsto'dotWriter :
-    TypedPointsto (GF := GF) net.textproto.dotWriter where
+    TypedPointsto (GF := GF) _root_.Perennial.net.textproto.dotWriter where
   typedPointstoDef l v dq := iprop(
-    "w" ∷ typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' dq ∗
-    "state" ∷ typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' dq ∗
+    "w" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"w" l) v.w' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"state" l) v.state' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'dotWriter :
-    IntoValTypedUnderlying (GF := GF) net.textproto.dotWriter net.textproto.dotWriter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.textproto.dotWriter _root_.Perennial.net.textproto.dotWriter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'dotWriter'w (l : Loc) (v : net.textproto.dotWriter) (dq : DFrac) :
+noncomputable instance access_load'dotWriter'w (l : Loc) (v : _root_.Perennial.net.textproto.dotWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' dq)
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"w" l) v.w' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'dotWriter'w (l : Loc) (v : net.textproto.dotWriter) (y : Loc) :
+noncomputable instance access_store'dotWriter'w (l : Loc) (v : _root_.Perennial.net.textproto.dotWriter) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"w" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : net.textproto.dotWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : _root_.Perennial.net.textproto.dotWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'dotWriter'state (l : Loc) (v : net.textproto.dotWriter) (dq : DFrac) :
+noncomputable instance access_load'dotWriter'state (l : Loc) (v : _root_.Perennial.net.textproto.dotWriter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'dotWriter'state (l : Loc) (v : net.textproto.dotWriter) (y : w64) :
+noncomputable instance access_store'dotWriter'state (l : Loc) (v : _root_.Perennial.net.textproto.dotWriter) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.textproto.dotWriter go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : net.textproto.dotWriter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.textproto.dotWriter go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.net.textproto.dotWriter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

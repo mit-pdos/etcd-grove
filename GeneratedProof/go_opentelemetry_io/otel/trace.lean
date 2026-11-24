@@ -26,34 +26,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'autoTracerProvider :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.autoTracerProvider where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider where
   typedPointstoDef l v dq := iprop(
-    "TracerProvider" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' dq ∗
+    "TracerProvider" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'autoTracerProvider :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.autoTracerProvider go_opentelemetry_io.otel.trace.autoTracerProvider.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'autoTracerProvider'TracerProvider (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracerProvider) (dq : DFrac) :
+noncomputable instance access_load'autoTracerProvider'TracerProvider (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'autoTracerProvider'TracerProvider (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider) :
+noncomputable instance access_store'autoTracerProvider'TracerProvider (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerProvider' := y } : go_opentelemetry_io.otel.trace.autoTracerProvider) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) v.TracerProvider' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider go!"TracerProvider" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerProvider' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracerProvider) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,85 +66,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'autoTracer :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.autoTracer where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer where
   typedPointstoDef l v dq := iprop(
-    "Tracer" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' dq ∗
-    "name" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' dq ∗
-    "schemaURL" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' dq ∗
-    "version" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' dq ∗
+    "Tracer" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' dq ∗
+    "schemaURL" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' dq ∗
+    "version" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'autoTracer :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.autoTracer go_opentelemetry_io.otel.trace.autoTracer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'autoTracer'Tracer (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
+noncomputable instance access_load'autoTracer'Tracer (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'autoTracer'Tracer (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer) :
+noncomputable instance access_store'autoTracer'Tracer (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tracer' := y } : go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) v.Tracer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"Tracer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tracer' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'autoTracer'name (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
+noncomputable instance access_load'autoTracer'name (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'autoTracer'name (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (y : GoString) :
+noncomputable instance access_store'autoTracer'name (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'autoTracer'schemaURL (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
+noncomputable instance access_load'autoTracer'schemaURL (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'autoTracer'schemaURL (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (y : GoString) :
+noncomputable instance access_store'autoTracer'schemaURL (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with schemaURL' := y } : go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) v.schemaURL' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"schemaURL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with schemaURL' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'autoTracer'version (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
+noncomputable instance access_load'autoTracer'version (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'autoTracer'version (l : Loc) (v : go_opentelemetry_io.otel.trace.autoTracer) (y : GoString) :
+noncomputable instance access_store'autoTracer'version (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.autoTracer go!"version" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := y } : go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"version" l) v.version' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer go!"version" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.autoTracer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -157,14 +157,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'autoSpan :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.autoSpan :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.autoSpan :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'autoSpan :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.autoSpan go_opentelemetry_io.otel.trace.autoSpan.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.autoSpan _root_.Perennial.go_opentelemetry_io.otel.trace.autoSpan.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -176,119 +176,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'spanLimits :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.spanLimits where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits where
   typedPointstoDef l v dq := iprop(
-    "Attrs" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' dq ∗
-    "AttrValueLen" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' dq ∗
-    "Events" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' dq ∗
-    "EventAttrs" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' dq ∗
-    "Links" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' dq ∗
-    "LinkAttrs" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' dq ∗
+    "Attrs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' dq ∗
+    "AttrValueLen" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' dq ∗
+    "Events" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' dq ∗
+    "EventAttrs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' dq ∗
+    "Links" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' dq ∗
+    "LinkAttrs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'spanLimits :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.spanLimits go_opentelemetry_io.otel.trace.spanLimits.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'spanLimits'Attrs (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
+noncomputable instance access_load'spanLimits'Attrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'spanLimits'Attrs (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
+noncomputable instance access_store'spanLimits'Attrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Attrs' := y } : go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) v.Attrs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Attrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Attrs' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'spanLimits'AttrValueLen (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
+noncomputable instance access_load'spanLimits'AttrValueLen (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'spanLimits'AttrValueLen (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
+noncomputable instance access_store'spanLimits'AttrValueLen (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AttrValueLen' := y } : go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) v.AttrValueLen' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"AttrValueLen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AttrValueLen' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'spanLimits'Events (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
+noncomputable instance access_load'spanLimits'Events (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'spanLimits'Events (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
+noncomputable instance access_store'spanLimits'Events (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := y } : go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) v.Events' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Events" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'spanLimits'EventAttrs (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
+noncomputable instance access_load'spanLimits'EventAttrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'spanLimits'EventAttrs (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
+noncomputable instance access_store'spanLimits'EventAttrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EventAttrs' := y } : go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) v.EventAttrs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"EventAttrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EventAttrs' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'spanLimits'Links (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
+noncomputable instance access_load'spanLimits'Links (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'spanLimits'Links (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
+noncomputable instance access_store'spanLimits'Links (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Links' := y } : go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) v.Links' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"Links" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Links' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'spanLimits'LinkAttrs (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
+noncomputable instance access_load'spanLimits'LinkAttrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'spanLimits'LinkAttrs (l : Loc) (v : go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
+noncomputable instance access_store'spanLimits'LinkAttrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LinkAttrs' := y } : go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) v.LinkAttrs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits go!"LinkAttrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LinkAttrs' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.spanLimits) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -301,68 +301,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'TracerConfig :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.TracerConfig where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig where
   typedPointstoDef l v dq := iprop(
-    "instrumentationVersion" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' dq ∗
-    "schemaURL" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' dq ∗
-    "attrs" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' dq ∗
+    "instrumentationVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' dq ∗
+    "schemaURL" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' dq ∗
+    "attrs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'TracerConfig :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.TracerConfig go_opentelemetry_io.otel.trace.TracerConfig.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'TracerConfig'instrumentationVersion (l : Loc) (v : go_opentelemetry_io.otel.trace.TracerConfig) (dq : DFrac) :
+noncomputable instance access_load'TracerConfig'instrumentationVersion (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TracerConfig'instrumentationVersion (l : Loc) (v : go_opentelemetry_io.otel.trace.TracerConfig) (y : GoString) :
+noncomputable instance access_store'TracerConfig'instrumentationVersion (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instrumentationVersion' := y } : go_opentelemetry_io.otel.trace.TracerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) v.instrumentationVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"instrumentationVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instrumentationVersion' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TracerConfig'schemaURL (l : Loc) (v : go_opentelemetry_io.otel.trace.TracerConfig) (dq : DFrac) :
+noncomputable instance access_load'TracerConfig'schemaURL (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TracerConfig'schemaURL (l : Loc) (v : go_opentelemetry_io.otel.trace.TracerConfig) (y : GoString) :
+noncomputable instance access_store'TracerConfig'schemaURL (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with schemaURL' := y } : go_opentelemetry_io.otel.trace.TracerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) v.schemaURL' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"schemaURL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with schemaURL' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'TracerConfig'attrs (l : Loc) (v : go_opentelemetry_io.otel.trace.TracerConfig) (dq : DFrac) :
+noncomputable instance access_load'TracerConfig'attrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TracerConfig'attrs (l : Loc) (v : go_opentelemetry_io.otel.trace.TracerConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'') :
+noncomputable instance access_store'TracerConfig'attrs (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.«attribute».Set'') :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with attrs' := y } : go_opentelemetry_io.otel.trace.TracerConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) v.attrs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig go!"attrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with attrs' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.TracerConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -375,14 +375,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'SpanConfig :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.SpanConfig :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.SpanConfig :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SpanConfig :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.SpanConfig go_opentelemetry_io.otel.trace.SpanConfig.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.SpanConfig _root_.Perennial.go_opentelemetry_io.otel.trace.SpanConfig.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -394,14 +394,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'EventConfig :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.EventConfig :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.EventConfig :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventConfig :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.EventConfig go_opentelemetry_io.otel.trace.EventConfig.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.EventConfig _root_.Perennial.go_opentelemetry_io.otel.trace.EventConfig.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -413,14 +413,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'timestampOption :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.timestampOption :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.timestampOption :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'timestampOption :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.timestampOption go_opentelemetry_io.otel.trace.timestampOption.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.timestampOption _root_.Perennial.go_opentelemetry_io.otel.trace.timestampOption.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -432,34 +432,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'noopSpan :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.noopSpan where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan where
   typedPointstoDef l v dq := iprop(
-    "Span" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' dq ∗
+    "Span" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'noopSpan :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.noopSpan go_opentelemetry_io.otel.trace.noopSpan.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'noopSpan'Span (l : Loc) (v : go_opentelemetry_io.otel.trace.noopSpan) (dq : DFrac) :
+noncomputable instance access_load'noopSpan'Span (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'noopSpan'Span (l : Loc) (v : go_opentelemetry_io.otel.trace.noopSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span) :
+noncomputable instance access_store'noopSpan'Span (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Span) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Span' := y } : go_opentelemetry_io.otel.trace.noopSpan) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) v.Span' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan go!"Span" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Span' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -472,34 +472,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'TraceState :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.TraceState where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState where
   typedPointstoDef l v dq := iprop(
-    "list" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' dq ∗
+    "list" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'TraceState :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.TraceState go_opentelemetry_io.otel.trace.TraceState.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'TraceState'list (l : Loc) (v : go_opentelemetry_io.otel.trace.TraceState) (dq : DFrac) :
+noncomputable instance access_load'TraceState'list (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TraceState'list (l : Loc) (v : go_opentelemetry_io.otel.trace.TraceState) (y : GoSlice) :
+noncomputable instance access_store'TraceState'list (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.TraceState go!"list" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with list' := y } : go_opentelemetry_io.otel.trace.TraceState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState go!"list" l) v.list' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState go!"list" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with list' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -512,102 +512,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'SpanContext :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.SpanContext where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext where
   typedPointstoDef l v dq := iprop(
-    "traceID" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' dq ∗
-    "spanID" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' dq ∗
-    "traceFlags" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' dq ∗
-    "traceState" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' dq ∗
-    "remote" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' dq ∗
+    "traceID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' dq ∗
+    "spanID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' dq ∗
+    "traceFlags" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' dq ∗
+    "traceState" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' dq ∗
+    "remote" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'SpanContext :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.SpanContext go_opentelemetry_io.otel.trace.SpanContext.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'SpanContext'traceID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
+noncomputable instance access_load'SpanContext'traceID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContext'traceID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (y : go_opentelemetry_io.otel.trace.TraceID) :
+noncomputable instance access_store'SpanContext'traceID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceID' := y } : go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) v.traceID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceID' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContext'spanID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
+noncomputable instance access_load'SpanContext'spanID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContext'spanID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (y : go_opentelemetry_io.otel.trace.SpanID) :
+noncomputable instance access_store'SpanContext'spanID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with spanID' := y } : go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) v.spanID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"spanID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with spanID' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContext'traceFlags (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
+noncomputable instance access_load'SpanContext'traceFlags (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContext'traceFlags (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (y : go_opentelemetry_io.otel.trace.TraceFlags) :
+noncomputable instance access_store'SpanContext'traceFlags (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceFlags) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceFlags' := y } : go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) v.traceFlags' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceFlags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceFlags' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContext'traceState (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
+noncomputable instance access_load'SpanContext'traceState (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContext'traceState (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (y : go_opentelemetry_io.otel.trace.TraceState) :
+noncomputable instance access_store'SpanContext'traceState (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceState' := y } : go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) v.traceState' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"traceState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with traceState' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContext'remote (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
+noncomputable instance access_load'SpanContext'remote (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContext'remote (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContext) (y : Bool) :
+noncomputable instance access_store'SpanContext'remote (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with remote' := y } : go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) v.remote' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext go!"remote" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with remote' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -620,51 +620,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'nonRecordingSpan :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.nonRecordingSpan where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan where
   typedPointstoDef l v dq := iprop(
-    "noopSpan" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' dq ∗
-    "sc" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' dq ∗
+    "noopSpan" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' dq ∗
+    "sc" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'nonRecordingSpan :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.nonRecordingSpan go_opentelemetry_io.otel.trace.nonRecordingSpan.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'nonRecordingSpan'noopSpan (l : Loc) (v : go_opentelemetry_io.otel.trace.nonRecordingSpan) (dq : DFrac) :
+noncomputable instance access_load'nonRecordingSpan'noopSpan (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'nonRecordingSpan'noopSpan (l : Loc) (v : go_opentelemetry_io.otel.trace.nonRecordingSpan) (y : go_opentelemetry_io.otel.trace.noopSpan) :
+noncomputable instance access_store'nonRecordingSpan'noopSpan (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.noopSpan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with noopSpan' := y } : go_opentelemetry_io.otel.trace.nonRecordingSpan) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) v.noopSpan' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"noopSpan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with noopSpan' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'nonRecordingSpan'sc (l : Loc) (v : go_opentelemetry_io.otel.trace.nonRecordingSpan) (dq : DFrac) :
+noncomputable instance access_load'nonRecordingSpan'sc (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'nonRecordingSpan'sc (l : Loc) (v : go_opentelemetry_io.otel.trace.nonRecordingSpan) (y : go_opentelemetry_io.otel.trace.SpanContext) :
+noncomputable instance access_store'nonRecordingSpan'sc (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sc' := y } : go_opentelemetry_io.otel.trace.nonRecordingSpan) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) v.sc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan go!"sc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sc' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.nonRecordingSpan) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -677,34 +677,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'noopTracerProvider :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.noopTracerProvider where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider where
   typedPointstoDef l v dq := iprop(
-    "TracerProvider" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq ∗
+    "TracerProvider" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'noopTracerProvider :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.noopTracerProvider go_opentelemetry_io.otel.trace.noopTracerProvider.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'noopTracerProvider'TracerProvider (l : Loc) (v : go_opentelemetry_io.otel.trace.noopTracerProvider) (dq : DFrac) :
+noncomputable instance access_load'noopTracerProvider'TracerProvider (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'noopTracerProvider'TracerProvider (l : Loc) (v : go_opentelemetry_io.otel.trace.noopTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider) :
+noncomputable instance access_store'noopTracerProvider'TracerProvider (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.TracerProvider) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerProvider' := y } : go_opentelemetry_io.otel.trace.noopTracerProvider) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) v.TracerProvider' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider go!"TracerProvider" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TracerProvider' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracerProvider) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -717,34 +717,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'noopTracer :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.noopTracer where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer where
   typedPointstoDef l v dq := iprop(
-    "Tracer" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' dq ∗
+    "Tracer" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'noopTracer :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.noopTracer go_opentelemetry_io.otel.trace.noopTracer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'noopTracer'Tracer (l : Loc) (v : go_opentelemetry_io.otel.trace.noopTracer) (dq : DFrac) :
+noncomputable instance access_load'noopTracer'Tracer (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'noopTracer'Tracer (l : Loc) (v : go_opentelemetry_io.otel.trace.noopTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer) :
+noncomputable instance access_store'noopTracer'Tracer (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.embedded.Tracer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tracer' := y } : go_opentelemetry_io.otel.trace.noopTracer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) v.Tracer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer go!"Tracer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Tracer' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.noopTracer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -757,51 +757,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'Link :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.Link where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.Link where
   typedPointstoDef l v dq := iprop(
-    "SpanContext" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' dq ∗
-    "Attributes" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' dq ∗
+    "SpanContext" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' dq ∗
+    "Attributes" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Link :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.Link go_opentelemetry_io.otel.trace.Link.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.Link _root_.Perennial.go_opentelemetry_io.otel.trace.Link.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Link'SpanContext (l : Loc) (v : go_opentelemetry_io.otel.trace.Link) (dq : DFrac) :
+noncomputable instance access_load'Link'SpanContext (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.Link) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Link'SpanContext (l : Loc) (v : go_opentelemetry_io.otel.trace.Link) (y : go_opentelemetry_io.otel.trace.SpanContext) :
+noncomputable instance access_store'Link'SpanContext (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.Link) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContext) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SpanContext' := y } : go_opentelemetry_io.otel.trace.Link) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) v.SpanContext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"SpanContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SpanContext' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.Link) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Link'Attributes (l : Loc) (v : go_opentelemetry_io.otel.trace.Link) (dq : DFrac) :
+noncomputable instance access_load'Link'Attributes (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.Link) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Link'Attributes (l : Loc) (v : go_opentelemetry_io.otel.trace.Link) (y : GoSlice) :
+noncomputable instance access_store'Link'Attributes (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.Link) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.Link go!"Attributes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Attributes' := y } : go_opentelemetry_io.otel.trace.Link) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"Attributes" l) v.Attributes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.Link go!"Attributes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Attributes' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.Link) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -814,102 +814,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'SpanContextConfig :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.SpanContextConfig where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig where
   typedPointstoDef l v dq := iprop(
-    "TraceID" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' dq ∗
-    "SpanID" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' dq ∗
-    "TraceFlags" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' dq ∗
-    "TraceState" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' dq ∗
-    "Remote" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' dq ∗
+    "TraceID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' dq ∗
+    "SpanID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' dq ∗
+    "TraceFlags" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' dq ∗
+    "TraceState" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' dq ∗
+    "Remote" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'SpanContextConfig :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.SpanContextConfig go_opentelemetry_io.otel.trace.SpanContextConfig.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'SpanContextConfig'TraceID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
+noncomputable instance access_load'SpanContextConfig'TraceID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContextConfig'TraceID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (y : go_opentelemetry_io.otel.trace.TraceID) :
+noncomputable instance access_store'SpanContextConfig'TraceID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceID' := y } : go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) v.TraceID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceID' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContextConfig'SpanID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
+noncomputable instance access_load'SpanContextConfig'SpanID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContextConfig'SpanID (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (y : go_opentelemetry_io.otel.trace.SpanID) :
+noncomputable instance access_store'SpanContextConfig'SpanID (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SpanID' := y } : go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) v.SpanID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"SpanID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SpanID' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContextConfig'TraceFlags (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
+noncomputable instance access_load'SpanContextConfig'TraceFlags (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContextConfig'TraceFlags (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (y : go_opentelemetry_io.otel.trace.TraceFlags) :
+noncomputable instance access_store'SpanContextConfig'TraceFlags (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceFlags) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceFlags' := y } : go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) v.TraceFlags' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceFlags" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceFlags' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContextConfig'TraceState (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
+noncomputable instance access_load'SpanContextConfig'TraceState (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContextConfig'TraceState (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (y : go_opentelemetry_io.otel.trace.TraceState) :
+noncomputable instance access_store'SpanContextConfig'TraceState (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (y : _root_.Perennial.go_opentelemetry_io.otel.trace.TraceState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceState' := y } : go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) v.TraceState' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"TraceState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TraceState' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SpanContextConfig'Remote (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
+noncomputable instance access_load'SpanContextConfig'Remote (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SpanContextConfig'Remote (l : Loc) (v : go_opentelemetry_io.otel.trace.SpanContextConfig) (y : Bool) :
+noncomputable instance access_store'SpanContextConfig'Remote (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Remote' := y } : go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) v.Remote' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig go!"Remote" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Remote' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.SpanContextConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -922,51 +922,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.trace.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.trace.Assumptions]
 
 noncomputable instance typed_pointsto'member :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.trace.member where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.member where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' dq ∗
-    "Value" ∷ typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'member :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.trace.member go_opentelemetry_io.otel.trace.member.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.trace.member _root_.Perennial.go_opentelemetry_io.otel.trace.member.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'member'Key (l : Loc) (v : go_opentelemetry_io.otel.trace.member) (dq : DFrac) :
+noncomputable instance access_load'member'Key (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.member) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'member'Key (l : Loc) (v : go_opentelemetry_io.otel.trace.member) (y : GoString) :
+noncomputable instance access_store'member'Key (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.member) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : go_opentelemetry_io.otel.trace.member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'member'Value (l : Loc) (v : go_opentelemetry_io.otel.trace.member) (dq : DFrac) :
+noncomputable instance access_load'member'Value (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.member) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'member'Value (l : Loc) (v : go_opentelemetry_io.otel.trace.member) (y : GoString) :
+noncomputable instance access_store'member'Value (l : Loc) (v : _root_.Perennial.go_opentelemetry_io.otel.trace.member) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_opentelemetry_io.otel.trace.member go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : go_opentelemetry_io.otel.trace.member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_opentelemetry_io.otel.trace.member go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.go_opentelemetry_io.otel.trace.member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

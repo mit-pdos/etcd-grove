@@ -24,102 +24,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : internal.filepathlite.Assumptions]
+variable [package_sem' : _root_.Perennial.internal.filepathlite.Assumptions]
 
 noncomputable instance typed_pointsto'lazybuf :
-    TypedPointsto (GF := GF) internal.filepathlite.lazybuf where
+    TypedPointsto (GF := GF) _root_.Perennial.internal.filepathlite.lazybuf where
   typedPointstoDef l v dq := iprop(
-    "path" ∷ typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) v.path' dq ∗
-    "buf" ∷ typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) v.buf' dq ∗
-    "w" ∷ typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) v.w' dq ∗
-    "volAndPath" ∷ typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' dq ∗
-    "volLen" ∷ typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) v.volLen' dq ∗
+    "path" ∷ typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"path" l) v.path' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"buf" l) v.buf' dq ∗
+    "w" ∷ typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"w" l) v.w' dq ∗
+    "volAndPath" ∷ typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' dq ∗
+    "volLen" ∷ typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volLen" l) v.volLen' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'lazybuf :
-    IntoValTypedUnderlying (GF := GF) internal.filepathlite.lazybuf internal.filepathlite.lazybuf.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.internal.filepathlite.lazybuf _root_.Perennial.internal.filepathlite.lazybuf.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'lazybuf'path (l : Loc) (v : internal.filepathlite.lazybuf) (dq : DFrac) :
+noncomputable instance access_load'lazybuf'path (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) v.path' dq)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) v.path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"path" l) v.path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"path" l) v.path' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazybuf'path (l : Loc) (v : internal.filepathlite.lazybuf) (y : GoString) :
+noncomputable instance access_store'lazybuf'path (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) v.path' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"path" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with path' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"path" l) v.path' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with path' := y } : _root_.Perennial.internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazybuf'buf (l : Loc) (v : internal.filepathlite.lazybuf) (dq : DFrac) :
+noncomputable instance access_load'lazybuf'buf (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) v.buf' dq)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"buf" l) v.buf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazybuf'buf (l : Loc) (v : internal.filepathlite.lazybuf) (y : GoSlice) :
+noncomputable instance access_store'lazybuf'buf (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"buf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : _root_.Perennial.internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazybuf'w (l : Loc) (v : internal.filepathlite.lazybuf) (dq : DFrac) :
+noncomputable instance access_load'lazybuf'w (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) v.w' dq)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"w" l) v.w' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"w" l) v.w' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazybuf'w (l : Loc) (v : internal.filepathlite.lazybuf) (y : w64) :
+noncomputable instance access_store'lazybuf'w (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"w" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"w" l) v.w' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : _root_.Perennial.internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazybuf'volAndPath (l : Loc) (v : internal.filepathlite.lazybuf) (dq : DFrac) :
+noncomputable instance access_load'lazybuf'volAndPath (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' dq)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazybuf'volAndPath (l : Loc) (v : internal.filepathlite.lazybuf) (y : GoString) :
+noncomputable instance access_store'lazybuf'volAndPath (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volAndPath" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volAndPath' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volAndPath" l) v.volAndPath' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volAndPath" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volAndPath' := y } : _root_.Perennial.internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazybuf'volLen (l : Loc) (v : internal.filepathlite.lazybuf) (dq : DFrac) :
+noncomputable instance access_load'lazybuf'volLen (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) v.volLen' dq)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) v.volLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volLen" l) v.volLen' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volLen" l) v.volLen' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazybuf'volLen (l : Loc) (v : internal.filepathlite.lazybuf) (y : w64) :
+noncomputable instance access_store'lazybuf'volLen (l : Loc) (v : _root_.Perennial.internal.filepathlite.lazybuf) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) v.volLen' (DFrac.own 1))
-      (typedPointsto (structFieldRef internal.filepathlite.lazybuf go!"volLen" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volLen' := y } : internal.filepathlite.lazybuf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volLen" l) v.volLen' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.internal.filepathlite.lazybuf go!"volLen" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with volLen' := y } : _root_.Perennial.internal.filepathlite.lazybuf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

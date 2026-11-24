@@ -27,14 +27,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'initializationSignal :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.initializationSignal :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.initializationSignal :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'initializationSignal :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.initializationSignal k8s_io.apiserver.pkg.util.flowcontrol.initializationSignal.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.initializationSignal _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.initializationSignal.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -46,51 +46,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'RequestDigest :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest where
   typedPointstoDef l v dq := iprop(
-    "RequestInfo" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq ∗
-    "User" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq ∗
+    "RequestInfo" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq ∗
+    "User" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'RequestDigest :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'RequestDigest'RequestInfo (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (dq : DFrac) :
+noncomputable instance access_load'RequestDigest'RequestInfo (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RequestDigest'RequestInfo (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (y : Loc) :
+noncomputable instance access_store'RequestDigest'RequestInfo (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RequestInfo' := y } : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) v.RequestInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"RequestInfo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RequestInfo' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RequestDigest'User (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (dq : DFrac) :
+noncomputable instance access_load'RequestDigest'User (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RequestDigest'User (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
+noncomputable instance access_store'RequestDigest'User (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (y : _root_.Perennial.k8s_io.apiserver.pkg.authentication.user.Info) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with User' := y } : k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) v.User' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest go!"User" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with User' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.RequestDigest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -103,14 +103,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'configController :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.configController :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.configController :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'configController :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.configController k8s_io.apiserver.pkg.util.flowcontrol.configController.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.configController _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.configController.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -122,14 +122,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'updateAttempt :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.updateAttempt :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.updateAttempt :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'updateAttempt :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.updateAttempt k8s_io.apiserver.pkg.util.flowcontrol.updateAttempt.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.updateAttempt _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.updateAttempt.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -141,14 +141,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'priorityLevelState :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.priorityLevelState :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.priorityLevelState :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'priorityLevelState :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.priorityLevelState k8s_io.apiserver.pkg.util.flowcontrol.priorityLevelState.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.priorityLevelState _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.priorityLevelState.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -160,85 +160,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'seatDemandStats :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats where
   typedPointstoDef l v dq := iprop(
-    "avg" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' dq ∗
-    "stdDev" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' dq ∗
-    "highWatermark" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' dq ∗
-    "smoothed" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' dq ∗
+    "avg" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' dq ∗
+    "stdDev" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' dq ∗
+    "highWatermark" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' dq ∗
+    "smoothed" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'seatDemandStats :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'seatDemandStats'avg (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
+noncomputable instance access_load'seatDemandStats'avg (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'seatDemandStats'avg (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
+noncomputable instance access_store'seatDemandStats'avg (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with avg' := y } : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) v.avg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"avg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with avg' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'seatDemandStats'stdDev (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
+noncomputable instance access_load'seatDemandStats'stdDev (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'seatDemandStats'stdDev (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
+noncomputable instance access_store'seatDemandStats'stdDev (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stdDev' := y } : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) v.stdDev' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"stdDev" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stdDev' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'seatDemandStats'highWatermark (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
+noncomputable instance access_load'seatDemandStats'highWatermark (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'seatDemandStats'highWatermark (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
+noncomputable instance access_store'seatDemandStats'highWatermark (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with highWatermark' := y } : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) v.highWatermark' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"highWatermark" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with highWatermark' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'seatDemandStats'smoothed (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
+noncomputable instance access_load'seatDemandStats'smoothed (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'seatDemandStats'smoothed (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
+noncomputable instance access_store'seatDemandStats'smoothed (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with smoothed' := y } : k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) v.smoothed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats go!"smoothed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with smoothed' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.seatDemandStats) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -251,153 +251,153 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'cfgMeal :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal where
   typedPointstoDef l v dq := iprop(
-    "cfgCtlr" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' dq ∗
-    "newPLStates" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' dq ∗
-    "shareSum" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' dq ∗
-    "haveExemptPL" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' dq ∗
-    "haveCatchAllPL" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' dq ∗
-    "fsStatusUpdates" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' dq ∗
-    "maxWaitingRequests" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' dq ∗
-    "maxExecutingRequests" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' dq ∗
+    "cfgCtlr" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' dq ∗
+    "newPLStates" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' dq ∗
+    "shareSum" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' dq ∗
+    "haveExemptPL" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' dq ∗
+    "haveCatchAllPL" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' dq ∗
+    "fsStatusUpdates" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' dq ∗
+    "maxWaitingRequests" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' dq ∗
+    "maxExecutingRequests" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'cfgMeal :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'cfgMeal'cfgCtlr (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'cfgCtlr (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'cfgCtlr (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : Loc) :
+noncomputable instance access_store'cfgMeal'cfgCtlr (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfgCtlr' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) v.cfgCtlr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"cfgCtlr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfgCtlr' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cfgMeal'newPLStates (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'newPLStates (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'newPLStates (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : GoMap) :
+noncomputable instance access_store'cfgMeal'newPLStates (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with newPLStates' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) v.newPLStates' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"newPLStates" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with newPLStates' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cfgMeal'shareSum (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'shareSum (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'shareSum (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : w64) :
+noncomputable instance access_store'cfgMeal'shareSum (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shareSum' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) v.shareSum' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"shareSum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with shareSum' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cfgMeal'haveExemptPL (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'haveExemptPL (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'haveExemptPL (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : Bool) :
+noncomputable instance access_store'cfgMeal'haveExemptPL (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with haveExemptPL' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) v.haveExemptPL' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveExemptPL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with haveExemptPL' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cfgMeal'haveCatchAllPL (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'haveCatchAllPL (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'haveCatchAllPL (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : Bool) :
+noncomputable instance access_store'cfgMeal'haveCatchAllPL (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with haveCatchAllPL' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) v.haveCatchAllPL' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"haveCatchAllPL" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with haveCatchAllPL' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cfgMeal'fsStatusUpdates (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'fsStatusUpdates (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'fsStatusUpdates (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : GoSlice) :
+noncomputable instance access_store'cfgMeal'fsStatusUpdates (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fsStatusUpdates' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) v.fsStatusUpdates' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"fsStatusUpdates" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fsStatusUpdates' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cfgMeal'maxWaitingRequests (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'maxWaitingRequests (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'maxWaitingRequests (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : w64) :
+noncomputable instance access_store'cfgMeal'maxWaitingRequests (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxWaitingRequests' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) v.maxWaitingRequests' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxWaitingRequests" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxWaitingRequests' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'cfgMeal'maxExecutingRequests (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
+noncomputable instance access_load'cfgMeal'maxExecutingRequests (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'cfgMeal'maxExecutingRequests (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : w64) :
+noncomputable instance access_store'cfgMeal'maxExecutingRequests (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxExecutingRequests' := y } : k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) v.maxExecutingRequests' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal go!"maxExecutingRequests" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxExecutingRequests' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.cfgMeal) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -410,14 +410,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'fsStatusUpdate :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.fsStatusUpdate :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.fsStatusUpdate :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'fsStatusUpdate :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.fsStatusUpdate k8s_io.apiserver.pkg.util.flowcontrol.fsStatusUpdate.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.fsStatusUpdate _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.fsStatusUpdate.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -429,14 +429,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'Interface :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.Interface k8s_io.apiserver.pkg.util.flowcontrol.Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Interface _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -448,14 +448,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'TestableConfig :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.TestableConfig :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.TestableConfig :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TestableConfig :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.TestableConfig k8s_io.apiserver.pkg.util.flowcontrol.TestableConfig.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.TestableConfig _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.TestableConfig.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -467,68 +467,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'allocProblemItem :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem where
   typedPointstoDef l v dq := iprop(
-    "target" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' dq ∗
-    "lowerBound" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' dq ∗
-    "upperBound" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' dq ∗
+    "target" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' dq ∗
+    "lowerBound" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' dq ∗
+    "upperBound" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'allocProblemItem :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'allocProblemItem'target (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (dq : DFrac) :
+noncomputable instance access_load'allocProblemItem'target (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'allocProblemItem'target (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (y : w64) :
+noncomputable instance access_store'allocProblemItem'target (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with target' := y } : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) v.target' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"target" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with target' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'allocProblemItem'lowerBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (dq : DFrac) :
+noncomputable instance access_load'allocProblemItem'lowerBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'allocProblemItem'lowerBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (y : w64) :
+noncomputable instance access_store'allocProblemItem'lowerBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lowerBound' := y } : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) v.lowerBound' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"lowerBound" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lowerBound' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'allocProblemItem'upperBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (dq : DFrac) :
+noncomputable instance access_load'allocProblemItem'upperBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'allocProblemItem'upperBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (y : w64) :
+noncomputable instance access_store'allocProblemItem'upperBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with upperBound' := y } : k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) v.upperBound' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem go!"upperBound" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with upperBound' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.allocProblemItem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -541,68 +541,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'relativeAllocItem :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem where
   typedPointstoDef l v dq := iprop(
-    "target" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' dq ∗
-    "relativeLowerBound" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' dq ∗
-    "relativeUpperBound" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' dq ∗
+    "target" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' dq ∗
+    "relativeLowerBound" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' dq ∗
+    "relativeUpperBound" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'relativeAllocItem :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'relativeAllocItem'target (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (dq : DFrac) :
+noncomputable instance access_load'relativeAllocItem'target (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'relativeAllocItem'target (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (y : w64) :
+noncomputable instance access_store'relativeAllocItem'target (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with target' := y } : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) v.target' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"target" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with target' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'relativeAllocItem'relativeLowerBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (dq : DFrac) :
+noncomputable instance access_load'relativeAllocItem'relativeLowerBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'relativeAllocItem'relativeLowerBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (y : w64) :
+noncomputable instance access_store'relativeAllocItem'relativeLowerBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with relativeLowerBound' := y } : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) v.relativeLowerBound' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeLowerBound" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with relativeLowerBound' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'relativeAllocItem'relativeUpperBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (dq : DFrac) :
+noncomputable instance access_load'relativeAllocItem'relativeUpperBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'relativeAllocItem'relativeUpperBound (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (y : w64) :
+noncomputable instance access_store'relativeAllocItem'relativeUpperBound (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with relativeUpperBound' := y } : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) v.relativeUpperBound' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem go!"relativeUpperBound" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with relativeUpperBound' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocItem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -615,51 +615,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'relativeAllocProblem :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem where
   typedPointstoDef l v dq := iprop(
-    "items" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' dq ∗
-    "ascendingIndices" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' dq ∗
+    "items" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' dq ∗
+    "ascendingIndices" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'relativeAllocProblem :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'relativeAllocProblem'items (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (dq : DFrac) :
+noncomputable instance access_load'relativeAllocProblem'items (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'relativeAllocProblem'items (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (y : GoSlice) :
+noncomputable instance access_store'relativeAllocProblem'items (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := y } : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) v.items' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"items" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with items' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'relativeAllocProblem'ascendingIndices (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (dq : DFrac) :
+noncomputable instance access_load'relativeAllocProblem'ascendingIndices (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'relativeAllocProblem'ascendingIndices (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (y : GoSlice) :
+noncomputable instance access_store'relativeAllocProblem'ascendingIndices (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ascendingIndices' := y } : k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) v.ascendingIndices' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem go!"ascendingIndices" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ascendingIndices' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.relativeAllocProblem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -672,51 +672,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'minMax :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.minMax where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax where
   typedPointstoDef l v dq := iprop(
-    "min" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' dq ∗
-    "max" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' dq ∗
+    "min" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' dq ∗
+    "max" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'minMax :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.minMax k8s_io.apiserver.pkg.util.flowcontrol.minMax.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'minMax'min (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.minMax) (dq : DFrac) :
+noncomputable instance access_load'minMax'min (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'minMax'min (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.minMax) (y : w64) :
+noncomputable instance access_store'minMax'min (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with min' := y } : k8s_io.apiserver.pkg.util.flowcontrol.minMax) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) v.min' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"min" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with min' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'minMax'max (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.minMax) (dq : DFrac) :
+noncomputable instance access_load'minMax'max (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'minMax'max (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.minMax) (y : w64) :
+noncomputable instance access_store'minMax'max (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with max' := y } : k8s_io.apiserver.pkg.util.flowcontrol.minMax) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) v.max' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax go!"max" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with max' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.minMax) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -729,51 +729,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'unixStat :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.unixStat where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat where
   typedPointstoDef l v dq := iprop(
-    "unixTime" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' dq ∗
-    "requests" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' dq ∗
+    "unixTime" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' dq ∗
+    "requests" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'unixStat :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.unixStat k8s_io.apiserver.pkg.util.flowcontrol.unixStat.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'unixStat'unixTime (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (dq : DFrac) :
+noncomputable instance access_load'unixStat'unixTime (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unixStat'unixTime (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (y : w64) :
+noncomputable instance access_store'unixStat'unixTime (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unixTime' := y } : k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) v.unixTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"unixTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unixTime' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'unixStat'requests (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (dq : DFrac) :
+noncomputable instance access_load'unixStat'requests (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unixStat'requests (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (y : w64) :
+noncomputable instance access_store'unixStat'requests (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requests' := y } : k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) v.requests' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat go!"requests" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requests' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.unixStat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -786,14 +786,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'droppedRequestsStats :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsStats :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsStats :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'droppedRequestsStats :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsStats k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsStats.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsStats _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsStats.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -805,14 +805,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'droppedRequestsTracker :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsTracker :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsTracker :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'droppedRequestsTracker :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsTracker k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsTracker.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsTracker _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.droppedRequestsTracker.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -824,14 +824,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'maxSeatsTracker :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.maxSeatsTracker :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.maxSeatsTracker :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'maxSeatsTracker :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.maxSeatsTracker k8s_io.apiserver.pkg.util.flowcontrol.maxSeatsTracker.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.maxSeatsTracker _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.maxSeatsTracker.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -843,85 +843,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'watchIdentifier :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier where
   typedPointstoDef l v dq := iprop(
-    "apiGroup" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' dq ∗
-    "resource" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' dq ∗
-    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' dq ∗
-    "name" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' dq ∗
+    "apiGroup" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' dq ∗
+    "resource" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'watchIdentifier :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'watchIdentifier'apiGroup (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
+noncomputable instance access_load'watchIdentifier'apiGroup (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchIdentifier'apiGroup (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
+noncomputable instance access_store'watchIdentifier'apiGroup (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with apiGroup' := y } : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) v.apiGroup' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"apiGroup" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with apiGroup' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchIdentifier'resource (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
+noncomputable instance access_load'watchIdentifier'resource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchIdentifier'resource (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
+noncomputable instance access_store'watchIdentifier'resource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resource' := y } : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) v.resource' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"resource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resource' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchIdentifier'namespace (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
+noncomputable instance access_load'watchIdentifier'namespace (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchIdentifier'namespace (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
+noncomputable instance access_store'watchIdentifier'namespace (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'watchIdentifier'name (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
+noncomputable instance access_load'watchIdentifier'name (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'watchIdentifier'name (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
+noncomputable instance access_store'watchIdentifier'name (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchIdentifier) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -934,14 +934,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'WatchTracker :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.WatchTracker :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.WatchTracker :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'WatchTracker :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.WatchTracker k8s_io.apiserver.pkg.util.flowcontrol.WatchTracker.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.WatchTracker _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.WatchTracker.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -953,14 +953,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'watchTracker :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.watchTracker :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchTracker :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'watchTracker :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.watchTracker k8s_io.apiserver.pkg.util.flowcontrol.watchTracker.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchTracker _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.watchTracker.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -972,51 +972,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.Assumptions]
 
 noncomputable instance typed_pointsto'indexValue :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.indexValue where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue where
   typedPointstoDef l v dq := iprop(
-    "resource" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' dq ∗
-    "value" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' dq ∗
+    "resource" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' dq ∗
+    "value" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'indexValue :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.util.flowcontrol.indexValue k8s_io.apiserver.pkg.util.flowcontrol.indexValue.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'indexValue'resource (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (dq : DFrac) :
+noncomputable instance access_load'indexValue'resource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'indexValue'resource (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (y : GoString) :
+noncomputable instance access_store'indexValue'resource (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resource' := y } : k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) v.resource' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"resource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resource' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'indexValue'value (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (dq : DFrac) :
+noncomputable instance access_load'indexValue'value (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'indexValue'value (l : Loc) (v : k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (y : GoString) :
+noncomputable instance access_store'indexValue'value (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) v.value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue go!"value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with value' := y } : _root_.Perennial.k8s_io.apiserver.pkg.util.flowcontrol.indexValue) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.hex.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.hex.Assumptions]
 
 noncomputable instance typed_pointsto'encoder :
-    TypedPointsto (GF := GF) encoding.hex.encoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.hex.encoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'encoder :
-    IntoValTypedUnderlying (GF := GF) encoding.hex.encoder encoding.hex.encoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.hex.encoder _root_.Perennial.encoding.hex.encoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -42,14 +42,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.hex.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.hex.Assumptions]
 
 noncomputable instance typed_pointsto'decoder :
-    TypedPointsto (GF := GF) encoding.hex.decoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.hex.decoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'decoder :
-    IntoValTypedUnderlying (GF := GF) encoding.hex.decoder encoding.hex.decoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.hex.decoder _root_.Perennial.encoding.hex.decoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -61,14 +61,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.hex.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.hex.Assumptions]
 
 noncomputable instance typed_pointsto'dumper :
-    TypedPointsto (GF := GF) encoding.hex.dumper :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.hex.dumper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'dumper :
-    IntoValTypedUnderlying (GF := GF) encoding.hex.dumper encoding.hex.dumper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.hex.dumper _root_.Perennial.encoding.hex.dumper.underlying :=
   sorry -- axiomatized type
 
 end def_

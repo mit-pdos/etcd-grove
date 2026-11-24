@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'PortworxVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PortworxVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.PortworxVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PortworxVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PortworxVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PortworxVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.PortworxVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.PortworxVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'PreferredSchedulingTermApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PreferredSchedulingTermApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.PreferredSchedulingTermApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PreferredSchedulingTermApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.PreferredSchedulingTermApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.PreferredSchedulingTermApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.PreferredSchedulingTermApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.PreferredSchedulingTermApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ProbeApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ProbeApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProbeApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ProbeApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ProbeApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ProbeApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProbeApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProbeApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ProbeHandlerApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ProbeHandlerApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProbeHandlerApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ProbeHandlerApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ProbeHandlerApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ProbeHandlerApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProbeHandlerApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProbeHandlerApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ProjectedVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ProjectedVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProjectedVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ProjectedVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ProjectedVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ProjectedVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProjectedVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ProjectedVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'QuobyteVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.QuobyteVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.QuobyteVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'QuobyteVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.QuobyteVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.QuobyteVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.QuobyteVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.QuobyteVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'RBDPersistentVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.RBDPersistentVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.RBDPersistentVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RBDPersistentVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.RBDPersistentVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.RBDPersistentVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.RBDPersistentVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.RBDPersistentVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'RBDVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.RBDVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.RBDVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RBDVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.RBDVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.RBDVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.RBDVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.RBDVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicationControllerApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicationControllerApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicationControllerConditionApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerConditionApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerConditionApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicationControllerConditionApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerConditionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerConditionApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerConditionApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerConditionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicationControllerSpecApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerSpecApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerSpecApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicationControllerSpecApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerSpecApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerSpecApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicationControllerStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicationControllerStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ReplicationControllerStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceClaimApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceClaimApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceClaimApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceClaimApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceClaimApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceClaimApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceClaimApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceClaimApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceFieldSelectorApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceFieldSelectorApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceFieldSelectorApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceFieldSelectorApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceFieldSelectorApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceFieldSelectorApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceFieldSelectorApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceFieldSelectorApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceHealthApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceHealthApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceHealthApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceHealthApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceHealthApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceHealthApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceHealthApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceHealthApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceQuotaApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceQuotaApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceQuotaSpecApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaSpecApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaSpecApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceQuotaSpecApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaSpecApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaSpecApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceQuotaStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceQuotaStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceQuotaStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -364,14 +364,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceRequirementsApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceRequirementsApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceRequirementsApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceRequirementsApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceRequirementsApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceRequirementsApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceRequirementsApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceRequirementsApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -383,14 +383,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ResourceStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ResourceStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ResourceStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -402,14 +402,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ScaleIOPersistentVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScaleIOPersistentVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScaleIOPersistentVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ScaleIOPersistentVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScaleIOPersistentVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ScaleIOPersistentVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScaleIOPersistentVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScaleIOPersistentVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -421,14 +421,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ScaleIOVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScaleIOVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScaleIOVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ScaleIOVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScaleIOVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ScaleIOVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScaleIOVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScaleIOVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -440,14 +440,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ScopedResourceSelectorRequirementApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScopedResourceSelectorRequirementApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScopedResourceSelectorRequirementApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ScopedResourceSelectorRequirementApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScopedResourceSelectorRequirementApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ScopedResourceSelectorRequirementApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScopedResourceSelectorRequirementApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScopedResourceSelectorRequirementApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -459,14 +459,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ScopeSelectorApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScopeSelectorApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScopeSelectorApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ScopeSelectorApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ScopeSelectorApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ScopeSelectorApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScopeSelectorApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ScopeSelectorApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -478,14 +478,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SeccompProfileApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SeccompProfileApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SeccompProfileApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SeccompProfileApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SeccompProfileApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SeccompProfileApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SeccompProfileApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SeccompProfileApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -497,14 +497,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SecretApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SecretApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SecretApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -516,14 +516,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SecretEnvSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretEnvSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretEnvSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SecretEnvSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretEnvSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SecretEnvSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretEnvSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretEnvSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -535,14 +535,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SecretKeySelectorApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretKeySelectorApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretKeySelectorApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SecretKeySelectorApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretKeySelectorApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SecretKeySelectorApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretKeySelectorApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretKeySelectorApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -554,14 +554,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SecretProjectionApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretProjectionApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretProjectionApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SecretProjectionApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretProjectionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SecretProjectionApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretProjectionApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretProjectionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -573,14 +573,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SecretReferenceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretReferenceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretReferenceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SecretReferenceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretReferenceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SecretReferenceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretReferenceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretReferenceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -592,14 +592,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SecretVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SecretVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecretVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SecretVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecretVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -611,14 +611,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SecurityContextApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecurityContextApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecurityContextApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SecurityContextApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SecurityContextApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SecurityContextApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecurityContextApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SecurityContextApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -630,14 +630,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SELinuxOptionsApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SELinuxOptionsApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SELinuxOptionsApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SELinuxOptionsApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SELinuxOptionsApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SELinuxOptionsApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SELinuxOptionsApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SELinuxOptionsApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -649,14 +649,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ServiceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -668,14 +668,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceAccountApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceAccountApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -687,14 +687,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceAccountTokenProjectionApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountTokenProjectionApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountTokenProjectionApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceAccountTokenProjectionApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountTokenProjectionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountTokenProjectionApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountTokenProjectionApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceAccountTokenProjectionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -706,14 +706,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ServicePortApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServicePortApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServicePortApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServicePortApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServicePortApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ServicePortApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServicePortApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServicePortApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -725,14 +725,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceSpecApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceSpecApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceSpecApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceSpecApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceSpecApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ServiceSpecApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceSpecApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -744,14 +744,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.ServiceStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.ServiceStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.ServiceStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -763,14 +763,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SessionAffinityConfigApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SessionAffinityConfigApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SessionAffinityConfigApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SessionAffinityConfigApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SessionAffinityConfigApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SessionAffinityConfigApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SessionAffinityConfigApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SessionAffinityConfigApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -782,14 +782,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SleepActionApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SleepActionApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SleepActionApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SleepActionApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SleepActionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SleepActionApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SleepActionApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SleepActionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -801,14 +801,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageOSPersistentVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.StorageOSPersistentVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.StorageOSPersistentVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageOSPersistentVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.StorageOSPersistentVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.StorageOSPersistentVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.StorageOSPersistentVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.StorageOSPersistentVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -820,14 +820,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageOSVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.StorageOSVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.StorageOSVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageOSVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.StorageOSVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.StorageOSVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.StorageOSVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.StorageOSVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -839,14 +839,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SysctlApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SysctlApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SysctlApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SysctlApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.SysctlApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.SysctlApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SysctlApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.SysctlApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -858,14 +858,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TaintApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TaintApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TaintApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TaintApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TaintApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TaintApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TaintApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TaintApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -877,14 +877,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TCPSocketActionApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TCPSocketActionApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TCPSocketActionApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TCPSocketActionApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TCPSocketActionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TCPSocketActionApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TCPSocketActionApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TCPSocketActionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -896,14 +896,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TolerationApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TolerationApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TolerationApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TolerationApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TolerationApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TolerationApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TolerationApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TolerationApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -915,14 +915,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TopologySelectorLabelRequirementApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorLabelRequirementApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorLabelRequirementApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TopologySelectorLabelRequirementApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorLabelRequirementApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorLabelRequirementApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorLabelRequirementApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorLabelRequirementApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -934,14 +934,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TopologySelectorTermApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorTermApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorTermApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TopologySelectorTermApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorTermApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorTermApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorTermApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySelectorTermApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -953,14 +953,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TopologySpreadConstraintApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TopologySpreadConstraintApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySpreadConstraintApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TopologySpreadConstraintApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TopologySpreadConstraintApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TopologySpreadConstraintApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySpreadConstraintApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TopologySpreadConstraintApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -972,14 +972,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TypedLocalObjectReferenceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TypedLocalObjectReferenceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TypedLocalObjectReferenceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TypedLocalObjectReferenceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TypedLocalObjectReferenceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TypedLocalObjectReferenceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TypedLocalObjectReferenceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TypedLocalObjectReferenceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -991,14 +991,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TypedObjectReferenceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TypedObjectReferenceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TypedObjectReferenceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TypedObjectReferenceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.TypedObjectReferenceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.TypedObjectReferenceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TypedObjectReferenceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.TypedObjectReferenceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1010,14 +1010,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1029,14 +1029,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeDeviceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeDeviceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeDeviceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeDeviceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeDeviceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeDeviceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeDeviceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeDeviceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1048,14 +1048,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeHealthConditionApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthConditionApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthConditionApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeHealthConditionApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthConditionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthConditionApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthConditionApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthConditionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1067,14 +1067,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeHealthStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeHealthStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeHealthStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1086,14 +1086,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeMountApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeMountApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeMountApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeMountApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeMountApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeMountApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeMountApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeMountApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1105,14 +1105,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeMountStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeMountStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeMountStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeMountStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeMountStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeMountStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeMountStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeMountStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1124,14 +1124,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeNodeAffinityApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeNodeAffinityApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeNodeAffinityApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeNodeAffinityApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeNodeAffinityApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeNodeAffinityApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeNodeAffinityApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeNodeAffinityApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1143,14 +1143,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeProjectionApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeProjectionApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeProjectionApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeProjectionApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeProjectionApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeProjectionApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeProjectionApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeProjectionApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1162,14 +1162,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeResourceRequirementsApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeResourceRequirementsApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeResourceRequirementsApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeResourceRequirementsApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeResourceRequirementsApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeResourceRequirementsApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeResourceRequirementsApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeResourceRequirementsApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1181,14 +1181,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1200,14 +1200,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VolumeStatusApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VolumeStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VolumeStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1219,14 +1219,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'VsphereVirtualDiskVolumeSourceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VsphereVirtualDiskVolumeSourceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VsphereVirtualDiskVolumeSourceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VsphereVirtualDiskVolumeSourceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.VsphereVirtualDiskVolumeSourceApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.VsphereVirtualDiskVolumeSourceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VsphereVirtualDiskVolumeSourceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.VsphereVirtualDiskVolumeSourceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1238,14 +1238,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'WeightedPodAffinityTermApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.WeightedPodAffinityTermApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.WeightedPodAffinityTermApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'WeightedPodAffinityTermApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.WeightedPodAffinityTermApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.WeightedPodAffinityTermApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.WeightedPodAffinityTermApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.WeightedPodAffinityTermApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1257,14 +1257,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.Assumptions]
 
 noncomputable instance typed_pointsto'WindowsSecurityContextOptionsApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.WindowsSecurityContextOptionsApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.WindowsSecurityContextOptionsApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'WindowsSecurityContextOptionsApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.core.v1.WindowsSecurityContextOptionsApplyConfiguration k8s_io.client_go.applyconfigurations.core.v1.WindowsSecurityContextOptionsApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.WindowsSecurityContextOptionsApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.core.v1.WindowsSecurityContextOptionsApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_

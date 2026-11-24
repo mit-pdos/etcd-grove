@@ -28,51 +28,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'Client :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.Client where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client where
   typedPointstoDef l v dq := iprop(
-    "Client" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' dq ∗
-    "Kubernetes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' dq ∗
+    "Client" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' dq ∗
+    "Kubernetes" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Client :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.Client go_etcd_io.etcd.client.v3.kubernetes.Client.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Client'Client (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.Client) (dq : DFrac) :
+noncomputable instance access_load'Client'Client (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Client'Client (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.Client) (y : Loc) :
+noncomputable instance access_store'Client'Client (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client' := y } : go_etcd_io.etcd.client.v3.kubernetes.Client) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) v.Client' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Client" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Client'Kubernetes (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.Client) (dq : DFrac) :
+noncomputable instance access_load'Client'Kubernetes (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Client'Kubernetes (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.Client) (y : go_etcd_io.etcd.client.v3.kubernetes.Interface) :
+noncomputable instance access_store'Client'Kubernetes (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kubernetes' := y } : go_etcd_io.etcd.client.v3.kubernetes.Client) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) v.Kubernetes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client go!"Kubernetes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kubernetes' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Client) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -85,34 +85,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'GetOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.GetOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions where
   typedPointstoDef l v dq := iprop(
-    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'GetOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.GetOptions go_etcd_io.etcd.client.v3.kubernetes.GetOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'GetOptions'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (dq : DFrac) :
+noncomputable instance access_load'GetOptions'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GetOptions'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (y : w64) :
+noncomputable instance access_store'GetOptions'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions go!"Revision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -125,68 +125,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'ListOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.ListOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions where
   typedPointstoDef l v dq := iprop(
-    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' dq ∗
-    "Limit" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' dq ∗
-    "Continue" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' dq ∗
+    "Limit" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' dq ∗
+    "Continue" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ListOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.ListOptions go_etcd_io.etcd.client.v3.kubernetes.ListOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ListOptions'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (y : w64) :
+noncomputable instance access_store'ListOptions'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Revision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'Limit (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'Limit (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'Limit (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (y : w64) :
+noncomputable instance access_store'ListOptions'Limit (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Limit' := y } : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) v.Limit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Limit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Limit' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'Continue (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'Continue (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'Continue (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (y : GoString) :
+noncomputable instance access_store'ListOptions'Continue (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Continue' := y } : go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) v.Continue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions go!"Continue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Continue' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -199,10 +199,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'CountOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.CountOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.CountOptions where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -210,7 +210,7 @@ noncomputable instance typed_pointsto'CountOptions :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CountOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.CountOptions go_etcd_io.etcd.client.v3.kubernetes.CountOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.CountOptions _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.CountOptions.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -222,51 +222,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'PutOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.PutOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions where
   typedPointstoDef l v dq := iprop(
-    "GetOnFailure" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' dq ∗
-    "LeaseID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' dq ∗
+    "GetOnFailure" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' dq ∗
+    "LeaseID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PutOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.PutOptions go_etcd_io.etcd.client.v3.kubernetes.PutOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PutOptions'GetOnFailure (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (dq : DFrac) :
+noncomputable instance access_load'PutOptions'GetOnFailure (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PutOptions'GetOnFailure (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (y : Bool) :
+noncomputable instance access_store'PutOptions'GetOnFailure (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetOnFailure' := y } : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) v.GetOnFailure' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"GetOnFailure" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetOnFailure' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PutOptions'LeaseID (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (dq : DFrac) :
+noncomputable instance access_load'PutOptions'LeaseID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PutOptions'LeaseID (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
+noncomputable instance access_store'PutOptions'LeaseID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeaseID' := y } : go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) v.LeaseID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions go!"LeaseID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeaseID' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -279,34 +279,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'DeleteOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions where
   typedPointstoDef l v dq := iprop(
-    "GetOnFailure" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' dq ∗
+    "GetOnFailure" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'DeleteOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'DeleteOptions'GetOnFailure (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'GetOnFailure (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'GetOnFailure (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (y : Bool) :
+noncomputable instance access_store'DeleteOptions'GetOnFailure (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetOnFailure' := y } : go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) v.GetOnFailure' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions go!"GetOnFailure" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GetOnFailure' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -319,51 +319,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'GetResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.GetResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse where
   typedPointstoDef l v dq := iprop(
-    "KV" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' dq ∗
-    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' dq ∗
+    "KV" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'GetResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.GetResponse go_etcd_io.etcd.client.v3.kubernetes.GetResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'GetResponse'KV (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (dq : DFrac) :
+noncomputable instance access_load'GetResponse'KV (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GetResponse'KV (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (y : Loc) :
+noncomputable instance access_store'GetResponse'KV (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := y } : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) v.KV' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"KV" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GetResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (dq : DFrac) :
+noncomputable instance access_load'GetResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GetResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (y : w64) :
+noncomputable instance access_store'GetResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse go!"Revision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.GetResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -376,68 +376,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'ListResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.ListResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse where
   typedPointstoDef l v dq := iprop(
-    "Kvs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' dq ∗
-    "Count" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' dq ∗
-    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' dq ∗
+    "Kvs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ListResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.ListResponse go_etcd_io.etcd.client.v3.kubernetes.ListResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ListResponse'Kvs (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (dq : DFrac) :
+noncomputable instance access_load'ListResponse'Kvs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListResponse'Kvs (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (y : GoSlice) :
+noncomputable instance access_store'ListResponse'Kvs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kvs' := y } : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) v.Kvs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Kvs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kvs' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListResponse'Count (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (dq : DFrac) :
+noncomputable instance access_load'ListResponse'Count (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListResponse'Count (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (y : w64) :
+noncomputable instance access_store'ListResponse'Count (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (dq : DFrac) :
+noncomputable instance access_load'ListResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (y : w64) :
+noncomputable instance access_store'ListResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse go!"Revision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.ListResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -450,68 +450,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'PutResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.PutResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse where
   typedPointstoDef l v dq := iprop(
-    "KV" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' dq ∗
-    "Succeeded" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' dq ∗
-    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' dq ∗
+    "KV" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' dq ∗
+    "Succeeded" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PutResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.PutResponse go_etcd_io.etcd.client.v3.kubernetes.PutResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PutResponse'KV (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (dq : DFrac) :
+noncomputable instance access_load'PutResponse'KV (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PutResponse'KV (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (y : Loc) :
+noncomputable instance access_store'PutResponse'KV (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := y } : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) v.KV' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"KV" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PutResponse'Succeeded (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (dq : DFrac) :
+noncomputable instance access_load'PutResponse'Succeeded (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PutResponse'Succeeded (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (y : Bool) :
+noncomputable instance access_store'PutResponse'Succeeded (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Succeeded' := y } : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) v.Succeeded' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Succeeded" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Succeeded' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PutResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (dq : DFrac) :
+noncomputable instance access_load'PutResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PutResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (y : w64) :
+noncomputable instance access_store'PutResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse go!"Revision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.PutResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -524,68 +524,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'DeleteResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse where
   typedPointstoDef l v dq := iprop(
-    "KV" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' dq ∗
-    "Succeeded" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' dq ∗
-    "Revision" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' dq ∗
+    "KV" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' dq ∗
+    "Succeeded" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' dq ∗
+    "Revision" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'DeleteResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'DeleteResponse'KV (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (dq : DFrac) :
+noncomputable instance access_load'DeleteResponse'KV (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteResponse'KV (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (y : Loc) :
+noncomputable instance access_store'DeleteResponse'KV (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := y } : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) v.KV' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"KV" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with KV' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteResponse'Succeeded (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (dq : DFrac) :
+noncomputable instance access_load'DeleteResponse'Succeeded (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteResponse'Succeeded (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (y : Bool) :
+noncomputable instance access_store'DeleteResponse'Succeeded (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Succeeded' := y } : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) v.Succeeded' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Succeeded" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Succeeded' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (dq : DFrac) :
+noncomputable instance access_load'DeleteResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteResponse'Revision (l : Loc) (v : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (y : w64) :
+noncomputable instance access_store'DeleteResponse'Revision (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) v.Revision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse go!"Revision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Revision' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.kubernetes.DeleteResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -23,10 +23,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.sharding.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Assumptions]
 
 noncomputable instance typed_pointsto'everythingSelector :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.sharding.everythingSelector where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.sharding.everythingSelector where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -34,7 +34,7 @@ noncomputable instance typed_pointsto'everythingSelector :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'everythingSelector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.sharding.everythingSelector k8s_io.apimachinery.pkg.sharding.everythingSelector.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.sharding.everythingSelector _root_.Perennial.k8s_io.apimachinery.pkg.sharding.everythingSelector.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -46,34 +46,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.sharding.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Assumptions]
 
 noncomputable instance typed_pointsto'shardSelector :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.sharding.shardSelector where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector where
   typedPointstoDef l v dq := iprop(
-    "requirements" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq ∗
+    "requirements" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'shardSelector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.sharding.shardSelector k8s_io.apimachinery.pkg.sharding.shardSelector.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'shardSelector'requirements (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.shardSelector) (dq : DFrac) :
+noncomputable instance access_load'shardSelector'requirements (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'shardSelector'requirements (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.shardSelector) (y : GoSlice) :
+noncomputable instance access_store'shardSelector'requirements (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requirements' := y } : k8s_io.apimachinery.pkg.sharding.shardSelector) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) v.requirements' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector go!"requirements" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requirements' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.shardSelector) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -86,68 +86,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.sharding.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Assumptions]
 
 noncomputable instance typed_pointsto'ShardRangeRequirement :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq ∗
-    "Start" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq ∗
-    "End" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq ∗
+    "Start" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq ∗
+    "End" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ShardRangeRequirement :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ShardRangeRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
+noncomputable instance access_load'ShardRangeRequirement'Key (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ShardRangeRequirement'Key (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
+noncomputable instance access_store'ShardRangeRequirement'Key (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ShardRangeRequirement'Start (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
+noncomputable instance access_load'ShardRangeRequirement'Start (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ShardRangeRequirement'Start (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
+noncomputable instance access_store'ShardRangeRequirement'Start (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) v.Start' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ShardRangeRequirement'End (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
+noncomputable instance access_load'ShardRangeRequirement'End (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ShardRangeRequirement'End (l : Loc) (v : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
+noncomputable instance access_store'ShardRangeRequirement'End (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) v.End' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.ShardRangeRequirement) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

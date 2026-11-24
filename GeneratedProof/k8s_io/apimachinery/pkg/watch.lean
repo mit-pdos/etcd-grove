@@ -23,68 +23,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'filteredWatch :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.filteredWatch where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch where
   typedPointstoDef l v dq := iprop(
-    "incoming" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq ∗
-    "result" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq ∗
-    "f" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq ∗
+    "incoming" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq ∗
+    "result" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq ∗
+    "f" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'filteredWatch :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.filteredWatch k8s_io.apimachinery.pkg.watch.filteredWatch.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'filteredWatch'incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
+noncomputable instance access_load'filteredWatch'incoming (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'filteredWatch'incoming (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.Interface) :
+noncomputable instance access_store'filteredWatch'incoming (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with incoming' := y } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) v.incoming' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"incoming" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with incoming' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'filteredWatch'result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
+noncomputable instance access_load'filteredWatch'result (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'filteredWatch'result (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : GoChan) :
+noncomputable instance access_store'filteredWatch'result (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := y } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) v.result' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"result" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with result' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'filteredWatch'f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
+noncomputable instance access_load'filteredWatch'f (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'filteredWatch'f (l : Loc) (v : k8s_io.apimachinery.pkg.watch.filteredWatch) (y : k8s_io.apimachinery.pkg.watch.FilterFunc) :
+noncomputable instance access_store'filteredWatch'f (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (y : _root_.Perennial.k8s_io.apimachinery.pkg.watch.FilterFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) v.f' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch go!"f" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.watch.filteredWatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -97,14 +97,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'Recorder :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Recorder :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.Recorder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Recorder :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Recorder k8s_io.apimachinery.pkg.watch.Recorder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.Recorder _root_.Perennial.k8s_io.apimachinery.pkg.watch.Recorder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -116,14 +116,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'Broadcaster :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Broadcaster :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.Broadcaster :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Broadcaster :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Broadcaster k8s_io.apimachinery.pkg.watch.Broadcaster.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.Broadcaster _root_.Perennial.k8s_io.apimachinery.pkg.watch.Broadcaster.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -135,14 +135,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'broadcasterWatcher :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.broadcasterWatcher :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.broadcasterWatcher :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'broadcasterWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.broadcasterWatcher k8s_io.apimachinery.pkg.watch.broadcasterWatcher.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.broadcasterWatcher _root_.Perennial.k8s_io.apimachinery.pkg.watch.broadcasterWatcher.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -154,14 +154,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'StreamWatcher :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.StreamWatcher :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.StreamWatcher :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StreamWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.StreamWatcher k8s_io.apimachinery.pkg.watch.StreamWatcher.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.StreamWatcher _root_.Perennial.k8s_io.apimachinery.pkg.watch.StreamWatcher.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -173,51 +173,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'Event :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.Event where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event where
   typedPointstoDef l v dq := iprop(
-    "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq ∗
-    "Object" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq ∗
+    "Type'" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq ∗
+    "Object" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Event :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.Event k8s_io.apimachinery.pkg.watch.Event.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Event'Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'Type (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'Type (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : k8s_io.apimachinery.pkg.watch.EventType) :
+noncomputable instance access_store'Event'Type (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Type" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Event'Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
+noncomputable instance access_load'Event'Object (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Event'Object (l : Loc) (v : k8s_io.apimachinery.pkg.watch.Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'Event'Object (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.Event go!"Object" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Object" l) v.Object' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event go!"Object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -230,14 +230,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'FakeWatcher :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.FakeWatcher :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.FakeWatcher :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'FakeWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.FakeWatcher k8s_io.apimachinery.pkg.watch.FakeWatcher.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.FakeWatcher _root_.Perennial.k8s_io.apimachinery.pkg.watch.FakeWatcher.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -249,14 +249,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'FakeOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.FakeOptions :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.FakeOptions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'FakeOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.FakeOptions k8s_io.apimachinery.pkg.watch.FakeOptions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.FakeOptions _root_.Perennial.k8s_io.apimachinery.pkg.watch.FakeOptions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -268,14 +268,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'RaceFreeFakeWatcher :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RaceFreeFakeWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher _root_.Perennial.k8s_io.apimachinery.pkg.watch.RaceFreeFakeWatcher.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -287,14 +287,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'ProxyWatcher :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.ProxyWatcher :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.ProxyWatcher :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ProxyWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.ProxyWatcher k8s_io.apimachinery.pkg.watch.ProxyWatcher.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.ProxyWatcher _root_.Perennial.k8s_io.apimachinery.pkg.watch.ProxyWatcher.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -306,51 +306,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.watch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.watch.Assumptions]
 
 noncomputable instance typed_pointsto'MockWatcher :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.watch.MockWatcher where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher where
   typedPointstoDef l v dq := iprop(
-    "StopFunc" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq ∗
-    "ResultChanFunc" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq ∗
+    "StopFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq ∗
+    "ResultChanFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MockWatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.watch.MockWatcher k8s_io.apimachinery.pkg.watch.MockWatcher.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MockWatcher'StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
+noncomputable instance access_load'MockWatcher'StopFunc (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MockWatcher'StopFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
+noncomputable instance access_store'MockWatcher'StopFunc (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StopFunc' := y } : k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) v.StopFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"StopFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StopFunc' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MockWatcher'ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
+noncomputable instance access_load'MockWatcher'ResultChanFunc (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MockWatcher'ResultChanFunc (l : Loc) (v : k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
+noncomputable instance access_store'MockWatcher'ResultChanFunc (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResultChanFunc' := y } : k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) v.ResultChanFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher go!"ResultChanFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResultChanFunc' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.watch.MockWatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -24,14 +24,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
 noncomputable instance typed_pointsto'HealthCheckRequest :
-    TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HealthCheckRequest :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckRequest.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -43,14 +43,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
 noncomputable instance typed_pointsto'HealthCheckResponse :
-    TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HealthCheckResponse :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthCheckResponse.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -62,14 +62,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
 noncomputable instance typed_pointsto'HealthListRequest :
-    TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListRequest :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListRequest :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HealthListRequest :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListRequest google_golang_org.grpc.health.grpc_health_v1.HealthListRequest.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListRequest _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListRequest.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -81,14 +81,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
 noncomputable instance typed_pointsto'HealthListResponse :
-    TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListResponse :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListResponse :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HealthListResponse :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.HealthListResponse google_golang_org.grpc.health.grpc_health_v1.HealthListResponse.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListResponse _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.HealthListResponse.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -100,34 +100,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
 noncomputable instance typed_pointsto'healthClient :
-    TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.healthClient where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient where
   typedPointstoDef l v dq := iprop(
-    "cc" ∷ typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq ∗
+    "cc" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'healthClient :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.healthClient google_golang_org.grpc.health.grpc_health_v1.healthClient.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'healthClient'cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (dq : DFrac) :
+noncomputable instance access_load'healthClient'cc (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'healthClient'cc (l : Loc) (v : google_golang_org.grpc.health.grpc_health_v1.healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
+noncomputable instance access_store'healthClient'cc (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := y } : google_golang_org.grpc.health.grpc_health_v1.healthClient) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient go!"cc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := y } : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.healthClient) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -140,10 +140,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.health.grpc_health_v1.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.Assumptions]
 
 noncomputable instance typed_pointsto'UnimplementedHealthServer :
-    TypedPointsto (GF := GF) google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -151,7 +151,7 @@ noncomputable instance typed_pointsto'UnimplementedHealthServer :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'UnimplementedHealthServer :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer _root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.UnimplementedHealthServer.underlying := by
   solve_into_val_typed_struct
 
 end def_

@@ -38,153 +38,153 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'Model :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model where
   typedPointstoDef l v dq := iprop(
-    "Items" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' dq ∗
-    "ResourceVersion" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' dq ∗
-    "CompactResourceVersion" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' dq ∗
-    "Prefix" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' dq ∗
-    "Versioner" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' dq ∗
-    "NewFunc" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' dq ∗
-    "NewListFunc" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' dq ∗
-    "NeedsRewrite" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' dq ∗
+    "Items" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "CompactResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' dq ∗
+    "Prefix" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' dq ∗
+    "Versioner" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' dq ∗
+    "NewFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' dq ∗
+    "NewListFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' dq ∗
+    "NeedsRewrite" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Model :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Model'Items (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'Items (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'Items (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoMap) :
+noncomputable instance access_store'Model'Items (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Items' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) v.Items' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Items" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Items' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Model'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : w64) :
+noncomputable instance access_store'Model'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Model'CompactResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'CompactResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'CompactResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : w64) :
+noncomputable instance access_store'Model'CompactResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactResourceVersion' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) v.CompactResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"CompactResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompactResourceVersion' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Model'Prefix (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'Prefix (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'Prefix (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoString) :
+noncomputable instance access_store'Model'Prefix (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Prefix' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) v.Prefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Prefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Prefix' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Model'Versioner (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'Versioner (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'Versioner (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
+noncomputable instance access_store'Model'Versioner (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Versioner' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) v.Versioner' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"Versioner" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Versioner' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Model'NewFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'NewFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'NewFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoFunc) :
+noncomputable instance access_store'Model'NewFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewFunc' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) v.NewFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewFunc' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Model'NewListFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'NewListFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'NewListFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoFunc) :
+noncomputable instance access_store'Model'NewListFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewListFunc' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) v.NewListFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NewListFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewListFunc' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Model'NeedsRewrite (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
+noncomputable instance access_load'Model'NeedsRewrite (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Model'NeedsRewrite (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoMap) :
+noncomputable instance access_store'Model'NeedsRewrite (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NeedsRewrite' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) v.NeedsRewrite' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model go!"NeedsRewrite" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NeedsRewrite' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -197,85 +197,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'Replay :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay where
   typedPointstoDef l v dq := iprop(
-    "newFunc" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' dq ∗
-    "versioner" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' dq ∗
-    "states" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' dq ∗
-    "changes" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' dq ∗
+    "newFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' dq ∗
+    "versioner" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' dq ∗
+    "states" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' dq ∗
+    "changes" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Replay :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Replay'newFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
+noncomputable instance access_load'Replay'newFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Replay'newFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : GoFunc) :
+noncomputable instance access_store'Replay'newFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with newFunc' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) v.newFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"newFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with newFunc' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Replay'versioner (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
+noncomputable instance access_load'Replay'versioner (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Replay'versioner (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
+noncomputable instance access_store'Replay'versioner (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versioner' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) v.versioner' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"versioner" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versioner' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Replay'states (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
+noncomputable instance access_load'Replay'states (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Replay'states (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : GoMap) :
+noncomputable instance access_store'Replay'states (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with states' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) v.states' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"states" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with states' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Replay'changes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
+noncomputable instance access_load'Replay'changes (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Replay'changes (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : GoSlice) :
+noncomputable instance access_store'Replay'changes (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with changes' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) v.changes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay go!"changes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with changes' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Replay) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -288,34 +288,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'CreateRequest :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest where
   typedPointstoDef l v dq := iprop(
-    "Object" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' dq ∗
+    "Object" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CreateRequest :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CreateRequest'Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) (dq : DFrac) :
+noncomputable instance access_load'CreateRequest'Object (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CreateRequest'Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'CreateRequest'Object (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) v.Object' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest go!"Object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -328,34 +328,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'GetRequest :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest where
   typedPointstoDef l v dq := iprop(
-    "Options" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' dq ∗
+    "Options" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'GetRequest :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'GetRequest'Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) (dq : DFrac) :
+noncomputable instance access_load'GetRequest'Options (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GetRequest'Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.GetOptions) :
+noncomputable instance access_store'GetRequest'Options (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.GetOptions) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) v.Options' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest go!"Options" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -368,34 +368,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'ListRequest :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest where
   typedPointstoDef l v dq := iprop(
-    "Options" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' dq ∗
+    "Options" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ListRequest :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ListRequest'Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) (dq : DFrac) :
+noncomputable instance access_load'ListRequest'Options (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListRequest'Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions) :
+noncomputable instance access_store'ListRequest'Options (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) v.Options' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest go!"Options" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -408,68 +408,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'DeleteRequest :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest where
   typedPointstoDef l v dq := iprop(
-    "Preconditions" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' dq ∗
-    "ValidateDeletion" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' dq ∗
-    "CachedExistingObject" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq ∗
+    "Preconditions" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' dq ∗
+    "ValidateDeletion" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' dq ∗
+    "CachedExistingObject" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'DeleteRequest :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'DeleteRequest'Preconditions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (dq : DFrac) :
+noncomputable instance access_load'DeleteRequest'Preconditions (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteRequest'Preconditions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (y : Loc) :
+noncomputable instance access_store'DeleteRequest'Preconditions (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Preconditions' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) v.Preconditions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"Preconditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Preconditions' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteRequest'ValidateDeletion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (dq : DFrac) :
+noncomputable instance access_load'DeleteRequest'ValidateDeletion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteRequest'ValidateDeletion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc) :
+noncomputable instance access_store'DeleteRequest'ValidateDeletion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ValidateObjectFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ValidateDeletion' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) v.ValidateDeletion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"ValidateDeletion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ValidateDeletion' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteRequest'CachedExistingObject (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (dq : DFrac) :
+noncomputable instance access_load'DeleteRequest'CachedExistingObject (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteRequest'CachedExistingObject (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'DeleteRequest'CachedExistingObject (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CachedExistingObject' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) v.CachedExistingObject' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest go!"CachedExistingObject" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CachedExistingObject' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -482,85 +482,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'UpdateRequest :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest where
   typedPointstoDef l v dq := iprop(
-    "UpdateFunc" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' dq ∗
-    "IgnoreNotFound" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' dq ∗
-    "Preconditions" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' dq ∗
-    "CachedExistingObject" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq ∗
+    "UpdateFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' dq ∗
+    "IgnoreNotFound" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' dq ∗
+    "Preconditions" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' dq ∗
+    "CachedExistingObject" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'UpdateRequest :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'UpdateRequest'UpdateFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
+noncomputable instance access_load'UpdateRequest'UpdateFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateRequest'UpdateFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc) :
+noncomputable instance access_store'UpdateRequest'UpdateFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.UpdateFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UpdateFunc' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) v.UpdateFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"UpdateFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UpdateFunc' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UpdateRequest'IgnoreNotFound (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
+noncomputable instance access_load'UpdateRequest'IgnoreNotFound (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateRequest'IgnoreNotFound (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : Bool) :
+noncomputable instance access_store'UpdateRequest'IgnoreNotFound (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreNotFound' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) v.IgnoreNotFound' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"IgnoreNotFound" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreNotFound' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UpdateRequest'Preconditions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
+noncomputable instance access_load'UpdateRequest'Preconditions (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateRequest'Preconditions (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : Loc) :
+noncomputable instance access_store'UpdateRequest'Preconditions (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Preconditions' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) v.Preconditions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"Preconditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Preconditions' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UpdateRequest'CachedExistingObject (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
+noncomputable instance access_load'UpdateRequest'CachedExistingObject (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateRequest'CachedExistingObject (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'UpdateRequest'CachedExistingObject (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CachedExistingObject' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) v.CachedExistingObject' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest go!"CachedExistingObject" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CachedExistingObject' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -573,34 +573,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'CompactRequest :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest where
   typedPointstoDef l v dq := iprop(
-    "ResourceVersion" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CompactRequest :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CompactRequest'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) (dq : DFrac) :
+noncomputable instance access_load'CompactRequest'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CompactRequest'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) (y : GoString) :
+noncomputable instance access_store'CompactRequest'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -613,153 +613,153 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'Request :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request where
   typedPointstoDef l v dq := iprop(
-    "Op" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' dq ∗
-    "Key" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' dq ∗
-    "Create" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' dq ∗
-    "Get" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' dq ∗
-    "List" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' dq ∗
-    "Delete" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' dq ∗
-    "Update" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' dq ∗
-    "Compact" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' dq ∗
+    "Op" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' dq ∗
+    "Create" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' dq ∗
+    "Get" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' dq ∗
+    "List" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' dq ∗
+    "Delete" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' dq ∗
+    "Update" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' dq ∗
+    "Compact" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Request :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Request'Op (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'Op (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'Op (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.OpType) :
+noncomputable instance access_store'Request'Op (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.OpType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) v.Op' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Request'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : GoString) :
+noncomputable instance access_store'Request'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Request'Create (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'Create (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'Create (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) :
+noncomputable instance access_store'Request'Create (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Create' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) v.Create' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Create" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Create' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Request'Get (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'Get (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'Get (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) :
+noncomputable instance access_store'Request'Get (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) v.Get' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Get" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Get' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Request'List (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'List (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'List (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) :
+noncomputable instance access_store'Request'List (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with List' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) v.List' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"List" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with List' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Request'Delete (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'Delete (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'Delete (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) :
+noncomputable instance access_store'Request'Delete (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delete' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) v.Delete' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Delete" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delete' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Request'Update (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'Update (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'Update (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) :
+noncomputable instance access_store'Request'Update (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Update' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) v.Update' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Update" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Update' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Request'Compact (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
+noncomputable instance access_load'Request'Compact (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Request'Compact (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) :
+noncomputable instance access_store'Request'Compact (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Compact' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) v.Compact' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request go!"Compact" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Compact' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -772,51 +772,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'Response :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response where
   typedPointstoDef l v dq := iprop(
-    "Object" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' dq ∗
-    "Err" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' dq ∗
+    "Object" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' dq ∗
+    "Err" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Response :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Response'Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (dq : DFrac) :
+noncomputable instance access_load'Response'Object (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Response'Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'Response'Object (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) v.Object' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Response'Err (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (dq : DFrac) :
+noncomputable instance access_load'Response'Err (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Response'Err (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (y : GoError) :
+noncomputable instance access_store'Response'Err (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) v.Err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -829,102 +829,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'Operation :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation where
   typedPointstoDef l v dq := iprop(
-    "ClientID" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' dq ∗
-    "Request" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' dq ∗
-    "Response" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' dq ∗
-    "Start" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' dq ∗
-    "End" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' dq ∗
+    "ClientID" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' dq ∗
+    "Request" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' dq ∗
+    "Response" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' dq ∗
+    "Start" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' dq ∗
+    "End" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Operation :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Operation'ClientID (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
+noncomputable instance access_load'Operation'ClientID (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Operation'ClientID (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : w64) :
+noncomputable instance access_store'Operation'ClientID (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientID' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) v.ClientID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"ClientID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientID' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Operation'Request (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
+noncomputable instance access_load'Operation'Request (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Operation'Request (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) :
+noncomputable instance access_store'Operation'Request (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Request' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) v.Request' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Request" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Request' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Operation'Response (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
+noncomputable instance access_load'Operation'Response (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Operation'Response (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) :
+noncomputable instance access_store'Operation'Response (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Response' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) v.Response' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Response" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Response' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Operation'Start (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
+noncomputable instance access_load'Operation'Start (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Operation'Start (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'Operation'Start (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) v.Start' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"Start" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Start' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Operation'End (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
+noncomputable instance access_load'Operation'End (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Operation'End (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'Operation'End (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) v.End' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation go!"End" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with End' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -937,85 +937,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'Change :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' dq ∗
-    "ResourceVersion" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' dq ∗
-    "Object" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' dq ∗
-    "PrevObject" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "Object" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' dq ∗
+    "PrevObject" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Change :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Change'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
+noncomputable instance access_load'Change'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Change'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : GoString) :
+noncomputable instance access_store'Change'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Change'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
+noncomputable instance access_load'Change'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Change'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : w64) :
+noncomputable instance access_store'Change'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Change'Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
+noncomputable instance access_load'Change'Object (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Change'Object (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'Change'Object (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) v.Object' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"Object" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Object' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Change'PrevObject (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
+noncomputable instance access_load'Change'PrevObject (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Change'PrevObject (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
+noncomputable instance access_store'Change'PrevObject (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PrevObject' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) v.PrevObject' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change go!"PrevObject" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PrevObject' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1028,51 +1028,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'WatchRequest :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' dq ∗
-    "Options" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' dq ∗
+    "Options" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'WatchRequest :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'WatchRequest'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (dq : DFrac) :
+noncomputable instance access_load'WatchRequest'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchRequest'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (y : GoString) :
+noncomputable instance access_store'WatchRequest'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'WatchRequest'Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (dq : DFrac) :
+noncomputable instance access_load'WatchRequest'Options (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchRequest'Options (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions) :
+noncomputable instance access_store'WatchRequest'Options (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.ListOptions) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) v.Options' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest go!"Options" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Options' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1085,51 +1085,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'WatchResponse :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse where
   typedPointstoDef l v dq := iprop(
-    "Events" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' dq ∗
-    "Err" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' dq ∗
+    "Events" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' dq ∗
+    "Err" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'WatchResponse :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'WatchResponse'Events (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (dq : DFrac) :
+noncomputable instance access_load'WatchResponse'Events (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchResponse'Events (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (y : GoSlice) :
+noncomputable instance access_store'WatchResponse'Events (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) v.Events' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Events" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'WatchResponse'Err (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (dq : DFrac) :
+noncomputable instance access_load'WatchResponse'Err (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchResponse'Err (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (y : GoError) :
+noncomputable instance access_store'WatchResponse'Err (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) v.Err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1142,51 +1142,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'WatchOperation :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation where
   typedPointstoDef l v dq := iprop(
-    "Request" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' dq ∗
-    "Response" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' dq ∗
+    "Request" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' dq ∗
+    "Response" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'WatchOperation :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'WatchOperation'Request (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (dq : DFrac) :
+noncomputable instance access_load'WatchOperation'Request (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchOperation'Request (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) :
+noncomputable instance access_store'WatchOperation'Request (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Request' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) v.Request' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Request" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Request' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'WatchOperation'Response (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (dq : DFrac) :
+noncomputable instance access_load'WatchOperation'Response (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchOperation'Response (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (y : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) :
+noncomputable instance access_store'WatchOperation'Response (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchResponse) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Response' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) v.Response' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation go!"Response" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Response' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1199,68 +1199,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'WatchValidator :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator where
   typedPointstoDef l v dq := iprop(
-    "versioner" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' dq ∗
-    "keyFunc" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' dq ∗
-    "replay" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' dq ∗
+    "versioner" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' dq ∗
+    "keyFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' dq ∗
+    "replay" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'WatchValidator :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'WatchValidator'versioner (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (dq : DFrac) :
+noncomputable instance access_load'WatchValidator'versioner (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchValidator'versioner (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
+noncomputable instance access_store'WatchValidator'versioner (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (y : _root_.Perennial.k8s_io.apiserver.pkg.storage.Versioner) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versioner' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) v.versioner' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"versioner" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versioner' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'WatchValidator'keyFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (dq : DFrac) :
+noncomputable instance access_load'WatchValidator'keyFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchValidator'keyFunc (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (y : GoFunc) :
+noncomputable instance access_store'WatchValidator'keyFunc (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyFunc' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) v.keyFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"keyFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyFunc' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'WatchValidator'replay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (dq : DFrac) :
+noncomputable instance access_load'WatchValidator'replay (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'WatchValidator'replay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (y : Loc) :
+noncomputable instance access_store'WatchValidator'replay (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replay' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) v.replay' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator go!"replay" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replay' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchValidator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1273,68 +1273,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'eventReference :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' dq ∗
-    "Type'" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' dq ∗
-    "ResourceVersion" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' dq ∗
+    "Type'" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'eventReference :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'eventReference'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (dq : DFrac) :
+noncomputable instance access_load'eventReference'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'eventReference'Key (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (y : GoString) :
+noncomputable instance access_store'eventReference'Key (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'eventReference'Type (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (dq : DFrac) :
+noncomputable instance access_load'eventReference'Type (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'eventReference'Type (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (y : _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType) :
+noncomputable instance access_store'eventReference'Type (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (y : _root_.Perennial.k8s_io.apimachinery.pkg.watch.EventType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'eventReference'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (dq : DFrac) :
+noncomputable instance access_load'eventReference'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'eventReference'ResourceVersion (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (y : w64) :
+noncomputable instance access_store'eventReference'ResourceVersion (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.eventReference) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1347,51 +1347,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceVersionRange :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange where
   typedPointstoDef l v dq := iprop(
-    "Min" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' dq ∗
-    "Max" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' dq ∗
+    "Min" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' dq ∗
+    "Max" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ResourceVersionRange :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ResourceVersionRange'Min (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (dq : DFrac) :
+noncomputable instance access_load'ResourceVersionRange'Min (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceVersionRange'Min (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (y : w64) :
+noncomputable instance access_store'ResourceVersionRange'Min (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Min' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) v.Min' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Min" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Min' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResourceVersionRange'Max (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (dq : DFrac) :
+noncomputable instance access_load'ResourceVersionRange'Max (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceVersionRange'Max (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (y : w64) :
+noncomputable instance access_store'ResourceVersionRange'Max (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Max' := y } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) v.Max' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange go!"Max" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Max' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ResourceVersionRange) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

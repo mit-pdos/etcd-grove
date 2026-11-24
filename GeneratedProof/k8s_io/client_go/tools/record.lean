@@ -28,14 +28,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'CorrelatorOptions :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.CorrelatorOptions :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.CorrelatorOptions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CorrelatorOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.CorrelatorOptions k8s_io.client_go.tools.record.CorrelatorOptions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.CorrelatorOptions _root_.Perennial.k8s_io.client_go.tools.record.CorrelatorOptions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -47,34 +47,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'EventRecorderAdapter :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventRecorderAdapter where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter where
   typedPointstoDef l v dq := iprop(
-    "recorder" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' dq ∗
+    "recorder" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EventRecorderAdapter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventRecorderAdapter k8s_io.client_go.tools.record.EventRecorderAdapter.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'EventRecorderAdapter'recorder (l : Loc) (v : k8s_io.client_go.tools.record.EventRecorderAdapter) (dq : DFrac) :
+noncomputable instance access_load'EventRecorderAdapter'recorder (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EventRecorderAdapter'recorder (l : Loc) (v : k8s_io.client_go.tools.record.EventRecorderAdapter) (y : k8s_io.client_go.tools.record.EventRecorderLogger) :
+noncomputable instance access_store'EventRecorderAdapter'recorder (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderLogger) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorder' := y } : k8s_io.client_go.tools.record.EventRecorderAdapter) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) v.recorder' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter go!"recorder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorder' := y } : _root_.Perennial.k8s_io.client_go.tools.record.EventRecorderAdapter) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -87,14 +87,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'config :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.config :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.config :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'config :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.config k8s_io.client_go.tools.record.config.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.config _root_.Perennial.k8s_io.client_go.tools.record.config.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -106,14 +106,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'eventBroadcasterImpl :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.eventBroadcasterImpl :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.eventBroadcasterImpl :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'eventBroadcasterImpl :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.eventBroadcasterImpl k8s_io.client_go.tools.record.eventBroadcasterImpl.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.eventBroadcasterImpl _root_.Perennial.k8s_io.client_go.tools.record.eventBroadcasterImpl.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -125,14 +125,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'recorderImpl :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.recorderImpl :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.recorderImpl :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'recorderImpl :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.recorderImpl k8s_io.client_go.tools.record.recorderImpl.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.recorderImpl _root_.Perennial.k8s_io.client_go.tools.record.recorderImpl.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -144,14 +144,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'recorderImplLogger :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.recorderImplLogger :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.recorderImplLogger :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'recorderImplLogger :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.recorderImplLogger k8s_io.client_go.tools.record.recorderImplLogger.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.recorderImplLogger _root_.Perennial.k8s_io.client_go.tools.record.recorderImplLogger.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -163,14 +163,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'EventSourceObjectSpamFilter :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventSourceObjectSpamFilter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventSourceObjectSpamFilter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventSourceObjectSpamFilter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventSourceObjectSpamFilter k8s_io.client_go.tools.record.EventSourceObjectSpamFilter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventSourceObjectSpamFilter _root_.Perennial.k8s_io.client_go.tools.record.EventSourceObjectSpamFilter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -182,14 +182,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'spamRecord :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.spamRecord :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.spamRecord :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'spamRecord :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.spamRecord k8s_io.client_go.tools.record.spamRecord.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.spamRecord _root_.Perennial.k8s_io.client_go.tools.record.spamRecord.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -201,14 +201,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'EventAggregator :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventAggregator :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventAggregator :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EventAggregator :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventAggregator k8s_io.client_go.tools.record.EventAggregator.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventAggregator _root_.Perennial.k8s_io.client_go.tools.record.EventAggregator.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -220,14 +220,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'aggregateRecord :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.aggregateRecord :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.aggregateRecord :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'aggregateRecord :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.aggregateRecord k8s_io.client_go.tools.record.aggregateRecord.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.aggregateRecord _root_.Perennial.k8s_io.client_go.tools.record.aggregateRecord.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -239,85 +239,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'eventLog :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.eventLog where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.eventLog where
   typedPointstoDef l v dq := iprop(
-    "count" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq ∗
-    "firstTimestamp" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq ∗
-    "name" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq ∗
-    "resourceVersion" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq ∗
+    "count" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq ∗
+    "firstTimestamp" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq ∗
+    "resourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'eventLog :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.eventLog k8s_io.client_go.tools.record.eventLog.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.eventLog _root_.Perennial.k8s_io.client_go.tools.record.eventLog.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'eventLog'count (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+noncomputable instance access_load'eventLog'count (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'eventLog'count (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : w64) :
+noncomputable instance access_store'eventLog'count (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"count" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"count" l) v.count' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with count' := y } : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'eventLog'firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+noncomputable instance access_load'eventLog'firstTimestamp (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'eventLog'firstTimestamp (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance access_store'eventLog'firstTimestamp (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstTimestamp' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) v.firstTimestamp' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"firstTimestamp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with firstTimestamp' := y } : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'eventLog'name (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+noncomputable instance access_load'eventLog'name (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'eventLog'name (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : GoString) :
+noncomputable instance access_store'eventLog'name (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'eventLog'resourceVersion (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
+noncomputable instance access_load'eventLog'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'eventLog'resourceVersion (l : Loc) (v : k8s_io.client_go.tools.record.eventLog) (y : GoString) :
+noncomputable instance access_store'eventLog'resourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) v.resourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.eventLog go!"resourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resourceVersion' := y } : _root_.Perennial.k8s_io.client_go.tools.record.eventLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -330,14 +330,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'eventLogger :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.eventLogger :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.eventLogger :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'eventLogger :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.eventLogger k8s_io.client_go.tools.record.eventLogger.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.eventLogger _root_.Perennial.k8s_io.client_go.tools.record.eventLogger.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -349,68 +349,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'EventCorrelator :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventCorrelator where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator where
   typedPointstoDef l v dq := iprop(
-    "filterFunc" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' dq ∗
-    "aggregator" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' dq ∗
-    "logger" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' dq ∗
+    "filterFunc" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' dq ∗
+    "aggregator" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' dq ∗
+    "logger" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EventCorrelator :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventCorrelator k8s_io.client_go.tools.record.EventCorrelator.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'EventCorrelator'filterFunc (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (dq : DFrac) :
+noncomputable instance access_load'EventCorrelator'filterFunc (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EventCorrelator'filterFunc (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (y : k8s_io.client_go.tools.record.EventFilterFunc) :
+noncomputable instance access_store'EventCorrelator'filterFunc (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (y : _root_.Perennial.k8s_io.client_go.tools.record.EventFilterFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filterFunc' := y } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) v.filterFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"filterFunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with filterFunc' := y } : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EventCorrelator'aggregator (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (dq : DFrac) :
+noncomputable instance access_load'EventCorrelator'aggregator (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EventCorrelator'aggregator (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (y : Loc) :
+noncomputable instance access_store'EventCorrelator'aggregator (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with aggregator' := y } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) v.aggregator' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"aggregator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with aggregator' := y } : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EventCorrelator'logger (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (dq : DFrac) :
+noncomputable instance access_load'EventCorrelator'logger (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EventCorrelator'logger (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelator) (y : Loc) :
+noncomputable instance access_store'EventCorrelator'logger (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) v.logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator go!"logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -423,68 +423,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'EventCorrelateResult :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.EventCorrelateResult where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult where
   typedPointstoDef l v dq := iprop(
-    "Event" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq ∗
-    "Patch" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq ∗
-    "Skip" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq ∗
+    "Event" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq ∗
+    "Patch" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq ∗
+    "Skip" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EventCorrelateResult :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.EventCorrelateResult k8s_io.client_go.tools.record.EventCorrelateResult.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'EventCorrelateResult'Event (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
+noncomputable instance access_load'EventCorrelateResult'Event (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EventCorrelateResult'Event (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (y : Loc) :
+noncomputable instance access_store'EventCorrelateResult'Event (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Event' := y } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) v.Event' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Event" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Event' := y } : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EventCorrelateResult'Patch (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
+noncomputable instance access_load'EventCorrelateResult'Patch (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EventCorrelateResult'Patch (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (y : GoSlice) :
+noncomputable instance access_store'EventCorrelateResult'Patch (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Patch' := y } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) v.Patch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Patch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Patch' := y } : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EventCorrelateResult'Skip (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
+noncomputable instance access_load'EventCorrelateResult'Skip (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EventCorrelateResult'Skip (l : Loc) (v : k8s_io.client_go.tools.record.EventCorrelateResult) (y : Bool) :
+noncomputable instance access_store'EventCorrelateResult'Skip (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Skip' := y } : k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) v.Skip' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult go!"Skip" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Skip' := y } : _root_.Perennial.k8s_io.client_go.tools.record.EventCorrelateResult) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -497,51 +497,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.record.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.record.Assumptions]
 
 noncomputable instance typed_pointsto'FakeRecorder :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.record.FakeRecorder where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder where
   typedPointstoDef l v dq := iprop(
-    "Events" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' dq ∗
-    "IncludeObject" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' dq ∗
+    "Events" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' dq ∗
+    "IncludeObject" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'FakeRecorder :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.record.FakeRecorder k8s_io.client_go.tools.record.FakeRecorder.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'FakeRecorder'Events (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (dq : DFrac) :
+noncomputable instance access_load'FakeRecorder'Events (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FakeRecorder'Events (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (y : GoChan) :
+noncomputable instance access_store'FakeRecorder'Events (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := y } : k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) v.Events' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"Events" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Events' := y } : _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FakeRecorder'IncludeObject (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (dq : DFrac) :
+noncomputable instance access_load'FakeRecorder'IncludeObject (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FakeRecorder'IncludeObject (l : Loc) (v : k8s_io.client_go.tools.record.FakeRecorder) (y : Bool) :
+noncomputable instance access_store'FakeRecorder'IncludeObject (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IncludeObject' := y } : k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) v.IncludeObject' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder go!"IncludeObject" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IncludeObject' := y } : _root_.Perennial.k8s_io.client_go.tools.record.FakeRecorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -24,10 +24,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.sets.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Assumptions]
 
 noncomputable instance typed_pointsto'Empty :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.sets.Empty where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Empty where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -35,7 +35,7 @@ noncomputable instance typed_pointsto'Empty :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Empty :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.sets.Empty k8s_io.apimachinery.pkg.util.sets.Empty.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Empty _root_.Perennial.k8s_io.apimachinery.pkg.util.sets.Empty.underlying := by
   solve_into_val_typed_struct
 
 end def_

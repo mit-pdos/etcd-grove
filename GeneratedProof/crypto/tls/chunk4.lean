@@ -24,391 +24,391 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : crypto.tls.Assumptions]
+variable [package_sem' : _root_.Perennial.crypto.tls.Assumptions]
 
 noncomputable instance typed_pointsto'serverHelloMsg :
-    TypedPointsto (GF := GF) crypto.tls.serverHelloMsg where
+    TypedPointsto (GF := GF) _root_.Perennial.crypto.tls.serverHelloMsg where
   typedPointstoDef l v dq := iprop(
-    "original" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"original" l) v.original' dq ∗
-    "vers" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"vers" l) v.vers' dq ∗
-    "random" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"random" l) v.random' dq ∗
-    "sessionId" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' dq ∗
-    "cipherSuite" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' dq ∗
-    "compressionMethod" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' dq ∗
-    "ocspStapling" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' dq ∗
-    "ticketSupported" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' dq ∗
-    "secureRenegotiationSupported" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq ∗
-    "secureRenegotiation" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq ∗
-    "extendedMasterSecret" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq ∗
-    "alpnProtocol" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' dq ∗
-    "scts" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"scts" l) v.scts' dq ∗
-    "supportedVersion" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' dq ∗
-    "serverShare" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' dq ∗
-    "selectedIdentityPresent" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' dq ∗
-    "selectedIdentity" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' dq ∗
-    "supportedPoints" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' dq ∗
-    "encryptedClientHello" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq ∗
-    "serverNameAck" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' dq ∗
-    "cookie" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' dq ∗
-    "selectedGroup" ∷ typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' dq ∗
+    "original" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"original" l) v.original' dq ∗
+    "vers" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"vers" l) v.vers' dq ∗
+    "random" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"random" l) v.random' dq ∗
+    "sessionId" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' dq ∗
+    "cipherSuite" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' dq ∗
+    "compressionMethod" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' dq ∗
+    "ocspStapling" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' dq ∗
+    "ticketSupported" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' dq ∗
+    "secureRenegotiationSupported" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq ∗
+    "secureRenegotiation" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq ∗
+    "extendedMasterSecret" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq ∗
+    "alpnProtocol" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' dq ∗
+    "scts" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"scts" l) v.scts' dq ∗
+    "supportedVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' dq ∗
+    "serverShare" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' dq ∗
+    "selectedIdentityPresent" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' dq ∗
+    "selectedIdentity" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' dq ∗
+    "supportedPoints" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' dq ∗
+    "encryptedClientHello" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq ∗
+    "serverNameAck" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' dq ∗
+    "cookie" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' dq ∗
+    "selectedGroup" ∷ typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'serverHelloMsg :
-    IntoValTypedUnderlying (GF := GF) crypto.tls.serverHelloMsg crypto.tls.serverHelloMsg.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.crypto.tls.serverHelloMsg _root_.Perennial.crypto.tls.serverHelloMsg.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'serverHelloMsg'original (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'original (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"original" l) v.original' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"original" l) v.original' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"original" l) v.original' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"original" l) v.original' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'original (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'original (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"original" l) v.original' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"original" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with original' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"original" l) v.original' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"original" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with original' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'vers (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'vers (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"vers" l) v.vers' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"vers" l) v.vers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"vers" l) v.vers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"vers" l) v.vers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'vers (l : Loc) (v : crypto.tls.serverHelloMsg) (y : w16) :
+noncomputable instance access_store'serverHelloMsg'vers (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : w16) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"vers" l) v.vers' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"vers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vers' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"vers" l) v.vers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"vers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with vers' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'random (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'random (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"random" l) v.random' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"random" l) v.random' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"random" l) v.random' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"random" l) v.random' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'random (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'random (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"random" l) v.random' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"random" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with random' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"random" l) v.random' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"random" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with random' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'sessionId (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'sessionId (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'sessionId (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'sessionId (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"sessionId" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sessionId' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"sessionId" l) v.sessionId' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"sessionId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sessionId' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'cipherSuite (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'cipherSuite (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'cipherSuite (l : Loc) (v : crypto.tls.serverHelloMsg) (y : w16) :
+noncomputable instance access_store'serverHelloMsg'cipherSuite (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : w16) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cipherSuite" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cipherSuite' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cipherSuite" l) v.cipherSuite' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cipherSuite" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cipherSuite' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'compressionMethod (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'compressionMethod (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'compressionMethod (l : Loc) (v : crypto.tls.serverHelloMsg) (y : w8) :
+noncomputable instance access_store'serverHelloMsg'compressionMethod (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : w8) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"compressionMethod" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compressionMethod' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"compressionMethod" l) v.compressionMethod' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"compressionMethod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with compressionMethod' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'ocspStapling (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'ocspStapling (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'ocspStapling (l : Loc) (v : crypto.tls.serverHelloMsg) (y : Bool) :
+noncomputable instance access_store'serverHelloMsg'ocspStapling (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ocspStapling" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ocspStapling' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ocspStapling" l) v.ocspStapling' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ocspStapling" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ocspStapling' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'ticketSupported (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'ticketSupported (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'ticketSupported (l : Loc) (v : crypto.tls.serverHelloMsg) (y : Bool) :
+noncomputable instance access_store'serverHelloMsg'ticketSupported (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"ticketSupported" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ticketSupported' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ticketSupported" l) v.ticketSupported' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"ticketSupported" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ticketSupported' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'secureRenegotiationSupported (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'secureRenegotiationSupported (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'secureRenegotiationSupported (l : Loc) (v : crypto.tls.serverHelloMsg) (y : Bool) :
+noncomputable instance access_store'serverHelloMsg'secureRenegotiationSupported (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with secureRenegotiationSupported' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) v.secureRenegotiationSupported' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiationSupported" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with secureRenegotiationSupported' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'secureRenegotiation (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'secureRenegotiation (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'secureRenegotiation (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'secureRenegotiation (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"secureRenegotiation" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with secureRenegotiation' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiation" l) v.secureRenegotiation' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"secureRenegotiation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with secureRenegotiation' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'extendedMasterSecret (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'extendedMasterSecret (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'extendedMasterSecret (l : Loc) (v : crypto.tls.serverHelloMsg) (y : Bool) :
+noncomputable instance access_store'serverHelloMsg'extendedMasterSecret (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with extendedMasterSecret' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) v.extendedMasterSecret' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"extendedMasterSecret" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with extendedMasterSecret' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'alpnProtocol (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'alpnProtocol (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'alpnProtocol (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoString) :
+noncomputable instance access_store'serverHelloMsg'alpnProtocol (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"alpnProtocol" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alpnProtocol' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"alpnProtocol" l) v.alpnProtocol' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"alpnProtocol" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with alpnProtocol' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'scts (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'scts (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"scts" l) v.scts' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"scts" l) v.scts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"scts" l) v.scts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"scts" l) v.scts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'scts (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'scts (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"scts" l) v.scts' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"scts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scts' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"scts" l) v.scts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"scts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scts' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'supportedVersion (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'supportedVersion (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'supportedVersion (l : Loc) (v : crypto.tls.serverHelloMsg) (y : w16) :
+noncomputable instance access_store'serverHelloMsg'supportedVersion (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : w16) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with supportedVersion' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedVersion" l) v.supportedVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with supportedVersion' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'serverShare (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'serverShare (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'serverShare (l : Loc) (v : crypto.tls.serverHelloMsg) (y : crypto.tls.keyShare) :
+noncomputable instance access_store'serverHelloMsg'serverShare (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : _root_.Perennial.crypto.tls.keyShare) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverShare" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverShare' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverShare" l) v.serverShare' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverShare" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverShare' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'selectedIdentityPresent (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'selectedIdentityPresent (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'selectedIdentityPresent (l : Loc) (v : crypto.tls.serverHelloMsg) (y : Bool) :
+noncomputable instance access_store'serverHelloMsg'selectedIdentityPresent (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selectedIdentityPresent' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) v.selectedIdentityPresent' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentityPresent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selectedIdentityPresent' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'selectedIdentity (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'selectedIdentity (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'selectedIdentity (l : Loc) (v : crypto.tls.serverHelloMsg) (y : w16) :
+noncomputable instance access_store'serverHelloMsg'selectedIdentity (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : w16) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedIdentity" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selectedIdentity' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentity" l) v.selectedIdentity' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedIdentity" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selectedIdentity' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'supportedPoints (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'supportedPoints (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'supportedPoints (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'supportedPoints (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"supportedPoints" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with supportedPoints' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedPoints" l) v.supportedPoints' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"supportedPoints" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with supportedPoints' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'encryptedClientHello (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'encryptedClientHello (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'encryptedClientHello (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'encryptedClientHello (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"encryptedClientHello" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encryptedClientHello' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"encryptedClientHello" l) v.encryptedClientHello' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"encryptedClientHello" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with encryptedClientHello' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'serverNameAck (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'serverNameAck (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'serverNameAck (l : Loc) (v : crypto.tls.serverHelloMsg) (y : Bool) :
+noncomputable instance access_store'serverHelloMsg'serverNameAck (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"serverNameAck" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverNameAck' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverNameAck" l) v.serverNameAck' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"serverNameAck" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverNameAck' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'cookie (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'cookie (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'cookie (l : Loc) (v : crypto.tls.serverHelloMsg) (y : GoSlice) :
+noncomputable instance access_store'serverHelloMsg'cookie (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"cookie" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cookie' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cookie" l) v.cookie' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"cookie" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cookie' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serverHelloMsg'selectedGroup (l : Loc) (v : crypto.tls.serverHelloMsg) (dq : DFrac) :
+noncomputable instance access_load'serverHelloMsg'selectedGroup (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' dq)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serverHelloMsg'selectedGroup (l : Loc) (v : crypto.tls.serverHelloMsg) (y : crypto.tls.CurveID) :
+noncomputable instance access_store'serverHelloMsg'selectedGroup (l : Loc) (v : _root_.Perennial.crypto.tls.serverHelloMsg) (y : _root_.Perennial.crypto.tls.CurveID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' (DFrac.own 1))
-      (typedPointsto (structFieldRef crypto.tls.serverHelloMsg go!"selectedGroup" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selectedGroup' := y } : crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedGroup" l) v.selectedGroup' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.crypto.tls.serverHelloMsg go!"selectedGroup" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with selectedGroup' := y } : _root_.Perennial.crypto.tls.serverHelloMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

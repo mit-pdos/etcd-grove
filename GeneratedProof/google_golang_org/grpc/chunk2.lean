@@ -33,14 +33,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'PreparedMsg :
-    TypedPointsto (GF := GF) google_golang_org.grpc.PreparedMsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.PreparedMsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PreparedMsg :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.PreparedMsg google_golang_org.grpc.PreparedMsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.PreparedMsg _root_.Perennial.google_golang_org.grpc.PreparedMsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -52,14 +52,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'gzipCompressor :
-    TypedPointsto (GF := GF) google_golang_org.grpc.gzipCompressor :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.gzipCompressor :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'gzipCompressor :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.gzipCompressor google_golang_org.grpc.gzipCompressor.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.gzipCompressor _root_.Perennial.google_golang_org.grpc.gzipCompressor.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -71,14 +71,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'gzipDecompressor :
-    TypedPointsto (GF := GF) google_golang_org.grpc.gzipDecompressor :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.gzipDecompressor :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'gzipDecompressor :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.gzipDecompressor google_golang_org.grpc.gzipDecompressor.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.gzipDecompressor _root_.Perennial.google_golang_org.grpc.gzipDecompressor.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -90,10 +90,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'EmptyCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.EmptyCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.EmptyCallOption where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -101,7 +101,7 @@ noncomputable instance typed_pointsto'EmptyCallOption :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EmptyCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.EmptyCallOption google_golang_org.grpc.EmptyCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.EmptyCallOption _root_.Perennial.google_golang_org.grpc.EmptyCallOption.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -113,34 +113,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'HeaderCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.HeaderCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.HeaderCallOption where
   typedPointstoDef l v dq := iprop(
-    "HeaderAddr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq ∗
+    "HeaderAddr" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'HeaderCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.HeaderCallOption google_golang_org.grpc.HeaderCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.HeaderCallOption _root_.Perennial.google_golang_org.grpc.HeaderCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'HeaderCallOption'HeaderAddr (l : Loc) (v : google_golang_org.grpc.HeaderCallOption) (dq : DFrac) :
+noncomputable instance access_load'HeaderCallOption'HeaderAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.HeaderCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'HeaderCallOption'HeaderAddr (l : Loc) (v : google_golang_org.grpc.HeaderCallOption) (y : Loc) :
+noncomputable instance access_store'HeaderCallOption'HeaderAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.HeaderCallOption) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HeaderAddr' := y } : google_golang_org.grpc.HeaderCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) v.HeaderAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.HeaderCallOption go!"HeaderAddr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HeaderAddr' := y } : _root_.Perennial.google_golang_org.grpc.HeaderCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -153,34 +153,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'TrailerCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.TrailerCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.TrailerCallOption where
   typedPointstoDef l v dq := iprop(
-    "TrailerAddr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq ∗
+    "TrailerAddr" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'TrailerCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.TrailerCallOption google_golang_org.grpc.TrailerCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.TrailerCallOption _root_.Perennial.google_golang_org.grpc.TrailerCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'TrailerCallOption'TrailerAddr (l : Loc) (v : google_golang_org.grpc.TrailerCallOption) (dq : DFrac) :
+noncomputable instance access_load'TrailerCallOption'TrailerAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.TrailerCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'TrailerCallOption'TrailerAddr (l : Loc) (v : google_golang_org.grpc.TrailerCallOption) (y : Loc) :
+noncomputable instance access_store'TrailerCallOption'TrailerAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.TrailerCallOption) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrailerAddr' := y } : google_golang_org.grpc.TrailerCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) v.TrailerAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.TrailerCallOption go!"TrailerAddr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TrailerAddr' := y } : _root_.Perennial.google_golang_org.grpc.TrailerCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -193,34 +193,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'PeerCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.PeerCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.PeerCallOption where
   typedPointstoDef l v dq := iprop(
-    "PeerAddr" ∷ typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq ∗
+    "PeerAddr" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PeerCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.PeerCallOption google_golang_org.grpc.PeerCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.PeerCallOption _root_.Perennial.google_golang_org.grpc.PeerCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PeerCallOption'PeerAddr (l : Loc) (v : google_golang_org.grpc.PeerCallOption) (dq : DFrac) :
+noncomputable instance access_load'PeerCallOption'PeerAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.PeerCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PeerCallOption'PeerAddr (l : Loc) (v : google_golang_org.grpc.PeerCallOption) (y : Loc) :
+noncomputable instance access_store'PeerCallOption'PeerAddr (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.PeerCallOption) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerAddr' := y } : google_golang_org.grpc.PeerCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) v.PeerAddr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PeerCallOption go!"PeerAddr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerAddr' := y } : _root_.Perennial.google_golang_org.grpc.PeerCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -233,34 +233,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'FailFastCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.FailFastCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.FailFastCallOption where
   typedPointstoDef l v dq := iprop(
-    "FailFast" ∷ typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' dq ∗
+    "FailFast" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'FailFastCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.FailFastCallOption google_golang_org.grpc.FailFastCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.FailFastCallOption _root_.Perennial.google_golang_org.grpc.FailFastCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'FailFastCallOption'FailFast (l : Loc) (v : google_golang_org.grpc.FailFastCallOption) (dq : DFrac) :
+noncomputable instance access_load'FailFastCallOption'FailFast (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.FailFastCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FailFastCallOption'FailFast (l : Loc) (v : google_golang_org.grpc.FailFastCallOption) (y : Bool) :
+noncomputable instance access_store'FailFastCallOption'FailFast (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.FailFastCallOption) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FailFast' := y } : google_golang_org.grpc.FailFastCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.FailFastCallOption go!"FailFast" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FailFast' := y } : _root_.Perennial.google_golang_org.grpc.FailFastCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -273,34 +273,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'OnFinishCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.OnFinishCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.OnFinishCallOption where
   typedPointstoDef l v dq := iprop(
-    "OnFinish" ∷ typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' dq ∗
+    "OnFinish" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'OnFinishCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.OnFinishCallOption google_golang_org.grpc.OnFinishCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.OnFinishCallOption _root_.Perennial.google_golang_org.grpc.OnFinishCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'OnFinishCallOption'OnFinish (l : Loc) (v : google_golang_org.grpc.OnFinishCallOption) (dq : DFrac) :
+noncomputable instance access_load'OnFinishCallOption'OnFinish (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.OnFinishCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'OnFinishCallOption'OnFinish (l : Loc) (v : google_golang_org.grpc.OnFinishCallOption) (y : GoFunc) :
+noncomputable instance access_store'OnFinishCallOption'OnFinish (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.OnFinishCallOption) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnFinish' := y } : google_golang_org.grpc.OnFinishCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnFinish' := y } : _root_.Perennial.google_golang_org.grpc.OnFinishCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -313,34 +313,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'MaxRecvMsgSizeCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.MaxRecvMsgSizeCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption where
   typedPointstoDef l v dq := iprop(
-    "MaxRecvMsgSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' dq ∗
+    "MaxRecvMsgSize" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MaxRecvMsgSizeCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MaxRecvMsgSizeCallOption google_golang_org.grpc.MaxRecvMsgSizeCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MaxRecvMsgSizeCallOption'MaxRecvMsgSize (l : Loc) (v : google_golang_org.grpc.MaxRecvMsgSizeCallOption) (dq : DFrac) :
+noncomputable instance access_load'MaxRecvMsgSizeCallOption'MaxRecvMsgSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MaxRecvMsgSizeCallOption'MaxRecvMsgSize (l : Loc) (v : google_golang_org.grpc.MaxRecvMsgSizeCallOption) (y : w64) :
+noncomputable instance access_store'MaxRecvMsgSizeCallOption'MaxRecvMsgSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRecvMsgSize' := y } : google_golang_org.grpc.MaxRecvMsgSizeCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRecvMsgSize' := y } : _root_.Perennial.google_golang_org.grpc.MaxRecvMsgSizeCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -353,34 +353,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'AuthorityOverrideCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.AuthorityOverrideCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption where
   typedPointstoDef l v dq := iprop(
-    "Authority" ∷ typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' dq ∗
+    "Authority" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'AuthorityOverrideCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.AuthorityOverrideCallOption google_golang_org.grpc.AuthorityOverrideCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'AuthorityOverrideCallOption'Authority (l : Loc) (v : google_golang_org.grpc.AuthorityOverrideCallOption) (dq : DFrac) :
+noncomputable instance access_load'AuthorityOverrideCallOption'Authority (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'AuthorityOverrideCallOption'Authority (l : Loc) (v : google_golang_org.grpc.AuthorityOverrideCallOption) (y : GoString) :
+noncomputable instance access_store'AuthorityOverrideCallOption'Authority (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Authority' := y } : google_golang_org.grpc.AuthorityOverrideCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Authority' := y } : _root_.Perennial.google_golang_org.grpc.AuthorityOverrideCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -393,34 +393,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'MaxSendMsgSizeCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.MaxSendMsgSizeCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption where
   typedPointstoDef l v dq := iprop(
-    "MaxSendMsgSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' dq ∗
+    "MaxSendMsgSize" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MaxSendMsgSizeCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MaxSendMsgSizeCallOption google_golang_org.grpc.MaxSendMsgSizeCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MaxSendMsgSizeCallOption'MaxSendMsgSize (l : Loc) (v : google_golang_org.grpc.MaxSendMsgSizeCallOption) (dq : DFrac) :
+noncomputable instance access_load'MaxSendMsgSizeCallOption'MaxSendMsgSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MaxSendMsgSizeCallOption'MaxSendMsgSize (l : Loc) (v : google_golang_org.grpc.MaxSendMsgSizeCallOption) (y : w64) :
+noncomputable instance access_store'MaxSendMsgSizeCallOption'MaxSendMsgSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxSendMsgSize' := y } : google_golang_org.grpc.MaxSendMsgSizeCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxSendMsgSize' := y } : _root_.Perennial.google_golang_org.grpc.MaxSendMsgSizeCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -433,34 +433,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'PerRPCCredsCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.PerRPCCredsCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption where
   typedPointstoDef l v dq := iprop(
-    "Creds" ∷ typedPointsto (structFieldRef google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' dq ∗
+    "Creds" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PerRPCCredsCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.PerRPCCredsCallOption google_golang_org.grpc.PerRPCCredsCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PerRPCCredsCallOption'Creds (l : Loc) (v : google_golang_org.grpc.PerRPCCredsCallOption) (dq : DFrac) :
+noncomputable instance access_load'PerRPCCredsCallOption'Creds (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PerRPCCredsCallOption'Creds (l : Loc) (v : google_golang_org.grpc.PerRPCCredsCallOption) (y : _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials) :
+noncomputable instance access_store'PerRPCCredsCallOption'Creds (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption) (y : _root_.Perennial.google_golang_org.grpc.credentials.PerRPCCredentials) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Creds' := y } : google_golang_org.grpc.PerRPCCredsCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) v.Creds' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption go!"Creds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Creds' := y } : _root_.Perennial.google_golang_org.grpc.PerRPCCredsCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -473,34 +473,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'CompressorCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.CompressorCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.CompressorCallOption where
   typedPointstoDef l v dq := iprop(
-    "CompressorType" ∷ typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' dq ∗
+    "CompressorType" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CompressorCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.CompressorCallOption google_golang_org.grpc.CompressorCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.CompressorCallOption _root_.Perennial.google_golang_org.grpc.CompressorCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CompressorCallOption'CompressorType (l : Loc) (v : google_golang_org.grpc.CompressorCallOption) (dq : DFrac) :
+noncomputable instance access_load'CompressorCallOption'CompressorType (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.CompressorCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CompressorCallOption'CompressorType (l : Loc) (v : google_golang_org.grpc.CompressorCallOption) (y : GoString) :
+noncomputable instance access_store'CompressorCallOption'CompressorType (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.CompressorCallOption) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompressorType' := y } : google_golang_org.grpc.CompressorCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompressorType' := y } : _root_.Perennial.google_golang_org.grpc.CompressorCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -513,34 +513,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'acceptCompressorsCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.acceptCompressorsCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption where
   typedPointstoDef l v dq := iprop(
-    "names" ∷ typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' dq ∗
+    "names" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'acceptCompressorsCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.acceptCompressorsCallOption google_golang_org.grpc.acceptCompressorsCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'acceptCompressorsCallOption'names (l : Loc) (v : google_golang_org.grpc.acceptCompressorsCallOption) (dq : DFrac) :
+noncomputable instance access_load'acceptCompressorsCallOption'names (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'acceptCompressorsCallOption'names (l : Loc) (v : google_golang_org.grpc.acceptCompressorsCallOption) (y : GoSlice) :
+noncomputable instance access_store'acceptCompressorsCallOption'names (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with names' := y } : google_golang_org.grpc.acceptCompressorsCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with names' := y } : _root_.Perennial.google_golang_org.grpc.acceptCompressorsCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -553,34 +553,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'ContentSubtypeCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ContentSubtypeCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption where
   typedPointstoDef l v dq := iprop(
-    "ContentSubtype" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' dq ∗
+    "ContentSubtype" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ContentSubtypeCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ContentSubtypeCallOption google_golang_org.grpc.ContentSubtypeCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ContentSubtypeCallOption'ContentSubtype (l : Loc) (v : google_golang_org.grpc.ContentSubtypeCallOption) (dq : DFrac) :
+noncomputable instance access_load'ContentSubtypeCallOption'ContentSubtype (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ContentSubtypeCallOption'ContentSubtype (l : Loc) (v : google_golang_org.grpc.ContentSubtypeCallOption) (y : GoString) :
+noncomputable instance access_store'ContentSubtypeCallOption'ContentSubtype (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ContentSubtype' := y } : google_golang_org.grpc.ContentSubtypeCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ContentSubtype' := y } : _root_.Perennial.google_golang_org.grpc.ContentSubtypeCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -593,14 +593,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'ForceCodecCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ForceCodecCallOption :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.ForceCodecCallOption :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ForceCodecCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ForceCodecCallOption google_golang_org.grpc.ForceCodecCallOption.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.ForceCodecCallOption _root_.Perennial.google_golang_org.grpc.ForceCodecCallOption.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -612,14 +612,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'ForceCodecV2CallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ForceCodecV2CallOption :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.ForceCodecV2CallOption :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ForceCodecV2CallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ForceCodecV2CallOption google_golang_org.grpc.ForceCodecV2CallOption.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.ForceCodecV2CallOption _root_.Perennial.google_golang_org.grpc.ForceCodecV2CallOption.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -631,34 +631,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'MaxRetryRPCBufferSizeCallOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption where
   typedPointstoDef l v dq := iprop(
-    "MaxRetryRPCBufferSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq ∗
+    "MaxRetryRPCBufferSize" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MaxRetryRPCBufferSizeCallOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MaxRetryRPCBufferSizeCallOption'MaxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (dq : DFrac) :
+noncomputable instance access_load'MaxRetryRPCBufferSizeCallOption'MaxRetryRPCBufferSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MaxRetryRPCBufferSizeCallOption'MaxRetryRPCBufferSize (l : Loc) (v : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (y : w64) :
+noncomputable instance access_store'MaxRetryRPCBufferSizeCallOption'MaxRetryRPCBufferSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRetryRPCBufferSize' := y } : google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) v.MaxRetryRPCBufferSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption go!"MaxRetryRPCBufferSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRetryRPCBufferSize' := y } : _root_.Perennial.google_golang_org.grpc.MaxRetryRPCBufferSizeCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -671,14 +671,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'streamReader :
-    TypedPointsto (GF := GF) google_golang_org.grpc.streamReader :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.streamReader :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'streamReader :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.streamReader google_golang_org.grpc.streamReader.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.streamReader _root_.Perennial.google_golang_org.grpc.streamReader.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -690,10 +690,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'noCopy :
-    TypedPointsto (GF := GF) google_golang_org.grpc.noCopy where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.noCopy where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -701,7 +701,7 @@ noncomputable instance typed_pointsto'noCopy :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'noCopy :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.noCopy google_golang_org.grpc.noCopy.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.noCopy _root_.Perennial.google_golang_org.grpc.noCopy.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -713,14 +713,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'parser :
-    TypedPointsto (GF := GF) google_golang_org.grpc.parser :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.parser :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'parser :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.parser google_golang_org.grpc.parser.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.parser _root_.Perennial.google_golang_org.grpc.parser.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -732,14 +732,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'payloadInfo :
-    TypedPointsto (GF := GF) google_golang_org.grpc.payloadInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.payloadInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'payloadInfo :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.payloadInfo google_golang_org.grpc.payloadInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.payloadInfo _root_.Perennial.google_golang_org.grpc.payloadInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -751,14 +751,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'compressorInfo :
-    TypedPointsto (GF := GF) google_golang_org.grpc.compressorInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.compressorInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'compressorInfo :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.compressorInfo google_golang_org.grpc.compressorInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.compressorInfo _root_.Perennial.google_golang_org.grpc.compressorInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -770,10 +770,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'rpcInfoContextKey :
-    TypedPointsto (GF := GF) google_golang_org.grpc.rpcInfoContextKey where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.rpcInfoContextKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -781,7 +781,7 @@ noncomputable instance typed_pointsto'rpcInfoContextKey :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'rpcInfoContextKey :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.rpcInfoContextKey google_golang_org.grpc.rpcInfoContextKey.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.rpcInfoContextKey _root_.Perennial.google_golang_org.grpc.rpcInfoContextKey.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -793,102 +793,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceDesc :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ServiceDesc where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.ServiceDesc where
   typedPointstoDef l v dq := iprop(
-    "ServiceName" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq ∗
-    "HandlerType" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq ∗
-    "Methods" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq ∗
-    "Streams" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq ∗
-    "Metadata" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq ∗
+    "ServiceName" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq ∗
+    "HandlerType" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq ∗
+    "Methods" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq ∗
+    "Streams" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq ∗
+    "Metadata" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ServiceDesc :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServiceDesc google_golang_org.grpc.ServiceDesc.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ServiceDesc'ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance access_load'ServiceDesc'ServiceName (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ServiceDesc'ServiceName (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (y : GoString) :
+noncomputable instance access_store'ServiceDesc'ServiceName (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"ServiceName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServiceName' := y } : google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"ServiceName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServiceName' := y } : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ServiceDesc'HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance access_load'ServiceDesc'HandlerType (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ServiceDesc'HandlerType (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (y : GoInterface) :
+noncomputable instance access_store'ServiceDesc'HandlerType (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"HandlerType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HandlerType' := y } : google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"HandlerType" l) v.HandlerType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"HandlerType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HandlerType' := y } : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ServiceDesc'Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance access_load'ServiceDesc'Methods (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ServiceDesc'Methods (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (y : GoSlice) :
+noncomputable instance access_store'ServiceDesc'Methods (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Methods" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Methods' := y } : google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Methods" l) v.Methods' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Methods" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Methods' := y } : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ServiceDesc'Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance access_load'ServiceDesc'Streams (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ServiceDesc'Streams (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (y : GoSlice) :
+noncomputable instance access_store'ServiceDesc'Streams (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Streams" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Streams' := y } : google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Streams" l) v.Streams' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Streams" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Streams' := y } : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ServiceDesc'Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
+noncomputable instance access_load'ServiceDesc'Metadata (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ServiceDesc'Metadata (l : Loc) (v : google_golang_org.grpc.ServiceDesc) (y : GoInterface) :
+noncomputable instance access_store'ServiceDesc'Metadata (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceDesc go!"Metadata" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Metadata" l) v.Metadata' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceDesc go!"Metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : _root_.Perennial.google_golang_org.grpc.ServiceDesc) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -901,68 +901,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'serviceInfo :
-    TypedPointsto (GF := GF) google_golang_org.grpc.serviceInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.serviceInfo where
   typedPointstoDef l v dq := iprop(
-    "serviceImpl" ∷ typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq ∗
-    "streams" ∷ typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq ∗
-    "mdata" ∷ typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq ∗
+    "serviceImpl" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq ∗
+    "streams" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq ∗
+    "mdata" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'serviceInfo :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.serviceInfo google_golang_org.grpc.serviceInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.serviceInfo _root_.Perennial.google_golang_org.grpc.serviceInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'serviceInfo'serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
+noncomputable instance access_load'serviceInfo'serviceImpl (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.serviceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serviceInfo'serviceImpl (l : Loc) (v : google_golang_org.grpc.serviceInfo) (y : GoInterface) :
+noncomputable instance access_store'serviceInfo'serviceImpl (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.serviceInfo) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"serviceImpl" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serviceImpl' := y } : google_golang_org.grpc.serviceInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"serviceImpl" l) v.serviceImpl' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"serviceImpl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serviceImpl' := y } : _root_.Perennial.google_golang_org.grpc.serviceInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serviceInfo'streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
+noncomputable instance access_load'serviceInfo'streams (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.serviceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serviceInfo'streams (l : Loc) (v : google_golang_org.grpc.serviceInfo) (y : GoMap) :
+noncomputable instance access_store'serviceInfo'streams (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.serviceInfo) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"streams" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with streams' := y } : google_golang_org.grpc.serviceInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"streams" l) v.streams' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"streams" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with streams' := y } : _root_.Perennial.google_golang_org.grpc.serviceInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'serviceInfo'mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (dq : DFrac) :
+noncomputable instance access_load'serviceInfo'mdata (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.serviceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'serviceInfo'mdata (l : Loc) (v : google_golang_org.grpc.serviceInfo) (y : GoInterface) :
+noncomputable instance access_store'serviceInfo'mdata (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.serviceInfo) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.serviceInfo go!"mdata" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mdata' := y } : google_golang_org.grpc.serviceInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"mdata" l) v.mdata' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.serviceInfo go!"mdata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mdata' := y } : _root_.Perennial.google_golang_org.grpc.serviceInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -975,14 +975,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'Server :
-    TypedPointsto (GF := GF) google_golang_org.grpc.Server :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.Server :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Server :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.Server google_golang_org.grpc.Server.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.Server _root_.Perennial.google_golang_org.grpc.Server.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -994,10 +994,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'EmptyServerOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.EmptyServerOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.EmptyServerOption where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -1005,7 +1005,7 @@ noncomputable instance typed_pointsto'EmptyServerOption :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EmptyServerOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.EmptyServerOption google_golang_org.grpc.EmptyServerOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.EmptyServerOption _root_.Perennial.google_golang_org.grpc.EmptyServerOption.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -1017,34 +1017,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'funcServerOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.funcServerOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.funcServerOption where
   typedPointstoDef l v dq := iprop(
-    "f" ∷ typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq ∗
+    "f" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'funcServerOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.funcServerOption google_golang_org.grpc.funcServerOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.funcServerOption _root_.Perennial.google_golang_org.grpc.funcServerOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'funcServerOption'f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (dq : DFrac) :
+noncomputable instance access_load'funcServerOption'f (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.funcServerOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.funcServerOption go!"f" l) v.f' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'funcServerOption'f (l : Loc) (v : google_golang_org.grpc.funcServerOption) (y : GoFunc) :
+noncomputable instance access_store'funcServerOption'f (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.funcServerOption) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) v.f' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.funcServerOption go!"f" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : google_golang_org.grpc.funcServerOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.funcServerOption go!"f" l) v.f' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.funcServerOption go!"f" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : _root_.Perennial.google_golang_org.grpc.funcServerOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1057,34 +1057,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'joinServerOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.joinServerOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.joinServerOption where
   typedPointstoDef l v dq := iprop(
-    "opts" ∷ typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq ∗
+    "opts" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'joinServerOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.joinServerOption google_golang_org.grpc.joinServerOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.joinServerOption _root_.Perennial.google_golang_org.grpc.joinServerOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'joinServerOption'opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (dq : DFrac) :
+noncomputable instance access_load'joinServerOption'opts (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.joinServerOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'joinServerOption'opts (l : Loc) (v : google_golang_org.grpc.joinServerOption) (y : GoSlice) :
+noncomputable instance access_store'joinServerOption'opts (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.joinServerOption) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinServerOption go!"opts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : google_golang_org.grpc.joinServerOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.joinServerOption go!"opts" l) v.opts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.joinServerOption go!"opts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : _root_.Perennial.google_golang_org.grpc.joinServerOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1097,34 +1097,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'MaxHeaderListSizeServerOption :
-    TypedPointsto (GF := GF) google_golang_org.grpc.MaxHeaderListSizeServerOption where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption where
   typedPointstoDef l v dq := iprop(
-    "MaxHeaderListSize" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq ∗
+    "MaxHeaderListSize" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MaxHeaderListSizeServerOption :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MaxHeaderListSizeServerOption google_golang_org.grpc.MaxHeaderListSizeServerOption.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MaxHeaderListSizeServerOption'MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (dq : DFrac) :
+noncomputable instance access_load'MaxHeaderListSizeServerOption'MaxHeaderListSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MaxHeaderListSizeServerOption'MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeServerOption) (y : w32) :
+noncomputable instance access_store'MaxHeaderListSizeServerOption'MaxHeaderListSize (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxHeaderListSize' := y } : google_golang_org.grpc.MaxHeaderListSizeServerOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption go!"MaxHeaderListSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxHeaderListSize' := y } : _root_.Perennial.google_golang_org.grpc.MaxHeaderListSizeServerOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1137,68 +1137,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'MethodInfo :
-    TypedPointsto (GF := GF) google_golang_org.grpc.MethodInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.MethodInfo where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq ∗
-    "IsClientStream" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq ∗
-    "IsServerStream" ∷ typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq ∗
+    "IsClientStream" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq ∗
+    "IsServerStream" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MethodInfo :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.MethodInfo google_golang_org.grpc.MethodInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.MethodInfo _root_.Perennial.google_golang_org.grpc.MethodInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MethodInfo'Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
+noncomputable instance access_load'MethodInfo'Name (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MethodInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MethodInfo'Name (l : Loc) (v : google_golang_org.grpc.MethodInfo) (y : GoString) :
+noncomputable instance access_store'MethodInfo'Name (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MethodInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MethodInfo'IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
+noncomputable instance access_load'MethodInfo'IsClientStream (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MethodInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MethodInfo'IsClientStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (y : Bool) :
+noncomputable instance access_store'MethodInfo'IsClientStream (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MethodInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsClientStream" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsClientStream' := y } : google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsClientStream" l) v.IsClientStream' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsClientStream" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsClientStream' := y } : _root_.Perennial.google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MethodInfo'IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (dq : DFrac) :
+noncomputable instance access_load'MethodInfo'IsServerStream (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MethodInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MethodInfo'IsServerStream (l : Loc) (v : google_golang_org.grpc.MethodInfo) (y : Bool) :
+noncomputable instance access_store'MethodInfo'IsServerStream (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.MethodInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MethodInfo go!"IsServerStream" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsServerStream' := y } : google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsServerStream" l) v.IsServerStream' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.MethodInfo go!"IsServerStream" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsServerStream' := y } : _root_.Perennial.google_golang_org.grpc.MethodInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1211,51 +1211,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceInfo :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ServiceInfo where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.ServiceInfo where
   typedPointstoDef l v dq := iprop(
-    "Methods" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq ∗
-    "Metadata" ∷ typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq ∗
+    "Methods" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq ∗
+    "Metadata" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ServiceInfo :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServiceInfo google_golang_org.grpc.ServiceInfo.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.ServiceInfo _root_.Perennial.google_golang_org.grpc.ServiceInfo.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ServiceInfo'Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
+noncomputable instance access_load'ServiceInfo'Methods (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ServiceInfo'Methods (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (y : GoSlice) :
+noncomputable instance access_store'ServiceInfo'Methods (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceInfo) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Methods" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Methods' := y } : google_golang_org.grpc.ServiceInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Methods" l) v.Methods' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Methods" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Methods' := y } : _root_.Perennial.google_golang_org.grpc.ServiceInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ServiceInfo'Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
+noncomputable instance access_load'ServiceInfo'Metadata (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceInfo) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ServiceInfo'Metadata (l : Loc) (v : google_golang_org.grpc.ServiceInfo) (y : GoInterface) :
+noncomputable instance access_store'ServiceInfo'Metadata (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.ServiceInfo) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ServiceInfo go!"Metadata" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : google_golang_org.grpc.ServiceInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Metadata" l) v.Metadata' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.ServiceInfo go!"Metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Metadata' := y } : _root_.Perennial.google_golang_org.grpc.ServiceInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1268,10 +1268,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'streamKey :
-    TypedPointsto (GF := GF) google_golang_org.grpc.streamKey where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.streamKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -1279,7 +1279,7 @@ noncomputable instance typed_pointsto'streamKey :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'streamKey :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.streamKey google_golang_org.grpc.streamKey.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.streamKey _root_.Perennial.google_golang_org.grpc.streamKey.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -1291,10 +1291,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'serverKey :
-    TypedPointsto (GF := GF) google_golang_org.grpc.serverKey where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.serverKey where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -1302,7 +1302,7 @@ noncomputable instance typed_pointsto'serverKey :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'serverKey :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.serverKey google_golang_org.grpc.serverKey.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.serverKey _root_.Perennial.google_golang_org.grpc.serverKey.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -1314,14 +1314,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceConfig :
-    TypedPointsto (GF := GF) google_golang_org.grpc.ServiceConfig :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.ServiceConfig :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceConfig :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.ServiceConfig google_golang_org.grpc.ServiceConfig.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.ServiceConfig _root_.Perennial.google_golang_org.grpc.ServiceConfig.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1333,34 +1333,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'healthCheckConfig :
-    TypedPointsto (GF := GF) google_golang_org.grpc.healthCheckConfig where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.healthCheckConfig where
   typedPointstoDef l v dq := iprop(
-    "ServiceName" ∷ typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq ∗
+    "ServiceName" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'healthCheckConfig :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.healthCheckConfig google_golang_org.grpc.healthCheckConfig.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.healthCheckConfig _root_.Perennial.google_golang_org.grpc.healthCheckConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'healthCheckConfig'ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (dq : DFrac) :
+noncomputable instance access_load'healthCheckConfig'ServiceName (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.healthCheckConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'healthCheckConfig'ServiceName (l : Loc) (v : google_golang_org.grpc.healthCheckConfig) (y : GoString) :
+noncomputable instance access_store'healthCheckConfig'ServiceName (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.healthCheckConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServiceName' := y } : google_golang_org.grpc.healthCheckConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) v.ServiceName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.healthCheckConfig go!"ServiceName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServiceName' := y } : _root_.Perennial.google_golang_org.grpc.healthCheckConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1373,51 +1373,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'retryThrottlingPolicy :
-    TypedPointsto (GF := GF) google_golang_org.grpc.retryThrottlingPolicy where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy where
   typedPointstoDef l v dq := iprop(
-    "MaxTokens" ∷ typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq ∗
-    "TokenRatio" ∷ typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq ∗
+    "MaxTokens" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq ∗
+    "TokenRatio" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'retryThrottlingPolicy :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.retryThrottlingPolicy google_golang_org.grpc.retryThrottlingPolicy.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'retryThrottlingPolicy'MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
+noncomputable instance access_load'retryThrottlingPolicy'MaxTokens (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'retryThrottlingPolicy'MaxTokens (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (y : w64) :
+noncomputable instance access_store'retryThrottlingPolicy'MaxTokens (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxTokens' := y } : google_golang_org.grpc.retryThrottlingPolicy) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) v.MaxTokens' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"MaxTokens" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxTokens' := y } : _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'retryThrottlingPolicy'TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
+noncomputable instance access_load'retryThrottlingPolicy'TokenRatio (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'retryThrottlingPolicy'TokenRatio (l : Loc) (v : google_golang_org.grpc.retryThrottlingPolicy) (y : w64) :
+noncomputable instance access_store'retryThrottlingPolicy'TokenRatio (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TokenRatio' := y } : google_golang_org.grpc.retryThrottlingPolicy) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) v.TokenRatio' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy go!"TokenRatio" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TokenRatio' := y } : _root_.Perennial.google_golang_org.grpc.retryThrottlingPolicy) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1430,14 +1430,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'clientStreamWrapper :
-    TypedPointsto (GF := GF) google_golang_org.grpc.clientStreamWrapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.clientStreamWrapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'clientStreamWrapper :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.clientStreamWrapper google_golang_org.grpc.clientStreamWrapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.clientStreamWrapper _root_.Perennial.google_golang_org.grpc.clientStreamWrapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1449,14 +1449,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'clientStream :
-    TypedPointsto (GF := GF) google_golang_org.grpc.clientStream :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.clientStream :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'clientStream :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.clientStream google_golang_org.grpc.clientStream.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.clientStream _root_.Perennial.google_golang_org.grpc.clientStream.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1468,51 +1468,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.Assumptions]
 
 noncomputable instance typed_pointsto'replayOp :
-    TypedPointsto (GF := GF) google_golang_org.grpc.replayOp where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.replayOp where
   typedPointstoDef l v dq := iprop(
-    "op" ∷ typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' dq ∗
-    "cleanup" ∷ typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq ∗
+    "op" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"op" l) v.op' dq ∗
+    "cleanup" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'replayOp :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.replayOp google_golang_org.grpc.replayOp.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.replayOp _root_.Perennial.google_golang_org.grpc.replayOp.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'replayOp'op (l : Loc) (v : google_golang_org.grpc.replayOp) (dq : DFrac) :
+noncomputable instance access_load'replayOp'op (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.replayOp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"op" l) v.op' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'replayOp'op (l : Loc) (v : google_golang_org.grpc.replayOp) (y : GoFunc) :
+noncomputable instance access_store'replayOp'op (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.replayOp) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) v.op' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"op" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : google_golang_org.grpc.replayOp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"op" l) v.op' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : _root_.Perennial.google_golang_org.grpc.replayOp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'replayOp'cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (dq : DFrac) :
+noncomputable instance access_load'replayOp'cleanup (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.replayOp) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq)
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'replayOp'cleanup (l : Loc) (v : google_golang_org.grpc.replayOp) (y : GoFunc) :
+noncomputable instance access_store'replayOp'cleanup (l : Loc) (v : _root_.Perennial.google_golang_org.grpc.replayOp) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.replayOp go!"cleanup" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cleanup' := y } : google_golang_org.grpc.replayOp) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"cleanup" l) v.cleanup' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.grpc.replayOp go!"cleanup" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cleanup' := y } : _root_.Perennial.google_golang_org.grpc.replayOp) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

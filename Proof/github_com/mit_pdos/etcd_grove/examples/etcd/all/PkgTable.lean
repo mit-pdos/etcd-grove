@@ -71,7 +71,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest),
    (pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge),
    (pkg_id.github_com.prometheus.client_golang.prometheus, isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus),
-   (pkg_id.github_com.prometheus.client_model.go, isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go),
+   (pkg_id.github_com.prometheus.client_model.go'', isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go''),
    (pkg_id.github_com.xiang90.probing, isPkgInit (PROP := IProp GF) pkg_id.github_com.xiang90.probing),
    (pkg_id.go_etcd_io.bbolt, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt),
    (pkg_id.go_etcd_io.bbolt.errors, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors),
@@ -595,7 +595,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h9, h23, h28, True.intro⟩
-  have h90 : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go (getIsPkgInit (GF := GF)) := by
+  have h90 : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go'' (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro

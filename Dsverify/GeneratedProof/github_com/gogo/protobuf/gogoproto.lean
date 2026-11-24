@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.gogo.protobuf.gogoproto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.gogo.protobuf.gogoproto.Assumptions]
 
 noncomputable instance typed_pointsto'EnableFunc :
-    TypedPointsto (GF := GF) github_com.gogo.protobuf.gogoproto.EnableFunc :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.gogo.protobuf.gogoproto.EnableFunc :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'EnableFunc :
-    IntoValTypedUnderlying (GF := GF) github_com.gogo.protobuf.gogoproto.EnableFunc github_com.gogo.protobuf.gogoproto.EnableFunc.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.gogo.protobuf.gogoproto.EnableFunc _root_.Perennial.github_com.gogo.protobuf.gogoproto.EnableFunc.underlying :=
   sorry -- axiomatized type
 
 end def_

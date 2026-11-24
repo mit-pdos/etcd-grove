@@ -22,34 +22,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : models_lab.pbcodec.Assumptions]
+variable [package_sem' : _root_.Perennial.models_lab.pbcodec.Assumptions]
 
 noncomputable instance typed_pointsto'Error :
-    TypedPointsto (GF := GF) models_lab.pbcodec.Error where
+    TypedPointsto (GF := GF) _root_.Perennial.models_lab.pbcodec.Error where
   typedPointstoDef l v dq := iprop(
-    "Msg" ∷ typedPointsto (structFieldRef models_lab.pbcodec.Error go!"Msg" l) v.Msg' dq ∗
+    "Msg" ∷ typedPointsto (structFieldRef _root_.Perennial.models_lab.pbcodec.Error go!"Msg" l) v.Msg' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Error :
-    IntoValTypedUnderlying (GF := GF) models_lab.pbcodec.Error models_lab.pbcodec.Error.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.models_lab.pbcodec.Error _root_.Perennial.models_lab.pbcodec.Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Error'Msg (l : Loc) (v : models_lab.pbcodec.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Msg (l : Loc) (v : _root_.Perennial.models_lab.pbcodec.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef models_lab.pbcodec.Error go!"Msg" l) v.Msg' dq)
-      (typedPointsto (structFieldRef models_lab.pbcodec.Error go!"Msg" l) v.Msg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.models_lab.pbcodec.Error go!"Msg" l) v.Msg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.models_lab.pbcodec.Error go!"Msg" l) v.Msg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'Msg (l : Loc) (v : models_lab.pbcodec.Error) (y : GoString) :
+noncomputable instance access_store'Error'Msg (l : Loc) (v : _root_.Perennial.models_lab.pbcodec.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef models_lab.pbcodec.Error go!"Msg" l) v.Msg' (DFrac.own 1))
-      (typedPointsto (structFieldRef models_lab.pbcodec.Error go!"Msg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := y } : models_lab.pbcodec.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.models_lab.pbcodec.Error go!"Msg" l) v.Msg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.models_lab.pbcodec.Error go!"Msg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Msg' := y } : _root_.Perennial.models_lab.pbcodec.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

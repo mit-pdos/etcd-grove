@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'StableCollector :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.StableCollector :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.StableCollector :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StableCollector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.StableCollector k8s_io.component_base.metrics.StableCollector.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.StableCollector _root_.Perennial.k8s_io.component_base.metrics.StableCollector.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -42,14 +42,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'BaseStableCollector :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.BaseStableCollector :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.BaseStableCollector :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BaseStableCollector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.BaseStableCollector k8s_io.component_base.metrics.BaseStableCollector.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.BaseStableCollector _root_.Perennial.k8s_io.component_base.metrics.BaseStableCollector.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -61,14 +61,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Counter :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Counter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Counter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Counter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Counter k8s_io.component_base.metrics.Counter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Counter _root_.Perennial.k8s_io.component_base.metrics.Counter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -80,14 +80,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'exemplarCounterMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.exemplarCounterMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.exemplarCounterMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'exemplarCounterMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.exemplarCounterMetric k8s_io.component_base.metrics.exemplarCounterMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.exemplarCounterMetric _root_.Perennial.k8s_io.component_base.metrics.exemplarCounterMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -99,14 +99,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'CounterVec :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.CounterVec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterVec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CounterVec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.CounterVec k8s_io.component_base.metrics.CounterVec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterVec _root_.Perennial.k8s_io.component_base.metrics.CounterVec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -118,14 +118,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'CounterVecWithContext :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.CounterVecWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterVecWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CounterVecWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.CounterVecWithContext k8s_io.component_base.metrics.CounterVecWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterVecWithContext _root_.Perennial.k8s_io.component_base.metrics.CounterVecWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -137,14 +137,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Desc :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Desc :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Desc :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Desc :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Desc k8s_io.component_base.metrics.Desc.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Desc _root_.Perennial.k8s_io.component_base.metrics.Desc.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -156,14 +156,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Gauge :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Gauge :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Gauge :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Gauge :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Gauge k8s_io.component_base.metrics.Gauge.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Gauge _root_.Perennial.k8s_io.component_base.metrics.Gauge.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -175,14 +175,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'GaugeVec :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.GaugeVec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeVec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'GaugeVec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.GaugeVec k8s_io.component_base.metrics.GaugeVec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeVec _root_.Perennial.k8s_io.component_base.metrics.GaugeVec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -194,14 +194,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'GaugeVecWithContext :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.GaugeVecWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeVecWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'GaugeVecWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.GaugeVecWithContext k8s_io.component_base.metrics.GaugeVecWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeVecWithContext _root_.Perennial.k8s_io.component_base.metrics.GaugeVecWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -213,14 +213,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Histogram :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Histogram :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Histogram :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Histogram :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Histogram k8s_io.component_base.metrics.Histogram.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Histogram _root_.Perennial.k8s_io.component_base.metrics.Histogram.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -232,14 +232,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'exemplarHistogramMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.exemplarHistogramMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.exemplarHistogramMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'exemplarHistogramMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.exemplarHistogramMetric k8s_io.component_base.metrics.exemplarHistogramMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.exemplarHistogramMetric _root_.Perennial.k8s_io.component_base.metrics.exemplarHistogramMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -251,14 +251,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'exemplarHistogramVec :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.exemplarHistogramVec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.exemplarHistogramVec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'exemplarHistogramVec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.exemplarHistogramVec k8s_io.component_base.metrics.exemplarHistogramVec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.exemplarHistogramVec _root_.Perennial.k8s_io.component_base.metrics.exemplarHistogramVec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -270,14 +270,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'HistogramVec :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.HistogramVec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HistogramVec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HistogramVec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.HistogramVec k8s_io.component_base.metrics.HistogramVec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HistogramVec _root_.Perennial.k8s_io.component_base.metrics.HistogramVec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -289,14 +289,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'HistogramVecWithContext :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.HistogramVecWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HistogramVecWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HistogramVecWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.HistogramVecWithContext k8s_io.component_base.metrics.HistogramVecWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HistogramVecWithContext _root_.Perennial.k8s_io.component_base.metrics.HistogramVecWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -308,14 +308,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'HandlerOpts :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.HandlerOpts :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HandlerOpts :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HandlerOpts :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.HandlerOpts k8s_io.component_base.metrics.HandlerOpts.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HandlerOpts _root_.Perennial.k8s_io.component_base.metrics.HandlerOpts.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -327,14 +327,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Labels :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Labels :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Labels :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Labels :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Labels k8s_io.component_base.metrics.Labels.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Labels _root_.Perennial.k8s_io.component_base.metrics.Labels.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -346,14 +346,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'kubeCollector :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.kubeCollector :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.kubeCollector :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'kubeCollector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.kubeCollector k8s_io.component_base.metrics.kubeCollector.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.kubeCollector _root_.Perennial.k8s_io.component_base.metrics.kubeCollector.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -365,14 +365,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'lazyKubeMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.lazyKubeMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.lazyKubeMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'lazyKubeMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.lazyKubeMetric k8s_io.component_base.metrics.lazyKubeMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.lazyKubeMetric _root_.Perennial.k8s_io.component_base.metrics.lazyKubeMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -384,14 +384,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'lazyMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.lazyMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.lazyMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'lazyMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.lazyMetric k8s_io.component_base.metrics.lazyMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.lazyMetric _root_.Perennial.k8s_io.component_base.metrics.lazyMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -403,14 +403,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'selfCollector :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.selfCollector :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.selfCollector :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'selfCollector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.selfCollector k8s_io.component_base.metrics.selfCollector.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.selfCollector _root_.Perennial.k8s_io.component_base.metrics.selfCollector.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -422,14 +422,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'noopMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.noopMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.noopMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'noopMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.noopMetric k8s_io.component_base.metrics.noopMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.noopMetric _root_.Perennial.k8s_io.component_base.metrics.noopMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -441,14 +441,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Options :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Options :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Options :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Options :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Options k8s_io.component_base.metrics.Options.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Options _root_.Perennial.k8s_io.component_base.metrics.Options.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -460,14 +460,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'MetricLabelAllowList :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.MetricLabelAllowList :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.MetricLabelAllowList :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MetricLabelAllowList :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.MetricLabelAllowList k8s_io.component_base.metrics.MetricLabelAllowList.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.MetricLabelAllowList _root_.Perennial.k8s_io.component_base.metrics.MetricLabelAllowList.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -479,14 +479,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'KubeOpts :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.KubeOpts :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.KubeOpts :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'KubeOpts :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.KubeOpts k8s_io.component_base.metrics.KubeOpts.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.KubeOpts _root_.Perennial.k8s_io.component_base.metrics.KubeOpts.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -498,14 +498,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'StabilityLevel :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.StabilityLevel :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.StabilityLevel :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StabilityLevel :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.StabilityLevel k8s_io.component_base.metrics.StabilityLevel.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.StabilityLevel _root_.Perennial.k8s_io.component_base.metrics.StabilityLevel.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -517,14 +517,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'CounterOpts :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.CounterOpts :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterOpts :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CounterOpts :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.CounterOpts k8s_io.component_base.metrics.CounterOpts.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterOpts _root_.Perennial.k8s_io.component_base.metrics.CounterOpts.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -536,14 +536,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'GaugeOpts :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.GaugeOpts :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeOpts :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'GaugeOpts :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.GaugeOpts k8s_io.component_base.metrics.GaugeOpts.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeOpts _root_.Perennial.k8s_io.component_base.metrics.GaugeOpts.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -555,14 +555,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'HistogramOpts :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.HistogramOpts :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HistogramOpts :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HistogramOpts :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.HistogramOpts k8s_io.component_base.metrics.HistogramOpts.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.HistogramOpts _root_.Perennial.k8s_io.component_base.metrics.HistogramOpts.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -574,14 +574,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'TimingHistogramOpts :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.TimingHistogramOpts :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramOpts :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TimingHistogramOpts :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.TimingHistogramOpts k8s_io.component_base.metrics.TimingHistogramOpts.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramOpts _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramOpts.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -593,14 +593,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'SummaryOpts :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.SummaryOpts :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.SummaryOpts :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SummaryOpts :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.SummaryOpts k8s_io.component_base.metrics.SummaryOpts.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.SummaryOpts _root_.Perennial.k8s_io.component_base.metrics.SummaryOpts.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -612,14 +612,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Registerable :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Registerable :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Registerable :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Registerable :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Registerable k8s_io.component_base.metrics.Registerable.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Registerable _root_.Perennial.k8s_io.component_base.metrics.Registerable.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -631,14 +631,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'resettable :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.resettable :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.resettable :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'resettable :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.resettable k8s_io.component_base.metrics.resettable.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.resettable _root_.Perennial.k8s_io.component_base.metrics.resettable.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -650,14 +650,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'KubeRegistry :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.KubeRegistry :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.KubeRegistry :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'KubeRegistry :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.KubeRegistry k8s_io.component_base.metrics.KubeRegistry.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.KubeRegistry _root_.Perennial.k8s_io.component_base.metrics.KubeRegistry.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -669,14 +669,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'kubeRegistry :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.kubeRegistry :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.kubeRegistry :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'kubeRegistry :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.kubeRegistry k8s_io.component_base.metrics.kubeRegistry.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.kubeRegistry _root_.Perennial.k8s_io.component_base.metrics.kubeRegistry.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -688,14 +688,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Summary :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Summary :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Summary :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Summary :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Summary k8s_io.component_base.metrics.Summary.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Summary _root_.Perennial.k8s_io.component_base.metrics.Summary.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -707,14 +707,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'SummaryVec :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.SummaryVec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.SummaryVec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SummaryVec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.SummaryVec k8s_io.component_base.metrics.SummaryVec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.SummaryVec _root_.Perennial.k8s_io.component_base.metrics.SummaryVec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -726,14 +726,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'SummaryVecWithContext :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.SummaryVecWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.SummaryVecWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SummaryVecWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.SummaryVecWithContext k8s_io.component_base.metrics.SummaryVecWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.SummaryVecWithContext _root_.Perennial.k8s_io.component_base.metrics.SummaryVecWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -745,14 +745,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'PrometheusTimingHistogram :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.PrometheusTimingHistogram :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.PrometheusTimingHistogram :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PrometheusTimingHistogram :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.PrometheusTimingHistogram k8s_io.component_base.metrics.PrometheusTimingHistogram.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.PrometheusTimingHistogram _root_.Perennial.k8s_io.component_base.metrics.PrometheusTimingHistogram.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -764,14 +764,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'TimingHistogram :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.TimingHistogram :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogram :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TimingHistogram :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.TimingHistogram k8s_io.component_base.metrics.TimingHistogram.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogram _root_.Perennial.k8s_io.component_base.metrics.TimingHistogram.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -783,14 +783,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'TimingHistogramVec :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.TimingHistogramVec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramVec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TimingHistogramVec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.TimingHistogramVec k8s_io.component_base.metrics.TimingHistogramVec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramVec _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramVec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -802,14 +802,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'TimingHistogramVecWithContext :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.TimingHistogramVecWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramVecWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TimingHistogramVecWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.TimingHistogramVecWithContext k8s_io.component_base.metrics.TimingHistogramVecWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramVecWithContext _root_.Perennial.k8s_io.component_base.metrics.TimingHistogramVecWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -821,14 +821,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'ValueType :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.ValueType :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.ValueType :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ValueType :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.ValueType k8s_io.component_base.metrics.ValueType.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.ValueType _root_.Perennial.k8s_io.component_base.metrics.ValueType.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -840,14 +840,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Collector :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Collector :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Collector :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Collector :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Collector k8s_io.component_base.metrics.Collector.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Collector _root_.Perennial.k8s_io.component_base.metrics.Collector.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -859,14 +859,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Metric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Metric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Metric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Metric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Metric k8s_io.component_base.metrics.Metric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Metric _root_.Perennial.k8s_io.component_base.metrics.Metric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -878,14 +878,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'CounterVecMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.CounterVecMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterVecMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CounterVecMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.CounterVecMetric k8s_io.component_base.metrics.CounterVecMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.CounterVecMetric _root_.Perennial.k8s_io.component_base.metrics.CounterVecMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -897,14 +897,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'GaugeMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.GaugeMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'GaugeMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.GaugeMetric k8s_io.component_base.metrics.GaugeMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeMetric _root_.Perennial.k8s_io.component_base.metrics.GaugeMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -916,14 +916,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'GaugeVecMetric :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.GaugeVecMetric :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeVecMetric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'GaugeVecMetric :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.GaugeVecMetric k8s_io.component_base.metrics.GaugeVecMetric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeVecMetric _root_.Perennial.k8s_io.component_base.metrics.GaugeVecMetric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -935,14 +935,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'PromRegistry :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.PromRegistry :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.PromRegistry :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PromRegistry :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.PromRegistry k8s_io.component_base.metrics.PromRegistry.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.PromRegistry _root_.Perennial.k8s_io.component_base.metrics.PromRegistry.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -954,14 +954,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Gatherer :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Gatherer :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Gatherer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Gatherer :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Gatherer k8s_io.component_base.metrics.Gatherer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Gatherer _root_.Perennial.k8s_io.component_base.metrics.Gatherer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -973,14 +973,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'Registerer :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.Registerer :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Registerer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Registerer :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.Registerer k8s_io.component_base.metrics.Registerer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.Registerer _root_.Perennial.k8s_io.component_base.metrics.Registerer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -992,14 +992,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.component_base.metrics.Assumptions]
 
 noncomputable instance typed_pointsto'GaugeFunc :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.GaugeFunc :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeFunc :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'GaugeFunc :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.GaugeFunc k8s_io.component_base.metrics.GaugeFunc.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.component_base.metrics.GaugeFunc _root_.Perennial.k8s_io.component_base.metrics.GaugeFunc.underlying :=
   sorry -- axiomatized type
 
 end def_

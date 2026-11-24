@@ -26,14 +26,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : flag.Assumptions]
+variable [package_sem' : _root_.Perennial.flag.Assumptions]
 
 noncomputable instance typed_pointsto'durationValue :
-    TypedPointsto (GF := GF) flag.durationValue :=
+    TypedPointsto (GF := GF) _root_.Perennial.flag.durationValue :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'durationValue :
-    IntoValTypedUnderlying (GF := GF) flag.durationValue flag.durationValue.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.flag.durationValue _root_.Perennial.flag.durationValue.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -45,14 +45,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : flag.Assumptions]
+variable [package_sem' : _root_.Perennial.flag.Assumptions]
 
 noncomputable instance typed_pointsto'textValue :
-    TypedPointsto (GF := GF) flag.textValue :=
+    TypedPointsto (GF := GF) _root_.Perennial.flag.textValue :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'textValue :
-    IntoValTypedUnderlying (GF := GF) flag.textValue flag.textValue.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.flag.textValue _root_.Perennial.flag.textValue.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -64,170 +64,170 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : flag.Assumptions]
+variable [package_sem' : _root_.Perennial.flag.Assumptions]
 
 noncomputable instance typed_pointsto'FlagSet :
-    TypedPointsto (GF := GF) flag.FlagSet where
+    TypedPointsto (GF := GF) _root_.Perennial.flag.FlagSet where
   typedPointstoDef l v dq := iprop(
-    "Usage" ∷ typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) v.Usage' dq ∗
-    "name" ∷ typedPointsto (structFieldRef flag.FlagSet go!"name" l) v.name' dq ∗
-    "parsed" ∷ typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) v.parsed' dq ∗
-    "actual" ∷ typedPointsto (structFieldRef flag.FlagSet go!"actual" l) v.actual' dq ∗
-    "formal" ∷ typedPointsto (structFieldRef flag.FlagSet go!"formal" l) v.formal' dq ∗
-    "args" ∷ typedPointsto (structFieldRef flag.FlagSet go!"args" l) v.args' dq ∗
-    "errorHandling" ∷ typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) v.errorHandling' dq ∗
-    "output" ∷ typedPointsto (structFieldRef flag.FlagSet go!"output" l) v.output' dq ∗
-    "undef" ∷ typedPointsto (structFieldRef flag.FlagSet go!"undef" l) v.undef' dq ∗
+    "Usage" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"Usage" l) v.Usage' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"name" l) v.name' dq ∗
+    "parsed" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"parsed" l) v.parsed' dq ∗
+    "actual" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"actual" l) v.actual' dq ∗
+    "formal" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"formal" l) v.formal' dq ∗
+    "args" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"args" l) v.args' dq ∗
+    "errorHandling" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"errorHandling" l) v.errorHandling' dq ∗
+    "output" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"output" l) v.output' dq ∗
+    "undef" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"undef" l) v.undef' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'FlagSet :
-    IntoValTypedUnderlying (GF := GF) flag.FlagSet flag.FlagSet.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.flag.FlagSet _root_.Perennial.flag.FlagSet.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'FlagSet'Usage (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'Usage (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) v.Usage' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) v.Usage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"Usage" l) v.Usage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"Usage" l) v.Usage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'Usage (l : Loc) (v : flag.FlagSet) (y : GoFunc) :
+noncomputable instance access_store'FlagSet'Usage (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) v.Usage' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"Usage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"Usage" l) v.Usage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"Usage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'name (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'name (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'name (l : Loc) (v : flag.FlagSet) (y : GoString) :
+noncomputable instance access_store'FlagSet'name (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'parsed (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'parsed (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) v.parsed' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) v.parsed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"parsed" l) v.parsed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"parsed" l) v.parsed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'parsed (l : Loc) (v : flag.FlagSet) (y : Bool) :
+noncomputable instance access_store'FlagSet'parsed (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) v.parsed' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"parsed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parsed' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"parsed" l) v.parsed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"parsed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parsed' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'actual (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'actual (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"actual" l) v.actual' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"actual" l) v.actual' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"actual" l) v.actual' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"actual" l) v.actual' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'actual (l : Loc) (v : flag.FlagSet) (y : GoMap) :
+noncomputable instance access_store'FlagSet'actual (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"actual" l) v.actual' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"actual" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with actual' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"actual" l) v.actual' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"actual" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with actual' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'formal (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'formal (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"formal" l) v.formal' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"formal" l) v.formal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"formal" l) v.formal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"formal" l) v.formal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'formal (l : Loc) (v : flag.FlagSet) (y : GoMap) :
+noncomputable instance access_store'FlagSet'formal (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"formal" l) v.formal' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"formal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with formal' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"formal" l) v.formal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"formal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with formal' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'args (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'args (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"args" l) v.args' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"args" l) v.args' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"args" l) v.args' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"args" l) v.args' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'args (l : Loc) (v : flag.FlagSet) (y : GoSlice) :
+noncomputable instance access_store'FlagSet'args (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"args" l) v.args' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"args" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with args' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"args" l) v.args' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"args" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with args' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'errorHandling (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'errorHandling (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) v.errorHandling' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) v.errorHandling' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"errorHandling" l) v.errorHandling' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"errorHandling" l) v.errorHandling' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'errorHandling (l : Loc) (v : flag.FlagSet) (y : flag.ErrorHandling) :
+noncomputable instance access_store'FlagSet'errorHandling (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : _root_.Perennial.flag.ErrorHandling) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) v.errorHandling' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"errorHandling" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errorHandling' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"errorHandling" l) v.errorHandling' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"errorHandling" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with errorHandling' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'output (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'output (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"output" l) v.output' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"output" l) v.output' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"output" l) v.output' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"output" l) v.output' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'output (l : Loc) (v : flag.FlagSet) (y : _root_.Perennial.io.Writer) :
+noncomputable instance access_store'FlagSet'output (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"output" l) v.output' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"output" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with output' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"output" l) v.output' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"output" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with output' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FlagSet'undef (l : Loc) (v : flag.FlagSet) (dq : DFrac) :
+noncomputable instance access_load'FlagSet'undef (l : Loc) (v : _root_.Perennial.flag.FlagSet) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"undef" l) v.undef' dq)
-      (typedPointsto (structFieldRef flag.FlagSet go!"undef" l) v.undef' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"undef" l) v.undef' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"undef" l) v.undef' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FlagSet'undef (l : Loc) (v : flag.FlagSet) (y : GoMap) :
+noncomputable instance access_store'FlagSet'undef (l : Loc) (v : _root_.Perennial.flag.FlagSet) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.FlagSet go!"undef" l) v.undef' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.FlagSet go!"undef" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with undef' := y } : flag.FlagSet) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"undef" l) v.undef' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.FlagSet go!"undef" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with undef' := y } : _root_.Perennial.flag.FlagSet) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -240,85 +240,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : flag.Assumptions]
+variable [package_sem' : _root_.Perennial.flag.Assumptions]
 
 noncomputable instance typed_pointsto'Flag :
-    TypedPointsto (GF := GF) flag.Flag where
+    TypedPointsto (GF := GF) _root_.Perennial.flag.Flag where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef flag.Flag go!"Name" l) v.Name' dq ∗
-    "Usage" ∷ typedPointsto (structFieldRef flag.Flag go!"Usage" l) v.Usage' dq ∗
-    "Value" ∷ typedPointsto (structFieldRef flag.Flag go!"Value" l) v.Value' dq ∗
-    "DefValue" ∷ typedPointsto (structFieldRef flag.Flag go!"DefValue" l) v.DefValue' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Name" l) v.Name' dq ∗
+    "Usage" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Usage" l) v.Usage' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Value" l) v.Value' dq ∗
+    "DefValue" ∷ typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"DefValue" l) v.DefValue' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Flag :
-    IntoValTypedUnderlying (GF := GF) flag.Flag flag.Flag.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.flag.Flag _root_.Perennial.flag.Flag.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Flag'Name (l : Loc) (v : flag.Flag) (dq : DFrac) :
+noncomputable instance access_load'Flag'Name (l : Loc) (v : _root_.Perennial.flag.Flag) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef flag.Flag go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Flag'Name (l : Loc) (v : flag.Flag) (y : GoString) :
+noncomputable instance access_store'Flag'Name (l : Loc) (v : _root_.Perennial.flag.Flag) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Flag'Usage (l : Loc) (v : flag.Flag) (dq : DFrac) :
+noncomputable instance access_load'Flag'Usage (l : Loc) (v : _root_.Perennial.flag.Flag) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"Usage" l) v.Usage' dq)
-      (typedPointsto (structFieldRef flag.Flag go!"Usage" l) v.Usage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Usage" l) v.Usage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Usage" l) v.Usage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Flag'Usage (l : Loc) (v : flag.Flag) (y : GoString) :
+noncomputable instance access_store'Flag'Usage (l : Loc) (v : _root_.Perennial.flag.Flag) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"Usage" l) v.Usage' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"Usage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := y } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Usage" l) v.Usage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Usage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Usage' := y } : _root_.Perennial.flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Flag'Value (l : Loc) (v : flag.Flag) (dq : DFrac) :
+noncomputable instance access_load'Flag'Value (l : Loc) (v : _root_.Perennial.flag.Flag) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef flag.Flag go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Flag'Value (l : Loc) (v : flag.Flag) (y : flag.Value) :
+noncomputable instance access_store'Flag'Value (l : Loc) (v : _root_.Perennial.flag.Flag) (y : _root_.Perennial.flag.Value) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Flag'DefValue (l : Loc) (v : flag.Flag) (dq : DFrac) :
+noncomputable instance access_load'Flag'DefValue (l : Loc) (v : _root_.Perennial.flag.Flag) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"DefValue" l) v.DefValue' dq)
-      (typedPointsto (structFieldRef flag.Flag go!"DefValue" l) v.DefValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"DefValue" l) v.DefValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"DefValue" l) v.DefValue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Flag'DefValue (l : Loc) (v : flag.Flag) (y : GoString) :
+noncomputable instance access_store'Flag'DefValue (l : Loc) (v : _root_.Perennial.flag.Flag) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef flag.Flag go!"DefValue" l) v.DefValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef flag.Flag go!"DefValue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DefValue' := y } : flag.Flag) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"DefValue" l) v.DefValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.flag.Flag go!"DefValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DefValue' := y } : _root_.Perennial.flag.Flag) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

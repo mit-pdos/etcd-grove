@@ -29,51 +29,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
 
 noncomputable instance typed_pointsto'State :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State where
   typedPointstoDef l v dq := iprop(
-    "Bal" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' dq ∗
-    "Seq" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' dq ∗
+    "Bal" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' dq ∗
+    "Seq" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'State :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'State'Bal (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (dq : DFrac) :
+noncomputable instance access_load'State'Bal (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'State'Bal (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (y : (GoArray w64 4)) :
+noncomputable instance access_store'State'Bal (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (y : (GoArray w64 4)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bal' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) v.Bal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Bal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bal' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'State'Seq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (dq : DFrac) :
+noncomputable instance access_load'State'Seq (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'State'Seq (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (y : (GoArray w64 3)) :
+noncomputable instance access_store'State'Seq (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (y : (GoArray w64 3)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Seq' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) v.Seq' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State go!"Seq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Seq' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -86,102 +86,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
 
 noncomputable instance typed_pointsto'Op :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op where
   typedPointstoDef l v dq := iprop(
-    "Read" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' dq ∗
-    "Client" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' dq ∗
-    "From" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' dq ∗
-    "To" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' dq ∗
-    "Amount" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' dq ∗
+    "Read" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' dq ∗
+    "Client" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' dq ∗
+    "From" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' dq ∗
+    "To" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' dq ∗
+    "Amount" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Op :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Op'Read (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'Read (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Op'Read (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : Bool) :
+noncomputable instance access_store'Op'Read (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Read' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) v.Read' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Read" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Read' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Op'Client (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'Client (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Op'Client (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
+noncomputable instance access_store'Op'Client (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) v.Client' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Client" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Op'From (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'From (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Op'From (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
+noncomputable instance access_store'Op'From (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with From' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) v.From' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"From" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with From' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Op'To (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'To (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Op'To (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
+noncomputable instance access_store'Op'To (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with To' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) v.To' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"To" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with To' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Op'Amount (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'Amount (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Op'Amount (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
+noncomputable instance access_store'Op'Amount (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Amount' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) v.Amount' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op go!"Amount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Amount' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Op) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -194,68 +194,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
 
 noncomputable instance typed_pointsto'Result :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result where
   typedPointstoDef l v dq := iprop(
-    "Snap" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' dq ∗
-    "Moved" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' dq ∗
-    "Failed" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' dq ∗
+    "Snap" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' dq ∗
+    "Moved" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' dq ∗
+    "Failed" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Result :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Result'Snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'Snap (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Result'Snap (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (y : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) :
+noncomputable instance access_store'Result'Snap (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (y : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.State) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snap' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) v.Snap' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Snap" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Snap' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Result'Moved (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'Moved (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Result'Moved (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (y : Bool) :
+noncomputable instance access_store'Result'Moved (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Moved' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) v.Moved' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Moved" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Moved' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Result'Failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (dq : DFrac) :
+noncomputable instance access_load'Result'Failed (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Result'Failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (y : Bool) :
+noncomputable instance access_store'Result'Failed (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Failed' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) v.Failed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result go!"Failed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Failed' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Result) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -268,68 +268,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
 
 noncomputable instance typed_pointsto'bank :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank where
   typedPointstoDef l v dq := iprop(
-    "db" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' dq ∗
-    "witness" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' dq ∗
-    "failed" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' dq ∗
+    "db" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' dq ∗
+    "witness" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' dq ∗
+    "failed" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'bank :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'bank'db (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (dq : DFrac) :
+noncomputable instance access_load'bank'db (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'bank'db (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (y : Loc) :
+noncomputable instance access_store'bank'db (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with db' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) v.db' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"db" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with db' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'bank'witness (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (dq : DFrac) :
+noncomputable instance access_load'bank'witness (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'bank'witness (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (y : Loc) :
+noncomputable instance access_store'bank'witness (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with witness' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) v.witness' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"witness" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with witness' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'bank'failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (dq : DFrac) :
+noncomputable instance access_load'bank'failed (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'bank'failed (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (y : _root_.Perennial.sync.atomic.Bool'') :
+noncomputable instance access_store'bank'failed (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (y : _root_.Perennial.sync.atomic.Bool'') :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with failed' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) v.failed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank go!"failed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with failed' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.bank) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -342,51 +342,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.Assumptions]
 
 noncomputable instance typed_pointsto'witness :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness where
   typedPointstoDef l v dq := iprop(
-    "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' dq ∗
-    "f" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' dq ∗
+    "f" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'witness :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'witness'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (dq : DFrac) :
+noncomputable instance access_load'witness'mu (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'witness'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'witness'mu (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'witness'f (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (dq : DFrac) :
+noncomputable instance access_load'witness'f (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'witness'f (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (y : Loc) :
+noncomputable instance access_store'witness'f (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) v.f' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness go!"f" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.bbolt.bank.witness) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

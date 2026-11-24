@@ -43,170 +43,170 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.raft.v3.Assumptions]
 
 noncomputable instance typed_pointsto'raftLog :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.raftLog where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.raft.v3.raftLog where
   typedPointstoDef l v dq := iprop(
-    "storage" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' dq ∗
-    "unstable" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' dq ∗
-    "committed" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' dq ∗
-    "applying" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' dq ∗
-    "applied" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' dq ∗
-    "logger" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' dq ∗
-    "maxApplyingEntsSize" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq ∗
-    "applyingEntsSize" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' dq ∗
-    "applyingEntsPaused" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq ∗
+    "storage" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' dq ∗
+    "unstable" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' dq ∗
+    "committed" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' dq ∗
+    "applying" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' dq ∗
+    "applied" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' dq ∗
+    "logger" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' dq ∗
+    "maxApplyingEntsSize" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq ∗
+    "applyingEntsSize" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' dq ∗
+    "applyingEntsPaused" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'raftLog :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.raftLog go_etcd_io.raft.v3.raftLog.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.raft.v3.raftLog _root_.Perennial.go_etcd_io.raft.v3.raftLog.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'raftLog'storage (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'storage (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'storage (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : go_etcd_io.raft.v3.Storage) :
+noncomputable instance access_store'raftLog'storage (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : _root_.Perennial.go_etcd_io.raft.v3.Storage) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"storage" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"storage" l) v.storage' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"storage" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with storage' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'unstable (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'unstable (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'unstable (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : go_etcd_io.raft.v3.unstable) :
+noncomputable instance access_store'raftLog'unstable (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : _root_.Perennial.go_etcd_io.raft.v3.unstable) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"unstable" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unstable' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"unstable" l) v.unstable' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"unstable" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unstable' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'committed (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'committed (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'committed (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : w64) :
+noncomputable instance access_store'raftLog'committed (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"committed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with committed' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"committed" l) v.committed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"committed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with committed' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'applying (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'applying (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'applying (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : w64) :
+noncomputable instance access_store'raftLog'applying (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applying" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applying' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applying" l) v.applying' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applying" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applying' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'applied (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'applied (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'applied (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : w64) :
+noncomputable instance access_store'raftLog'applied (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applied" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applied" l) v.applied' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'logger (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'logger (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'logger (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : go_etcd_io.raft.v3.Logger) :
+noncomputable instance access_store'raftLog'logger (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : _root_.Perennial.go_etcd_io.raft.v3.Logger) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"logger" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"logger" l) v.logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'maxApplyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'maxApplyingEntsSize (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'maxApplyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : go_etcd_io.raft.v3.entryEncodingSize) :
+noncomputable instance access_store'raftLog'maxApplyingEntsSize (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : _root_.Perennial.go_etcd_io.raft.v3.entryEncodingSize) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxApplyingEntsSize' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) v.maxApplyingEntsSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"maxApplyingEntsSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxApplyingEntsSize' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'applyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'applyingEntsSize (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'applyingEntsSize (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : go_etcd_io.raft.v3.entryEncodingSize) :
+noncomputable instance access_store'raftLog'applyingEntsSize (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : _root_.Perennial.go_etcd_io.raft.v3.entryEncodingSize) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyingEntsSize' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) v.applyingEntsSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyingEntsSize' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'raftLog'applyingEntsPaused (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
+noncomputable instance access_load'raftLog'applyingEntsPaused (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'raftLog'applyingEntsPaused (l : Loc) (v : go_etcd_io.raft.v3.raftLog) (y : Bool) :
+noncomputable instance access_store'raftLog'applyingEntsPaused (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyingEntsPaused' := y } : go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) v.applyingEntsPaused' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.raftLog go!"applyingEntsPaused" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applyingEntsPaused' := y } : _root_.Perennial.go_etcd_io.raft.v3.raftLog) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -219,102 +219,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.raft.v3.Assumptions]
 
 noncomputable instance typed_pointsto'BasicStatus :
-    TypedPointsto (GF := GF) go_etcd_io.raft.v3.BasicStatus where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.raft.v3.BasicStatus where
   typedPointstoDef l v dq := iprop(
-    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' dq ∗
-    "HardState" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' dq ∗
-    "SoftState" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' dq ∗
-    "Applied" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' dq ∗
-    "LeadTransferee" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' dq ∗
+    "ID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' dq ∗
+    "HardState" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' dq ∗
+    "SoftState" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' dq ∗
+    "Applied" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' dq ∗
+    "LeadTransferee" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'BasicStatus :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.BasicStatus go_etcd_io.raft.v3.BasicStatus.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.raft.v3.BasicStatus _root_.Perennial.go_etcd_io.raft.v3.BasicStatus.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'BasicStatus'ID (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
+noncomputable instance access_load'BasicStatus'ID (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BasicStatus'ID (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (y : w64) :
+noncomputable instance access_store'BasicStatus'ID (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"ID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"ID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'BasicStatus'HardState (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
+noncomputable instance access_load'BasicStatus'HardState (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BasicStatus'HardState (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (y : Loc) :
+noncomputable instance access_store'BasicStatus'HardState (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"HardState" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HardState' := y } : go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"HardState" l) v.HardState' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"HardState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HardState' := y } : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'BasicStatus'SoftState (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
+noncomputable instance access_load'BasicStatus'SoftState (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BasicStatus'SoftState (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (y : go_etcd_io.raft.v3.SoftState) :
+noncomputable instance access_store'BasicStatus'SoftState (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (y : _root_.Perennial.go_etcd_io.raft.v3.SoftState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SoftState' := y } : go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) v.SoftState' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"SoftState" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SoftState' := y } : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'BasicStatus'Applied (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
+noncomputable instance access_load'BasicStatus'Applied (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BasicStatus'Applied (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (y : w64) :
+noncomputable instance access_store'BasicStatus'Applied (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"Applied" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Applied' := y } : go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"Applied" l) v.Applied' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"Applied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Applied' := y } : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'BasicStatus'LeadTransferee (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
+noncomputable instance access_load'BasicStatus'LeadTransferee (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' dq)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'BasicStatus'LeadTransferee (l : Loc) (v : go_etcd_io.raft.v3.BasicStatus) (y : w64) :
+noncomputable instance access_store'BasicStatus'LeadTransferee (l : Loc) (v : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeadTransferee' := y } : go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) v.LeadTransferee' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.raft.v3.BasicStatus go!"LeadTransferee" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LeadTransferee' := y } : _root_.Perennial.go_etcd_io.raft.v3.BasicStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

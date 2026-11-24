@@ -26,68 +26,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.state.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Assumptions]
 
 noncomputable instance typed_pointsto'Command :
-    TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.state.Command where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command where
   typedPointstoDef l v dq := iprop(
-    "Op" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' dq ∗
-    "K" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' dq ∗
-    "V" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' dq ∗
+    "Op" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' dq ∗
+    "K" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' dq ∗
+    "V" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Command :
-    IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.state.Command github_com.imdea_software.swiftpaxos_epaxos.state.Command.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Command'Op (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (dq : DFrac) :
+noncomputable instance access_load'Command'Op (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Command'Op (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (y : github_com.imdea_software.swiftpaxos_epaxos.state.Operation) :
+noncomputable instance access_store'Command'Op (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Operation) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := y } : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) v.Op' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"Op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := y } : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Command'K (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (dq : DFrac) :
+noncomputable instance access_load'Command'K (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Command'K (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (y : github_com.imdea_software.swiftpaxos_epaxos.state.Key) :
+noncomputable instance access_store'Command'K (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Key) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) v.K' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Command'V (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (dq : DFrac) :
+noncomputable instance access_load'Command'V (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Command'V (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (y : github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
+noncomputable instance access_store'Command'V (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Value) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : github_com.imdea_software.swiftpaxos_epaxos.state.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) v.V' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -100,51 +100,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.imdea_software.swiftpaxos_epaxos.state.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.Assumptions]
 
 noncomputable instance typed_pointsto'State :
-    TypedPointsto (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.state.State where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State where
   typedPointstoDef l v dq := iprop(
-    "mutex" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' dq ∗
-    "Store" ∷ typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' dq ∗
+    "mutex" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' dq ∗
+    "Store" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'State :
-    IntoValTypedUnderlying (GF := GF) github_com.imdea_software.swiftpaxos_epaxos.state.State github_com.imdea_software.swiftpaxos_epaxos.state.State.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'State'mutex (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.State) (dq : DFrac) :
+noncomputable instance access_load'State'mutex (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'State'mutex (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.State) (y : Loc) :
+noncomputable instance access_store'State'mutex (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mutex' := y } : github_com.imdea_software.swiftpaxos_epaxos.state.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) v.mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mutex' := y } : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'State'Store (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.State) (dq : DFrac) :
+noncomputable instance access_load'State'Store (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' dq)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'State'Store (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.state.State) (y : Loc) :
+noncomputable instance access_store'State'Store (l : Loc) (v : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := y } : github_com.imdea_software.swiftpaxos_epaxos.state.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) v.Store' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State go!"Store" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := y } : _root_.Perennial.github_com.imdea_software.swiftpaxos_epaxos.state.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

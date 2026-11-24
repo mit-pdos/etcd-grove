@@ -29,14 +29,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'BufferedWriteSyncer :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.BufferedWriteSyncer :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.BufferedWriteSyncer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BufferedWriteSyncer :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.BufferedWriteSyncer go_uber_org.zap.zapcore.BufferedWriteSyncer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.BufferedWriteSyncer _root_.Perennial.go_uber_org.zap.zapcore.BufferedWriteSyncer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -48,10 +48,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'systemClock :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.systemClock where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.systemClock where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -59,7 +59,7 @@ noncomputable instance typed_pointsto'systemClock :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'systemClock :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.systemClock go_uber_org.zap.zapcore.systemClock.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.systemClock _root_.Perennial.go_uber_org.zap.zapcore.systemClock.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -71,34 +71,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'consoleEncoder :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.consoleEncoder where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder where
   typedPointstoDef l v dq := iprop(
-    "jsonEncoder" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' dq ∗
+    "jsonEncoder" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'consoleEncoder :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.consoleEncoder go_uber_org.zap.zapcore.consoleEncoder.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'consoleEncoder'jsonEncoder (l : Loc) (v : go_uber_org.zap.zapcore.consoleEncoder) (dq : DFrac) :
+noncomputable instance access_load'consoleEncoder'jsonEncoder (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'consoleEncoder'jsonEncoder (l : Loc) (v : go_uber_org.zap.zapcore.consoleEncoder) (y : Loc) :
+noncomputable instance access_store'consoleEncoder'jsonEncoder (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with jsonEncoder' := y } : go_uber_org.zap.zapcore.consoleEncoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) v.jsonEncoder' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder go!"jsonEncoder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with jsonEncoder' := y } : _root_.Perennial.go_uber_org.zap.zapcore.consoleEncoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -111,10 +111,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'nopCore :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.nopCore where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.nopCore where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -122,7 +122,7 @@ noncomputable instance typed_pointsto'nopCore :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'nopCore :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.nopCore go_uber_org.zap.zapcore.nopCore.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.nopCore _root_.Perennial.go_uber_org.zap.zapcore.nopCore.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -134,14 +134,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'Encoder :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.Encoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.Encoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Encoder :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.Encoder go_uber_org.zap.zapcore.Encoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.Encoder _root_.Perennial.go_uber_org.zap.zapcore.Encoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -153,68 +153,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'ioCore :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.ioCore where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.ioCore where
   typedPointstoDef l v dq := iprop(
-    "LevelEnabler" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' dq ∗
-    "enc" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' dq ∗
-    "out" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' dq ∗
+    "LevelEnabler" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' dq ∗
+    "enc" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' dq ∗
+    "out" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ioCore :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.ioCore go_uber_org.zap.zapcore.ioCore.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.ioCore _root_.Perennial.go_uber_org.zap.zapcore.ioCore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ioCore'LevelEnabler (l : Loc) (v : go_uber_org.zap.zapcore.ioCore) (dq : DFrac) :
+noncomputable instance access_load'ioCore'LevelEnabler (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ioCore'LevelEnabler (l : Loc) (v : go_uber_org.zap.zapcore.ioCore) (y : go_uber_org.zap.zapcore.LevelEnabler) :
+noncomputable instance access_store'ioCore'LevelEnabler (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (y : _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LevelEnabler' := y } : go_uber_org.zap.zapcore.ioCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) v.LevelEnabler' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"LevelEnabler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LevelEnabler' := y } : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ioCore'enc (l : Loc) (v : go_uber_org.zap.zapcore.ioCore) (dq : DFrac) :
+noncomputable instance access_load'ioCore'enc (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ioCore'enc (l : Loc) (v : go_uber_org.zap.zapcore.ioCore) (y : go_uber_org.zap.zapcore.Encoder) :
+noncomputable instance access_store'ioCore'enc (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (y : _root_.Perennial.go_uber_org.zap.zapcore.Encoder) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"enc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := y } : go_uber_org.zap.zapcore.ioCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"enc" l) v.enc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"enc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := y } : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ioCore'out (l : Loc) (v : go_uber_org.zap.zapcore.ioCore) (dq : DFrac) :
+noncomputable instance access_load'ioCore'out (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ioCore'out (l : Loc) (v : go_uber_org.zap.zapcore.ioCore) (y : go_uber_org.zap.zapcore.WriteSyncer) :
+noncomputable instance access_store'ioCore'out (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.ioCore go!"out" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with out' := y } : go_uber_org.zap.zapcore.ioCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"out" l) v.out' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.ioCore go!"out" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with out' := y } : _root_.Perennial.go_uber_org.zap.zapcore.ioCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -227,289 +227,289 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'EncoderConfig :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.EncoderConfig where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig where
   typedPointstoDef l v dq := iprop(
-    "MessageKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq ∗
-    "LevelKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq ∗
-    "TimeKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq ∗
-    "NameKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq ∗
-    "CallerKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq ∗
-    "FunctionKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq ∗
-    "StacktraceKey" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq ∗
-    "SkipLineEnding" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq ∗
-    "LineEnding" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq ∗
-    "EncodeLevel" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq ∗
-    "EncodeTime" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq ∗
-    "EncodeDuration" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq ∗
-    "EncodeCaller" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq ∗
-    "EncodeName" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq ∗
-    "NewReflectedEncoder" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq ∗
-    "ConsoleSeparator" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq ∗
+    "MessageKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq ∗
+    "LevelKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq ∗
+    "TimeKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq ∗
+    "NameKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq ∗
+    "CallerKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq ∗
+    "FunctionKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq ∗
+    "StacktraceKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq ∗
+    "SkipLineEnding" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq ∗
+    "LineEnding" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq ∗
+    "EncodeLevel" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq ∗
+    "EncodeTime" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq ∗
+    "EncodeDuration" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq ∗
+    "EncodeCaller" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq ∗
+    "EncodeName" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq ∗
+    "NewReflectedEncoder" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq ∗
+    "ConsoleSeparator" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EncoderConfig :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.EncoderConfig go_uber_org.zap.zapcore.EncoderConfig.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'EncoderConfig'MessageKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'MessageKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'MessageKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'MessageKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MessageKey' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) v.MessageKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"MessageKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MessageKey' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'LevelKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'LevelKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'LevelKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'LevelKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LevelKey' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) v.LevelKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LevelKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LevelKey' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'TimeKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'TimeKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'TimeKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'TimeKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeKey' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) v.TimeKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"TimeKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeKey' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'NameKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'NameKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'NameKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'NameKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NameKey' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) v.NameKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NameKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NameKey' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'CallerKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'CallerKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'CallerKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'CallerKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CallerKey' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) v.CallerKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"CallerKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CallerKey' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'FunctionKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'FunctionKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'FunctionKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'FunctionKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FunctionKey' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) v.FunctionKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"FunctionKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FunctionKey' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'StacktraceKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'StacktraceKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'StacktraceKey (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'StacktraceKey (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StacktraceKey' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) v.StacktraceKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"StacktraceKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StacktraceKey' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'SkipLineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'SkipLineEnding (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'SkipLineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : Bool) :
+noncomputable instance access_store'EncoderConfig'SkipLineEnding (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SkipLineEnding' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) v.SkipLineEnding' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"SkipLineEnding" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SkipLineEnding' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'LineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'LineEnding (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'LineEnding (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'LineEnding (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LineEnding' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) v.LineEnding' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"LineEnding" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LineEnding' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'EncodeLevel (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'EncodeLevel (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'EncodeLevel (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : go_uber_org.zap.zapcore.LevelEncoder) :
+noncomputable instance access_store'EncoderConfig'EncodeLevel (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : _root_.Perennial.go_uber_org.zap.zapcore.LevelEncoder) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeLevel' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) v.EncodeLevel' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeLevel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeLevel' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'EncodeTime (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'EncodeTime (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'EncodeTime (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : go_uber_org.zap.zapcore.TimeEncoder) :
+noncomputable instance access_store'EncoderConfig'EncodeTime (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : _root_.Perennial.go_uber_org.zap.zapcore.TimeEncoder) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeTime' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) v.EncodeTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeTime' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'EncodeDuration (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'EncodeDuration (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'EncodeDuration (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : go_uber_org.zap.zapcore.DurationEncoder) :
+noncomputable instance access_store'EncoderConfig'EncodeDuration (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : _root_.Perennial.go_uber_org.zap.zapcore.DurationEncoder) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeDuration' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) v.EncodeDuration' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeDuration" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeDuration' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'EncodeCaller (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'EncodeCaller (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'EncodeCaller (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : go_uber_org.zap.zapcore.CallerEncoder) :
+noncomputable instance access_store'EncoderConfig'EncodeCaller (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : _root_.Perennial.go_uber_org.zap.zapcore.CallerEncoder) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeCaller' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) v.EncodeCaller' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeCaller" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeCaller' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'EncodeName (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'EncodeName (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'EncodeName (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : go_uber_org.zap.zapcore.NameEncoder) :
+noncomputable instance access_store'EncoderConfig'EncodeName (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : _root_.Perennial.go_uber_org.zap.zapcore.NameEncoder) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeName' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) v.EncodeName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"EncodeName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with EncodeName' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'NewReflectedEncoder (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'NewReflectedEncoder (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'NewReflectedEncoder (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoFunc) :
+noncomputable instance access_store'EncoderConfig'NewReflectedEncoder (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewReflectedEncoder' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) v.NewReflectedEncoder' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"NewReflectedEncoder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NewReflectedEncoder' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EncoderConfig'ConsoleSeparator (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
+noncomputable instance access_load'EncoderConfig'ConsoleSeparator (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EncoderConfig'ConsoleSeparator (l : Loc) (v : go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
+noncomputable instance access_store'EncoderConfig'ConsoleSeparator (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsoleSeparator' := y } : go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) v.ConsoleSeparator' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig go!"ConsoleSeparator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConsoleSeparator' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EncoderConfig) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -522,102 +522,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'EntryCaller :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.EntryCaller where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller where
   typedPointstoDef l v dq := iprop(
-    "Defined" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' dq ∗
-    "PC" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' dq ∗
-    "File" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' dq ∗
-    "Line" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' dq ∗
-    "Function" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' dq ∗
+    "Defined" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' dq ∗
+    "PC" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' dq ∗
+    "File" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' dq ∗
+    "Line" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' dq ∗
+    "Function" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'EntryCaller :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.EntryCaller go_uber_org.zap.zapcore.EntryCaller.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'EntryCaller'Defined (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
+noncomputable instance access_load'EntryCaller'Defined (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EntryCaller'Defined (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (y : Bool) :
+noncomputable instance access_store'EntryCaller'Defined (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Defined' := y } : go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) v.Defined' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Defined" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Defined' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EntryCaller'PC (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
+noncomputable instance access_load'EntryCaller'PC (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EntryCaller'PC (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (y : w64) :
+noncomputable instance access_store'EntryCaller'PC (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"PC" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PC' := y } : go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"PC" l) v.PC' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"PC" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PC' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EntryCaller'File (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
+noncomputable instance access_load'EntryCaller'File (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EntryCaller'File (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (y : GoString) :
+noncomputable instance access_store'EntryCaller'File (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"File" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"File" l) v.File' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"File" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with File' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EntryCaller'Line (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
+noncomputable instance access_load'EntryCaller'Line (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EntryCaller'Line (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (y : w64) :
+noncomputable instance access_store'EntryCaller'Line (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Line" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := y } : go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Line" l) v.Line' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Line" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Line' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'EntryCaller'Function (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
+noncomputable instance access_load'EntryCaller'Function (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'EntryCaller'Function (l : Loc) (v : go_uber_org.zap.zapcore.EntryCaller) (y : GoString) :
+noncomputable instance access_store'EntryCaller'Function (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.EntryCaller go!"Function" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Function' := y } : go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Function" l) v.Function' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller go!"Function" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Function' := y } : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -630,119 +630,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'Entry :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.Entry where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.Entry where
   typedPointstoDef l v dq := iprop(
-    "Level" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq ∗
-    "Time" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq ∗
-    "LoggerName" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq ∗
-    "Message" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq ∗
-    "Caller" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq ∗
-    "Stack" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq ∗
+    "Level" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq ∗
+    "Time" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq ∗
+    "LoggerName" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq ∗
+    "Caller" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq ∗
+    "Stack" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Entry :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.Entry go_uber_org.zap.zapcore.Entry.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.Entry _root_.Perennial.go_uber_org.zap.zapcore.Entry.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Entry'Level (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+noncomputable instance access_load'Entry'Level (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Entry'Level (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (y : go_uber_org.zap.zapcore.Level) :
+noncomputable instance access_store'Entry'Level (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (y : _root_.Perennial.go_uber_org.zap.zapcore.Level) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Level" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Level' := y } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Level" l) v.Level' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Level' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Entry'Time (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+noncomputable instance access_load'Entry'Time (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Entry'Time (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'Entry'Time (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Time" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Time' := y } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Time" l) v.Time' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Time" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Time' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Entry'LoggerName (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+noncomputable instance access_load'Entry'LoggerName (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Entry'LoggerName (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (y : GoString) :
+noncomputable instance access_store'Entry'LoggerName (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"LoggerName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LoggerName' := y } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"LoggerName" l) v.LoggerName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"LoggerName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LoggerName' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Entry'Message (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+noncomputable instance access_load'Entry'Message (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Entry'Message (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (y : GoString) :
+noncomputable instance access_store'Entry'Message (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Message" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Entry'Caller (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+noncomputable instance access_load'Entry'Caller (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Entry'Caller (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (y : go_uber_org.zap.zapcore.EntryCaller) :
+noncomputable instance access_store'Entry'Caller (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (y : _root_.Perennial.go_uber_org.zap.zapcore.EntryCaller) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Caller" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Caller' := y } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Caller" l) v.Caller' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Caller" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Caller' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Entry'Stack (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
+noncomputable instance access_load'Entry'Stack (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Entry'Stack (l : Loc) (v : go_uber_org.zap.zapcore.Entry) (y : GoString) :
+noncomputable instance access_store'Entry'Stack (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Entry go!"Stack" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stack' := y } : go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Stack" l) v.Stack' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Entry go!"Stack" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Stack' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -755,119 +755,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'CheckedEntry :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.CheckedEntry where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry where
   typedPointstoDef l v dq := iprop(
-    "Entry" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' dq ∗
-    "ErrorOutput" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' dq ∗
-    "dirty" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' dq ∗
-    "after" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' dq ∗
-    "cores" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' dq ∗
-    "before" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' dq ∗
+    "Entry" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' dq ∗
+    "ErrorOutput" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' dq ∗
+    "dirty" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' dq ∗
+    "after" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' dq ∗
+    "cores" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' dq ∗
+    "before" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CheckedEntry :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.CheckedEntry go_uber_org.zap.zapcore.CheckedEntry.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CheckedEntry'Entry (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
+noncomputable instance access_load'CheckedEntry'Entry (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CheckedEntry'Entry (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (y : go_uber_org.zap.zapcore.Entry) :
+noncomputable instance access_store'CheckedEntry'Entry (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (y : _root_.Perennial.go_uber_org.zap.zapcore.Entry) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Entry' := y } : go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) v.Entry' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"Entry" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Entry' := y } : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CheckedEntry'ErrorOutput (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
+noncomputable instance access_load'CheckedEntry'ErrorOutput (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CheckedEntry'ErrorOutput (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (y : go_uber_org.zap.zapcore.WriteSyncer) :
+noncomputable instance access_store'CheckedEntry'ErrorOutput (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorOutput' := y } : go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) v.ErrorOutput' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"ErrorOutput" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrorOutput' := y } : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CheckedEntry'dirty (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
+noncomputable instance access_load'CheckedEntry'dirty (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CheckedEntry'dirty (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (y : Bool) :
+noncomputable instance access_store'CheckedEntry'dirty (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dirty' := y } : go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) v.dirty' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"dirty" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dirty' := y } : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CheckedEntry'after (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
+noncomputable instance access_load'CheckedEntry'after (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CheckedEntry'after (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (y : go_uber_org.zap.zapcore.CheckWriteHook) :
+noncomputable instance access_store'CheckedEntry'after (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (y : _root_.Perennial.go_uber_org.zap.zapcore.CheckWriteHook) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"after" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with after' := y } : go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"after" l) v.after' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"after" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with after' := y } : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CheckedEntry'cores (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
+noncomputable instance access_load'CheckedEntry'cores (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CheckedEntry'cores (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (y : GoSlice) :
+noncomputable instance access_store'CheckedEntry'cores (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cores' := y } : go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) v.cores' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"cores" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cores' := y } : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CheckedEntry'before (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
+noncomputable instance access_load'CheckedEntry'before (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CheckedEntry'before (l : Loc) (v : go_uber_org.zap.zapcore.CheckedEntry) (y : GoSlice) :
+noncomputable instance access_store'CheckedEntry'before (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.CheckedEntry go!"before" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with before' := y } : go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"before" l) v.before' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry go!"before" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with before' := y } : _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -880,34 +880,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'errArrayElem :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.errArrayElem where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem where
   typedPointstoDef l v dq := iprop(
-    "err" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'errArrayElem :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.errArrayElem go_uber_org.zap.zapcore.errArrayElem.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'errArrayElem'err (l : Loc) (v : go_uber_org.zap.zapcore.errArrayElem) (dq : DFrac) :
+noncomputable instance access_load'errArrayElem'err (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'errArrayElem'err (l : Loc) (v : go_uber_org.zap.zapcore.errArrayElem) (y : GoError) :
+noncomputable instance access_store'errArrayElem'err (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.errArrayElem go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : go_uber_org.zap.zapcore.errArrayElem) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.go_uber_org.zap.zapcore.errArrayElem) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -920,102 +920,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'Field :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.Field where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.Field where
   typedPointstoDef l v dq := iprop(
-    "Key" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' dq ∗
-    "Type'" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' dq ∗
-    "Integer" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' dq ∗
-    "String" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"String" l) v.String' dq ∗
-    "Interface" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' dq ∗
+    "Type'" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' dq ∗
+    "Integer" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' dq ∗
+    "String" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"String" l) v.String' dq ∗
+    "Interface" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Field :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.Field go_uber_org.zap.zapcore.Field.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.Field _root_.Perennial.go_uber_org.zap.zapcore.Field.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Field'Key (l : Loc) (v : go_uber_org.zap.zapcore.Field) (dq : DFrac) :
+noncomputable instance access_load'Field'Key (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Field'Key (l : Loc) (v : go_uber_org.zap.zapcore.Field) (y : GoString) :
+noncomputable instance access_store'Field'Key (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Field'Type (l : Loc) (v : go_uber_org.zap.zapcore.Field) (dq : DFrac) :
+noncomputable instance access_load'Field'Type (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Field'Type (l : Loc) (v : go_uber_org.zap.zapcore.Field) (y : go_uber_org.zap.zapcore.FieldType) :
+noncomputable instance access_store'Field'Type (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (y : _root_.Perennial.go_uber_org.zap.zapcore.FieldType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Type" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Field'Integer (l : Loc) (v : go_uber_org.zap.zapcore.Field) (dq : DFrac) :
+noncomputable instance access_load'Field'Integer (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Field'Integer (l : Loc) (v : go_uber_org.zap.zapcore.Field) (y : w64) :
+noncomputable instance access_store'Field'Integer (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Integer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Integer' := y } : go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Integer" l) v.Integer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Integer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Integer' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Field'String (l : Loc) (v : go_uber_org.zap.zapcore.Field) (dq : DFrac) :
+noncomputable instance access_load'Field'String (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"String" l) v.String' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"String" l) v.String' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"String" l) v.String' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"String" l) v.String' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Field'String (l : Loc) (v : go_uber_org.zap.zapcore.Field) (y : GoString) :
+noncomputable instance access_store'Field'String (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"String" l) v.String' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"String" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with String' := y } : go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"String" l) v.String' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"String" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with String' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Field'Interface (l : Loc) (v : go_uber_org.zap.zapcore.Field) (dq : DFrac) :
+noncomputable instance access_load'Field'Interface (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Field'Interface (l : Loc) (v : go_uber_org.zap.zapcore.Field) (y : GoInterface) :
+noncomputable instance access_store'Field'Interface (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.Field) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.Field go!"Interface" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Interface' := y } : go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Interface" l) v.Interface' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.Field go!"Interface" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Interface' := y } : _root_.Perennial.go_uber_org.zap.zapcore.Field) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1028,51 +1028,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'hooked :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.hooked where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.hooked where
   typedPointstoDef l v dq := iprop(
-    "Core" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' dq ∗
-    "funcs" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' dq ∗
+    "Core" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' dq ∗
+    "funcs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'hooked :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.hooked go_uber_org.zap.zapcore.hooked.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.hooked _root_.Perennial.go_uber_org.zap.zapcore.hooked.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'hooked'Core (l : Loc) (v : go_uber_org.zap.zapcore.hooked) (dq : DFrac) :
+noncomputable instance access_load'hooked'Core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.hooked) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hooked'Core (l : Loc) (v : go_uber_org.zap.zapcore.hooked) (y : go_uber_org.zap.zapcore.Core) :
+noncomputable instance access_store'hooked'Core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.hooked) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"Core" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Core' := y } : go_uber_org.zap.zapcore.hooked) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"Core" l) v.Core' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"Core" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Core' := y } : _root_.Perennial.go_uber_org.zap.zapcore.hooked) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'hooked'funcs (l : Loc) (v : go_uber_org.zap.zapcore.hooked) (dq : DFrac) :
+noncomputable instance access_load'hooked'funcs (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.hooked) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'hooked'funcs (l : Loc) (v : go_uber_org.zap.zapcore.hooked) (y : GoSlice) :
+noncomputable instance access_store'hooked'funcs (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.hooked) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.hooked go!"funcs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with funcs' := y } : go_uber_org.zap.zapcore.hooked) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"funcs" l) v.funcs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.hooked go!"funcs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with funcs' := y } : _root_.Perennial.go_uber_org.zap.zapcore.hooked) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1085,51 +1085,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'levelFilterCore :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.levelFilterCore where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore where
   typedPointstoDef l v dq := iprop(
-    "core" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' dq ∗
-    "level" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' dq ∗
+    "core" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' dq ∗
+    "level" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'levelFilterCore :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.levelFilterCore go_uber_org.zap.zapcore.levelFilterCore.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'levelFilterCore'core (l : Loc) (v : go_uber_org.zap.zapcore.levelFilterCore) (dq : DFrac) :
+noncomputable instance access_load'levelFilterCore'core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'levelFilterCore'core (l : Loc) (v : go_uber_org.zap.zapcore.levelFilterCore) (y : go_uber_org.zap.zapcore.Core) :
+noncomputable instance access_store'levelFilterCore'core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"core" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with core' := y } : go_uber_org.zap.zapcore.levelFilterCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"core" l) v.core' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"core" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with core' := y } : _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'levelFilterCore'level (l : Loc) (v : go_uber_org.zap.zapcore.levelFilterCore) (dq : DFrac) :
+noncomputable instance access_load'levelFilterCore'level (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'levelFilterCore'level (l : Loc) (v : go_uber_org.zap.zapcore.levelFilterCore) (y : go_uber_org.zap.zapcore.LevelEnabler) :
+noncomputable instance access_store'levelFilterCore'level (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore) (y : _root_.Perennial.go_uber_org.zap.zapcore.LevelEnabler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.levelFilterCore go!"level" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : go_uber_org.zap.zapcore.levelFilterCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"level" l) v.level' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore go!"level" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with level' := y } : _root_.Perennial.go_uber_org.zap.zapcore.levelFilterCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1142,14 +1142,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'jsonEncoder :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.jsonEncoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.jsonEncoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'jsonEncoder :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.jsonEncoder go_uber_org.zap.zapcore.jsonEncoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.jsonEncoder _root_.Perennial.go_uber_org.zap.zapcore.jsonEncoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1161,85 +1161,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'lazyWithCore :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.lazyWithCore where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore where
   typedPointstoDef l v dq := iprop(
-    "core" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq ∗
-    "originalCore" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq ∗
-    "Once" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq ∗
-    "fields" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq ∗
+    "core" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq ∗
+    "originalCore" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq ∗
+    "Once" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq ∗
+    "fields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'lazyWithCore :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.lazyWithCore go_uber_org.zap.zapcore.lazyWithCore.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'lazyWithCore'core (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+noncomputable instance access_load'lazyWithCore'core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazyWithCore'core (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (y : go_uber_org.zap.zapcore.Core) :
+noncomputable instance access_store'lazyWithCore'core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"core" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with core' := y } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"core" l) v.core' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"core" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with core' := y } : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazyWithCore'originalCore (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+noncomputable instance access_load'lazyWithCore'originalCore (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazyWithCore'originalCore (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (y : go_uber_org.zap.zapcore.Core) :
+noncomputable instance access_store'lazyWithCore'originalCore (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with originalCore' := y } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) v.originalCore' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"originalCore" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with originalCore' := y } : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazyWithCore'Once (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+noncomputable instance access_load'lazyWithCore'Once (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazyWithCore'Once (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (y : _root_.Perennial.sync.Once) :
+noncomputable instance access_store'lazyWithCore'Once (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (y : _root_.Perennial.sync.Once) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Once' := y } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) v.Once' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"Once" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Once' := y } : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lazyWithCore'fields (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
+noncomputable instance access_load'lazyWithCore'fields (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lazyWithCore'fields (l : Loc) (v : go_uber_org.zap.zapcore.lazyWithCore) (y : GoSlice) :
+noncomputable instance access_store'lazyWithCore'fields (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := y } : go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) v.fields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore go!"fields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fields' := y } : _root_.Perennial.go_uber_org.zap.zapcore.lazyWithCore) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1252,51 +1252,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'MapObjectEncoder :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.MapObjectEncoder where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder where
   typedPointstoDef l v dq := iprop(
-    "Fields" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' dq ∗
-    "cur" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' dq ∗
+    "Fields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' dq ∗
+    "cur" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MapObjectEncoder :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.MapObjectEncoder go_uber_org.zap.zapcore.MapObjectEncoder.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MapObjectEncoder'Fields (l : Loc) (v : go_uber_org.zap.zapcore.MapObjectEncoder) (dq : DFrac) :
+noncomputable instance access_load'MapObjectEncoder'Fields (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MapObjectEncoder'Fields (l : Loc) (v : go_uber_org.zap.zapcore.MapObjectEncoder) (y : GoMap) :
+noncomputable instance access_store'MapObjectEncoder'Fields (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Fields' := y } : go_uber_org.zap.zapcore.MapObjectEncoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) v.Fields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"Fields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Fields' := y } : _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MapObjectEncoder'cur (l : Loc) (v : go_uber_org.zap.zapcore.MapObjectEncoder) (dq : DFrac) :
+noncomputable instance access_load'MapObjectEncoder'cur (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MapObjectEncoder'cur (l : Loc) (v : go_uber_org.zap.zapcore.MapObjectEncoder) (y : GoMap) :
+noncomputable instance access_store'MapObjectEncoder'cur (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cur' := y } : go_uber_org.zap.zapcore.MapObjectEncoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) v.cur' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder go!"cur" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cur' := y } : _root_.Perennial.go_uber_org.zap.zapcore.MapObjectEncoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1309,34 +1309,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'sliceArrayEncoder :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.sliceArrayEncoder where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder where
   typedPointstoDef l v dq := iprop(
-    "elems" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' dq ∗
+    "elems" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'sliceArrayEncoder :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.sliceArrayEncoder go_uber_org.zap.zapcore.sliceArrayEncoder.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'sliceArrayEncoder'elems (l : Loc) (v : go_uber_org.zap.zapcore.sliceArrayEncoder) (dq : DFrac) :
+noncomputable instance access_load'sliceArrayEncoder'elems (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sliceArrayEncoder'elems (l : Loc) (v : go_uber_org.zap.zapcore.sliceArrayEncoder) (y : GoSlice) :
+noncomputable instance access_store'sliceArrayEncoder'elems (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with elems' := y } : go_uber_org.zap.zapcore.sliceArrayEncoder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) v.elems' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder go!"elems" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with elems' := y } : _root_.Perennial.go_uber_org.zap.zapcore.sliceArrayEncoder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1349,14 +1349,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'counter :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.counter :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.counter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'counter :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.counter go_uber_org.zap.zapcore.counter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.counter _root_.Perennial.go_uber_org.zap.zapcore.counter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1368,119 +1368,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'sampler :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.sampler where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.sampler where
   typedPointstoDef l v dq := iprop(
-    "Core" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq ∗
-    "counts" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq ∗
-    "tick" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq ∗
-    "first" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq ∗
-    "thereafter" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq ∗
-    "hook" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq ∗
+    "Core" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq ∗
+    "counts" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq ∗
+    "tick" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq ∗
+    "first" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq ∗
+    "thereafter" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq ∗
+    "hook" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'sampler :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.sampler go_uber_org.zap.zapcore.sampler.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.sampler _root_.Perennial.go_uber_org.zap.zapcore.sampler.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'sampler'Core (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+noncomputable instance access_load'sampler'Core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sampler'Core (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (y : go_uber_org.zap.zapcore.Core) :
+noncomputable instance access_store'sampler'Core (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (y : _root_.Perennial.go_uber_org.zap.zapcore.Core) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"Core" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Core' := y } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"Core" l) v.Core' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"Core" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Core' := y } : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sampler'counts (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+noncomputable instance access_load'sampler'counts (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sampler'counts (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (y : Loc) :
+noncomputable instance access_store'sampler'counts (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"counts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with counts' := y } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"counts" l) v.counts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"counts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with counts' := y } : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sampler'tick (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+noncomputable instance access_load'sampler'tick (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sampler'tick (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'sampler'tick (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"tick" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tick' := y } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"tick" l) v.tick' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"tick" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tick' := y } : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sampler'first (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+noncomputable instance access_load'sampler'first (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"first" l) v.first' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sampler'first (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (y : w64) :
+noncomputable instance access_store'sampler'first (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) v.first' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"first" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with first' := y } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"first" l) v.first' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"first" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with first' := y } : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sampler'thereafter (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+noncomputable instance access_load'sampler'thereafter (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sampler'thereafter (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (y : w64) :
+noncomputable instance access_store'sampler'thereafter (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"thereafter" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with thereafter' := y } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"thereafter" l) v.thereafter' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"thereafter" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with thereafter' := y } : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sampler'hook (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
+noncomputable instance access_load'sampler'hook (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sampler'hook (l : Loc) (v : go_uber_org.zap.zapcore.sampler) (y : GoFunc) :
+noncomputable instance access_store'sampler'hook (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.sampler go!"hook" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hook' := y } : go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"hook" l) v.hook' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.sampler go!"hook" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hook' := y } : _root_.Perennial.go_uber_org.zap.zapcore.sampler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1493,51 +1493,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'lockedWriteSyncer :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.lockedWriteSyncer where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer where
   typedPointstoDef l v dq := iprop(
-    "Mutex" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq ∗
-    "ws" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq ∗
+    "Mutex" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq ∗
+    "ws" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'lockedWriteSyncer :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.lockedWriteSyncer go_uber_org.zap.zapcore.lockedWriteSyncer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'lockedWriteSyncer'Mutex (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (dq : DFrac) :
+noncomputable instance access_load'lockedWriteSyncer'Mutex (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lockedWriteSyncer'Mutex (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'lockedWriteSyncer'Mutex (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : go_uber_org.zap.zapcore.lockedWriteSyncer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lockedWriteSyncer'ws (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (dq : DFrac) :
+noncomputable instance access_load'lockedWriteSyncer'ws (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lockedWriteSyncer'ws (l : Loc) (v : go_uber_org.zap.zapcore.lockedWriteSyncer) (y : go_uber_org.zap.zapcore.WriteSyncer) :
+noncomputable instance access_store'lockedWriteSyncer'ws (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ws' := y } : go_uber_org.zap.zapcore.lockedWriteSyncer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) v.ws' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer go!"ws" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ws' := y } : _root_.Perennial.go_uber_org.zap.zapcore.lockedWriteSyncer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1550,34 +1550,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.zapcore.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.zapcore.Assumptions]
 
 noncomputable instance typed_pointsto'writerWrapper :
-    TypedPointsto (GF := GF) go_uber_org.zap.zapcore.writerWrapper where
+    TypedPointsto (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper where
   typedPointstoDef l v dq := iprop(
-    "Writer" ∷ typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq ∗
+    "Writer" ∷ typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'writerWrapper :
-    IntoValTypedUnderlying (GF := GF) go_uber_org.zap.zapcore.writerWrapper go_uber_org.zap.zapcore.writerWrapper.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'writerWrapper'Writer (l : Loc) (v : go_uber_org.zap.zapcore.writerWrapper) (dq : DFrac) :
+noncomputable instance access_load'writerWrapper'Writer (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'writerWrapper'Writer (l : Loc) (v : go_uber_org.zap.zapcore.writerWrapper) (y : _root_.Perennial.io.Writer) :
+noncomputable instance access_store'writerWrapper'Writer (l : Loc) (v : _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper) (y : _root_.Perennial.io.Writer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Writer' := y } : go_uber_org.zap.zapcore.writerWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) v.Writer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper go!"Writer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Writer' := y } : _root_.Perennial.go_uber_org.zap.zapcore.writerWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

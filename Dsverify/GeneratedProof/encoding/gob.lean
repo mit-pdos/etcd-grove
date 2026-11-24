@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'decHelper :
-    TypedPointsto (GF := GF) encoding.gob.decHelper :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.decHelper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'decHelper :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.decHelper encoding.gob.decHelper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.decHelper _root_.Perennial.encoding.gob.decHelper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,85 +41,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'decoderState :
-    TypedPointsto (GF := GF) encoding.gob.decoderState where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.decoderState where
   typedPointstoDef l v dq := iprop(
-    "dec" ∷ typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) v.dec' dq ∗
-    "b" ∷ typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) v.b' dq ∗
-    "fieldnum" ∷ typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' dq ∗
-    "next" ∷ typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) v.next' dq ∗
+    "dec" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"dec" l) v.dec' dq ∗
+    "b" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"b" l) v.b' dq ∗
+    "fieldnum" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' dq ∗
+    "next" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"next" l) v.next' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'decoderState :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.decoderState encoding.gob.decoderState.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.decoderState _root_.Perennial.encoding.gob.decoderState.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'decoderState'dec (l : Loc) (v : encoding.gob.decoderState) (dq : DFrac) :
+noncomputable instance access_load'decoderState'dec (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) v.dec' dq)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) v.dec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"dec" l) v.dec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"dec" l) v.dec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decoderState'dec (l : Loc) (v : encoding.gob.decoderState) (y : Loc) :
+noncomputable instance access_store'decoderState'dec (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) v.dec' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dec' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"dec" l) v.dec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"dec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dec' := y } : _root_.Perennial.encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decoderState'b (l : Loc) (v : encoding.gob.decoderState) (dq : DFrac) :
+noncomputable instance access_load'decoderState'b (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) v.b' dq)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) v.b' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"b" l) v.b' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"b" l) v.b' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decoderState'b (l : Loc) (v : encoding.gob.decoderState) (y : Loc) :
+noncomputable instance access_store'decoderState'b (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"b" l) v.b' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : _root_.Perennial.encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decoderState'fieldnum (l : Loc) (v : encoding.gob.decoderState) (dq : DFrac) :
+noncomputable instance access_load'decoderState'fieldnum (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' dq)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decoderState'fieldnum (l : Loc) (v : encoding.gob.decoderState) (y : w64) :
+noncomputable instance access_store'decoderState'fieldnum (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"fieldnum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := y } : _root_.Perennial.encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decoderState'next (l : Loc) (v : encoding.gob.decoderState) (dq : DFrac) :
+noncomputable instance access_load'decoderState'next (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) v.next' dq)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) v.next' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"next" l) v.next' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"next" l) v.next' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decoderState'next (l : Loc) (v : encoding.gob.decoderState) (y : Loc) :
+noncomputable instance access_store'decoderState'next (l : Loc) (v : _root_.Perennial.encoding.gob.decoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) v.next' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"next" l) v.next' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decoderState go!"next" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : _root_.Perennial.encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -132,51 +132,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'decBuffer :
-    TypedPointsto (GF := GF) encoding.gob.decBuffer where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.decBuffer where
   typedPointstoDef l v dq := iprop(
-    "data" ∷ typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) v.data' dq ∗
-    "offset" ∷ typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) v.offset' dq ∗
+    "data" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"data" l) v.data' dq ∗
+    "offset" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"offset" l) v.offset' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'decBuffer :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.decBuffer encoding.gob.decBuffer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.decBuffer _root_.Perennial.encoding.gob.decBuffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'decBuffer'data (l : Loc) (v : encoding.gob.decBuffer) (dq : DFrac) :
+noncomputable instance access_load'decBuffer'data (l : Loc) (v : _root_.Perennial.encoding.gob.decBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) v.data' dq)
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"data" l) v.data' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decBuffer'data (l : Loc) (v : encoding.gob.decBuffer) (y : GoSlice) :
+noncomputable instance access_store'decBuffer'data (l : Loc) (v : _root_.Perennial.encoding.gob.decBuffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : encoding.gob.decBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"data" l) v.data' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : _root_.Perennial.encoding.gob.decBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decBuffer'offset (l : Loc) (v : encoding.gob.decBuffer) (dq : DFrac) :
+noncomputable instance access_load'decBuffer'offset (l : Loc) (v : _root_.Perennial.encoding.gob.decBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) v.offset' dq)
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) v.offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"offset" l) v.offset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"offset" l) v.offset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decBuffer'offset (l : Loc) (v : encoding.gob.decBuffer) (y : w64) :
+noncomputable instance access_store'decBuffer'offset (l : Loc) (v : _root_.Perennial.encoding.gob.decBuffer) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) v.offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := y } : encoding.gob.decBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"offset" l) v.offset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decBuffer go!"offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := y } : _root_.Perennial.encoding.gob.decBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -189,14 +189,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'decOp :
-    TypedPointsto (GF := GF) encoding.gob.decOp :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.decOp :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'decOp :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.decOp encoding.gob.decOp.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.decOp _root_.Perennial.encoding.gob.decOp.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -208,85 +208,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'decInstr :
-    TypedPointsto (GF := GF) encoding.gob.decInstr where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.decInstr where
   typedPointstoDef l v dq := iprop(
-    "op" ∷ typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) v.op' dq ∗
-    "field" ∷ typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) v.field' dq ∗
-    "index" ∷ typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) v.index' dq ∗
-    "ovfl" ∷ typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) v.ovfl' dq ∗
+    "op" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"op" l) v.op' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"field" l) v.field' dq ∗
+    "index" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"index" l) v.index' dq ∗
+    "ovfl" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"ovfl" l) v.ovfl' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'decInstr :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.decInstr encoding.gob.decInstr.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.decInstr _root_.Perennial.encoding.gob.decInstr.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'decInstr'op (l : Loc) (v : encoding.gob.decInstr) (dq : DFrac) :
+noncomputable instance access_load'decInstr'op (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) v.op' dq)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"op" l) v.op' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decInstr'op (l : Loc) (v : encoding.gob.decInstr) (y : encoding.gob.decOp) :
+noncomputable instance access_store'decInstr'op (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (y : _root_.Perennial.encoding.gob.decOp) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) v.op' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"op" l) v.op' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : _root_.Perennial.encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decInstr'field (l : Loc) (v : encoding.gob.decInstr) (dq : DFrac) :
+noncomputable instance access_load'decInstr'field (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decInstr'field (l : Loc) (v : encoding.gob.decInstr) (y : w64) :
+noncomputable instance access_store'decInstr'field (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decInstr'index (l : Loc) (v : encoding.gob.decInstr) (dq : DFrac) :
+noncomputable instance access_load'decInstr'index (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) v.index' dq)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"index" l) v.index' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decInstr'index (l : Loc) (v : encoding.gob.decInstr) (y : GoSlice) :
+noncomputable instance access_store'decInstr'index (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"index" l) v.index' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : _root_.Perennial.encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decInstr'ovfl (l : Loc) (v : encoding.gob.decInstr) (dq : DFrac) :
+noncomputable instance access_load'decInstr'ovfl (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) v.ovfl' dq)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) v.ovfl' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"ovfl" l) v.ovfl' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"ovfl" l) v.ovfl' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decInstr'ovfl (l : Loc) (v : encoding.gob.decInstr) (y : GoError) :
+noncomputable instance access_store'decInstr'ovfl (l : Loc) (v : _root_.Perennial.encoding.gob.decInstr) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) v.ovfl' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ovfl' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"ovfl" l) v.ovfl' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decInstr go!"ovfl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ovfl' := y } : _root_.Perennial.encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -299,51 +299,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'decEngine :
-    TypedPointsto (GF := GF) encoding.gob.decEngine where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.decEngine where
   typedPointstoDef l v dq := iprop(
-    "instr" ∷ typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) v.instr' dq ∗
-    "numInstr" ∷ typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) v.numInstr' dq ∗
+    "instr" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"instr" l) v.instr' dq ∗
+    "numInstr" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"numInstr" l) v.numInstr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'decEngine :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.decEngine encoding.gob.decEngine.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.decEngine _root_.Perennial.encoding.gob.decEngine.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'decEngine'instr (l : Loc) (v : encoding.gob.decEngine) (dq : DFrac) :
+noncomputable instance access_load'decEngine'instr (l : Loc) (v : _root_.Perennial.encoding.gob.decEngine) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) v.instr' dq)
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) v.instr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"instr" l) v.instr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"instr" l) v.instr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decEngine'instr (l : Loc) (v : encoding.gob.decEngine) (y : GoSlice) :
+noncomputable instance access_store'decEngine'instr (l : Loc) (v : _root_.Perennial.encoding.gob.decEngine) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) v.instr' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := y } : encoding.gob.decEngine) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"instr" l) v.instr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"instr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := y } : _root_.Perennial.encoding.gob.decEngine) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'decEngine'numInstr (l : Loc) (v : encoding.gob.decEngine) (dq : DFrac) :
+noncomputable instance access_load'decEngine'numInstr (l : Loc) (v : _root_.Perennial.encoding.gob.decEngine) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) v.numInstr' dq)
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) v.numInstr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"numInstr" l) v.numInstr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"numInstr" l) v.numInstr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'decEngine'numInstr (l : Loc) (v : encoding.gob.decEngine) (y : w64) :
+noncomputable instance access_store'decEngine'numInstr (l : Loc) (v : _root_.Perennial.encoding.gob.decEngine) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) v.numInstr' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numInstr' := y } : encoding.gob.decEngine) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"numInstr" l) v.numInstr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.decEngine go!"numInstr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numInstr' := y } : _root_.Perennial.encoding.gob.decEngine) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -356,10 +356,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'emptyStruct :
-    TypedPointsto (GF := GF) encoding.gob.emptyStruct where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.emptyStruct where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -367,7 +367,7 @@ noncomputable instance typed_pointsto'emptyStruct :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'emptyStruct :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.emptyStruct encoding.gob.emptyStruct.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.emptyStruct _root_.Perennial.encoding.gob.emptyStruct.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -379,14 +379,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'Decoder :
-    TypedPointsto (GF := GF) encoding.gob.Decoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.Decoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Decoder :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.Decoder encoding.gob.Decoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.Decoder _root_.Perennial.encoding.gob.Decoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -398,14 +398,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'encHelper :
-    TypedPointsto (GF := GF) encoding.gob.encHelper :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.encHelper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'encHelper :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.encHelper encoding.gob.encHelper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.encHelper _root_.Perennial.encoding.gob.encHelper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -417,119 +417,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'encoderState :
-    TypedPointsto (GF := GF) encoding.gob.encoderState where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.encoderState where
   typedPointstoDef l v dq := iprop(
-    "enc" ∷ typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) v.enc' dq ∗
-    "b" ∷ typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) v.b' dq ∗
-    "sendZero" ∷ typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) v.sendZero' dq ∗
-    "fieldnum" ∷ typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' dq ∗
-    "buf" ∷ typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) v.buf' dq ∗
-    "next" ∷ typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) v.next' dq ∗
+    "enc" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"enc" l) v.enc' dq ∗
+    "b" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"b" l) v.b' dq ∗
+    "sendZero" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"sendZero" l) v.sendZero' dq ∗
+    "fieldnum" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' dq ∗
+    "buf" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"buf" l) v.buf' dq ∗
+    "next" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"next" l) v.next' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'encoderState :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.encoderState encoding.gob.encoderState.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.encoderState _root_.Perennial.encoding.gob.encoderState.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'encoderState'enc (l : Loc) (v : encoding.gob.encoderState) (dq : DFrac) :
+noncomputable instance access_load'encoderState'enc (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) v.enc' dq)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) v.enc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"enc" l) v.enc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"enc" l) v.enc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encoderState'enc (l : Loc) (v : encoding.gob.encoderState) (y : Loc) :
+noncomputable instance access_store'encoderState'enc (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) v.enc' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"enc" l) v.enc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"enc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := y } : _root_.Perennial.encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encoderState'b (l : Loc) (v : encoding.gob.encoderState) (dq : DFrac) :
+noncomputable instance access_load'encoderState'b (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) v.b' dq)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) v.b' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"b" l) v.b' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"b" l) v.b' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encoderState'b (l : Loc) (v : encoding.gob.encoderState) (y : Loc) :
+noncomputable instance access_store'encoderState'b (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"b" l) v.b' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : _root_.Perennial.encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encoderState'sendZero (l : Loc) (v : encoding.gob.encoderState) (dq : DFrac) :
+noncomputable instance access_load'encoderState'sendZero (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) v.sendZero' dq)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) v.sendZero' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"sendZero" l) v.sendZero' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"sendZero" l) v.sendZero' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encoderState'sendZero (l : Loc) (v : encoding.gob.encoderState) (y : Bool) :
+noncomputable instance access_store'encoderState'sendZero (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) v.sendZero' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendZero' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"sendZero" l) v.sendZero' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"sendZero" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendZero' := y } : _root_.Perennial.encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encoderState'fieldnum (l : Loc) (v : encoding.gob.encoderState) (dq : DFrac) :
+noncomputable instance access_load'encoderState'fieldnum (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' dq)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encoderState'fieldnum (l : Loc) (v : encoding.gob.encoderState) (y : w64) :
+noncomputable instance access_store'encoderState'fieldnum (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"fieldnum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := y } : _root_.Perennial.encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encoderState'buf (l : Loc) (v : encoding.gob.encoderState) (dq : DFrac) :
+noncomputable instance access_load'encoderState'buf (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) v.buf' dq)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"buf" l) v.buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"buf" l) v.buf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encoderState'buf (l : Loc) (v : encoding.gob.encoderState) (y : (GoArray w8 9)) :
+noncomputable instance access_store'encoderState'buf (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (y : (GoArray w8 9)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"buf" l) v.buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : _root_.Perennial.encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encoderState'next (l : Loc) (v : encoding.gob.encoderState) (dq : DFrac) :
+noncomputable instance access_load'encoderState'next (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) v.next' dq)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) v.next' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"next" l) v.next' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"next" l) v.next' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encoderState'next (l : Loc) (v : encoding.gob.encoderState) (y : Loc) :
+noncomputable instance access_store'encoderState'next (l : Loc) (v : _root_.Perennial.encoding.gob.encoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) v.next' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"next" l) v.next' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encoderState go!"next" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : _root_.Perennial.encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -542,51 +542,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'encBuffer :
-    TypedPointsto (GF := GF) encoding.gob.encBuffer where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.encBuffer where
   typedPointstoDef l v dq := iprop(
-    "data" ∷ typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) v.data' dq ∗
-    "scratch" ∷ typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) v.scratch' dq ∗
+    "data" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"data" l) v.data' dq ∗
+    "scratch" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"scratch" l) v.scratch' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'encBuffer :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.encBuffer encoding.gob.encBuffer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.encBuffer _root_.Perennial.encoding.gob.encBuffer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'encBuffer'data (l : Loc) (v : encoding.gob.encBuffer) (dq : DFrac) :
+noncomputable instance access_load'encBuffer'data (l : Loc) (v : _root_.Perennial.encoding.gob.encBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) v.data' dq)
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"data" l) v.data' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"data" l) v.data' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encBuffer'data (l : Loc) (v : encoding.gob.encBuffer) (y : GoSlice) :
+noncomputable instance access_store'encBuffer'data (l : Loc) (v : _root_.Perennial.encoding.gob.encBuffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : encoding.gob.encBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"data" l) v.data' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : _root_.Perennial.encoding.gob.encBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encBuffer'scratch (l : Loc) (v : encoding.gob.encBuffer) (dq : DFrac) :
+noncomputable instance access_load'encBuffer'scratch (l : Loc) (v : _root_.Perennial.encoding.gob.encBuffer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) v.scratch' dq)
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) v.scratch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"scratch" l) v.scratch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"scratch" l) v.scratch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encBuffer'scratch (l : Loc) (v : encoding.gob.encBuffer) (y : (GoArray w8 64)) :
+noncomputable instance access_store'encBuffer'scratch (l : Loc) (v : _root_.Perennial.encoding.gob.encBuffer) (y : (GoArray w8 64)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) v.scratch' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scratch' := y } : encoding.gob.encBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"scratch" l) v.scratch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encBuffer go!"scratch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scratch' := y } : _root_.Perennial.encoding.gob.encBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -599,14 +599,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'encOp :
-    TypedPointsto (GF := GF) encoding.gob.encOp :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.encOp :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'encOp :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.encOp encoding.gob.encOp.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.encOp _root_.Perennial.encoding.gob.encOp.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -618,85 +618,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'encInstr :
-    TypedPointsto (GF := GF) encoding.gob.encInstr where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.encInstr where
   typedPointstoDef l v dq := iprop(
-    "op" ∷ typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) v.op' dq ∗
-    "field" ∷ typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) v.field' dq ∗
-    "index" ∷ typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) v.index' dq ∗
-    "indir" ∷ typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) v.indir' dq ∗
+    "op" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"op" l) v.op' dq ∗
+    "field" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"field" l) v.field' dq ∗
+    "index" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"index" l) v.index' dq ∗
+    "indir" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"indir" l) v.indir' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'encInstr :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.encInstr encoding.gob.encInstr.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.encInstr _root_.Perennial.encoding.gob.encInstr.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'encInstr'op (l : Loc) (v : encoding.gob.encInstr) (dq : DFrac) :
+noncomputable instance access_load'encInstr'op (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) v.op' dq)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"op" l) v.op' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encInstr'op (l : Loc) (v : encoding.gob.encInstr) (y : encoding.gob.encOp) :
+noncomputable instance access_store'encInstr'op (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (y : _root_.Perennial.encoding.gob.encOp) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) v.op' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"op" l) v.op' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : _root_.Perennial.encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encInstr'field (l : Loc) (v : encoding.gob.encInstr) (dq : DFrac) :
+noncomputable instance access_load'encInstr'field (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) v.field' dq)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"field" l) v.field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"field" l) v.field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encInstr'field (l : Loc) (v : encoding.gob.encInstr) (y : w64) :
+noncomputable instance access_store'encInstr'field (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"field" l) v.field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : _root_.Perennial.encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encInstr'index (l : Loc) (v : encoding.gob.encInstr) (dq : DFrac) :
+noncomputable instance access_load'encInstr'index (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) v.index' dq)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"index" l) v.index' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encInstr'index (l : Loc) (v : encoding.gob.encInstr) (y : GoSlice) :
+noncomputable instance access_store'encInstr'index (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"index" l) v.index' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : _root_.Perennial.encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'encInstr'indir (l : Loc) (v : encoding.gob.encInstr) (dq : DFrac) :
+noncomputable instance access_load'encInstr'indir (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) v.indir' dq)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) v.indir' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"indir" l) v.indir' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"indir" l) v.indir' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encInstr'indir (l : Loc) (v : encoding.gob.encInstr) (y : w64) :
+noncomputable instance access_store'encInstr'indir (l : Loc) (v : _root_.Perennial.encoding.gob.encInstr) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) v.indir' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indir' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"indir" l) v.indir' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encInstr go!"indir" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indir' := y } : _root_.Perennial.encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -709,34 +709,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'encEngine :
-    TypedPointsto (GF := GF) encoding.gob.encEngine where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.encEngine where
   typedPointstoDef l v dq := iprop(
-    "instr" ∷ typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) v.instr' dq ∗
+    "instr" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encEngine go!"instr" l) v.instr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'encEngine :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.encEngine encoding.gob.encEngine.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.encEngine _root_.Perennial.encoding.gob.encEngine.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'encEngine'instr (l : Loc) (v : encoding.gob.encEngine) (dq : DFrac) :
+noncomputable instance access_load'encEngine'instr (l : Loc) (v : _root_.Perennial.encoding.gob.encEngine) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) v.instr' dq)
-      (typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) v.instr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encEngine go!"instr" l) v.instr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encEngine go!"instr" l) v.instr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'encEngine'instr (l : Loc) (v : encoding.gob.encEngine) (y : GoSlice) :
+noncomputable instance access_store'encEngine'instr (l : Loc) (v : _root_.Perennial.encoding.gob.encEngine) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) v.instr' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := y } : encoding.gob.encEngine) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encEngine go!"instr" l) v.instr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.encEngine go!"instr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := y } : _root_.Perennial.encoding.gob.encEngine) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -749,14 +749,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'Encoder :
-    TypedPointsto (GF := GF) encoding.gob.Encoder :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.Encoder :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Encoder :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.Encoder encoding.gob.Encoder.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.Encoder _root_.Perennial.encoding.gob.Encoder.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -768,34 +768,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'gobError :
-    TypedPointsto (GF := GF) encoding.gob.gobError where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.gobError where
   typedPointstoDef l v dq := iprop(
-    "err" ∷ typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) v.err' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobError go!"err" l) v.err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'gobError :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.gobError encoding.gob.gobError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.gobError _root_.Perennial.encoding.gob.gobError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'gobError'err (l : Loc) (v : encoding.gob.gobError) (dq : DFrac) :
+noncomputable instance access_load'gobError'err (l : Loc) (v : _root_.Perennial.encoding.gob.gobError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobError go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobError go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'gobError'err (l : Loc) (v : encoding.gob.gobError) (y : GoError) :
+noncomputable instance access_store'gobError'err (l : Loc) (v : _root_.Perennial.encoding.gob.gobError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : encoding.gob.gobError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobError go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobError go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.encoding.gob.gobError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -808,14 +808,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'userTypeInfo :
-    TypedPointsto (GF := GF) encoding.gob.userTypeInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.userTypeInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'userTypeInfo :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.userTypeInfo encoding.gob.userTypeInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.userTypeInfo _root_.Perennial.encoding.gob.userTypeInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -827,51 +827,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'CommonType :
-    TypedPointsto (GF := GF) encoding.gob.CommonType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.CommonType where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) v.Name' dq ∗
-    "Id" ∷ typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) v.Id' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Name" l) v.Name' dq ∗
+    "Id" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Id" l) v.Id' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CommonType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.CommonType encoding.gob.CommonType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.CommonType _root_.Perennial.encoding.gob.CommonType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CommonType'Name (l : Loc) (v : encoding.gob.CommonType) (dq : DFrac) :
+noncomputable instance access_load'CommonType'Name (l : Loc) (v : _root_.Perennial.encoding.gob.CommonType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommonType'Name (l : Loc) (v : encoding.gob.CommonType) (y : GoString) :
+noncomputable instance access_store'CommonType'Name (l : Loc) (v : _root_.Perennial.encoding.gob.CommonType) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : encoding.gob.CommonType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.encoding.gob.CommonType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CommonType'Id (l : Loc) (v : encoding.gob.CommonType) (dq : DFrac) :
+noncomputable instance access_load'CommonType'Id (l : Loc) (v : _root_.Perennial.encoding.gob.CommonType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) v.Id' dq)
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) v.Id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Id" l) v.Id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Id" l) v.Id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CommonType'Id (l : Loc) (v : encoding.gob.CommonType) (y : encoding.gob.typeId) :
+noncomputable instance access_store'CommonType'Id (l : Loc) (v : _root_.Perennial.encoding.gob.CommonType) (y : _root_.Perennial.encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : encoding.gob.CommonType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Id" l) v.Id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.CommonType go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : _root_.Perennial.encoding.gob.CommonType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -884,68 +884,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'arrayType :
-    TypedPointsto (GF := GF) encoding.gob.arrayType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.arrayType where
   typedPointstoDef l v dq := iprop(
-    "CommonType" ∷ typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) v.CommonType' dq ∗
-    "Elem" ∷ typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) v.Elem' dq ∗
-    "Len" ∷ typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) v.Len' dq ∗
+    "CommonType" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"CommonType" l) v.CommonType' dq ∗
+    "Elem" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Elem" l) v.Elem' dq ∗
+    "Len" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Len" l) v.Len' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'arrayType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.arrayType encoding.gob.arrayType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.arrayType _root_.Perennial.encoding.gob.arrayType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'arrayType'CommonType (l : Loc) (v : encoding.gob.arrayType) (dq : DFrac) :
+noncomputable instance access_load'arrayType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.arrayType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) v.CommonType' dq)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"CommonType" l) v.CommonType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'arrayType'CommonType (l : Loc) (v : encoding.gob.arrayType) (y : encoding.gob.CommonType) :
+noncomputable instance access_store'arrayType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.arrayType) (y : _root_.Perennial.encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.arrayType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"CommonType" l) v.CommonType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : _root_.Perennial.encoding.gob.arrayType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'arrayType'Elem (l : Loc) (v : encoding.gob.arrayType) (dq : DFrac) :
+noncomputable instance access_load'arrayType'Elem (l : Loc) (v : _root_.Perennial.encoding.gob.arrayType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) v.Elem' dq)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) v.Elem' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Elem" l) v.Elem' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Elem" l) v.Elem' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'arrayType'Elem (l : Loc) (v : encoding.gob.arrayType) (y : encoding.gob.typeId) :
+noncomputable instance access_store'arrayType'Elem (l : Loc) (v : _root_.Perennial.encoding.gob.arrayType) (y : _root_.Perennial.encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) v.Elem' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : encoding.gob.arrayType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Elem" l) v.Elem' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Elem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : _root_.Perennial.encoding.gob.arrayType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'arrayType'Len (l : Loc) (v : encoding.gob.arrayType) (dq : DFrac) :
+noncomputable instance access_load'arrayType'Len (l : Loc) (v : _root_.Perennial.encoding.gob.arrayType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) v.Len' dq)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) v.Len' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Len" l) v.Len' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Len" l) v.Len' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'arrayType'Len (l : Loc) (v : encoding.gob.arrayType) (y : w64) :
+noncomputable instance access_store'arrayType'Len (l : Loc) (v : _root_.Perennial.encoding.gob.arrayType) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) v.Len' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Len' := y } : encoding.gob.arrayType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Len" l) v.Len' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.arrayType go!"Len" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Len' := y } : _root_.Perennial.encoding.gob.arrayType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -958,34 +958,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'gobEncoderType :
-    TypedPointsto (GF := GF) encoding.gob.gobEncoderType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.gobEncoderType where
   typedPointstoDef l v dq := iprop(
-    "CommonType" ∷ typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' dq ∗
+    "CommonType" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'gobEncoderType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.gobEncoderType encoding.gob.gobEncoderType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.gobEncoderType _root_.Perennial.encoding.gob.gobEncoderType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'gobEncoderType'CommonType (l : Loc) (v : encoding.gob.gobEncoderType) (dq : DFrac) :
+noncomputable instance access_load'gobEncoderType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.gobEncoderType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' dq)
-      (typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'gobEncoderType'CommonType (l : Loc) (v : encoding.gob.gobEncoderType) (y : encoding.gob.CommonType) :
+noncomputable instance access_store'gobEncoderType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.gobEncoderType) (y : _root_.Perennial.encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.gobEncoderType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.gobEncoderType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : _root_.Perennial.encoding.gob.gobEncoderType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -998,68 +998,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'mapType :
-    TypedPointsto (GF := GF) encoding.gob.mapType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.mapType where
   typedPointstoDef l v dq := iprop(
-    "CommonType" ∷ typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) v.CommonType' dq ∗
-    "Key" ∷ typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) v.Key' dq ∗
-    "Elem" ∷ typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) v.Elem' dq ∗
+    "CommonType" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"CommonType" l) v.CommonType' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Key" l) v.Key' dq ∗
+    "Elem" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Elem" l) v.Elem' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'mapType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.mapType encoding.gob.mapType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.mapType _root_.Perennial.encoding.gob.mapType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'mapType'CommonType (l : Loc) (v : encoding.gob.mapType) (dq : DFrac) :
+noncomputable instance access_load'mapType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.mapType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) v.CommonType' dq)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"CommonType" l) v.CommonType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'mapType'CommonType (l : Loc) (v : encoding.gob.mapType) (y : encoding.gob.CommonType) :
+noncomputable instance access_store'mapType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.mapType) (y : _root_.Perennial.encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.mapType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"CommonType" l) v.CommonType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : _root_.Perennial.encoding.gob.mapType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'mapType'Key (l : Loc) (v : encoding.gob.mapType) (dq : DFrac) :
+noncomputable instance access_load'mapType'Key (l : Loc) (v : _root_.Perennial.encoding.gob.mapType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'mapType'Key (l : Loc) (v : encoding.gob.mapType) (y : encoding.gob.typeId) :
+noncomputable instance access_store'mapType'Key (l : Loc) (v : _root_.Perennial.encoding.gob.mapType) (y : _root_.Perennial.encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : encoding.gob.mapType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.encoding.gob.mapType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'mapType'Elem (l : Loc) (v : encoding.gob.mapType) (dq : DFrac) :
+noncomputable instance access_load'mapType'Elem (l : Loc) (v : _root_.Perennial.encoding.gob.mapType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) v.Elem' dq)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) v.Elem' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Elem" l) v.Elem' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Elem" l) v.Elem' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'mapType'Elem (l : Loc) (v : encoding.gob.mapType) (y : encoding.gob.typeId) :
+noncomputable instance access_store'mapType'Elem (l : Loc) (v : _root_.Perennial.encoding.gob.mapType) (y : _root_.Perennial.encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) v.Elem' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : encoding.gob.mapType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Elem" l) v.Elem' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.mapType go!"Elem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : _root_.Perennial.encoding.gob.mapType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1072,51 +1072,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'sliceType :
-    TypedPointsto (GF := GF) encoding.gob.sliceType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.sliceType where
   typedPointstoDef l v dq := iprop(
-    "CommonType" ∷ typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) v.CommonType' dq ∗
-    "Elem" ∷ typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) v.Elem' dq ∗
+    "CommonType" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"CommonType" l) v.CommonType' dq ∗
+    "Elem" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"Elem" l) v.Elem' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'sliceType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.sliceType encoding.gob.sliceType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.sliceType _root_.Perennial.encoding.gob.sliceType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'sliceType'CommonType (l : Loc) (v : encoding.gob.sliceType) (dq : DFrac) :
+noncomputable instance access_load'sliceType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.sliceType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) v.CommonType' dq)
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"CommonType" l) v.CommonType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sliceType'CommonType (l : Loc) (v : encoding.gob.sliceType) (y : encoding.gob.CommonType) :
+noncomputable instance access_store'sliceType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.sliceType) (y : _root_.Perennial.encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.sliceType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"CommonType" l) v.CommonType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : _root_.Perennial.encoding.gob.sliceType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sliceType'Elem (l : Loc) (v : encoding.gob.sliceType) (dq : DFrac) :
+noncomputable instance access_load'sliceType'Elem (l : Loc) (v : _root_.Perennial.encoding.gob.sliceType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) v.Elem' dq)
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) v.Elem' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"Elem" l) v.Elem' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"Elem" l) v.Elem' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sliceType'Elem (l : Loc) (v : encoding.gob.sliceType) (y : encoding.gob.typeId) :
+noncomputable instance access_store'sliceType'Elem (l : Loc) (v : _root_.Perennial.encoding.gob.sliceType) (y : _root_.Perennial.encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) v.Elem' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : encoding.gob.sliceType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"Elem" l) v.Elem' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.sliceType go!"Elem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : _root_.Perennial.encoding.gob.sliceType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1129,51 +1129,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'fieldType :
-    TypedPointsto (GF := GF) encoding.gob.fieldType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.fieldType where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) v.Name' dq ∗
-    "Id" ∷ typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) v.Id' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Name" l) v.Name' dq ∗
+    "Id" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Id" l) v.Id' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'fieldType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.fieldType encoding.gob.fieldType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.fieldType _root_.Perennial.encoding.gob.fieldType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'fieldType'Name (l : Loc) (v : encoding.gob.fieldType) (dq : DFrac) :
+noncomputable instance access_load'fieldType'Name (l : Loc) (v : _root_.Perennial.encoding.gob.fieldType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'fieldType'Name (l : Loc) (v : encoding.gob.fieldType) (y : GoString) :
+noncomputable instance access_store'fieldType'Name (l : Loc) (v : _root_.Perennial.encoding.gob.fieldType) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : encoding.gob.fieldType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.encoding.gob.fieldType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'fieldType'Id (l : Loc) (v : encoding.gob.fieldType) (dq : DFrac) :
+noncomputable instance access_load'fieldType'Id (l : Loc) (v : _root_.Perennial.encoding.gob.fieldType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) v.Id' dq)
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) v.Id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Id" l) v.Id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Id" l) v.Id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'fieldType'Id (l : Loc) (v : encoding.gob.fieldType) (y : encoding.gob.typeId) :
+noncomputable instance access_store'fieldType'Id (l : Loc) (v : _root_.Perennial.encoding.gob.fieldType) (y : _root_.Perennial.encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : encoding.gob.fieldType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Id" l) v.Id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.fieldType go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : _root_.Perennial.encoding.gob.fieldType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1186,51 +1186,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'structType :
-    TypedPointsto (GF := GF) encoding.gob.structType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.structType where
   typedPointstoDef l v dq := iprop(
-    "CommonType" ∷ typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) v.CommonType' dq ∗
-    "Field" ∷ typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) v.Field' dq ∗
+    "CommonType" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"CommonType" l) v.CommonType' dq ∗
+    "Field" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"Field" l) v.Field' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'structType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.structType encoding.gob.structType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.structType _root_.Perennial.encoding.gob.structType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'structType'CommonType (l : Loc) (v : encoding.gob.structType) (dq : DFrac) :
+noncomputable instance access_load'structType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.structType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) v.CommonType' dq)
-      (typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"CommonType" l) v.CommonType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"CommonType" l) v.CommonType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'structType'CommonType (l : Loc) (v : encoding.gob.structType) (y : encoding.gob.CommonType) :
+noncomputable instance access_store'structType'CommonType (l : Loc) (v : _root_.Perennial.encoding.gob.structType) (y : _root_.Perennial.encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.structType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"CommonType" l) v.CommonType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : _root_.Perennial.encoding.gob.structType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'structType'Field (l : Loc) (v : encoding.gob.structType) (dq : DFrac) :
+noncomputable instance access_load'structType'Field (l : Loc) (v : _root_.Perennial.encoding.gob.structType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) v.Field' dq)
-      (typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"Field" l) v.Field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'structType'Field (l : Loc) (v : encoding.gob.structType) (y : GoSlice) :
+noncomputable instance access_store'structType'Field (l : Loc) (v : _root_.Perennial.encoding.gob.structType) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) v.Field' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : encoding.gob.structType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"Field" l) v.Field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.structType go!"Field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : _root_.Perennial.encoding.gob.structType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1243,136 +1243,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'wireType :
-    TypedPointsto (GF := GF) encoding.gob.wireType where
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.wireType where
   typedPointstoDef l v dq := iprop(
-    "ArrayT" ∷ typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) v.ArrayT' dq ∗
-    "SliceT" ∷ typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) v.SliceT' dq ∗
-    "StructT" ∷ typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) v.StructT' dq ∗
-    "MapT" ∷ typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) v.MapT' dq ∗
-    "GobEncoderT" ∷ typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' dq ∗
-    "BinaryMarshalerT" ∷ typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' dq ∗
-    "TextMarshalerT" ∷ typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' dq ∗
+    "ArrayT" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"ArrayT" l) v.ArrayT' dq ∗
+    "SliceT" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"SliceT" l) v.SliceT' dq ∗
+    "StructT" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"StructT" l) v.StructT' dq ∗
+    "MapT" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"MapT" l) v.MapT' dq ∗
+    "GobEncoderT" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' dq ∗
+    "BinaryMarshalerT" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' dq ∗
+    "TextMarshalerT" ∷ typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'wireType :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.wireType encoding.gob.wireType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.wireType _root_.Perennial.encoding.gob.wireType.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'wireType'ArrayT (l : Loc) (v : encoding.gob.wireType) (dq : DFrac) :
+noncomputable instance access_load'wireType'ArrayT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) v.ArrayT' dq)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) v.ArrayT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"ArrayT" l) v.ArrayT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"ArrayT" l) v.ArrayT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'wireType'ArrayT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
+noncomputable instance access_store'wireType'ArrayT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) v.ArrayT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ArrayT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"ArrayT" l) v.ArrayT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"ArrayT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ArrayT' := y } : _root_.Perennial.encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'wireType'SliceT (l : Loc) (v : encoding.gob.wireType) (dq : DFrac) :
+noncomputable instance access_load'wireType'SliceT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) v.SliceT' dq)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) v.SliceT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"SliceT" l) v.SliceT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"SliceT" l) v.SliceT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'wireType'SliceT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
+noncomputable instance access_store'wireType'SliceT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) v.SliceT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SliceT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"SliceT" l) v.SliceT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"SliceT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SliceT' := y } : _root_.Perennial.encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'wireType'StructT (l : Loc) (v : encoding.gob.wireType) (dq : DFrac) :
+noncomputable instance access_load'wireType'StructT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) v.StructT' dq)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) v.StructT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"StructT" l) v.StructT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"StructT" l) v.StructT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'wireType'StructT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
+noncomputable instance access_store'wireType'StructT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) v.StructT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StructT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"StructT" l) v.StructT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"StructT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StructT' := y } : _root_.Perennial.encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'wireType'MapT (l : Loc) (v : encoding.gob.wireType) (dq : DFrac) :
+noncomputable instance access_load'wireType'MapT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) v.MapT' dq)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) v.MapT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"MapT" l) v.MapT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"MapT" l) v.MapT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'wireType'MapT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
+noncomputable instance access_store'wireType'MapT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) v.MapT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MapT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"MapT" l) v.MapT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"MapT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MapT' := y } : _root_.Perennial.encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'wireType'GobEncoderT (l : Loc) (v : encoding.gob.wireType) (dq : DFrac) :
+noncomputable instance access_load'wireType'GobEncoderT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' dq)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'wireType'GobEncoderT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
+noncomputable instance access_store'wireType'GobEncoderT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GobEncoderT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"GobEncoderT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GobEncoderT' := y } : _root_.Perennial.encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'wireType'BinaryMarshalerT (l : Loc) (v : encoding.gob.wireType) (dq : DFrac) :
+noncomputable instance access_load'wireType'BinaryMarshalerT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' dq)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'wireType'BinaryMarshalerT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
+noncomputable instance access_store'wireType'BinaryMarshalerT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BinaryMarshalerT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"BinaryMarshalerT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BinaryMarshalerT' := y } : _root_.Perennial.encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'wireType'TextMarshalerT (l : Loc) (v : encoding.gob.wireType) (dq : DFrac) :
+noncomputable instance access_load'wireType'TextMarshalerT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' dq)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'wireType'TextMarshalerT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
+noncomputable instance access_store'wireType'TextMarshalerT (l : Loc) (v : _root_.Perennial.encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextMarshalerT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.encoding.gob.wireType go!"TextMarshalerT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextMarshalerT' := y } : _root_.Perennial.encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1385,14 +1385,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : encoding.gob.Assumptions]
+variable [package_sem' : _root_.Perennial.encoding.gob.Assumptions]
 
 noncomputable instance typed_pointsto'typeInfo :
-    TypedPointsto (GF := GF) encoding.gob.typeInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.encoding.gob.typeInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'typeInfo :
-    IntoValTypedUnderlying (GF := GF) encoding.gob.typeInfo encoding.gob.typeInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.encoding.gob.typeInfo _root_.Perennial.encoding.gob.typeInfo.underlying :=
   sorry -- axiomatized type
 
 end def_

@@ -27,119 +27,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'CampaignRequest :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' dq ∗
-    "Name" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' dq ∗
-    "Lease" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' dq ∗
-    "Value" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' dq ∗
+    "Lease" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CampaignRequest :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CampaignRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
+noncomputable instance access_load'CampaignRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'CampaignRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignRequest'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
+noncomputable instance access_load'CampaignRequest'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignRequest'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : GoSlice) :
+noncomputable instance access_store'CampaignRequest'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignRequest'Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
+noncomputable instance access_load'CampaignRequest'Lease (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignRequest'Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : w64) :
+noncomputable instance access_store'CampaignRequest'Lease (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lease' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) v.Lease' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Lease" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lease' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignRequest'Value (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
+noncomputable instance access_load'CampaignRequest'Value (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignRequest'Value (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : GoSlice) :
+noncomputable instance access_store'CampaignRequest'Value (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
+noncomputable instance access_load'CampaignRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : GoSlice) :
+noncomputable instance access_store'CampaignRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
+noncomputable instance access_load'CampaignRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : w32) :
+noncomputable instance access_store'CampaignRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -152,102 +152,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'CampaignResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' dq ∗
-    "Leader" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' dq ∗
+    "Header" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' dq ∗
+    "Leader" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CampaignResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CampaignResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
+noncomputable instance access_load'CampaignResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'CampaignResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
+noncomputable instance access_load'CampaignResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : Loc) :
+noncomputable instance access_store'CampaignResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Header" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignResponse'Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
+noncomputable instance access_load'CampaignResponse'Leader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignResponse'Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : Loc) :
+noncomputable instance access_store'CampaignResponse'Leader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) v.Leader' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"Leader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
+noncomputable instance access_load'CampaignResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : GoSlice) :
+noncomputable instance access_store'CampaignResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CampaignResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
+noncomputable instance access_load'CampaignResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CampaignResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : w32) :
+noncomputable instance access_store'CampaignResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.CampaignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -260,136 +260,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'LeaderKey :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' dq ∗
-    "Name" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' dq ∗
-    "Key" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' dq ∗
-    "Rev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' dq ∗
-    "Lease" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' dq ∗
+    "Rev" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' dq ∗
+    "Lease" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LeaderKey :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LeaderKey'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
+noncomputable instance access_load'LeaderKey'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderKey'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'LeaderKey'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderKey'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
+noncomputable instance access_load'LeaderKey'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderKey'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : GoSlice) :
+noncomputable instance access_store'LeaderKey'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderKey'Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
+noncomputable instance access_load'LeaderKey'Key (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderKey'Key (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : GoSlice) :
+noncomputable instance access_store'LeaderKey'Key (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderKey'Rev (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
+noncomputable instance access_load'LeaderKey'Rev (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderKey'Rev (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : w64) :
+noncomputable instance access_store'LeaderKey'Rev (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rev' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) v.Rev' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Rev" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Rev' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderKey'Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
+noncomputable instance access_load'LeaderKey'Lease (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderKey'Lease (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : w64) :
+noncomputable instance access_store'LeaderKey'Lease (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lease' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) v.Lease' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"Lease" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lease' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderKey'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
+noncomputable instance access_load'LeaderKey'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderKey'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : GoSlice) :
+noncomputable instance access_store'LeaderKey'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderKey'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
+noncomputable instance access_load'LeaderKey'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderKey'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : w32) :
+noncomputable instance access_store'LeaderKey'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderKey) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -402,85 +402,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'LeaderRequest :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' dq ∗
-    "Name" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LeaderRequest :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LeaderRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
+noncomputable instance access_load'LeaderRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'LeaderRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderRequest'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
+noncomputable instance access_load'LeaderRequest'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderRequest'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : GoSlice) :
+noncomputable instance access_store'LeaderRequest'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
+noncomputable instance access_load'LeaderRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : GoSlice) :
+noncomputable instance access_store'LeaderRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
+noncomputable instance access_load'LeaderRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : w32) :
+noncomputable instance access_store'LeaderRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -493,102 +493,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'LeaderResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' dq ∗
-    "Kv" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' dq ∗
+    "Header" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' dq ∗
+    "Kv" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LeaderResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LeaderResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
+noncomputable instance access_load'LeaderResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'LeaderResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
+noncomputable instance access_load'LeaderResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : Loc) :
+noncomputable instance access_store'LeaderResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Header" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderResponse'Kv (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
+noncomputable instance access_load'LeaderResponse'Kv (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderResponse'Kv (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : Loc) :
+noncomputable instance access_store'LeaderResponse'Kv (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kv' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) v.Kv' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"Kv" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kv' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
+noncomputable instance access_load'LeaderResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : GoSlice) :
+noncomputable instance access_store'LeaderResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LeaderResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
+noncomputable instance access_load'LeaderResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LeaderResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : w32) :
+noncomputable instance access_store'LeaderResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.LeaderResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -601,85 +601,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'ResignRequest :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' dq ∗
-    "Leader" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' dq ∗
+    "Leader" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ResignRequest :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ResignRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
+noncomputable instance access_load'ResignRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'ResignRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResignRequest'Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
+noncomputable instance access_load'ResignRequest'Leader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignRequest'Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : Loc) :
+noncomputable instance access_store'ResignRequest'Leader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) v.Leader' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"Leader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResignRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
+noncomputable instance access_load'ResignRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : GoSlice) :
+noncomputable instance access_store'ResignRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResignRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
+noncomputable instance access_load'ResignRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : w32) :
+noncomputable instance access_store'ResignRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -692,85 +692,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'ResignResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' dq ∗
+    "Header" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ResignResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ResignResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
+noncomputable instance access_load'ResignResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'ResignResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResignResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
+noncomputable instance access_load'ResignResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : Loc) :
+noncomputable instance access_store'ResignResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"Header" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResignResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
+noncomputable instance access_load'ResignResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : GoSlice) :
+noncomputable instance access_store'ResignResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResignResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
+noncomputable instance access_load'ResignResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResignResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : w32) :
+noncomputable instance access_store'ResignResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ResignResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -783,102 +783,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'ProclaimRequest :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' dq ∗
-    "Leader" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' dq ∗
-    "Value" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' dq ∗
+    "Leader" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' dq ∗
+    "Value" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ProclaimRequest :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ProclaimRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
+noncomputable instance access_load'ProclaimRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimRequest'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'ProclaimRequest'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ProclaimRequest'Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
+noncomputable instance access_load'ProclaimRequest'Leader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimRequest'Leader (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : Loc) :
+noncomputable instance access_store'ProclaimRequest'Leader (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) v.Leader' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Leader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Leader' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ProclaimRequest'Value (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
+noncomputable instance access_load'ProclaimRequest'Value (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimRequest'Value (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : GoSlice) :
+noncomputable instance access_store'ProclaimRequest'Value (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) v.Value' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ProclaimRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
+noncomputable instance access_load'ProclaimRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimRequest'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : GoSlice) :
+noncomputable instance access_store'ProclaimRequest'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ProclaimRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
+noncomputable instance access_load'ProclaimRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimRequest'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : w32) :
+noncomputable instance access_store'ProclaimRequest'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -891,85 +891,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'ProclaimResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse where
   typedPointstoDef l v dq := iprop(
-    "state" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' dq ∗
-    "Header" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' dq ∗
-    "unknownFields" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' dq ∗
-    "sizeCache" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' dq ∗
+    "Header" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' dq ∗
+    "unknownFields" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' dq ∗
+    "sizeCache" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ProclaimResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ProclaimResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
+noncomputable instance access_load'ProclaimResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimResponse'state (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance access_store'ProclaimResponse'state (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ProclaimResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
+noncomputable instance access_load'ProclaimResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimResponse'Header (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : Loc) :
+noncomputable instance access_store'ProclaimResponse'Header (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) v.Header' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"Header" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Header' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ProclaimResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
+noncomputable instance access_load'ProclaimResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimResponse'unknownFields (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : GoSlice) :
+noncomputable instance access_store'ProclaimResponse'unknownFields (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ProclaimResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
+noncomputable instance access_load'ProclaimResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ProclaimResponse'sizeCache (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : w32) :
+noncomputable instance access_store'ProclaimResponse'sizeCache (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ProclaimResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -982,14 +982,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'ElectionClient :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ElectionClient :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ElectionClient :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ElectionClient :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ElectionClient go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ElectionClient.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ElectionClient _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.ElectionClient.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1001,14 +1001,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'electionClient :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.electionClient :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.electionClient :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'electionClient :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.electionClient go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.electionClient.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.electionClient _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.electionClient.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1020,10 +1020,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.Assumptions]
 
 noncomputable instance typed_pointsto'UnimplementedElectionServer :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnimplementedElectionServer where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnimplementedElectionServer where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -1031,7 +1031,7 @@ noncomputable instance typed_pointsto'UnimplementedElectionServer :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'UnimplementedElectionServer :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnimplementedElectionServer go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnimplementedElectionServer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnimplementedElectionServer _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb.UnimplementedElectionServer.underlying := by
   solve_into_val_typed_struct
 
 end def_

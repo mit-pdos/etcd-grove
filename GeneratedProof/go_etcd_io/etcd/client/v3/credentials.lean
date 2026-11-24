@@ -24,34 +24,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.credentials.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 noncomputable instance typed_pointsto'perRPCCredentialBundle :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle where
   typedPointstoDef l v dq := iprop(
-    "rc" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' dq ∗
+    "rc" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'perRPCCredentialBundle :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'perRPCCredentialBundle'rc (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (dq : DFrac) :
+noncomputable instance access_load'perRPCCredentialBundle'rc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'perRPCCredentialBundle'rc (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (y : Loc) :
+noncomputable instance access_store'perRPCCredentialBundle'rc (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rc' := y } : go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) v.rc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle go!"rc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rc' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,51 +64,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.credentials.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.Assumptions]
 
 noncomputable instance typed_pointsto'perRPCCredential :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredential where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential where
   typedPointstoDef l v dq := iprop(
-    "authToken" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq ∗
-    "authTokenMu" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq ∗
+    "authToken" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq ∗
+    "authTokenMu" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'perRPCCredential :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.credentials.perRPCCredential go_etcd_io.etcd.client.v3.credentials.perRPCCredential.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'perRPCCredential'authToken (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (dq : DFrac) :
+noncomputable instance access_load'perRPCCredential'authToken (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'perRPCCredential'authToken (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (y : GoString) :
+noncomputable instance access_store'perRPCCredential'authToken (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authToken' := y } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) v.authToken' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authToken" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authToken' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'perRPCCredential'authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (dq : DFrac) :
+noncomputable instance access_load'perRPCCredential'authTokenMu (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'perRPCCredential'authTokenMu (l : Loc) (v : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'perRPCCredential'authTokenMu (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authTokenMu' := y } : go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) v.authTokenMu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential go!"authTokenMu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with authTokenMu' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.credentials.perRPCCredential) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

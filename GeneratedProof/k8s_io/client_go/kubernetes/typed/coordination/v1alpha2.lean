@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
 
 noncomputable instance typed_pointsto'CoordinationV1alpha2Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CoordinationV1alpha2Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Interface k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
 
 noncomputable instance typed_pointsto'CoordinationV1alpha2Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CoordinationV1alpha2Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Client k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.CoordinationV1alpha2Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
 
 noncomputable instance typed_pointsto'LeaseCandidateExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LeaseCandidateExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateExpansion k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
 
 noncomputable instance typed_pointsto'LeaseCandidatesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidatesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidatesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LeaseCandidatesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidatesGetter k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidatesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidatesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidatesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
 
 noncomputable instance typed_pointsto'LeaseCandidateInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LeaseCandidateInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateInterface k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.LeaseCandidateInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.Assumptions]
 
 noncomputable instance typed_pointsto'leaseCandidates :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.leaseCandidates :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.leaseCandidates :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'leaseCandidates :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.leaseCandidates k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.leaseCandidates.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.leaseCandidates _root_.Perennial.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2.leaseCandidates.underlying :=
   sorry -- axiomatized type
 
 end def_

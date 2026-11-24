@@ -22,51 +22,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'LookupPatchMetaError :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError where
   typedPointstoDef l v dq := iprop(
-    "Path" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' dq ∗
-    "Err" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' dq ∗
+    "Path" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' dq ∗
+    "Err" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'LookupPatchMetaError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'LookupPatchMetaError'Path (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (dq : DFrac) :
+noncomputable instance access_load'LookupPatchMetaError'Path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LookupPatchMetaError'Path (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (y : GoString) :
+noncomputable instance access_store'LookupPatchMetaError'Path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) v.Path' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'LookupPatchMetaError'Err (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (dq : DFrac) :
+noncomputable instance access_load'LookupPatchMetaError'Err (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'LookupPatchMetaError'Err (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (y : GoError) :
+noncomputable instance access_store'LookupPatchMetaError'Err (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) v.Err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchMetaError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -79,51 +79,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'FieldNotFoundError :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError where
   typedPointstoDef l v dq := iprop(
-    "Path" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' dq ∗
-    "Field" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' dq ∗
+    "Path" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' dq ∗
+    "Field" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'FieldNotFoundError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'FieldNotFoundError'Path (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (dq : DFrac) :
+noncomputable instance access_load'FieldNotFoundError'Path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FieldNotFoundError'Path (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (y : GoString) :
+noncomputable instance access_store'FieldNotFoundError'Path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) v.Path' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'FieldNotFoundError'Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (dq : DFrac) :
+noncomputable instance access_load'FieldNotFoundError'Field (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FieldNotFoundError'Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (y : GoString) :
+noncomputable instance access_store'FieldNotFoundError'Field (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) v.Field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError go!"Field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.FieldNotFoundError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -136,68 +136,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'InvalidTypeError :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError where
   typedPointstoDef l v dq := iprop(
-    "Path" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' dq ∗
-    "Expected" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' dq ∗
-    "Actual" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' dq ∗
+    "Path" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' dq ∗
+    "Expected" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' dq ∗
+    "Actual" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'InvalidTypeError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'InvalidTypeError'Path (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (dq : DFrac) :
+noncomputable instance access_load'InvalidTypeError'Path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InvalidTypeError'Path (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (y : GoString) :
+noncomputable instance access_store'InvalidTypeError'Path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) v.Path' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Path' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InvalidTypeError'Expected (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (dq : DFrac) :
+noncomputable instance access_load'InvalidTypeError'Expected (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InvalidTypeError'Expected (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (y : GoString) :
+noncomputable instance access_store'InvalidTypeError'Expected (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Expected' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) v.Expected' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Expected" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Expected' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'InvalidTypeError'Actual (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (dq : DFrac) :
+noncomputable instance access_load'InvalidTypeError'Actual (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'InvalidTypeError'Actual (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (y : GoString) :
+noncomputable instance access_store'InvalidTypeError'Actual (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Actual' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) v.Actual' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError go!"Actual" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Actual' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.InvalidTypeError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -210,51 +210,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'PatchMeta :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta where
   typedPointstoDef l v dq := iprop(
-    "patchStrategies" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' dq ∗
-    "patchMergeKey" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' dq ∗
+    "patchStrategies" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' dq ∗
+    "patchMergeKey" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PatchMeta :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PatchMeta'patchStrategies (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (dq : DFrac) :
+noncomputable instance access_load'PatchMeta'patchStrategies (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PatchMeta'patchStrategies (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (y : GoSlice) :
+noncomputable instance access_store'PatchMeta'patchStrategies (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patchStrategies' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) v.patchStrategies' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchStrategies" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patchStrategies' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PatchMeta'patchMergeKey (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (dq : DFrac) :
+noncomputable instance access_load'PatchMeta'patchMergeKey (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PatchMeta'patchMergeKey (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (y : GoString) :
+noncomputable instance access_store'PatchMeta'patchMergeKey (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patchMergeKey' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) v.patchMergeKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta go!"patchMergeKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patchMergeKey' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -267,14 +267,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'PatchMetaFromStruct :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromStruct :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromStruct :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PatchMetaFromStruct :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromStruct k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromStruct.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromStruct _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromStruct.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -286,14 +286,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'PatchMetaFromOpenAPIV3 :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPIV3 :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPIV3 :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PatchMetaFromOpenAPIV3 :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPIV3 k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPIV3.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPIV3 _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPIV3.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -305,14 +305,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'PatchMetaFromOpenAPI :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPI :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPI :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PatchMetaFromOpenAPI :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPI k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPI.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPI _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.PatchMetaFromOpenAPI.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -324,85 +324,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'DiffOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions where
   typedPointstoDef l v dq := iprop(
-    "SetElementOrder" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' dq ∗
-    "IgnoreChangesAndAdditions" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' dq ∗
-    "IgnoreDeletions" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' dq ∗
-    "BuildRetainKeysDirective" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' dq ∗
+    "SetElementOrder" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' dq ∗
+    "IgnoreChangesAndAdditions" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' dq ∗
+    "IgnoreDeletions" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' dq ∗
+    "BuildRetainKeysDirective" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'DiffOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'DiffOptions'SetElementOrder (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
+noncomputable instance access_load'DiffOptions'SetElementOrder (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DiffOptions'SetElementOrder (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
+noncomputable instance access_store'DiffOptions'SetElementOrder (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SetElementOrder' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) v.SetElementOrder' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"SetElementOrder" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SetElementOrder' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DiffOptions'IgnoreChangesAndAdditions (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
+noncomputable instance access_load'DiffOptions'IgnoreChangesAndAdditions (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DiffOptions'IgnoreChangesAndAdditions (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
+noncomputable instance access_store'DiffOptions'IgnoreChangesAndAdditions (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreChangesAndAdditions' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) v.IgnoreChangesAndAdditions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreChangesAndAdditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreChangesAndAdditions' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DiffOptions'IgnoreDeletions (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
+noncomputable instance access_load'DiffOptions'IgnoreDeletions (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DiffOptions'IgnoreDeletions (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
+noncomputable instance access_store'DiffOptions'IgnoreDeletions (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreDeletions' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) v.IgnoreDeletions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"IgnoreDeletions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreDeletions' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DiffOptions'BuildRetainKeysDirective (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
+noncomputable instance access_load'DiffOptions'BuildRetainKeysDirective (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DiffOptions'BuildRetainKeysDirective (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
+noncomputable instance access_store'DiffOptions'BuildRetainKeysDirective (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BuildRetainKeysDirective' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) v.BuildRetainKeysDirective' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions go!"BuildRetainKeysDirective" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BuildRetainKeysDirective' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.DiffOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -415,51 +415,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'MergeOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions where
   typedPointstoDef l v dq := iprop(
-    "MergeParallelList" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' dq ∗
-    "IgnoreUnmatchedNulls" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' dq ∗
+    "MergeParallelList" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' dq ∗
+    "IgnoreUnmatchedNulls" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MergeOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MergeOptions'MergeParallelList (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (dq : DFrac) :
+noncomputable instance access_load'MergeOptions'MergeParallelList (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MergeOptions'MergeParallelList (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (y : Bool) :
+noncomputable instance access_store'MergeOptions'MergeParallelList (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MergeParallelList' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) v.MergeParallelList' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"MergeParallelList" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MergeParallelList' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MergeOptions'IgnoreUnmatchedNulls (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (dq : DFrac) :
+noncomputable instance access_load'MergeOptions'IgnoreUnmatchedNulls (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MergeOptions'IgnoreUnmatchedNulls (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (y : Bool) :
+noncomputable instance access_store'MergeOptions'IgnoreUnmatchedNulls (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreUnmatchedNulls' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) v.IgnoreUnmatchedNulls' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions go!"IgnoreUnmatchedNulls" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreUnmatchedNulls' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.MergeOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -472,51 +472,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'SortableSliceOfMaps :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps where
   typedPointstoDef l v dq := iprop(
-    "s" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' dq ∗
-    "k" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' dq ∗
+    "s" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' dq ∗
+    "k" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'SortableSliceOfMaps :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'SortableSliceOfMaps's (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (dq : DFrac) :
+noncomputable instance access_load'SortableSliceOfMaps's (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SortableSliceOfMaps's (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (y : GoSlice) :
+noncomputable instance access_store'SortableSliceOfMaps's (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'SortableSliceOfMaps'k (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (dq : DFrac) :
+noncomputable instance access_load'SortableSliceOfMaps'k (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SortableSliceOfMaps'k (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (y : GoString) :
+noncomputable instance access_store'SortableSliceOfMaps'k (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with k' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) v.k' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps go!"k" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with k' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfMaps) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -529,34 +529,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'SortableSliceOfScalars :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars where
   typedPointstoDef l v dq := iprop(
-    "s" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' dq ∗
+    "s" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'SortableSliceOfScalars :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'SortableSliceOfScalars's (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars) (dq : DFrac) :
+noncomputable instance access_load'SortableSliceOfScalars's (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'SortableSliceOfScalars's (l : Loc) (v : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars) (y : GoSlice) :
+noncomputable instance access_store'SortableSliceOfScalars's (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.SortableSliceOfScalars) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -569,14 +569,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'LookupPatchItem :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchItem :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchItem :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LookupPatchItem :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchItem k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchItem.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchItem _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.LookupPatchItem.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -588,14 +588,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'kindItem :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.kindItem :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.kindItem :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'kindItem :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.kindItem k8s_io.apimachinery.pkg.util.strategicpatch.kindItem.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.kindItem _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.kindItem.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -607,14 +607,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.Assumptions]
 
 noncomputable instance typed_pointsto'sliceItem :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.sliceItem :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.sliceItem :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'sliceItem :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.strategicpatch.sliceItem k8s_io.apimachinery.pkg.util.strategicpatch.sliceItem.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.sliceItem _root_.Perennial.k8s_io.apimachinery.pkg.util.strategicpatch.sliceItem.underlying :=
   sorry -- axiomatized type
 
 end def_

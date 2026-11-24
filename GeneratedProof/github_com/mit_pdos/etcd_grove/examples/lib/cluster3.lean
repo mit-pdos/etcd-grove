@@ -33,272 +33,272 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
 
 noncomputable instance typed_pointsto'Config :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config where
   typedPointstoDef l v dq := iprop(
-    "Token" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' dq ∗
-    "Name1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' dq ∗
-    "Name2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' dq ∗
-    "Name3" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' dq ∗
-    "Peer1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' dq ∗
-    "Peer2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' dq ∗
-    "Peer3" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' dq ∗
-    "Client1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' dq ∗
-    "Client2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' dq ∗
-    "Client3" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' dq ∗
-    "Bridge1" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' dq ∗
-    "Bridge2" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' dq ∗
-    "Bridge3" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' dq ∗
-    "SnapCount" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' dq ∗
-    "SnapCatchUp" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' dq ∗
+    "Token" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' dq ∗
+    "Name1" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' dq ∗
+    "Name2" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' dq ∗
+    "Name3" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' dq ∗
+    "Peer1" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' dq ∗
+    "Peer2" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' dq ∗
+    "Peer3" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' dq ∗
+    "Client1" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' dq ∗
+    "Client2" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' dq ∗
+    "Client3" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' dq ∗
+    "Bridge1" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' dq ∗
+    "Bridge2" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' dq ∗
+    "Bridge3" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' dq ∗
+    "SnapCount" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' dq ∗
+    "SnapCatchUp" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Config :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Config'Token (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Token (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Token (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Token (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Token' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) v.Token' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Token" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Token' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Name1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Name1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Name1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Name1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name1' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) v.Name1' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name1" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name1' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Name2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Name2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Name2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Name2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name2' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) v.Name2' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name2" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name2' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Name3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Name3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Name3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Name3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name3' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) v.Name3' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Name3" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name3' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Peer1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Peer1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Peer1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Peer1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Peer1' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) v.Peer1' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer1" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Peer1' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Peer2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Peer2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Peer2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Peer2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Peer2' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) v.Peer2' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer2" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Peer2' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Peer3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Peer3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Peer3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Peer3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Peer3' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) v.Peer3' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Peer3" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Peer3' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Client1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Client1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Client1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Client1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client1' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) v.Client1' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client1" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client1' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Client2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Client2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Client2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Client2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client2' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) v.Client2' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client2" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client2' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Client3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Client3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Client3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Client3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client3' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) v.Client3' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Client3" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client3' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Bridge1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Bridge1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Bridge1 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Bridge1 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bridge1' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) v.Bridge1' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge1" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bridge1' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Bridge2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Bridge2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Bridge2 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Bridge2 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bridge2' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) v.Bridge2' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge2" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bridge2' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'Bridge3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'Bridge3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'Bridge3 (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
+noncomputable instance access_store'Config'Bridge3 (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bridge3' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) v.Bridge3' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"Bridge3" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Bridge3' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'SnapCount (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'SnapCount (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'SnapCount (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : w64) :
+noncomputable instance access_store'Config'SnapCount (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapCount' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) v.SnapCount' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCount" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapCount' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Config'SnapCatchUp (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
+noncomputable instance access_load'Config'SnapCatchUp (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Config'SnapCatchUp (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : w64) :
+noncomputable instance access_store'Config'SnapCatchUp (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapCatchUp' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) v.SnapCatchUp' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config go!"SnapCatchUp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SnapCatchUp' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Config) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -311,85 +311,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions]
 
 noncomputable instance typed_pointsto'Step :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step where
   typedPointstoDef l v dq := iprop(
-    "Delay" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' dq ∗
-    "Kind" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' dq ∗
-    "A" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' dq ∗
-    "B" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' dq ∗
+    "Delay" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' dq ∗
+    "Kind" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' dq ∗
+    "A" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' dq ∗
+    "B" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Step :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Step'Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
+noncomputable instance access_load'Step'Delay (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Step'Delay (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'Step'Delay (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delay' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) v.Delay' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Delay" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Delay' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Step'Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
+noncomputable instance access_load'Step'Kind (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Step'Kind (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : w64) :
+noncomputable instance access_store'Step'Kind (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) v.Kind' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"Kind" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Kind' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Step'A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
+noncomputable instance access_load'Step'A (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Step'A (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : w64) :
+noncomputable instance access_store'Step'A (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with A' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) v.A' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"A" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with A' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Step'B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
+noncomputable instance access_load'Step'B (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Step'B (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : w64) :
+noncomputable instance access_store'Step'B (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with B' := y } : github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) v.B' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step go!"B" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with B' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

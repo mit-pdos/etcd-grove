@@ -27,272 +27,272 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'ObjectMeta :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' dq ∗
-    "GenerateName" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' dq ∗
-    "Namespace" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' dq ∗
-    "SelfLink" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' dq ∗
-    "UID" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' dq ∗
-    "ResourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' dq ∗
-    "Generation" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' dq ∗
-    "CreationTimestamp" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' dq ∗
-    "DeletionTimestamp" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' dq ∗
-    "DeletionGracePeriodSeconds" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' dq ∗
-    "Labels" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' dq ∗
-    "Annotations" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' dq ∗
-    "OwnerReferences" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' dq ∗
-    "Finalizers" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' dq ∗
-    "ManagedFields" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' dq ∗
+    "GenerateName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' dq ∗
+    "Namespace" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' dq ∗
+    "SelfLink" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' dq ∗
+    "UID" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "Generation" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' dq ∗
+    "CreationTimestamp" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' dq ∗
+    "DeletionTimestamp" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' dq ∗
+    "DeletionGracePeriodSeconds" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' dq ∗
+    "Labels" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' dq ∗
+    "Annotations" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' dq ∗
+    "OwnerReferences" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' dq ∗
+    "Finalizers" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' dq ∗
+    "ManagedFields" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ObjectMeta :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ObjectMeta'Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'Name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'Name (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
+noncomputable instance access_store'ObjectMeta'Name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'GenerateName (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'GenerateName (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'GenerateName (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
+noncomputable instance access_store'ObjectMeta'GenerateName (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GenerateName' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) v.GenerateName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"GenerateName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GenerateName' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'Namespace (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
+noncomputable instance access_store'ObjectMeta'Namespace (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) v.Namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'SelfLink (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'SelfLink (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'SelfLink (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
+noncomputable instance access_store'ObjectMeta'SelfLink (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SelfLink' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) v.SelfLink' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"SelfLink" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SelfLink' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'UID (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'UID (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
+noncomputable instance access_store'ObjectMeta'UID (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : _root_.Perennial.k8s_io.apimachinery.pkg.types.UID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) v.UID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"UID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UID' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'ResourceVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'ResourceVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
+noncomputable instance access_store'ObjectMeta'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'Generation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'Generation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'Generation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : w64) :
+noncomputable instance access_store'ObjectMeta'Generation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Generation' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) v.Generation' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Generation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Generation' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'CreationTimestamp (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'CreationTimestamp (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'CreationTimestamp (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+noncomputable instance access_store'ObjectMeta'CreationTimestamp (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CreationTimestamp' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) v.CreationTimestamp' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"CreationTimestamp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CreationTimestamp' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'DeletionTimestamp (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'DeletionTimestamp (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'DeletionTimestamp (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : Loc) :
+noncomputable instance access_store'ObjectMeta'DeletionTimestamp (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeletionTimestamp' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) v.DeletionTimestamp' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionTimestamp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeletionTimestamp' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'DeletionGracePeriodSeconds (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'DeletionGracePeriodSeconds (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'DeletionGracePeriodSeconds (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : Loc) :
+noncomputable instance access_store'ObjectMeta'DeletionGracePeriodSeconds (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeletionGracePeriodSeconds' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) v.DeletionGracePeriodSeconds' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"DeletionGracePeriodSeconds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DeletionGracePeriodSeconds' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'Labels (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'Labels (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'Labels (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoMap) :
+noncomputable instance access_store'ObjectMeta'Labels (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Labels' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) v.Labels' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Labels" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Labels' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'Annotations (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'Annotations (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'Annotations (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoMap) :
+noncomputable instance access_store'ObjectMeta'Annotations (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Annotations' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) v.Annotations' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Annotations" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Annotations' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'OwnerReferences (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'OwnerReferences (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'OwnerReferences (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoSlice) :
+noncomputable instance access_store'ObjectMeta'OwnerReferences (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OwnerReferences' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) v.OwnerReferences' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"OwnerReferences" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OwnerReferences' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'Finalizers (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'Finalizers (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'Finalizers (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoSlice) :
+noncomputable instance access_store'ObjectMeta'Finalizers (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Finalizers' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) v.Finalizers' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"Finalizers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Finalizers' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ObjectMeta'ManagedFields (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
+noncomputable instance access_load'ObjectMeta'ManagedFields (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ObjectMeta'ManagedFields (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoSlice) :
+noncomputable instance access_store'ObjectMeta'ManagedFields (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ManagedFields' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) v.ManagedFields' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta go!"ManagedFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ManagedFields' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -305,221 +305,221 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'ListOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "LabelSelector" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' dq ∗
-    "FieldSelector" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' dq ∗
-    "Watch" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' dq ∗
-    "AllowWatchBookmarks" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' dq ∗
-    "ResourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' dq ∗
-    "ResourceVersionMatch" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' dq ∗
-    "TimeoutSeconds" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' dq ∗
-    "Limit" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' dq ∗
-    "Continue" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' dq ∗
-    "SendInitialEvents" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' dq ∗
-    "ShardSelector" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "LabelSelector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' dq ∗
+    "FieldSelector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' dq ∗
+    "Watch" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' dq ∗
+    "AllowWatchBookmarks" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "ResourceVersionMatch" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' dq ∗
+    "TimeoutSeconds" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' dq ∗
+    "Limit" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' dq ∗
+    "Continue" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' dq ∗
+    "SendInitialEvents" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' dq ∗
+    "ShardSelector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ListOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ListOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'ListOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'LabelSelector (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'LabelSelector (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'LabelSelector (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
+noncomputable instance access_store'ListOptions'LabelSelector (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LabelSelector' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) v.LabelSelector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"LabelSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LabelSelector' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'FieldSelector (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'FieldSelector (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'FieldSelector (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
+noncomputable instance access_store'ListOptions'FieldSelector (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldSelector' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) v.FieldSelector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"FieldSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldSelector' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'Watch (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'Watch (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'Watch (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Bool) :
+noncomputable instance access_store'ListOptions'Watch (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Watch' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) v.Watch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Watch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Watch' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'AllowWatchBookmarks (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'AllowWatchBookmarks (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'AllowWatchBookmarks (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Bool) :
+noncomputable instance access_store'ListOptions'AllowWatchBookmarks (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowWatchBookmarks' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) v.AllowWatchBookmarks' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"AllowWatchBookmarks" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowWatchBookmarks' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'ResourceVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'ResourceVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
+noncomputable instance access_store'ListOptions'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'ResourceVersionMatch (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'ResourceVersionMatch (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'ResourceVersionMatch (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch) :
+noncomputable instance access_store'ListOptions'ResourceVersionMatch (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersionMatch' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) v.ResourceVersionMatch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ResourceVersionMatch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersionMatch' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'TimeoutSeconds (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'TimeoutSeconds (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'TimeoutSeconds (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Loc) :
+noncomputable instance access_store'ListOptions'TimeoutSeconds (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeoutSeconds' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) v.TimeoutSeconds' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"TimeoutSeconds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeoutSeconds' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'Limit (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'Limit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'Limit (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : w64) :
+noncomputable instance access_store'ListOptions'Limit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Limit' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) v.Limit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Limit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Limit' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'Continue (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'Continue (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'Continue (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
+noncomputable instance access_store'ListOptions'Continue (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Continue' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) v.Continue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"Continue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Continue' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'SendInitialEvents (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'SendInitialEvents (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'SendInitialEvents (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Loc) :
+noncomputable instance access_store'ListOptions'SendInitialEvents (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendInitialEvents' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) v.SendInitialEvents' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"SendInitialEvents" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SendInitialEvents' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ListOptions'ShardSelector (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
+noncomputable instance access_load'ListOptions'ShardSelector (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ListOptions'ShardSelector (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
+noncomputable instance access_store'ListOptions'ShardSelector (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShardSelector' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) v.ShardSelector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions go!"ShardSelector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShardSelector' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -532,51 +532,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'GetOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ResourceVersion" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ResourceVersion" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'GetOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'GetOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (dq : DFrac) :
+noncomputable instance access_load'GetOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GetOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'GetOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'GetOptions'ResourceVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (dq : DFrac) :
+noncomputable instance access_load'GetOptions'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'GetOptions'ResourceVersion (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (y : GoString) :
+noncomputable instance access_store'GetOptions'ResourceVersion (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) v.ResourceVersion' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions go!"ResourceVersion" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceVersion' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.GetOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -589,136 +589,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'DeleteOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "GracePeriodSeconds" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' dq ∗
-    "Preconditions" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' dq ∗
-    "OrphanDependents" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' dq ∗
-    "PropagationPolicy" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' dq ∗
-    "DryRun" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' dq ∗
-    "IgnoreStoreReadErrorWithClusterBreakingPotential" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "GracePeriodSeconds" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' dq ∗
+    "Preconditions" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' dq ∗
+    "OrphanDependents" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' dq ∗
+    "PropagationPolicy" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' dq ∗
+    "DryRun" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' dq ∗
+    "IgnoreStoreReadErrorWithClusterBreakingPotential" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'DeleteOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'DeleteOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'DeleteOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteOptions'GracePeriodSeconds (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'GracePeriodSeconds (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'GracePeriodSeconds (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
+noncomputable instance access_store'DeleteOptions'GracePeriodSeconds (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GracePeriodSeconds' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) v.GracePeriodSeconds' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"GracePeriodSeconds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GracePeriodSeconds' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteOptions'Preconditions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'Preconditions (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'Preconditions (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
+noncomputable instance access_store'DeleteOptions'Preconditions (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Preconditions' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) v.Preconditions' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"Preconditions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Preconditions' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteOptions'OrphanDependents (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'OrphanDependents (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'OrphanDependents (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
+noncomputable instance access_store'DeleteOptions'OrphanDependents (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OrphanDependents' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) v.OrphanDependents' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"OrphanDependents" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OrphanDependents' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteOptions'PropagationPolicy (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'PropagationPolicy (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'PropagationPolicy (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
+noncomputable instance access_store'DeleteOptions'PropagationPolicy (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PropagationPolicy' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) v.PropagationPolicy' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"PropagationPolicy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PropagationPolicy' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : GoSlice) :
+noncomputable instance access_store'DeleteOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"DryRun" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'DeleteOptions'IgnoreStoreReadErrorWithClusterBreakingPotential (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
+noncomputable instance access_load'DeleteOptions'IgnoreStoreReadErrorWithClusterBreakingPotential (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'DeleteOptions'IgnoreStoreReadErrorWithClusterBreakingPotential (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
+noncomputable instance access_store'DeleteOptions'IgnoreStoreReadErrorWithClusterBreakingPotential (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreStoreReadErrorWithClusterBreakingPotential' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) v.IgnoreStoreReadErrorWithClusterBreakingPotential' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions go!"IgnoreStoreReadErrorWithClusterBreakingPotential" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IgnoreStoreReadErrorWithClusterBreakingPotential' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -731,85 +731,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'CreateOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "DryRun" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' dq ∗
-    "FieldManager" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' dq ∗
-    "FieldValidation" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "DryRun" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' dq ∗
+    "FieldManager" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' dq ∗
+    "FieldValidation" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'CreateOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'CreateOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
+noncomputable instance access_load'CreateOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CreateOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'CreateOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CreateOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
+noncomputable instance access_load'CreateOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CreateOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : GoSlice) :
+noncomputable instance access_store'CreateOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"DryRun" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CreateOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
+noncomputable instance access_load'CreateOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CreateOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : GoString) :
+noncomputable instance access_store'CreateOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldManager" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'CreateOptions'FieldValidation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
+noncomputable instance access_load'CreateOptions'FieldValidation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'CreateOptions'FieldValidation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : GoString) :
+noncomputable instance access_store'CreateOptions'FieldValidation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldValidation' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) v.FieldValidation' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions go!"FieldValidation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldValidation' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -822,102 +822,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'PatchOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "DryRun" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' dq ∗
-    "Force" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' dq ∗
-    "FieldManager" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' dq ∗
-    "FieldValidation" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "DryRun" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' dq ∗
+    "Force" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' dq ∗
+    "FieldManager" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' dq ∗
+    "FieldValidation" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'PatchOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'PatchOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
+noncomputable instance access_load'PatchOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PatchOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'PatchOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PatchOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
+noncomputable instance access_load'PatchOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PatchOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : GoSlice) :
+noncomputable instance access_store'PatchOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"DryRun" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PatchOptions'Force (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
+noncomputable instance access_load'PatchOptions'Force (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PatchOptions'Force (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : Loc) :
+noncomputable instance access_store'PatchOptions'Force (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Force' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) v.Force' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"Force" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Force' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PatchOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
+noncomputable instance access_load'PatchOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PatchOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : GoString) :
+noncomputable instance access_store'PatchOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldManager" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'PatchOptions'FieldValidation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
+noncomputable instance access_load'PatchOptions'FieldValidation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'PatchOptions'FieldValidation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : GoString) :
+noncomputable instance access_store'PatchOptions'FieldValidation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldValidation' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) v.FieldValidation' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions go!"FieldValidation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldValidation' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.PatchOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -930,85 +930,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'ApplyOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "DryRun" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' dq ∗
-    "Force" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' dq ∗
-    "FieldManager" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "DryRun" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' dq ∗
+    "Force" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' dq ∗
+    "FieldManager" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ApplyOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ApplyOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplyOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ApplyOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'ApplyOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ApplyOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplyOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ApplyOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : GoSlice) :
+noncomputable instance access_store'ApplyOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"DryRun" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ApplyOptions'Force (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplyOptions'Force (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ApplyOptions'Force (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : Bool) :
+noncomputable instance access_store'ApplyOptions'Force (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Force' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) v.Force' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"Force" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Force' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ApplyOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
+noncomputable instance access_load'ApplyOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ApplyOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : GoString) :
+noncomputable instance access_store'ApplyOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions go!"FieldManager" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ApplyOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1021,85 +1021,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'UpdateOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "DryRun" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' dq ∗
-    "FieldManager" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' dq ∗
-    "FieldValidation" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "DryRun" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' dq ∗
+    "FieldManager" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' dq ∗
+    "FieldValidation" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'UpdateOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'UpdateOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
+noncomputable instance access_load'UpdateOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateOptions'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'UpdateOptions'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UpdateOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
+noncomputable instance access_load'UpdateOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateOptions'DryRun (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : GoSlice) :
+noncomputable instance access_store'UpdateOptions'DryRun (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) v.DryRun' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"DryRun" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DryRun' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UpdateOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
+noncomputable instance access_load'UpdateOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateOptions'FieldManager (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : GoString) :
+noncomputable instance access_store'UpdateOptions'FieldManager (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) v.FieldManager' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldManager" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldManager' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UpdateOptions'FieldValidation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
+noncomputable instance access_load'UpdateOptions'FieldValidation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UpdateOptions'FieldValidation (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : GoString) :
+noncomputable instance access_store'UpdateOptions'FieldValidation (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldValidation' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) v.FieldValidation' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions go!"FieldValidation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FieldValidation' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.UpdateOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1112,136 +1112,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'Status :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.Status where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ListMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' dq ∗
-    "Status" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' dq ∗
-    "Message" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' dq ∗
-    "Reason" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' dq ∗
-    "Details" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' dq ∗
-    "Code" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ListMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' dq ∗
+    "Status" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' dq ∗
+    "Reason" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' dq ∗
+    "Details" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' dq ∗
+    "Code" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Status :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.Status k8s_io.apimachinery.pkg.apis.«meta».v1.Status.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Status'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Status'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'Status'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Status'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'ListMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Status'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance access_store'Status'ListMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ListMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"ListMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ListMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Status'Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'Status (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Status'Status (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : GoString) :
+noncomputable instance access_store'Status'Status (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) v.Status' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Status" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Status' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Status'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'Message (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Status'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : GoString) :
+noncomputable instance access_store'Status'Message (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Status'Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'Reason (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Status'Reason (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason) :
+noncomputable instance access_store'Status'Reason (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reason' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) v.Reason' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Reason" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Reason' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Status'Details (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'Details (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Status'Details (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : Loc) :
+noncomputable instance access_store'Status'Details (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Details' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) v.Details' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Details" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Details' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Status'Code (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
+noncomputable instance access_load'Status'Code (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Status'Code (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : w32) :
+noncomputable instance access_store'Status'Code (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) v.Code' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status go!"Code" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Code' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1254,68 +1254,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'StatusCause :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause where
   typedPointstoDef l v dq := iprop(
-    "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' dq ∗
-    "Message" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' dq ∗
-    "Field" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' dq ∗
+    "Type'" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' dq ∗
+    "Message" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' dq ∗
+    "Field" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'StatusCause :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'StatusCause'Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (dq : DFrac) :
+noncomputable instance access_load'StatusCause'Type (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StatusCause'Type (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.CauseType) :
+noncomputable instance access_store'StatusCause'Type (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.CauseType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'StatusCause'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (dq : DFrac) :
+noncomputable instance access_load'StatusCause'Message (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StatusCause'Message (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (y : GoString) :
+noncomputable instance access_store'StatusCause'Message (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) v.Message' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'StatusCause'Field (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (dq : DFrac) :
+noncomputable instance access_load'StatusCause'Field (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'StatusCause'Field (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (y : GoString) :
+noncomputable instance access_store'StatusCause'Field (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) v.Field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause go!"Field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1328,68 +1328,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
 
 noncomputable instance typed_pointsto'List :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.List'' where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' where
   typedPointstoDef l v dq := iprop(
-    "TypeMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' dq ∗
-    "ListMeta" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' dq ∗
-    "Items" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' dq ∗
+    "TypeMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' dq ∗
+    "ListMeta" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' dq ∗
+    "Items" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'List :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.apis.«meta».v1.List'' k8s_io.apimachinery.pkg.apis.«meta».v1.List''.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List''.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'List'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (dq : DFrac) :
+noncomputable instance access_load'List'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'List'TypeMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (y : k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
+noncomputable instance access_store'List'TypeMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) v.TypeMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"TypeMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TypeMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'List'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (dq : DFrac) :
+noncomputable instance access_load'List'ListMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'List'ListMeta (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (y : k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
+noncomputable instance access_store'List'ListMeta (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ListMeta' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) v.ListMeta' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"ListMeta" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ListMeta' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'List'Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (dq : DFrac) :
+noncomputable instance access_load'List'Items (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'List'Items (l : Loc) (v : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (y : GoSlice) :
+noncomputable instance access_store'List'Items (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Items' := y } : k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) v.Items' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'' go!"Items" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Items' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.List'') (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

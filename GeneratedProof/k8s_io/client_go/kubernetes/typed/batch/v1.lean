@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'BatchV1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BatchV1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Interface k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'BatchV1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BatchV1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Client k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.BatchV1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'CronJobsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.CronJobsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CronJobsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.CronJobsGetter k8s_io.client_go.kubernetes.typed.batch.v1.CronJobsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'CronJobInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.CronJobInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CronJobInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.CronJobInterface k8s_io.client_go.kubernetes.typed.batch.v1.CronJobInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'cronJobs :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.cronJobs :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.cronJobs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cronJobs :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.cronJobs k8s_io.client_go.kubernetes.typed.batch.v1.cronJobs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.cronJobs _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.cronJobs.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'CronJobExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.CronJobExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CronJobExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.CronJobExpansion k8s_io.client_go.kubernetes.typed.batch.v1.CronJobExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.CronJobExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'JobExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.JobExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'JobExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.JobExpansion k8s_io.client_go.kubernetes.typed.batch.v1.JobExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'JobsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.JobsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'JobsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.JobsGetter k8s_io.client_go.kubernetes.typed.batch.v1.JobsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'JobInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.JobInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'JobInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.JobInterface k8s_io.client_go.kubernetes.typed.batch.v1.JobInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.JobInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.Assumptions]
 
 noncomputable instance typed_pointsto'jobs :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.jobs :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.jobs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'jobs :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.batch.v1.jobs k8s_io.client_go.kubernetes.typed.batch.v1.jobs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.jobs _root_.Perennial.k8s_io.client_go.kubernetes.typed.batch.v1.jobs.underlying :=
   sorry -- axiomatized type
 
 end def_

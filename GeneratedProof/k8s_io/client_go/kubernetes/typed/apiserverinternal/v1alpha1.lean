@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'InternalV1alpha1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'InternalV1alpha1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'InternalV1alpha1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'InternalV1alpha1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.InternalV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageVersionExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageVersionExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageVersionsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageVersionsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageVersionInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageVersionInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.StorageVersionInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'storageVersions :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'storageVersions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions _root_.Perennial.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1.storageVersions.underlying :=
   sorry -- axiomatized type
 
 end def_

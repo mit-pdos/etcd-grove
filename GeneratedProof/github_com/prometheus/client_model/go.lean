@@ -15,7 +15,7 @@ set_option linter.deprecated true
 namespace Perennial
 open Iris Iris.BI
 noncomputable section
-namespace github_com.prometheus.client_model.go
+namespace github_com.prometheus.client_model.go''
 
 namespace MetricType
 section def_
@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'MetricType :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.MetricType :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.MetricType :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MetricType :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.MetricType github_com.prometheus.client_model.go.MetricType.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.MetricType _root_.Perennial.github_com.prometheus.client_model.go''.MetricType.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -42,14 +42,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'LabelPair :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.LabelPair :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.LabelPair :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LabelPair :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.LabelPair github_com.prometheus.client_model.go.LabelPair.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.LabelPair _root_.Perennial.github_com.prometheus.client_model.go''.LabelPair.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -61,14 +61,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Gauge :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Gauge :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Gauge :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Gauge :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Gauge github_com.prometheus.client_model.go.Gauge.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Gauge _root_.Perennial.github_com.prometheus.client_model.go''.Gauge.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -80,14 +80,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Counter :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Counter :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Counter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Counter :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Counter github_com.prometheus.client_model.go.Counter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Counter _root_.Perennial.github_com.prometheus.client_model.go''.Counter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -99,14 +99,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Quantile :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Quantile :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Quantile :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Quantile :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Quantile github_com.prometheus.client_model.go.Quantile.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Quantile _root_.Perennial.github_com.prometheus.client_model.go''.Quantile.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -118,14 +118,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Summary :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Summary :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Summary :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Summary :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Summary github_com.prometheus.client_model.go.Summary.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Summary _root_.Perennial.github_com.prometheus.client_model.go''.Summary.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -137,14 +137,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Untyped :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Untyped :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Untyped :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Untyped :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Untyped github_com.prometheus.client_model.go.Untyped.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Untyped _root_.Perennial.github_com.prometheus.client_model.go''.Untyped.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -156,14 +156,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Histogram :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Histogram :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Histogram :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Histogram :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Histogram github_com.prometheus.client_model.go.Histogram.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Histogram _root_.Perennial.github_com.prometheus.client_model.go''.Histogram.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -175,14 +175,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Bucket :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Bucket :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Bucket :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Bucket :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Bucket github_com.prometheus.client_model.go.Bucket.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Bucket _root_.Perennial.github_com.prometheus.client_model.go''.Bucket.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -194,14 +194,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'BucketSpan :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.BucketSpan :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.BucketSpan :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BucketSpan :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.BucketSpan github_com.prometheus.client_model.go.BucketSpan.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.BucketSpan _root_.Perennial.github_com.prometheus.client_model.go''.BucketSpan.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -213,14 +213,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Exemplar :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Exemplar :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Exemplar :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Exemplar :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Exemplar github_com.prometheus.client_model.go.Exemplar.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Exemplar _root_.Perennial.github_com.prometheus.client_model.go''.Exemplar.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -232,14 +232,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'Metric :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.Metric :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Metric :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Metric :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.Metric github_com.prometheus.client_model.go.Metric.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.Metric _root_.Perennial.github_com.prometheus.client_model.go''.Metric.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -251,19 +251,19 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.prometheus.client_model.go.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.prometheus.client_model.go''.Assumptions]
 
 noncomputable instance typed_pointsto'MetricFamily :
-    TypedPointsto (GF := GF) github_com.prometheus.client_model.go.MetricFamily :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.MetricFamily :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MetricFamily :
-    IntoValTypedUnderlying (GF := GF) github_com.prometheus.client_model.go.MetricFamily github_com.prometheus.client_model.go.MetricFamily.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.prometheus.client_model.go''.MetricFamily _root_.Perennial.github_com.prometheus.client_model.go''.MetricFamily.underlying :=
   sorry -- axiomatized type
 
 end def_
 end MetricFamily
 
-end github_com.prometheus.client_model.go
+end github_com.prometheus.client_model.go''
 end
 end Perennial

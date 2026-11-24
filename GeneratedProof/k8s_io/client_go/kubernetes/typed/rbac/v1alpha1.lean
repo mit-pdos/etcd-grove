@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterRolesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterRolesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRolesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterRoleInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterRoleInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'clusterRoles :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'clusterRoles :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoles.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterRoleBindingsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterRoleBindingsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterRoleBindingInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterRoleBindingInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'clusterRoleBindings :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'clusterRoleBindings :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.clusterRoleBindings.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterRoleExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterRoleExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterRoleBindingExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ClusterRoleBindingExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.ClusterRoleBindingExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RoleExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RoleExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RoleBindingExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RoleBindingExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RbacV1alpha1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RbacV1alpha1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RbacV1alpha1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RbacV1alpha1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RbacV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RolesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RolesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RolesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RoleInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RoleInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'roles :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'roles :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roles.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RoleBindingsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RoleBindingsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'RoleBindingInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RoleBindingInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.RoleBindingInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'roleBindings :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'roleBindings :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings _root_.Perennial.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1.roleBindings.underlying :=
   sorry -- axiomatized type
 
 end def_

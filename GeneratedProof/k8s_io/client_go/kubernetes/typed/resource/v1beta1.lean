@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'DeviceClassesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DeviceClassesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassesGetter k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'DeviceClassInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DeviceClassInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassInterface k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'deviceClasses :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.deviceClasses :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.deviceClasses :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'deviceClasses :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.deviceClasses k8s_io.client_go.kubernetes.typed.resource.v1beta1.deviceClasses.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.deviceClasses _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.deviceClasses.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'DeviceClassExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DeviceClassExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.DeviceClassExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceClaimExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceClaimExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceClaimTemplateExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceClaimTemplateExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceSliceExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceSliceExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceExpansion k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceV1beta1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceV1beta1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Interface k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceV1beta1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceV1beta1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Client k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceV1beta1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceClaimsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceClaimsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimsGetter k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceClaimInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceClaimInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimInterface k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'resourceClaims :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaims :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaims :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'resourceClaims :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaims k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaims.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaims _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaims.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceClaimTemplatesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplatesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplatesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceClaimTemplatesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplatesGetter k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplatesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplatesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplatesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceClaimTemplateInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceClaimTemplateInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateInterface k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceClaimTemplateInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'resourceClaimTemplates :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaimTemplates :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaimTemplates :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'resourceClaimTemplates :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaimTemplates k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaimTemplates.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaimTemplates _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceClaimTemplates.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceSlicesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSlicesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSlicesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceSlicesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSlicesGetter k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSlicesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSlicesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSlicesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceSliceInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResourceSliceInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceInterface k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.ResourceSliceInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'resourceSlices :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceSlices :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceSlices :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'resourceSlices :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceSlices k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceSlices.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceSlices _root_.Perennial.k8s_io.client_go.kubernetes.typed.resource.v1beta1.resourceSlices.underlying :=
   sorry -- axiomatized type
 
 end def_

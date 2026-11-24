@@ -26,51 +26,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.Assumptions]
 
 noncomputable instance typed_pointsto'lockServer :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer where
   typedPointstoDef l v dq := iprop(
-    "c" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' dq ∗
-    "UnsafeLockServer" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' dq ∗
+    "c" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' dq ∗
+    "UnsafeLockServer" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'lockServer :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'lockServer'c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (dq : DFrac) :
+noncomputable instance access_load'lockServer'c (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lockServer'c (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (y : Loc) :
+noncomputable instance access_store'lockServer'c (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) v.c' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"c" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'lockServer'UnsafeLockServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (dq : DFrac) :
+noncomputable instance access_load'lockServer'UnsafeLockServer (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lockServer'UnsafeLockServer (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnsafeLockServer) :
+noncomputable instance access_store'lockServer'UnsafeLockServer (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnsafeLockServer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeLockServer' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) v.UnsafeLockServer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer go!"UnsafeLockServer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnsafeLockServer' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.lockServer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

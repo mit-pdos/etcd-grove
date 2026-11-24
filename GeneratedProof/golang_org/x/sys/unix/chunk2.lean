@@ -24,14 +24,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrCAN :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrCAN :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrCAN :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrCAN :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrCAN golang_org.x.sys.unix.RawSockaddrCAN.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrCAN _root_.Perennial.golang_org.x.sys.unix.RawSockaddrCAN.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -43,14 +43,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrALG :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrALG :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrALG :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrALG :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrALG golang_org.x.sys.unix.RawSockaddrALG.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrALG _root_.Perennial.golang_org.x.sys.unix.RawSockaddrALG.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -62,14 +62,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrVM :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrVM :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrVM :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrVM :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrVM golang_org.x.sys.unix.RawSockaddrVM.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrVM _root_.Perennial.golang_org.x.sys.unix.RawSockaddrVM.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -81,14 +81,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrXDP :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrXDP :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrXDP :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrXDP :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrXDP golang_org.x.sys.unix.RawSockaddrXDP.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrXDP _root_.Perennial.golang_org.x.sys.unix.RawSockaddrXDP.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -100,14 +100,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrPPPoX :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrPPPoX :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrPPPoX :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrPPPoX :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrPPPoX golang_org.x.sys.unix.RawSockaddrPPPoX.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrPPPoX _root_.Perennial.golang_org.x.sys.unix.RawSockaddrPPPoX.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -119,14 +119,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrTIPC :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrTIPC :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrTIPC :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrTIPC :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrTIPC golang_org.x.sys.unix.RawSockaddrTIPC.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrTIPC _root_.Perennial.golang_org.x.sys.unix.RawSockaddrTIPC.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -138,14 +138,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrL2TPIP :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrL2TPIP :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrL2TPIP :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrL2TPIP :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrL2TPIP golang_org.x.sys.unix.RawSockaddrL2TPIP.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrL2TPIP _root_.Perennial.golang_org.x.sys.unix.RawSockaddrL2TPIP.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -157,14 +157,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrL2TPIP6 :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrL2TPIP6 :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrL2TPIP6 :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrL2TPIP6 :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrL2TPIP6 golang_org.x.sys.unix.RawSockaddrL2TPIP6.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrL2TPIP6 _root_.Perennial.golang_org.x.sys.unix.RawSockaddrL2TPIP6.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -176,14 +176,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrIUCV :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrIUCV :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrIUCV :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrIUCV :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrIUCV golang_org.x.sys.unix.RawSockaddrIUCV.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrIUCV _root_.Perennial.golang_org.x.sys.unix.RawSockaddrIUCV.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -195,14 +195,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RawSockaddrNFC :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RawSockaddrNFC :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrNFC :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RawSockaddrNFC :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RawSockaddrNFC golang_org.x.sys.unix.RawSockaddrNFC.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RawSockaddrNFC _root_.Perennial.golang_org.x.sys.unix.RawSockaddrNFC.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -214,14 +214,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'_Socklen :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix._Socklen :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix._Socklen :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'_Socklen :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix._Socklen golang_org.x.sys.unix._Socklen.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix._Socklen _root_.Perennial.golang_org.x.sys.unix._Socklen.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -233,14 +233,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Linger :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Linger :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Linger :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Linger :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Linger golang_org.x.sys.unix.Linger.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Linger _root_.Perennial.golang_org.x.sys.unix.Linger.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -252,14 +252,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IPMreq :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IPMreq :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPMreq :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IPMreq :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IPMreq golang_org.x.sys.unix.IPMreq.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPMreq _root_.Perennial.golang_org.x.sys.unix.IPMreq.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -271,14 +271,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IPMreqn :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IPMreqn :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPMreqn :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IPMreqn :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IPMreqn golang_org.x.sys.unix.IPMreqn.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPMreqn _root_.Perennial.golang_org.x.sys.unix.IPMreqn.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -290,14 +290,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IPv6Mreq :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IPv6Mreq :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPv6Mreq :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IPv6Mreq :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IPv6Mreq golang_org.x.sys.unix.IPv6Mreq.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPv6Mreq _root_.Perennial.golang_org.x.sys.unix.IPv6Mreq.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -309,14 +309,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'PacketMreq :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.PacketMreq :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PacketMreq :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PacketMreq :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.PacketMreq golang_org.x.sys.unix.PacketMreq.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PacketMreq _root_.Perennial.golang_org.x.sys.unix.PacketMreq.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -328,14 +328,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Inet4Pktinfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Inet4Pktinfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Inet4Pktinfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Inet4Pktinfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Inet4Pktinfo golang_org.x.sys.unix.Inet4Pktinfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Inet4Pktinfo _root_.Perennial.golang_org.x.sys.unix.Inet4Pktinfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -347,14 +347,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Inet6Pktinfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Inet6Pktinfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Inet6Pktinfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Inet6Pktinfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Inet6Pktinfo golang_org.x.sys.unix.Inet6Pktinfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Inet6Pktinfo _root_.Perennial.golang_org.x.sys.unix.Inet6Pktinfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -366,14 +366,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IPv6MTUInfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IPv6MTUInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPv6MTUInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IPv6MTUInfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IPv6MTUInfo golang_org.x.sys.unix.IPv6MTUInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IPv6MTUInfo _root_.Perennial.golang_org.x.sys.unix.IPv6MTUInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -385,14 +385,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'ICMPv6Filter :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.ICMPv6Filter :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.ICMPv6Filter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ICMPv6Filter :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.ICMPv6Filter golang_org.x.sys.unix.ICMPv6Filter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.ICMPv6Filter _root_.Perennial.golang_org.x.sys.unix.ICMPv6Filter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -404,14 +404,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Ucred :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Ucred :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Ucred :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Ucred :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Ucred golang_org.x.sys.unix.Ucred.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Ucred _root_.Perennial.golang_org.x.sys.unix.Ucred.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -423,14 +423,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TCPInfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TCPInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TCPInfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TCPInfo golang_org.x.sys.unix.TCPInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPInfo _root_.Perennial.golang_org.x.sys.unix.TCPInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -442,14 +442,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TCPVegasInfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TCPVegasInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPVegasInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TCPVegasInfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TCPVegasInfo golang_org.x.sys.unix.TCPVegasInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPVegasInfo _root_.Perennial.golang_org.x.sys.unix.TCPVegasInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -461,14 +461,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TCPDCTCPInfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TCPDCTCPInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPDCTCPInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TCPDCTCPInfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TCPDCTCPInfo golang_org.x.sys.unix.TCPDCTCPInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPDCTCPInfo _root_.Perennial.golang_org.x.sys.unix.TCPDCTCPInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -480,14 +480,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TCPBBRInfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TCPBBRInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPBBRInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TCPBBRInfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TCPBBRInfo golang_org.x.sys.unix.TCPBBRInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPBBRInfo _root_.Perennial.golang_org.x.sys.unix.TCPBBRInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -499,14 +499,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'CanFilter :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.CanFilter :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.CanFilter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CanFilter :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.CanFilter golang_org.x.sys.unix.CanFilter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.CanFilter _root_.Perennial.golang_org.x.sys.unix.CanFilter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -518,14 +518,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TCPRepairOpt :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TCPRepairOpt :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPRepairOpt :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TCPRepairOpt :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TCPRepairOpt golang_org.x.sys.unix.TCPRepairOpt.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPRepairOpt _root_.Perennial.golang_org.x.sys.unix.TCPRepairOpt.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -537,14 +537,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'NlMsghdr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.NlMsghdr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NlMsghdr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NlMsghdr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.NlMsghdr golang_org.x.sys.unix.NlMsghdr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NlMsghdr _root_.Perennial.golang_org.x.sys.unix.NlMsghdr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -556,14 +556,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'NlMsgerr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.NlMsgerr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NlMsgerr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NlMsgerr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.NlMsgerr golang_org.x.sys.unix.NlMsgerr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NlMsgerr _root_.Perennial.golang_org.x.sys.unix.NlMsgerr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -575,14 +575,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RtGenmsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RtGenmsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtGenmsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RtGenmsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RtGenmsg golang_org.x.sys.unix.RtGenmsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtGenmsg _root_.Perennial.golang_org.x.sys.unix.RtGenmsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -594,14 +594,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'NlAttr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.NlAttr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NlAttr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NlAttr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.NlAttr golang_org.x.sys.unix.NlAttr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NlAttr _root_.Perennial.golang_org.x.sys.unix.NlAttr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -613,14 +613,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RtAttr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RtAttr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtAttr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RtAttr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RtAttr golang_org.x.sys.unix.RtAttr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtAttr _root_.Perennial.golang_org.x.sys.unix.RtAttr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -632,14 +632,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IfInfomsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IfInfomsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfInfomsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IfInfomsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IfInfomsg golang_org.x.sys.unix.IfInfomsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfInfomsg _root_.Perennial.golang_org.x.sys.unix.IfInfomsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -651,14 +651,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Prefixmsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Prefixmsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Prefixmsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Prefixmsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Prefixmsg golang_org.x.sys.unix.Prefixmsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Prefixmsg _root_.Perennial.golang_org.x.sys.unix.Prefixmsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -670,14 +670,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'PrefixCacheinfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.PrefixCacheinfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PrefixCacheinfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PrefixCacheinfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.PrefixCacheinfo golang_org.x.sys.unix.PrefixCacheinfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PrefixCacheinfo _root_.Perennial.golang_org.x.sys.unix.PrefixCacheinfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -689,14 +689,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IfAddrmsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IfAddrmsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfAddrmsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IfAddrmsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IfAddrmsg golang_org.x.sys.unix.IfAddrmsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfAddrmsg _root_.Perennial.golang_org.x.sys.unix.IfAddrmsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -708,14 +708,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IfAddrlblmsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IfAddrlblmsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfAddrlblmsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IfAddrlblmsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IfAddrlblmsg golang_org.x.sys.unix.IfAddrlblmsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfAddrlblmsg _root_.Perennial.golang_org.x.sys.unix.IfAddrlblmsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -727,14 +727,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'IfaCacheinfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.IfaCacheinfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfaCacheinfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IfaCacheinfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.IfaCacheinfo golang_org.x.sys.unix.IfaCacheinfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.IfaCacheinfo _root_.Perennial.golang_org.x.sys.unix.IfaCacheinfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -746,14 +746,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RtMsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RtMsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtMsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RtMsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RtMsg golang_org.x.sys.unix.RtMsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtMsg _root_.Perennial.golang_org.x.sys.unix.RtMsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -765,14 +765,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RtNexthop :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RtNexthop :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtNexthop :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RtNexthop :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RtNexthop golang_org.x.sys.unix.RtNexthop.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RtNexthop _root_.Perennial.golang_org.x.sys.unix.RtNexthop.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -784,14 +784,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'NdUseroptmsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.NdUseroptmsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NdUseroptmsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NdUseroptmsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.NdUseroptmsg golang_org.x.sys.unix.NdUseroptmsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NdUseroptmsg _root_.Perennial.golang_org.x.sys.unix.NdUseroptmsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -803,14 +803,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'NdMsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.NdMsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NdMsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NdMsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.NdMsg golang_org.x.sys.unix.NdMsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.NdMsg _root_.Perennial.golang_org.x.sys.unix.NdMsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -822,14 +822,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'SockFilter :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.SockFilter :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.SockFilter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SockFilter :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockFilter golang_org.x.sys.unix.SockFilter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.SockFilter _root_.Perennial.golang_org.x.sys.unix.SockFilter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -841,14 +841,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'SockFprog :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.SockFprog :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.SockFprog :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SockFprog :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SockFprog golang_org.x.sys.unix.SockFprog.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.SockFprog _root_.Perennial.golang_org.x.sys.unix.SockFprog.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -860,14 +860,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'InotifyEvent :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.InotifyEvent :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.InotifyEvent :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'InotifyEvent :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.InotifyEvent golang_org.x.sys.unix.InotifyEvent.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.InotifyEvent _root_.Perennial.golang_org.x.sys.unix.InotifyEvent.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -879,14 +879,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Utsname :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Utsname :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Utsname :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Utsname :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Utsname golang_org.x.sys.unix.Utsname.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Utsname _root_.Perennial.golang_org.x.sys.unix.Utsname.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -898,14 +898,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'OpenHow :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.OpenHow :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.OpenHow :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'OpenHow :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.OpenHow golang_org.x.sys.unix.OpenHow.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.OpenHow _root_.Perennial.golang_org.x.sys.unix.OpenHow.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -917,14 +917,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'PollFd :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.PollFd :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PollFd :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PollFd :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.PollFd golang_org.x.sys.unix.PollFd.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PollFd _root_.Perennial.golang_org.x.sys.unix.PollFd.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -936,14 +936,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'sigset_argpack :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.sigset_argpack :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.sigset_argpack :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'sigset_argpack :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.sigset_argpack golang_org.x.sys.unix.sigset_argpack.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.sigset_argpack _root_.Perennial.golang_org.x.sys.unix.sigset_argpack.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -955,14 +955,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'SignalfdSiginfo :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.SignalfdSiginfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.SignalfdSiginfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SignalfdSiginfo :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.SignalfdSiginfo golang_org.x.sys.unix.SignalfdSiginfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.SignalfdSiginfo _root_.Perennial.golang_org.x.sys.unix.SignalfdSiginfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -974,14 +974,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Winsize :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Winsize :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Winsize :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Winsize :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Winsize golang_org.x.sys.unix.Winsize.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Winsize _root_.Perennial.golang_org.x.sys.unix.Winsize.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -993,14 +993,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'CGroupStats :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.CGroupStats :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.CGroupStats :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CGroupStats :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.CGroupStats golang_org.x.sys.unix.CGroupStats.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.CGroupStats _root_.Perennial.golang_org.x.sys.unix.CGroupStats.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1012,14 +1012,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Genlmsghdr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Genlmsghdr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Genlmsghdr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Genlmsghdr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Genlmsghdr golang_org.x.sys.unix.Genlmsghdr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Genlmsghdr _root_.Perennial.golang_org.x.sys.unix.Genlmsghdr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1031,14 +1031,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'PerfEventAttr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.PerfEventAttr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PerfEventAttr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PerfEventAttr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.PerfEventAttr golang_org.x.sys.unix.PerfEventAttr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PerfEventAttr _root_.Perennial.golang_org.x.sys.unix.PerfEventAttr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1050,14 +1050,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'PerfEventMmapPage :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.PerfEventMmapPage :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PerfEventMmapPage :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PerfEventMmapPage :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.PerfEventMmapPage golang_org.x.sys.unix.PerfEventMmapPage.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.PerfEventMmapPage _root_.Perennial.golang_org.x.sys.unix.PerfEventMmapPage.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1069,14 +1069,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TCPMD5Sig :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TCPMD5Sig :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPMD5Sig :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TCPMD5Sig :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TCPMD5Sig golang_org.x.sys.unix.TCPMD5Sig.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TCPMD5Sig _root_.Perennial.golang_org.x.sys.unix.TCPMD5Sig.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1088,14 +1088,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'HDDriveCmdHdr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.HDDriveCmdHdr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.HDDriveCmdHdr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HDDriveCmdHdr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.HDDriveCmdHdr golang_org.x.sys.unix.HDDriveCmdHdr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.HDDriveCmdHdr _root_.Perennial.golang_org.x.sys.unix.HDDriveCmdHdr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1107,14 +1107,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'HDDriveID :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.HDDriveID :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.HDDriveID :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HDDriveID :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.HDDriveID golang_org.x.sys.unix.HDDriveID.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.HDDriveID _root_.Perennial.golang_org.x.sys.unix.HDDriveID.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1126,14 +1126,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Tpacket2Hdr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Tpacket2Hdr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Tpacket2Hdr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Tpacket2Hdr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Tpacket2Hdr golang_org.x.sys.unix.Tpacket2Hdr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Tpacket2Hdr _root_.Perennial.golang_org.x.sys.unix.Tpacket2Hdr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1145,14 +1145,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Tpacket3Hdr :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Tpacket3Hdr :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Tpacket3Hdr :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Tpacket3Hdr :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Tpacket3Hdr golang_org.x.sys.unix.Tpacket3Hdr.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Tpacket3Hdr _root_.Perennial.golang_org.x.sys.unix.Tpacket3Hdr.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1164,14 +1164,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketHdrVariant1 :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketHdrVariant1 :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketHdrVariant1 :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketHdrVariant1 :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketHdrVariant1 golang_org.x.sys.unix.TpacketHdrVariant1.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketHdrVariant1 _root_.Perennial.golang_org.x.sys.unix.TpacketHdrVariant1.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1183,14 +1183,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketBlockDesc :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketBlockDesc :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketBlockDesc :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketBlockDesc :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketBlockDesc golang_org.x.sys.unix.TpacketBlockDesc.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketBlockDesc _root_.Perennial.golang_org.x.sys.unix.TpacketBlockDesc.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1202,14 +1202,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketBDTS :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketBDTS :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketBDTS :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketBDTS :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketBDTS golang_org.x.sys.unix.TpacketBDTS.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketBDTS _root_.Perennial.golang_org.x.sys.unix.TpacketBDTS.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1221,14 +1221,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketHdrV1 :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketHdrV1 :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketHdrV1 :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketHdrV1 :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketHdrV1 golang_org.x.sys.unix.TpacketHdrV1.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketHdrV1 _root_.Perennial.golang_org.x.sys.unix.TpacketHdrV1.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1240,14 +1240,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketReq :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketReq :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketReq :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketReq :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketReq golang_org.x.sys.unix.TpacketReq.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketReq _root_.Perennial.golang_org.x.sys.unix.TpacketReq.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1259,14 +1259,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketReq3 :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketReq3 :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketReq3 :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketReq3 :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketReq3 golang_org.x.sys.unix.TpacketReq3.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketReq3 _root_.Perennial.golang_org.x.sys.unix.TpacketReq3.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1278,14 +1278,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketStats :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketStats :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketStats :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketStats :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketStats golang_org.x.sys.unix.TpacketStats.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketStats _root_.Perennial.golang_org.x.sys.unix.TpacketStats.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1297,14 +1297,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketStatsV3 :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketStatsV3 :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketStatsV3 :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketStatsV3 :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketStatsV3 golang_org.x.sys.unix.TpacketStatsV3.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketStatsV3 _root_.Perennial.golang_org.x.sys.unix.TpacketStatsV3.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1316,14 +1316,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'TpacketAuxdata :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.TpacketAuxdata :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketAuxdata :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TpacketAuxdata :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.TpacketAuxdata golang_org.x.sys.unix.TpacketAuxdata.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.TpacketAuxdata _root_.Perennial.golang_org.x.sys.unix.TpacketAuxdata.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1335,14 +1335,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'Nfgenmsg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.Nfgenmsg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Nfgenmsg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Nfgenmsg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.Nfgenmsg golang_org.x.sys.unix.Nfgenmsg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.Nfgenmsg _root_.Perennial.golang_org.x.sys.unix.Nfgenmsg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1354,14 +1354,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RTCTime :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RTCTime :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RTCTime :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RTCTime :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RTCTime golang_org.x.sys.unix.RTCTime.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RTCTime _root_.Perennial.golang_org.x.sys.unix.RTCTime.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1373,14 +1373,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'RTCWkAlrm :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.RTCWkAlrm :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RTCWkAlrm :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RTCWkAlrm :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.RTCWkAlrm golang_org.x.sys.unix.RTCWkAlrm.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.RTCWkAlrm _root_.Perennial.golang_org.x.sys.unix.RTCWkAlrm.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1392,14 +1392,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'BlkpgIoctlArg :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.BlkpgIoctlArg :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.BlkpgIoctlArg :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BlkpgIoctlArg :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.BlkpgIoctlArg golang_org.x.sys.unix.BlkpgIoctlArg.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.BlkpgIoctlArg _root_.Perennial.golang_org.x.sys.unix.BlkpgIoctlArg.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1411,14 +1411,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'XDPRingOffset :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.XDPRingOffset :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.XDPRingOffset :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XDPRingOffset :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.XDPRingOffset golang_org.x.sys.unix.XDPRingOffset.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.XDPRingOffset _root_.Perennial.golang_org.x.sys.unix.XDPRingOffset.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -1430,14 +1430,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : golang_org.x.sys.unix.Assumptions]
+variable [package_sem' : _root_.Perennial.golang_org.x.sys.unix.Assumptions]
 
 noncomputable instance typed_pointsto'XDPMmapOffsets :
-    TypedPointsto (GF := GF) golang_org.x.sys.unix.XDPMmapOffsets :=
+    TypedPointsto (GF := GF) _root_.Perennial.golang_org.x.sys.unix.XDPMmapOffsets :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'XDPMmapOffsets :
-    IntoValTypedUnderlying (GF := GF) golang_org.x.sys.unix.XDPMmapOffsets golang_org.x.sys.unix.XDPMmapOffsets.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.golang_org.x.sys.unix.XDPMmapOffsets _root_.Perennial.golang_org.x.sys.unix.XDPMmapOffsets.underlying :=
   sorry -- axiomatized type
 
 end def_

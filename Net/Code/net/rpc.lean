@@ -2135,7 +2135,7 @@ noncomputable def Server.register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef service.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType service.ty)))) (Var "s"))) (Var "$r0"))))))))
   (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "useName"))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "sname"))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go.token.IsExported []))) (Val #())) (Var "$a0")))) (Val #false))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go''.token.IsExported []))) (Val #())) (Var "$a0")))) (Val #false))
   (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"rpc.Register: type ")) (App (Val (GoInstruction (GoLoad go.string))) (Var "sname")))) (Val #(go!" is not exported"))))
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3246,7 +3246,7 @@ noncomputable def HandleHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))
 
 noncomputable instance info' : PkgInfo pkg_id.net.rpc where
-  pkgImportedPkgs := [pkg_id.bufio, pkg_id.errors, pkg_id.io, pkg_id.log, pkg_id.net, pkg_id.net.http, pkg_id.sync, pkg_id.go.token]
+  pkgImportedPkgs := [pkg_id.bufio, pkg_id.errors, pkg_id.io, pkg_id.log, pkg_id.net, pkg_id.net.http, pkg_id.sync, pkg_id.go''.token]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -3308,7 +3308,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
-  (App (Val _root_.Perennial.go.token.initialize') (Val #()))))))
+  (App (Val _root_.Perennial.go''.token.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrShutdown go.error)) (Val #()))))))
   (App (Val doExecute)
@@ -4286,7 +4286,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import'net : _root_.Perennial.net.Assumptions
   import'http : _root_.Perennial.net.http.Assumptions
   import'sync : _root_.Perennial.sync.Assumptions
-  import'token : _root_.Perennial.go.token.Assumptions
+  import'token : _root_.Perennial.go''.token.Assumptions
 
 attribute [instance] Assumptions.instance'ServerError
   Assumptions.instance'Call

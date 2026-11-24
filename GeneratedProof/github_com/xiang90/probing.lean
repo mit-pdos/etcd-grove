@@ -24,14 +24,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.probing.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.probing.Assumptions]
 
 noncomputable instance typed_pointsto'prober :
-    TypedPointsto (GF := GF) github_com.xiang90.probing.prober :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.probing.prober :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'prober :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.prober github_com.xiang90.probing.prober.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.probing.prober _root_.Perennial.github_com.xiang90.probing.prober.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -43,10 +43,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.probing.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.probing.Assumptions]
 
 noncomputable instance typed_pointsto'httpHealth :
-    TypedPointsto (GF := GF) github_com.xiang90.probing.httpHealth where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.probing.httpHealth where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -54,7 +54,7 @@ noncomputable instance typed_pointsto'httpHealth :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'httpHealth :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.httpHealth github_com.xiang90.probing.httpHealth.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.probing.httpHealth _root_.Perennial.github_com.xiang90.probing.httpHealth.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -66,51 +66,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.probing.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.probing.Assumptions]
 
 noncomputable instance typed_pointsto'Health :
-    TypedPointsto (GF := GF) github_com.xiang90.probing.Health where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.probing.Health where
   typedPointstoDef l v dq := iprop(
-    "OK" ∷ typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq ∗
-    "Now" ∷ typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq ∗
+    "OK" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"OK" l) v.OK' dq ∗
+    "Now" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"Now" l) v.Now' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Health :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.Health github_com.xiang90.probing.Health.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.probing.Health _root_.Perennial.github_com.xiang90.probing.Health.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Health'OK (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
+noncomputable instance access_load'Health'OK (l : Loc) (v : _root_.Perennial.github_com.xiang90.probing.Health) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"OK" l) v.OK' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Health'OK (l : Loc) (v : github_com.xiang90.probing.Health) (y : Bool) :
+noncomputable instance access_store'Health'OK (l : Loc) (v : _root_.Perennial.github_com.xiang90.probing.Health) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) v.OK' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"OK" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OK' := y } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"OK" l) v.OK' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"OK" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OK' := y } : _root_.Perennial.github_com.xiang90.probing.Health) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Health'Now (l : Loc) (v : github_com.xiang90.probing.Health) (dq : DFrac) :
+noncomputable instance access_load'Health'Now (l : Loc) (v : _root_.Perennial.github_com.xiang90.probing.Health) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"Now" l) v.Now' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Health'Now (l : Loc) (v : github_com.xiang90.probing.Health) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'Health'Now (l : Loc) (v : _root_.Perennial.github_com.xiang90.probing.Health) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) v.Now' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.xiang90.probing.Health go!"Now" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Now' := y } : github_com.xiang90.probing.Health) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"Now" l) v.Now' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.xiang90.probing.Health go!"Now" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Now' := y } : _root_.Perennial.github_com.xiang90.probing.Health) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -123,14 +123,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.xiang90.probing.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.xiang90.probing.Assumptions]
 
 noncomputable instance typed_pointsto'status :
-    TypedPointsto (GF := GF) github_com.xiang90.probing.status :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.xiang90.probing.status :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'status :
-    IntoValTypedUnderlying (GF := GF) github_com.xiang90.probing.status github_com.xiang90.probing.status.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.xiang90.probing.status _root_.Perennial.github_com.xiang90.probing.status.underlying :=
   sorry -- axiomatized type
 
 end def_

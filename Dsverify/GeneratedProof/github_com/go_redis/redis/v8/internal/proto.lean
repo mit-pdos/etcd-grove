@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.internal.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Assumptions]
 
 noncomputable instance typed_pointsto'Reader :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.internal.proto.Reader :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Reader :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Reader :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.internal.proto.Reader github_com.go_redis.redis.v8.internal.proto.Reader.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Reader _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Reader.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.internal.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Assumptions]
 
 noncomputable instance typed_pointsto'writer :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.internal.proto.writer :=
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.writer :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'writer :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.internal.proto.writer github_com.go_redis.redis.v8.internal.proto.writer.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.writer _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.writer.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,68 +60,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.go_redis.redis.v8.internal.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Assumptions]
 
 noncomputable instance typed_pointsto'Writer :
-    TypedPointsto (GF := GF) github_com.go_redis.redis.v8.internal.proto.Writer where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer where
   typedPointstoDef l v dq := iprop(
-    "writer" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' dq ∗
-    "lenBuf" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' dq ∗
-    "numBuf" ∷ typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' dq ∗
+    "writer" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' dq ∗
+    "lenBuf" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' dq ∗
+    "numBuf" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Writer :
-    IntoValTypedUnderlying (GF := GF) github_com.go_redis.redis.v8.internal.proto.Writer github_com.go_redis.redis.v8.internal.proto.Writer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Writer'writer (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (dq : DFrac) :
+noncomputable instance access_load'Writer'writer (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Writer'writer (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (y : github_com.go_redis.redis.v8.internal.proto.writer) :
+noncomputable instance access_store'Writer'writer (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (y : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.writer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writer' := y } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writer' := y } : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Writer'lenBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (dq : DFrac) :
+noncomputable instance access_load'Writer'lenBuf (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Writer'lenBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (y : GoSlice) :
+noncomputable instance access_store'Writer'lenBuf (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lenBuf' := y } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lenBuf' := y } : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Writer'numBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (dq : DFrac) :
+noncomputable instance access_load'Writer'numBuf (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' dq)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Writer'numBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (y : GoSlice) :
+noncomputable instance access_store'Writer'numBuf (l : Loc) (v : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numBuf' := y } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numBuf' := y } : _root_.Perennial.github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

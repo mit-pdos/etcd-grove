@@ -23,34 +23,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_uber_org.zap.internal.pool.Assumptions]
+variable [package_sem' : _root_.Perennial.go_uber_org.zap.internal.pool.Assumptions]
 
 noncomputable instance typed_pointsto'Pool {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
-    TypedPointsto (GF := GF) (go_uber_org.zap.internal.pool.Pool T₀') where
+    TypedPointsto (GF := GF) (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀') where
   typedPointstoDef l v dq := iprop(
-    "pool" ∷ typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' dq ∗
+    "pool" ∷ typedPointsto (structFieldRef (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Pool (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
-    IntoValTypedUnderlying (GF := GF) (go_uber_org.zap.internal.pool.Pool T₀') (go_uber_org.zap.internal.pool.Pool.underlying T₀) := by
+    IntoValTypedUnderlying (GF := GF) (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀') (_root_.Perennial.go_uber_org.zap.internal.pool.Pool.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Pool'pool {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (go_uber_org.zap.internal.pool.Pool T₀')) (dq : DFrac) :
+noncomputable instance access_load'Pool'pool {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' dq)
-      (typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Pool'pool {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (go_uber_org.zap.internal.pool.Pool T₀')) (y : _root_.Perennial.sync.Pool) :
+noncomputable instance access_store'Pool'pool {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀')) (y : _root_.Perennial.sync.Pool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' (DFrac.own 1))
-      (typedPointsto (structFieldRef (go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pool' := y } : (go_uber_org.zap.internal.pool.Pool T₀')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) v.pool' (DFrac.own 1))
+      (typedPointsto (structFieldRef (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀') go!"pool" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pool' := y } : (_root_.Perennial.go_uber_org.zap.internal.pool.Pool T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

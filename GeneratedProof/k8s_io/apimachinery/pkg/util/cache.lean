@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
 noncomputable instance typed_pointsto'Expiring :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.Expiring :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Expiring :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Expiring :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.Expiring k8s_io.apimachinery.pkg.util.cache.Expiring.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Expiring _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Expiring.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
 noncomputable instance typed_pointsto'entry :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.entry :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.entry :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'entry :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.entry k8s_io.apimachinery.pkg.util.cache.entry.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.entry _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.entry.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
 noncomputable instance typed_pointsto'expiringHeapEntry :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'expiringHeapEntry :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.expiringHeapEntry.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
 noncomputable instance typed_pointsto'Clock :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.Clock :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Clock :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Clock :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.Clock k8s_io.apimachinery.pkg.util.cache.Clock.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Clock _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Clock.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,10 +98,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
 noncomputable instance typed_pointsto'realClock :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.realClock where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.realClock where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -109,7 +109,7 @@ noncomputable instance typed_pointsto'realClock :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'realClock :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.realClock k8s_io.apimachinery.pkg.util.cache.realClock.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.realClock _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.realClock.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -121,14 +121,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
 noncomputable instance typed_pointsto'LRUExpireCache :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.LRUExpireCache :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.LRUExpireCache :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'LRUExpireCache :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.LRUExpireCache k8s_io.apimachinery.pkg.util.cache.LRUExpireCache.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.LRUExpireCache _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.LRUExpireCache.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -140,14 +140,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.Assumptions]
 
 noncomputable instance typed_pointsto'cacheEntry :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.cache.cacheEntry :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.cacheEntry :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cacheEntry :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.cache.cacheEntry k8s_io.apimachinery.pkg.util.cache.cacheEntry.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.cacheEntry _root_.Perennial.k8s_io.apimachinery.pkg.util.cache.cacheEntry.underlying :=
   sorry -- axiomatized type
 
 end def_

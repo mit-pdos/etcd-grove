@@ -25,68 +25,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.runtime.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.Assumptions]
 
 noncomputable instance typed_pointsto'rudimentaryErrorBackoff :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff where
   typedPointstoDef l v dq := iprop(
-    "minPeriod" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' dq ∗
-    "lastErrorTimeLock" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' dq ∗
-    "lastErrorTime" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' dq ∗
+    "minPeriod" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' dq ∗
+    "lastErrorTimeLock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' dq ∗
+    "lastErrorTime" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'rudimentaryErrorBackoff :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'rudimentaryErrorBackoff'minPeriod (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (dq : DFrac) :
+noncomputable instance access_load'rudimentaryErrorBackoff'minPeriod (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'rudimentaryErrorBackoff'minPeriod (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (y : _root_.Perennial.time.Duration) :
+noncomputable instance access_store'rudimentaryErrorBackoff'minPeriod (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (y : _root_.Perennial.time.Duration) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minPeriod' := y } : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) v.minPeriod' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"minPeriod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minPeriod' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'rudimentaryErrorBackoff'lastErrorTimeLock (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (dq : DFrac) :
+noncomputable instance access_load'rudimentaryErrorBackoff'lastErrorTimeLock (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'rudimentaryErrorBackoff'lastErrorTimeLock (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'rudimentaryErrorBackoff'lastErrorTimeLock (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastErrorTimeLock' := y } : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) v.lastErrorTimeLock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTimeLock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastErrorTimeLock' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'rudimentaryErrorBackoff'lastErrorTime (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (dq : DFrac) :
+noncomputable instance access_load'rudimentaryErrorBackoff'lastErrorTime (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'rudimentaryErrorBackoff'lastErrorTime (l : Loc) (v : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (y : _root_.Perennial.time.Time) :
+noncomputable instance access_store'rudimentaryErrorBackoff'lastErrorTime (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastErrorTime' := y } : k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) v.lastErrorTime' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff go!"lastErrorTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastErrorTime' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.rudimentaryErrorBackoff) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

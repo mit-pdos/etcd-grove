@@ -236,17 +236,17 @@ theorem Server.getResponse.wp : Server.getResponse.spec (GF := GF) (hG := hG) :=
 theorem Server.freeResponse.wp : Server.freeResponse.spec (GF := GF) (hG := hG) :=
   Server.freeResponse.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock
 
-theorem go.token.IsExported.wp [go.token.Assumptions] :
-    go.token.IsExported.spec (GF := GF) (hG := hG) := go.token.IsExported.wp_proof
+theorem go''.token.IsExported.wp [go''.token.Assumptions] :
+    go''.token.IsExported.spec (GF := GF) (hG := hG) := go''.token.IsExported.wp_proof
 
-theorem Server.register.wp [errors.Assumptions] [go.token.Assumptions] :
+theorem Server.register.wp [errors.Assumptions] [go''.token.Assumptions] :
     Server.register.spec (GF := GF) (hG := hG) :=
-  Server.register.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock getCodec.wp go.token.IsExported.wp
+  Server.register.wp_proof sync.Mutex.wp_Lock sync.Mutex.wp_Unlock getCodec.wp go''.token.IsExported.wp
 
-theorem Server.Register.wp [errors.Assumptions] [go.token.Assumptions] :
+theorem Server.Register.wp [errors.Assumptions] [go''.token.Assumptions] :
     Server.Register.spec (GF := GF) (hG := hG) := Server.Register.wp_proof Server.register.wp
 
-theorem Server.RegisterName.wp [errors.Assumptions] [go.token.Assumptions] :
+theorem Server.RegisterName.wp [errors.Assumptions] [go''.token.Assumptions] :
     Server.RegisterName.spec (GF := GF) (hG := hG) := Server.RegisterName.wp_proof Server.register.wp
 
 theorem Server.sendResponse.wp : Server.sendResponse.spec (GF := GF) (hG := hG) :=
@@ -362,7 +362,7 @@ end Perennial
 #print axioms Perennial.net.rpc.Server.freeRequest.wp
 #print axioms Perennial.net.rpc.Server.getResponse.wp
 #print axioms Perennial.net.rpc.Server.freeResponse.wp
-#print axioms Perennial.net.rpc.go.token.IsExported.wp
+#print axioms Perennial.net.rpc.go''.token.IsExported.wp
 #print axioms Perennial.net.rpc.Server.register.wp
 #print axioms Perennial.net.rpc.Server.Register.wp
 #print axioms Perennial.net.rpc.Server.RegisterName.wp

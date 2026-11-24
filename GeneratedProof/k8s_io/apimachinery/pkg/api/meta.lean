@@ -24,14 +24,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'AmbiguousResourceError :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AmbiguousResourceError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».AmbiguousResourceError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -43,14 +43,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'AmbiguousKindError :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AmbiguousKindError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».AmbiguousKindError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -62,14 +62,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'NoResourceMatchError :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NoResourceMatchError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».NoResourceMatchError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -81,14 +81,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'NoKindMatchError :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NoKindMatchError :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».NoKindMatchError.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -100,34 +100,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'FirstHitRESTMapper :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper where
   typedPointstoDef l v dq := iprop(
-    "MultiRESTMapper" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq ∗
+    "MultiRESTMapper" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'FirstHitRESTMapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'FirstHitRESTMapper'MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (dq : DFrac) :
+noncomputable instance access_load'FirstHitRESTMapper'MultiRESTMapper (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'FirstHitRESTMapper'MultiRESTMapper (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (y : k8s_io.apimachinery.pkg.api.«meta».MultiRESTMapper) :
+noncomputable instance access_store'FirstHitRESTMapper'MultiRESTMapper (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (y : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».MultiRESTMapper) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MultiRESTMapper' := y } : k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) v.MultiRESTMapper' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper go!"MultiRESTMapper" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MultiRESTMapper' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».FirstHitRESTMapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -140,14 +140,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'MetadataAccessor :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'MetadataAccessor :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».MetadataAccessor.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -159,14 +159,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'RESTMapping :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapping :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapping :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RESTMapping :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapping k8s_io.apimachinery.pkg.api.«meta».RESTMapping.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapping _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapping.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -178,14 +178,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'RESTMapper :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RESTMapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapper k8s_io.apimachinery.pkg.api.«meta».RESTMapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapper _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -197,14 +197,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'RESTMapperWithContext :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'RESTMapperWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -216,34 +216,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'restMapperWrapper :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper where
   typedPointstoDef l v dq := iprop(
-    "delegate" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq ∗
+    "delegate" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'restMapperWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'restMapperWrapper'delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (dq : DFrac) :
+noncomputable instance access_load'restMapperWrapper'delegate (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'restMapperWrapper'delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (y : k8s_io.apimachinery.pkg.api.«meta».RESTMapper) :
+noncomputable instance access_store'restMapperWrapper'delegate (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (y : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapper) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := y } : k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper go!"delegate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restMapperWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -256,14 +256,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'ResettableRESTMapperWithContext :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ResettableRESTMapperWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapperWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -275,51 +275,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'resettableRESTMapperWrapper :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper where
   typedPointstoDef l v dq := iprop(
-    "RESTMapperWithContext" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq ∗
-    "delegate" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq ∗
+    "RESTMapperWithContext" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq ∗
+    "delegate" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'resettableRESTMapperWrapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'resettableRESTMapperWrapper'RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
+noncomputable instance access_load'resettableRESTMapperWrapper'RESTMapperWithContext (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'resettableRESTMapperWrapper'RESTMapperWithContext (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (y : k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext) :
+noncomputable instance access_store'resettableRESTMapperWrapper'RESTMapperWithContext (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (y : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTMapperWithContext) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RESTMapperWithContext' := y } : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) v.RESTMapperWithContext' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"RESTMapperWithContext" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RESTMapperWithContext' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'resettableRESTMapperWrapper'delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
+noncomputable instance access_load'resettableRESTMapperWrapper'delegate (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'resettableRESTMapperWrapper'delegate (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (y : k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapper) :
+noncomputable instance access_store'resettableRESTMapperWrapper'delegate (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (y : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».ResettableRESTMapper) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := y } : k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) v.delegate' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper go!"delegate" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with delegate' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resettableRESTMapperWrapper) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -332,14 +332,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'lazyObject :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».lazyObject :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».lazyObject :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'lazyObject :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».lazyObject k8s_io.apimachinery.pkg.api.«meta».lazyObject.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».lazyObject _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».lazyObject.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -351,14 +351,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'objectAccessor :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».objectAccessor :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».objectAccessor :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'objectAccessor :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».objectAccessor k8s_io.apimachinery.pkg.api.«meta».objectAccessor.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».objectAccessor _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».objectAccessor.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -370,10 +370,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'resourceAccessor :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceAccessor where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resourceAccessor where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -381,7 +381,7 @@ noncomputable instance typed_pointsto'resourceAccessor :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'resourceAccessor :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceAccessor k8s_io.apimachinery.pkg.api.«meta».resourceAccessor.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resourceAccessor _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resourceAccessor.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -393,14 +393,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'genericAccessor :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».genericAccessor :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».genericAccessor :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'genericAccessor :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».genericAccessor k8s_io.apimachinery.pkg.api.«meta».genericAccessor.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».genericAccessor _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».genericAccessor.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -412,14 +412,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'PriorityRESTMapper :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PriorityRESTMapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -431,14 +431,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'PriorityRESTMapperWithContext :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PriorityRESTMapperWithContext :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».PriorityRESTMapperWithContext.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -450,34 +450,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'restScope :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restScope where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope where
   typedPointstoDef l v dq := iprop(
-    "name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'restScope :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».restScope k8s_io.apimachinery.pkg.api.«meta».restScope.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'restScope'name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (dq : DFrac) :
+noncomputable instance access_load'restScope'name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'restScope'name (l : Loc) (v : k8s_io.apimachinery.pkg.api.«meta».restScope) (y : k8s_io.apimachinery.pkg.api.«meta».RESTScopeName) :
+noncomputable instance access_store'restScope'name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope) (y : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».RESTScopeName) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.apimachinery.pkg.api.«meta».restScope) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».restScope) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -490,14 +490,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'DefaultRESTMapper :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DefaultRESTMapper :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».DefaultRESTMapper.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -509,14 +509,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'kindByPreferredGroupVersion :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'kindByPreferredGroupVersion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».kindByPreferredGroupVersion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -528,14 +528,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.api.«meta».Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Assumptions]
 
 noncomputable instance typed_pointsto'resourceByPreferredGroupVersion :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'resourceByPreferredGroupVersion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».resourceByPreferredGroupVersion.underlying :=
   sorry -- axiomatized type
 
 end def_

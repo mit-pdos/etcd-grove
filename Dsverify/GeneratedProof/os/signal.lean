@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : os.signal.Assumptions]
+variable [package_sem' : _root_.Perennial.os.signal.Assumptions]
 
 noncomputable instance typed_pointsto'stopping :
-    TypedPointsto (GF := GF) os.signal.stopping :=
+    TypedPointsto (GF := GF) _root_.Perennial.os.signal.stopping :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'stopping :
-    IntoValTypedUnderlying (GF := GF) os.signal.stopping os.signal.stopping.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.os.signal.stopping _root_.Perennial.os.signal.stopping.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,34 +41,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : os.signal.Assumptions]
+variable [package_sem' : _root_.Perennial.os.signal.Assumptions]
 
 noncomputable instance typed_pointsto'handler :
-    TypedPointsto (GF := GF) os.signal.handler where
+    TypedPointsto (GF := GF) _root_.Perennial.os.signal.handler where
   typedPointstoDef l v dq := iprop(
-    "mask" ∷ typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' dq ∗
+    "mask" ∷ typedPointsto (structFieldRef _root_.Perennial.os.signal.handler go!"mask" l) v.mask' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'handler :
-    IntoValTypedUnderlying (GF := GF) os.signal.handler os.signal.handler.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.os.signal.handler _root_.Perennial.os.signal.handler.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'handler'mask (l : Loc) (v : os.signal.handler) (dq : DFrac) :
+noncomputable instance access_load'handler'mask (l : Loc) (v : _root_.Perennial.os.signal.handler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' dq)
-      (typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.os.signal.handler go!"mask" l) v.mask' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.os.signal.handler go!"mask" l) v.mask' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'handler'mask (l : Loc) (v : os.signal.handler) (y : (GoArray w32 3)) :
+noncomputable instance access_store'handler'mask (l : Loc) (v : _root_.Perennial.os.signal.handler) (y : (GoArray w32 3)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' (DFrac.own 1))
-      (typedPointsto (structFieldRef os.signal.handler go!"mask" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mask' := y } : os.signal.handler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.os.signal.handler go!"mask" l) v.mask' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.os.signal.handler go!"mask" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mask' := y } : _root_.Perennial.os.signal.handler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -81,14 +81,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : os.signal.Assumptions]
+variable [package_sem' : _root_.Perennial.os.signal.Assumptions]
 
 noncomputable instance typed_pointsto'signalCtx :
-    TypedPointsto (GF := GF) os.signal.signalCtx :=
+    TypedPointsto (GF := GF) _root_.Perennial.os.signal.signalCtx :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'signalCtx :
-    IntoValTypedUnderlying (GF := GF) os.signal.signalCtx os.signal.signalCtx.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.os.signal.signalCtx _root_.Perennial.os.signal.signalCtx.underlying :=
   sorry -- axiomatized type
 
 end def_

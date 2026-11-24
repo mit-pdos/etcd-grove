@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
 
 noncomputable instance typed_pointsto'CrossVersionObjectReferenceApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.CrossVersionObjectReferenceApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.CrossVersionObjectReferenceApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CrossVersionObjectReferenceApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.CrossVersionObjectReferenceApplyConfiguration k8s_io.client_go.applyconfigurations.autoscaling.v1.CrossVersionObjectReferenceApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.CrossVersionObjectReferenceApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.CrossVersionObjectReferenceApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
 
 noncomputable instance typed_pointsto'HorizontalPodAutoscalerApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HorizontalPodAutoscalerApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerApplyConfiguration k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
 
 noncomputable instance typed_pointsto'HorizontalPodAutoscalerSpecApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerSpecApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerSpecApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HorizontalPodAutoscalerSpecApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerSpecApplyConfiguration k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerSpecApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerSpecApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
 
 noncomputable instance typed_pointsto'HorizontalPodAutoscalerStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'HorizontalPodAutoscalerStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerStatusApplyConfiguration k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.HorizontalPodAutoscalerStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ScaleApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ScaleApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleApplyConfiguration k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ScaleSpecApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleSpecApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleSpecApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ScaleSpecApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleSpecApplyConfiguration k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleSpecApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleSpecApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleSpecApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ScaleStatusApplyConfiguration :
-    TypedPointsto (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleStatusApplyConfiguration :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleStatusApplyConfiguration :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ScaleStatusApplyConfiguration :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleStatusApplyConfiguration k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleStatusApplyConfiguration.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleStatusApplyConfiguration _root_.Perennial.k8s_io.client_go.applyconfigurations.autoscaling.v1.ScaleStatusApplyConfiguration.underlying :=
   sorry -- axiomatized type
 
 end def_

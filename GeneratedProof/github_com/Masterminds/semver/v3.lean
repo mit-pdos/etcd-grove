@@ -27,68 +27,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.Masterminds.semver.v3.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions]
 
 noncomputable instance typed_pointsto'Constraints :
-    TypedPointsto (GF := GF) github_com.Masterminds.semver.v3.Constraints where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.Masterminds.semver.v3.Constraints where
   typedPointstoDef l v dq := iprop(
-    "constraints" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq ∗
-    "containsPre" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq ∗
-    "IncludePrerelease" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq ∗
+    "constraints" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq ∗
+    "containsPre" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq ∗
+    "IncludePrerelease" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Constraints :
-    IntoValTypedUnderlying (GF := GF) github_com.Masterminds.semver.v3.Constraints github_com.Masterminds.semver.v3.Constraints.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.Masterminds.semver.v3.Constraints _root_.Perennial.github_com.Masterminds.semver.v3.Constraints.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Constraints'constraints (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
+noncomputable instance access_load'Constraints'constraints (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Constraints'constraints (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
+noncomputable instance access_store'Constraints'constraints (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"constraints" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with constraints' := y } : github_com.Masterminds.semver.v3.Constraints) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"constraints" l) v.constraints' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"constraints" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with constraints' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Constraints'containsPre (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
+noncomputable instance access_load'Constraints'containsPre (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Constraints'containsPre (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
+noncomputable instance access_store'Constraints'containsPre (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with containsPre' := y } : github_com.Masterminds.semver.v3.Constraints) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) v.containsPre' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"containsPre" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with containsPre' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Constraints'IncludePrerelease (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
+noncomputable instance access_load'Constraints'IncludePrerelease (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Constraints'IncludePrerelease (l : Loc) (v : github_com.Masterminds.semver.v3.Constraints) (y : Bool) :
+noncomputable instance access_store'Constraints'IncludePrerelease (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IncludePrerelease' := y } : github_com.Masterminds.semver.v3.Constraints) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) v.IncludePrerelease' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Constraints go!"IncludePrerelease" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IncludePrerelease' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Constraints) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -101,119 +101,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.Masterminds.semver.v3.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions]
 
 noncomputable instance typed_pointsto'constraint :
-    TypedPointsto (GF := GF) github_com.Masterminds.semver.v3.constraint where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.Masterminds.semver.v3.constraint where
   typedPointstoDef l v dq := iprop(
-    "con" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq ∗
-    "orig" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq ∗
-    "origfunc" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq ∗
-    "minorDirty" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq ∗
-    "dirty" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq ∗
-    "patchDirty" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq ∗
+    "con" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq ∗
+    "orig" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq ∗
+    "origfunc" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq ∗
+    "minorDirty" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq ∗
+    "dirty" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq ∗
+    "patchDirty" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'constraint :
-    IntoValTypedUnderlying (GF := GF) github_com.Masterminds.semver.v3.constraint github_com.Masterminds.semver.v3.constraint.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.Masterminds.semver.v3.constraint _root_.Perennial.github_com.Masterminds.semver.v3.constraint.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'constraint'con (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'con (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'constraint'con (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Loc) :
+noncomputable instance access_store'constraint'con (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"con" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with con' := y } : github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"con" l) v.con' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"con" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with con' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'constraint'orig (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'orig (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'constraint'orig (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : GoString) :
+noncomputable instance access_store'constraint'orig (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"orig" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with orig' := y } : github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"orig" l) v.orig' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"orig" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with orig' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'constraint'origfunc (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'origfunc (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'constraint'origfunc (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : GoString) :
+noncomputable instance access_store'constraint'origfunc (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"origfunc" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with origfunc' := y } : github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"origfunc" l) v.origfunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"origfunc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with origfunc' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'constraint'minorDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'minorDirty (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'constraint'minorDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
+noncomputable instance access_store'constraint'minorDirty (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minorDirty' := y } : github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) v.minorDirty' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"minorDirty" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minorDirty' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'constraint'dirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'dirty (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'constraint'dirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
+noncomputable instance access_store'constraint'dirty (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"dirty" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dirty' := y } : github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"dirty" l) v.dirty' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"dirty" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dirty' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'constraint'patchDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
+noncomputable instance access_load'constraint'patchDirty (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'constraint'patchDirty (l : Loc) (v : github_com.Masterminds.semver.v3.constraint) (y : Bool) :
+noncomputable instance access_store'constraint'patchDirty (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patchDirty' := y } : github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) v.patchDirty' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.constraint go!"patchDirty" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patchDirty' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.constraint) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -226,119 +226,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.Masterminds.semver.v3.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions]
 
 noncomputable instance typed_pointsto'Version :
-    TypedPointsto (GF := GF) github_com.Masterminds.semver.v3.Version where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.Masterminds.semver.v3.Version where
   typedPointstoDef l v dq := iprop(
-    "major" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq ∗
-    "minor" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq ∗
-    "patch" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq ∗
-    "pre" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq ∗
-    "metadata" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq ∗
-    "original" ∷ typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq ∗
+    "major" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq ∗
+    "minor" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq ∗
+    "patch" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq ∗
+    "pre" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq ∗
+    "metadata" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq ∗
+    "original" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Version :
-    IntoValTypedUnderlying (GF := GF) github_com.Masterminds.semver.v3.Version github_com.Masterminds.semver.v3.Version.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.Masterminds.semver.v3.Version _root_.Perennial.github_com.Masterminds.semver.v3.Version.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Version'major (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'major (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"major" l) v.major' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Version'major (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
+noncomputable instance access_store'Version'major (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) v.major' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"major" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with major' := y } : github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"major" l) v.major' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"major" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with major' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Version'minor (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'minor (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Version'minor (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
+noncomputable instance access_store'Version'minor (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"minor" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minor' := y } : github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"minor" l) v.minor' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"minor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with minor' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Version'patch (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'patch (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Version'patch (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : w64) :
+noncomputable instance access_store'Version'patch (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"patch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patch' := y } : github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"patch" l) v.patch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"patch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with patch' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Version'pre (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'pre (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Version'pre (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
+noncomputable instance access_store'Version'pre (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"pre" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pre' := y } : github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"pre" l) v.pre' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"pre" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pre' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Version'metadata (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'metadata (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Version'metadata (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
+noncomputable instance access_store'Version'metadata (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"metadata" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with metadata' := y } : github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"metadata" l) v.metadata' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"metadata" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with metadata' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Version'original (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
+noncomputable instance access_load'Version'original (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"original" l) v.original' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Version'original (l : Loc) (v : github_com.Masterminds.semver.v3.Version) (y : GoString) :
+noncomputable instance access_store'Version'original (l : Loc) (v : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) v.original' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.Masterminds.semver.v3.Version go!"original" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with original' := y } : github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"original" l) v.original' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.Masterminds.semver.v3.Version go!"original" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with original' := y } : _root_.Perennial.github_com.Masterminds.semver.v3.Version) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

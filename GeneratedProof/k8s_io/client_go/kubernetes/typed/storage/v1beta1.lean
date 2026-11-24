@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSIDriversGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriversGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriversGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSIDriversGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriversGetter k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriversGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriversGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriversGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSIDriverInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSIDriverInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverInterface k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'cSIDrivers :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIDrivers :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIDrivers :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cSIDrivers :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIDrivers k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIDrivers.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIDrivers _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIDrivers.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSINodesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSINodesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodesGetter k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSINodeInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSINodeInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeInterface k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'cSINodes :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSINodes :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSINodes :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cSINodes :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSINodes k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSINodes.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSINodes _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSINodes.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSIStorageCapacitiesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacitiesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacitiesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSIStorageCapacitiesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacitiesGetter k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacitiesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacitiesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacitiesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSIStorageCapacityInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSIStorageCapacityInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityInterface k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'cSIStorageCapacities :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIStorageCapacities :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIStorageCapacities :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'cSIStorageCapacities :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIStorageCapacities k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIStorageCapacities.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIStorageCapacities _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.cSIStorageCapacities.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSIDriverExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSIDriverExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverExpansion k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIDriverExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSINodeExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSINodeExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeExpansion k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSINodeExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'CSIStorageCapacityExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'CSIStorageCapacityExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityExpansion k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.CSIStorageCapacityExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageClassExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageClassExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassExpansion k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeAttachmentExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeAttachmentExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentExpansion k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeAttributesClassExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeAttributesClassExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassExpansion k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageV1beta1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageV1beta1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Interface k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageV1beta1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageV1beta1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Client k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageV1beta1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageClassesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageClassesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassesGetter k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -364,14 +364,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageClassInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageClassInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassInterface k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.StorageClassInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -383,14 +383,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'storageClasses :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.storageClasses :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.storageClasses :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'storageClasses :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.storageClasses k8s_io.client_go.kubernetes.typed.storage.v1beta1.storageClasses.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.storageClasses _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.storageClasses.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -402,14 +402,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeAttachmentsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeAttachmentsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentsGetter k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -421,14 +421,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeAttachmentInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeAttachmentInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentInterface k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttachmentInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -440,14 +440,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'volumeAttachments :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttachments :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttachments :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'volumeAttachments :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttachments k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttachments.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttachments _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttachments.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -459,14 +459,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeAttributesClassesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeAttributesClassesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassesGetter k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -478,14 +478,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'VolumeAttributesClassInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'VolumeAttributesClassInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassInterface k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.VolumeAttributesClassInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -497,14 +497,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'volumeAttributesClasses :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttributesClasses :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttributesClasses :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'volumeAttributesClasses :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttributesClasses k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttributesClasses.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttributesClasses _root_.Perennial.k8s_io.client_go.kubernetes.typed.storage.v1beta1.volumeAttributesClasses.underlying :=
   sorry -- axiomatized type
 
 end def_

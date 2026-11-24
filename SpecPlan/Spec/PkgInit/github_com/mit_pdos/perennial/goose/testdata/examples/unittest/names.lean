@@ -3,6 +3,7 @@ module
 
 public import Perennial.GeneratedProof.github_com.mit_pdos.perennial.goose.testdata.examples.unittest.names
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.perennial.goose.testdata.examples.unittest.names.go
 
 @[expose] public section
 noncomputable section

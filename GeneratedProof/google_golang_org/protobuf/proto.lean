@@ -25,136 +25,136 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'UnmarshalOptions :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.UnmarshalOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions where
   typedPointstoDef l v dq := iprop(
-    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
-    "Merge" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' dq ∗
-    "AllowPartial" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' dq ∗
-    "DiscardUnknown" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' dq ∗
-    "Resolver" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' dq ∗
-    "RecursionLimit" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' dq ∗
-    "NoLazyDecoding" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' dq ∗
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "Merge" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' dq ∗
+    "AllowPartial" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' dq ∗
+    "DiscardUnknown" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' dq ∗
+    "Resolver" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' dq ∗
+    "RecursionLimit" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' dq ∗
+    "NoLazyDecoding" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'UnmarshalOptions :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.UnmarshalOptions google_golang_org.protobuf.proto.UnmarshalOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'UnmarshalOptions'NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'UnmarshalOptions'NoUnkeyedLiterals (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UnmarshalOptions'NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance access_store'UnmarshalOptions'NoUnkeyedLiterals (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := y } : google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoUnkeyedLiterals" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := y } : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UnmarshalOptions'Merge (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'UnmarshalOptions'Merge (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UnmarshalOptions'Merge (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
+noncomputable instance access_store'UnmarshalOptions'Merge (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Merge' := y } : google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) v.Merge' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Merge" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Merge' := y } : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UnmarshalOptions'AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'UnmarshalOptions'AllowPartial (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UnmarshalOptions'AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
+noncomputable instance access_store'UnmarshalOptions'AllowPartial (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowPartial' := y } : google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) v.AllowPartial' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"AllowPartial" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowPartial' := y } : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UnmarshalOptions'DiscardUnknown (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'UnmarshalOptions'DiscardUnknown (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UnmarshalOptions'DiscardUnknown (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
+noncomputable instance access_store'UnmarshalOptions'DiscardUnknown (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DiscardUnknown' := y } : google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) v.DiscardUnknown' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"DiscardUnknown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DiscardUnknown' := y } : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UnmarshalOptions'Resolver (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'UnmarshalOptions'Resolver (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UnmarshalOptions'Resolver (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (y : GoInterface) :
+noncomputable instance access_store'UnmarshalOptions'Resolver (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resolver' := y } : google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) v.Resolver' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"Resolver" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Resolver' := y } : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UnmarshalOptions'RecursionLimit (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'UnmarshalOptions'RecursionLimit (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UnmarshalOptions'RecursionLimit (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (y : w64) :
+noncomputable instance access_store'UnmarshalOptions'RecursionLimit (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecursionLimit' := y } : google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) v.RecursionLimit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"RecursionLimit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecursionLimit' := y } : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'UnmarshalOptions'NoLazyDecoding (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'UnmarshalOptions'NoLazyDecoding (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'UnmarshalOptions'NoLazyDecoding (l : Loc) (v : google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
+noncomputable instance access_store'UnmarshalOptions'NoLazyDecoding (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoLazyDecoding' := y } : google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) v.NoLazyDecoding' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions go!"NoLazyDecoding" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoLazyDecoding' := y } : _root_.Perennial.google_golang_org.protobuf.proto.UnmarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -167,85 +167,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'MarshalOptions :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.MarshalOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions where
   typedPointstoDef l v dq := iprop(
-    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
-    "AllowPartial" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq ∗
-    "Deterministic" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq ∗
-    "UseCachedSize" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq ∗
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "AllowPartial" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq ∗
+    "Deterministic" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq ∗
+    "UseCachedSize" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'MarshalOptions :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.MarshalOptions google_golang_org.protobuf.proto.MarshalOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'MarshalOptions'NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'MarshalOptions'NoUnkeyedLiterals (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MarshalOptions'NoUnkeyedLiterals (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance access_store'MarshalOptions'NoUnkeyedLiterals (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := y } : google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"NoUnkeyedLiterals" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := y } : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MarshalOptions'AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'MarshalOptions'AllowPartial (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MarshalOptions'AllowPartial (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (y : Bool) :
+noncomputable instance access_store'MarshalOptions'AllowPartial (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowPartial' := y } : google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) v.AllowPartial' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"AllowPartial" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowPartial' := y } : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MarshalOptions'Deterministic (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'MarshalOptions'Deterministic (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MarshalOptions'Deterministic (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (y : Bool) :
+noncomputable instance access_store'MarshalOptions'Deterministic (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Deterministic' := y } : google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) v.Deterministic' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"Deterministic" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Deterministic' := y } : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'MarshalOptions'UseCachedSize (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
+noncomputable instance access_load'MarshalOptions'UseCachedSize (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'MarshalOptions'UseCachedSize (l : Loc) (v : google_golang_org.protobuf.proto.MarshalOptions) (y : Bool) :
+noncomputable instance access_store'MarshalOptions'UseCachedSize (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UseCachedSize' := y } : google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) v.UseCachedSize' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions go!"UseCachedSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UseCachedSize' := y } : _root_.Perennial.google_golang_org.protobuf.proto.MarshalOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -258,10 +258,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions]
 
 noncomputable instance typed_pointsto'mergeOptions :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.mergeOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.mergeOptions where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -269,7 +269,7 @@ noncomputable instance typed_pointsto'mergeOptions :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'mergeOptions :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.mergeOptions google_golang_org.protobuf.proto.mergeOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.mergeOptions _root_.Perennial.google_golang_org.protobuf.proto.mergeOptions.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -281,14 +281,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions]
 
 noncomputable instance «typed_pointsto'struct#b984c7d3» :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#b984c7d3» :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#b984c7d3» :=
   sorry -- axiomatized type
 
 noncomputable instance «into_val_typed'struct#b984c7d3» :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#b984c7d3» google_golang_org.protobuf.proto.«struct#b984c7d3».underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#b984c7d3» _root_.Perennial.google_golang_org.protobuf.proto.«struct#b984c7d3».underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -300,14 +300,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions]
 
 noncomputable instance «typed_pointsto'struct#f9d6c4b8» :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#f9d6c4b8» :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#f9d6c4b8» :=
   sorry -- axiomatized type
 
 noncomputable instance «into_val_typed'struct#f9d6c4b8» :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#f9d6c4b8» google_golang_org.protobuf.proto.«struct#f9d6c4b8».underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#f9d6c4b8» _root_.Perennial.google_golang_org.protobuf.proto.«struct#f9d6c4b8».underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -319,14 +319,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions]
 
 noncomputable instance «typed_pointsto'struct#8d354e5a» :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#8d354e5a» :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#8d354e5a» :=
   sorry -- axiomatized type
 
 noncomputable instance «into_val_typed'struct#8d354e5a» :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#8d354e5a» google_golang_org.protobuf.proto.«struct#8d354e5a».underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#8d354e5a» _root_.Perennial.google_golang_org.protobuf.proto.«struct#8d354e5a».underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -338,51 +338,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.protobuf.proto.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions]
 
 noncomputable instance «typed_pointsto'struct#69fc66c6» :
-    TypedPointsto (GF := GF) google_golang_org.protobuf.proto.«struct#69fc66c6» where
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» where
   typedPointstoDef l v dq := iprop(
-    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
-    "Buf" ∷ typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq ∗
+    "NoUnkeyedLiterals" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq ∗
+    "Buf" ∷ typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance «into_val_typed'struct#69fc66c6» :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.protobuf.proto.«struct#69fc66c6» google_golang_org.protobuf.proto.«struct#69fc66c6».underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6».underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance «access_load'struct#69fc66c6'NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (dq : DFrac) :
+noncomputable instance «access_load'struct#69fc66c6'NoUnkeyedLiterals» (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6») (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance «access_store'struct#69fc66c6'NoUnkeyedLiterals» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
+noncomputable instance «access_store'struct#69fc66c6'NoUnkeyedLiterals» (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6») (y : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := y } : google_golang_org.protobuf.proto.«struct#69fc66c6») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) v.NoUnkeyedLiterals' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"NoUnkeyedLiterals" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NoUnkeyedLiterals' := y } : _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance «access_load'struct#69fc66c6'Buf» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (dq : DFrac) :
+noncomputable instance «access_load'struct#69fc66c6'Buf» (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6») (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance «access_store'struct#69fc66c6'Buf» (l : Loc) (v : google_golang_org.protobuf.proto.«struct#69fc66c6») (y : GoSlice) :
+noncomputable instance «access_store'struct#69fc66c6'Buf» (l : Loc) (v : _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6») (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Buf' := y } : google_golang_org.protobuf.proto.«struct#69fc66c6») (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) v.Buf' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6» go!"Buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Buf' := y } : _root_.Perennial.google_golang_org.protobuf.proto.«struct#69fc66c6») (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

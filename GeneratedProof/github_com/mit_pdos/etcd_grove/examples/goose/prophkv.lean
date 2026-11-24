@@ -23,51 +23,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Assumptions]
 
 noncomputable instance typed_pointsto'KV :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV where
   typedPointstoDef l v dq := iprop(
-    "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' dq ∗
-    "m" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' dq ∗
+    "m" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'KV :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'KV'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (dq : DFrac) :
+noncomputable instance access_load'KV'mu (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'KV'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (y : Loc) :
+noncomputable instance access_store'KV'mu (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'KV'm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (dq : DFrac) :
+noncomputable instance access_load'KV'm (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'KV'm (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (y : GoMap) :
+noncomputable instance access_store'KV'm (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := y } : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) v.m' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV go!"m" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with m' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

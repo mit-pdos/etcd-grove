@@ -26,10 +26,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.propagation.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.propagation.Assumptions]
 
 noncomputable instance typed_pointsto'Baggage :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.propagation.Baggage where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.propagation.Baggage where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -37,7 +37,7 @@ noncomputable instance typed_pointsto'Baggage :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Baggage :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.propagation.Baggage go_opentelemetry_io.otel.propagation.Baggage.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.propagation.Baggage _root_.Perennial.go_opentelemetry_io.otel.propagation.Baggage.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -49,10 +49,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_opentelemetry_io.otel.propagation.Assumptions]
+variable [package_sem' : _root_.Perennial.go_opentelemetry_io.otel.propagation.Assumptions]
 
 noncomputable instance typed_pointsto'TraceContext :
-    TypedPointsto (GF := GF) go_opentelemetry_io.otel.propagation.TraceContext where
+    TypedPointsto (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.propagation.TraceContext where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -60,7 +60,7 @@ noncomputable instance typed_pointsto'TraceContext :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'TraceContext :
-    IntoValTypedUnderlying (GF := GF) go_opentelemetry_io.otel.propagation.TraceContext go_opentelemetry_io.otel.propagation.TraceContext.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_opentelemetry_io.otel.propagation.TraceContext _root_.Perennial.go_opentelemetry_io.otel.propagation.TraceContext.underlying := by
   solve_into_val_typed_struct
 
 end def_

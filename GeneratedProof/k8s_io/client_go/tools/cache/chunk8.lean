@@ -69,85 +69,85 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions]
 
 noncomputable instance typed_pointsto'controller :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.controller where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.cache.controller where
   typedPointstoDef l v dq := iprop(
-    "config" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"config" l) v.config' dq ∗
-    "reflector" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' dq ∗
-    "reflectorMutex" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' dq ∗
-    "clock" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' dq ∗
+    "config" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"config" l) v.config' dq ∗
+    "reflector" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' dq ∗
+    "reflectorMutex" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'controller :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.controller k8s_io.client_go.tools.cache.controller.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.cache.controller _root_.Perennial.k8s_io.client_go.tools.cache.controller.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'controller'config (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
+noncomputable instance access_load'controller'config (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"config" l) v.config' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"config" l) v.config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"config" l) v.config' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"config" l) v.config' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'controller'config (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (y : k8s_io.client_go.tools.cache.Config) :
+noncomputable instance access_store'controller'config (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Config) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"config" l) v.config' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"config" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with config' := y } : k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"config" l) v.config' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"config" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with config' := y } : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'controller'reflector (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
+noncomputable instance access_load'controller'reflector (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'controller'reflector (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (y : Loc) :
+noncomputable instance access_store'controller'reflector (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflector" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reflector' := y } : k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflector" l) v.reflector' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflector" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reflector' := y } : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'controller'reflectorMutex (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
+noncomputable instance access_load'controller'reflectorMutex (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'controller'reflectorMutex (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'controller'reflectorMutex (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reflectorMutex' := y } : k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) v.reflectorMutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"reflectorMutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reflectorMutex' := y } : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'controller'clock (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
+noncomputable instance access_load'controller'clock (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'controller'clock (l : Loc) (v : k8s_io.client_go.tools.cache.controller) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
+noncomputable instance access_store'controller'clock (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (y : _root_.Perennial.k8s_io.utils.clock.Clock) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.controller go!"clock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.controller go!"clock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := y } : _root_.Perennial.k8s_io.client_go.tools.cache.controller) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -160,51 +160,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.tools.cache.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions]
 
 noncomputable instance typed_pointsto'ThreadSafeStoreTransaction :
-    TypedPointsto (GF := GF) k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction where
   typedPointstoDef l v dq := iprop(
-    "Transaction" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' dq ∗
-    "Key" ∷ typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' dq ∗
+    "Transaction" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' dq ∗
+    "Key" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ThreadSafeStoreTransaction :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ThreadSafeStoreTransaction'Transaction (l : Loc) (v : k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (dq : DFrac) :
+noncomputable instance access_load'ThreadSafeStoreTransaction'Transaction (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ThreadSafeStoreTransaction'Transaction (l : Loc) (v : k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (y : k8s_io.client_go.tools.cache.Transaction) :
+noncomputable instance access_store'ThreadSafeStoreTransaction'Transaction (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Transaction) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Transaction' := y } : k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) v.Transaction' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Transaction" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Transaction' := y } : _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ThreadSafeStoreTransaction'Key (l : Loc) (v : k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (dq : DFrac) :
+noncomputable instance access_load'ThreadSafeStoreTransaction'Key (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ThreadSafeStoreTransaction'Key (l : Loc) (v : k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (y : GoString) :
+noncomputable instance access_store'ThreadSafeStoreTransaction'Key (l : Loc) (v : _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) v.Key' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : _root_.Perennial.k8s_io.client_go.tools.cache.ThreadSafeStoreTransaction) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

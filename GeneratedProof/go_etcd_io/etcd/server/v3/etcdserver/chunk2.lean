@@ -85,51 +85,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 noncomputable instance typed_pointsto'zapRaftLogger :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger where
   typedPointstoDef l v dq := iprop(
-    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq ∗
-    "sugar" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq ∗
+    "sugar" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'zapRaftLogger :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'zapRaftLogger'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
+noncomputable instance access_load'zapRaftLogger'lg (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'zapRaftLogger'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
+noncomputable instance access_store'zapRaftLogger'lg (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"lg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'zapRaftLogger'sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
+noncomputable instance access_load'zapRaftLogger'sugar (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'zapRaftLogger'sugar (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
+noncomputable instance access_store'zapRaftLogger'sugar (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sugar' := y } : go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) v.sugar' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger go!"sugar" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sugar' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.zapRaftLogger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

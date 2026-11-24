@@ -48,7 +48,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.github_com.goose_lang.primitive, isPkgInit (PROP := IProp GF) pkg_id.github_com.goose_lang.primitive),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull),
    (pkg_id.github_com.prometheus.client_golang.prometheus, isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus),
-   (pkg_id.github_com.prometheus.client_model.go, isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go),
+   (pkg_id.github_com.prometheus.client_model.go'', isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_model.go''),
    (pkg_id.go_etcd_io.bbolt, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt),
    (pkg_id.go_etcd_io.bbolt.errors, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors),
    (pkg_id.go_etcd_io.bbolt.internal.common, isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common),
@@ -431,7 +431,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h17, h38, h21, True.intro⟩
-  have h69 : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go (getIsPkgInit (GF := GF)) := by
+  have h69 : GetIsPkgInitProp pkg_id.github_com.prometheus.client_model.go'' (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro

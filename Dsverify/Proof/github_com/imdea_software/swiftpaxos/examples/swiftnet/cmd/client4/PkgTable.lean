@@ -68,7 +68,7 @@ def pkgInitTable : List (GoString × IProp GF) :=
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.lintest.perclient),
    (pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote, isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.remote),
    (pkg_id.github_com.orcaman.concurrent_map, isPkgInit (PROP := IProp GF) pkg_id.github_com.orcaman.concurrent_map),
-   (pkg_id.go.token, isPkgInit (PROP := IProp GF) pkg_id.go.token),
+   (pkg_id.go''.token, isPkgInit (PROP := IProp GF) pkg_id.go''.token),
    (pkg_id.internal.abi, isPkgInit (PROP := IProp GF) pkg_id.internal.abi),
    (pkg_id.internal.bytealg, isPkgInit (PROP := IProp GF) pkg_id.internal.bytealg),
    (pkg_id.internal.oserror, isPkgInit (PROP := IProp GF) pkg_id.internal.oserror),
@@ -289,7 +289,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.imdea_software.swif
     refine And.intro ?_ ?_
     · rfl
     exact ⟨h11, h19, h0, h7, h6, h8, h20, h21, h26, h30, h5, h1, h10, h31, h18, h33, h32, h35, h36, h38, h41, True.intro⟩
-  have h43 : GetIsPkgInitProp pkg_id.go.token (getIsPkgInit (GF := GF)) := by
+  have h43 : GetIsPkgInitProp pkg_id.go''.token (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
     exact True.intro

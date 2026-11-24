@@ -25,14 +25,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.storage.feature.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.storage.feature.Assumptions]
 
 noncomputable instance typed_pointsto'defaultFeatureSupportChecker :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'defaultFeatureSupportChecker :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker _root_.Perennial.k8s_io.apiserver.pkg.storage.feature.defaultFeatureSupportChecker.underlying :=
   sorry -- axiomatized type
 
 end def_

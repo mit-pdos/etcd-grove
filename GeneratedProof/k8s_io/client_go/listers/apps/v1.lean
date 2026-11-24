@@ -29,34 +29,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'controllerRevisionLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.controllerRevisionLister where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister where
   typedPointstoDef l v dq := iprop(
-    "ResourceIndexer" ∷ typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
+    "ResourceIndexer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'controllerRevisionLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.controllerRevisionLister k8s_io.client_go.listers.apps.v1.controllerRevisionLister.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'controllerRevisionLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (dq : DFrac) :
+noncomputable instance access_load'controllerRevisionLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'controllerRevisionLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance access_store'controllerRevisionLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -69,34 +69,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'controllerRevisionNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister where
   typedPointstoDef l v dq := iprop(
-    "ResourceIndexer" ∷ typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
+    "ResourceIndexer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'controllerRevisionNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'controllerRevisionNamespaceLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (dq : DFrac) :
+noncomputable instance access_load'controllerRevisionNamespaceLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'controllerRevisionNamespaceLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance access_store'controllerRevisionNamespaceLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : _root_.Perennial.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -109,34 +109,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'daemonSetLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.daemonSetLister where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister where
   typedPointstoDef l v dq := iprop(
-    "ResourceIndexer" ∷ typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
+    "ResourceIndexer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'daemonSetLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.daemonSetLister k8s_io.client_go.listers.apps.v1.daemonSetLister.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'daemonSetLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetLister) (dq : DFrac) :
+noncomputable instance access_load'daemonSetLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'daemonSetLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance access_store'daemonSetLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.daemonSetLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -149,34 +149,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'daemonSetNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister where
   typedPointstoDef l v dq := iprop(
-    "ResourceIndexer" ∷ typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
+    "ResourceIndexer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'daemonSetNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'daemonSetNamespaceLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (dq : DFrac) :
+noncomputable instance access_load'daemonSetNamespaceLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'daemonSetNamespaceLister'ResourceIndexer (l : Loc) (v : k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
+noncomputable instance access_store'daemonSetNamespaceLister'ResourceIndexer (l : Loc) (v : _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (y : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer Loc)) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) v.ResourceIndexer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister go!"ResourceIndexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ResourceIndexer' := y } : _root_.Perennial.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -189,14 +189,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'DeploymentLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DeploymentLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentLister k8s_io.client_go.listers.apps.v1.DeploymentLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -208,14 +208,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'deploymentLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.deploymentLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.deploymentLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'deploymentLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.deploymentLister k8s_io.client_go.listers.apps.v1.deploymentLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.deploymentLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.deploymentLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -227,14 +227,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'DeploymentNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentNamespaceLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentNamespaceLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DeploymentNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentNamespaceLister k8s_io.client_go.listers.apps.v1.DeploymentNamespaceLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentNamespaceLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -246,14 +246,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'deploymentNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.deploymentNamespaceLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.deploymentNamespaceLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'deploymentNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.deploymentNamespaceLister k8s_io.client_go.listers.apps.v1.deploymentNamespaceLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.deploymentNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.deploymentNamespaceLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -265,14 +265,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'DeploymentListerExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentListerExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentListerExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DeploymentListerExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentListerExpansion k8s_io.client_go.listers.apps.v1.DeploymentListerExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentListerExpansion _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentListerExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -284,14 +284,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'DeploymentNamespaceListerExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentNamespaceListerExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentNamespaceListerExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'DeploymentNamespaceListerExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.DeploymentNamespaceListerExpansion k8s_io.client_go.listers.apps.v1.DeploymentNamespaceListerExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentNamespaceListerExpansion _root_.Perennial.k8s_io.client_go.listers.apps.v1.DeploymentNamespaceListerExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -303,14 +303,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicaSetLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicaSetLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetLister k8s_io.client_go.listers.apps.v1.ReplicaSetLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -322,14 +322,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'replicaSetLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.replicaSetLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.replicaSetLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'replicaSetLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.replicaSetLister k8s_io.client_go.listers.apps.v1.replicaSetLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.replicaSetLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.replicaSetLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -341,14 +341,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicaSetNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicaSetNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceLister k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -360,14 +360,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'replicaSetNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.replicaSetNamespaceLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.replicaSetNamespaceLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'replicaSetNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.replicaSetNamespaceLister k8s_io.client_go.listers.apps.v1.replicaSetNamespaceLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.replicaSetNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.replicaSetNamespaceLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -379,14 +379,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicaSetListerExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetListerExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetListerExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicaSetListerExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetListerExpansion k8s_io.client_go.listers.apps.v1.ReplicaSetListerExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetListerExpansion _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetListerExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -398,14 +398,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ReplicaSetNamespaceListerExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceListerExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceListerExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ReplicaSetNamespaceListerExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceListerExpansion k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceListerExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceListerExpansion _root_.Perennial.k8s_io.client_go.listers.apps.v1.ReplicaSetNamespaceListerExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -417,14 +417,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'StatefulSetLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StatefulSetLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetLister k8s_io.client_go.listers.apps.v1.StatefulSetLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -436,14 +436,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'statefulSetLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.statefulSetLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.statefulSetLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'statefulSetLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.statefulSetLister k8s_io.client_go.listers.apps.v1.statefulSetLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.statefulSetLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.statefulSetLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -455,14 +455,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'StatefulSetNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StatefulSetNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceLister k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -474,14 +474,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'statefulSetNamespaceLister :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.statefulSetNamespaceLister :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.statefulSetNamespaceLister :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'statefulSetNamespaceLister :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.statefulSetNamespaceLister k8s_io.client_go.listers.apps.v1.statefulSetNamespaceLister.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.statefulSetNamespaceLister _root_.Perennial.k8s_io.client_go.listers.apps.v1.statefulSetNamespaceLister.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -493,14 +493,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'StatefulSetListerExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetListerExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetListerExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StatefulSetListerExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetListerExpansion k8s_io.client_go.listers.apps.v1.StatefulSetListerExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetListerExpansion _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetListerExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -512,14 +512,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'StatefulSetNamespaceListerExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceListerExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceListerExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StatefulSetNamespaceListerExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceListerExpansion k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceListerExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceListerExpansion _root_.Perennial.k8s_io.client_go.listers.apps.v1.StatefulSetNamespaceListerExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_

@@ -1,6 +1,6 @@
 /-
 Trusted code for `github.com/prometheus/client_model/go` (protoc-gen-go output, package
-`io_prometheus_client`), in namespace `github_com.prometheus.client_model.go` like the generated package
+`io_prometheus_client`), in namespace `github_com.prometheus.client_model.go''` like the generated package
 (`Code/github_com/prometheus/client_model/go.toml`): its `init` function, the protobuf runtime's
 registration of the package's file descriptor, which the model skips (as etcd's `*pb` packages,
 etcd-grove#32).
@@ -15,7 +15,7 @@ set_option linter.iris.style.nameCheck false
 
 namespace Perennial
 
-namespace github_com.prometheus.client_model.go
+namespace github_com.prometheus.client_model.go''
 
 noncomputable section
 section code
@@ -47,6 +47,6 @@ def init.«0».impl : val :=
 end code
 end
 
-end github_com.prometheus.client_model.go
+end github_com.prometheus.client_model.go''
 
 end Perennial

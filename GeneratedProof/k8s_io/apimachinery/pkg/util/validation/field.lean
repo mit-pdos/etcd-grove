@@ -26,14 +26,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
 noncomputable instance typed_pointsto'NormalizationRule :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NormalizationRule :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.NormalizationRule.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -45,221 +45,221 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
 noncomputable instance typed_pointsto'ErrorMatcher :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher where
   typedPointstoDef l v dq := iprop(
-    "matchType" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq ∗
-    "matchField" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq ∗
-    "matchValue" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq ∗
-    "matchOrigin" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq ∗
-    "matchDetail" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq ∗
-    "requireOriginWhenInvalid" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq ∗
-    "matchValidationStabilityLevel" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq ∗
-    "matchSource" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq ∗
-    "matchAncestorShortCircuit" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq ∗
-    "matchShortCircuit" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq ∗
-    "matchCoveredByDeclarative" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq ∗
-    "normalizationRules" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq ∗
+    "matchType" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq ∗
+    "matchField" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq ∗
+    "matchValue" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq ∗
+    "matchOrigin" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq ∗
+    "matchDetail" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq ∗
+    "requireOriginWhenInvalid" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq ∗
+    "matchValidationStabilityLevel" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq ∗
+    "matchSource" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq ∗
+    "matchAncestorShortCircuit" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq ∗
+    "matchShortCircuit" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq ∗
+    "matchCoveredByDeclarative" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq ∗
+    "normalizationRules" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ErrorMatcher :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ErrorMatcher'matchType (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchType (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchType (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchType (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchType' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) v.matchType' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchType' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchField (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchField (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchField (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchField (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchField' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) v.matchField' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchField" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchField' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchValue (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchValue (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchValue' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) v.matchValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchValue' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchOrigin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchOrigin (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchOrigin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchOrigin (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchOrigin' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) v.matchOrigin' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchOrigin" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchOrigin' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchDetail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchDetail (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchDetail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoFunc) :
+noncomputable instance access_store'ErrorMatcher'matchDetail (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchDetail' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) v.matchDetail' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchDetail" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchDetail' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'requireOriginWhenInvalid (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'requireOriginWhenInvalid (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'requireOriginWhenInvalid (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'requireOriginWhenInvalid (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requireOriginWhenInvalid' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) v.requireOriginWhenInvalid' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"requireOriginWhenInvalid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requireOriginWhenInvalid' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchValidationStabilityLevel (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchValidationStabilityLevel (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchValidationStabilityLevel' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) v.matchValidationStabilityLevel' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchValidationStabilityLevel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchValidationStabilityLevel' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchSource (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchSource (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchSource (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchSource (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchSource' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) v.matchSource' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchSource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchSource' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchAncestorShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchAncestorShortCircuit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchAncestorShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchAncestorShortCircuit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchAncestorShortCircuit' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) v.matchAncestorShortCircuit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchAncestorShortCircuit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchAncestorShortCircuit' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchShortCircuit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchShortCircuit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchShortCircuit' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) v.matchShortCircuit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchShortCircuit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchShortCircuit' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'matchCoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'matchCoveredByDeclarative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'matchCoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
+noncomputable instance access_store'ErrorMatcher'matchCoveredByDeclarative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchCoveredByDeclarative' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) v.matchCoveredByDeclarative' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"matchCoveredByDeclarative" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with matchCoveredByDeclarative' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ErrorMatcher'normalizationRules (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
+noncomputable instance access_load'ErrorMatcher'normalizationRules (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ErrorMatcher'normalizationRules (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoSlice) :
+noncomputable instance access_store'ErrorMatcher'normalizationRules (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with normalizationRules' := y } : k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) v.normalizationRules' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher go!"normalizationRules" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with normalizationRules' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorMatcher) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -272,187 +272,187 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
 noncomputable instance typed_pointsto'Error :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Error where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error where
   typedPointstoDef l v dq := iprop(
-    "Type'" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq ∗
-    "Field" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq ∗
-    "BadValue" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq ∗
-    "Detail" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq ∗
-    "Origin" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq ∗
-    "CoveredByDeclarative" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq ∗
-    "FromImperative" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq ∗
-    "ShortCircuit" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq ∗
-    "ShortCircuitedInDeclarative" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq ∗
-    "ValidationStabilityLevel" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq ∗
+    "Type'" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq ∗
+    "Field" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq ∗
+    "BadValue" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq ∗
+    "Detail" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq ∗
+    "Origin" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq ∗
+    "CoveredByDeclarative" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq ∗
+    "FromImperative" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq ∗
+    "ShortCircuit" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq ∗
+    "ShortCircuitedInDeclarative" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq ∗
+    "ValidationStabilityLevel" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Error :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Error k8s_io.apimachinery.pkg.util.validation.field.Error.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Error'Type (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Type (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'Type (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : k8s_io.apimachinery.pkg.util.validation.field.ErrorType) :
+noncomputable instance access_store'Error'Type (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorType) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) v.Type' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Field (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'Field (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
+noncomputable instance access_store'Error'Field (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) v.Field' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'BadValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'BadValue (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'BadValue (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoInterface) :
+noncomputable instance access_store'Error'BadValue (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BadValue' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) v.BadValue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"BadValue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BadValue' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'Detail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Detail (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'Detail (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
+noncomputable instance access_store'Error'Detail (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Detail' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) v.Detail' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Detail" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Detail' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'Origin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'Origin (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'Origin (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
+noncomputable instance access_store'Error'Origin (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Origin' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) v.Origin' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"Origin" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Origin' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'CoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'CoveredByDeclarative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'CoveredByDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'CoveredByDeclarative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CoveredByDeclarative' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) v.CoveredByDeclarative' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"CoveredByDeclarative" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CoveredByDeclarative' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'FromImperative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'FromImperative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'FromImperative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'FromImperative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FromImperative' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) v.FromImperative' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"FromImperative" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FromImperative' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'ShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'ShortCircuit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'ShortCircuit (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'ShortCircuit (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShortCircuit' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) v.ShortCircuit' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuit" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShortCircuit' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'ShortCircuitedInDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'ShortCircuitedInDeclarative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'ShortCircuitedInDeclarative (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
+noncomputable instance access_store'Error'ShortCircuitedInDeclarative (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShortCircuitedInDeclarative' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) v.ShortCircuitedInDeclarative' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ShortCircuitedInDeclarative" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ShortCircuitedInDeclarative' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Error'ValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
+noncomputable instance access_load'Error'ValidationStabilityLevel (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Error'ValidationStabilityLevel (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Error) (y : k8s_io.apimachinery.pkg.util.validation.field.ValidationStabilityLevel) :
+noncomputable instance access_store'Error'ValidationStabilityLevel (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ValidationStabilityLevel) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ValidationStabilityLevel' := y } : k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) v.ValidationStabilityLevel' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error go!"ValidationStabilityLevel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ValidationStabilityLevel' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Error) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -465,10 +465,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
 noncomputable instance typed_pointsto'OmitValueType :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.OmitValueType where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.OmitValueType where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -476,7 +476,7 @@ noncomputable instance typed_pointsto'OmitValueType :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'OmitValueType :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.OmitValueType k8s_io.apimachinery.pkg.util.validation.field.OmitValueType.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.OmitValueType _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.OmitValueType.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -488,34 +488,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
 noncomputable instance typed_pointsto'pathOptions :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.pathOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions where
   typedPointstoDef l v dq := iprop(
-    "path" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq ∗
+    "path" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'pathOptions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.pathOptions k8s_io.apimachinery.pkg.util.validation.field.pathOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'pathOptions'path (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (dq : DFrac) :
+noncomputable instance access_load'pathOptions'path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'pathOptions'path (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (y : Loc) :
+noncomputable instance access_store'pathOptions'path (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with path' := y } : k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) v.path' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions go!"path" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with path' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.pathOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -528,68 +528,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Assumptions]
 
 noncomputable instance typed_pointsto'Path :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Path where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path where
   typedPointstoDef l v dq := iprop(
-    "name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq ∗
-    "index" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq ∗
-    "parent" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq ∗
+    "name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq ∗
+    "index" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq ∗
+    "parent" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Path :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.validation.field.Path k8s_io.apimachinery.pkg.util.validation.field.Path.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Path'name (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
+noncomputable instance access_load'Path'name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Path'name (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
+noncomputable instance access_store'Path'name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : k8s_io.apimachinery.pkg.util.validation.field.Path) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) v.name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Path'index (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
+noncomputable instance access_load'Path'index (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Path'index (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
+noncomputable instance access_store'Path'index (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : k8s_io.apimachinery.pkg.util.validation.field.Path) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) v.index' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Path'parent (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
+noncomputable instance access_load'Path'parent (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Path'parent (l : Loc) (v : k8s_io.apimachinery.pkg.util.validation.field.Path) (y : Loc) :
+noncomputable instance access_store'Path'parent (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := y } : k8s_io.apimachinery.pkg.util.validation.field.Path) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) v.parent' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path go!"parent" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with parent' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.Path) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -22,51 +22,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.types.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions]
 
 noncomputable instance typed_pointsto'NamespacedName :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.types.NamespacedName where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName where
   typedPointstoDef l v dq := iprop(
-    "Namespace" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq ∗
-    "Name" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq ∗
+    "Namespace" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'NamespacedName :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.types.NamespacedName k8s_io.apimachinery.pkg.types.NamespacedName.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'NamespacedName'Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
+noncomputable instance access_load'NamespacedName'Namespace (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NamespacedName'Namespace (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (y : GoString) :
+noncomputable instance access_store'NamespacedName'Namespace (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) v.Namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Namespace' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NamespacedName'Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
+noncomputable instance access_load'NamespacedName'Name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NamespacedName'Name (l : Loc) (v : k8s_io.apimachinery.pkg.types.NamespacedName) (y : GoString) :
+noncomputable instance access_store'NamespacedName'Name (l : Loc) (v : _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.k8s_io.apimachinery.pkg.types.NamespacedName) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

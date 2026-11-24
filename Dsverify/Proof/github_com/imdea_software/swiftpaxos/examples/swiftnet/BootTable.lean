@@ -109,7 +109,7 @@ structure KitG (G : GoString → IProp GF) : Prop where
   e_internal_runtime_atomic : G pkg_id.internal.runtime.atomic = isPkgInit (PROP := IProp GF) pkg_id.internal.runtime.atomic
   e_runtime : G pkg_id.runtime = isPkgInit (PROP := IProp GF) pkg_id.runtime
   e_net_http : G pkg_id.net.http = isPkgInit (PROP := IProp GF) pkg_id.net.http
-  e_go_token : G pkg_id.go.token = isPkgInit (PROP := IProp GF) pkg_id.go.token
+  e_go''_token : G pkg_id.go''.token = isPkgInit (PROP := IProp GF) pkg_id.go''.token
   e_net_rpc : G pkg_id.net.rpc = isPkgInit (PROP := IProp GF) pkg_id.net.rpc
   e_sort : G pkg_id.sort = isPkgInit (PROP := IProp GF) pkg_id.sort
   e_github_com_anishathalye_porcupine : G pkg_id.github_com.anishathalye.porcupine = isPkgInit (PROP := IProp GF) pkg_id.github_com.anishathalye.porcupine
@@ -318,13 +318,13 @@ theorem wf_net_http {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.http G :=
   And.intro h.e_net_http ⟨wf_context h, wf_crypto_tls h, wf_errors h, wf_fmt h, wf_io h, wf_log h, wf_net_http_internal_ascii h, wf_net_url h, wf_slices h, wf_strings h, wf_sync h, wf_sync_atomic h, wf_time h, wf_vendor_golang_org_x_net_http_httpguts h, wf_net h, wf_mime_multipart h, wf_net_textproto h, wf_strconv h, wf_path h, wf_bufio h, wf_runtime h, True.intro⟩
 
-theorem wf_go_token {G : GoString → IProp GF} (h : KitG G) :
-    GetIsPkgInitProp pkg_id.go.token G :=
-  And.intro h.e_go_token True.intro
+theorem wf_go''_token {G : GoString → IProp GF} (h : KitG G) :
+    GetIsPkgInitProp pkg_id.go''.token G :=
+  And.intro h.e_go''_token True.intro
 
 theorem wf_net_rpc {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.net.rpc G :=
-  And.intro h.e_net_rpc ⟨wf_bufio h, wf_errors h, wf_io h, wf_log h, wf_net h, wf_net_http h, wf_sync h, wf_go_token h, True.intro⟩
+  And.intro h.e_net_rpc ⟨wf_bufio h, wf_errors h, wf_io h, wf_log h, wf_net h, wf_net_http h, wf_sync h, wf_go''_token h, True.intro⟩
 
 theorem wf_sort {G : GoString → IProp GF} (h : KitG G) :
     GetIsPkgInitProp pkg_id.sort G :=
@@ -672,10 +672,10 @@ theorem wfO_runtime {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
   And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.runtime ∉ ownedPkgs) (hS _ hm))).trans
     h.e_runtime) ⟨wfO_internal_runtime_sys h S hS, wfO_internal_runtime_atomic h S hS, True.intro⟩
 
-theorem wfO_go_token {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
-    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.go.token (gOff S G) :=
-  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.go.token ∉ ownedPkgs) (hS _ hm))).trans
-    h.e_go_token) True.intro
+theorem wfO_go''_token {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
+    (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.go''.token (gOff S G) :=
+  And.intro ((gOff_ne S G _ (fun hm => (by decide : pkg_id.go''.token ∉ ownedPkgs) (hS _ hm))).trans
+    h.e_go''_token) True.intro
 
 theorem wfO_sort {G : GoString → IProp GF} (h : KitG G) (S : List GoString)
     (hS : ∀ q ∈ S, q ∈ ownedPkgs) : GetIsPkgInitProp pkg_id.sort (gOff S G) :=

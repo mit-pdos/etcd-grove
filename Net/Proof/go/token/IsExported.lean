@@ -16,13 +16,13 @@ namespace Perennial
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-namespace go.token
+namespace go''.token
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go.token.Assumptions]
+variable [package_sem' : go''.token.Assumptions]
 
 theorem IsExported.wp_proof : IsExported.spec (GF := GF) (hG := hG) := by
   intro c rest hc
@@ -43,5 +43,5 @@ theorem IsExported.wp_proof : IsExported.spec (GF := GF) (hG := hG) := by
 
 end proof
 
-end go.token
+end go''.token
 end Perennial

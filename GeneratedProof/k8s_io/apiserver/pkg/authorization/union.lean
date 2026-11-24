@@ -30,51 +30,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.authorization.union.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.Assumptions]
 
 noncomputable instance typed_pointsto'unionAuthzHandler :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler where
   typedPointstoDef l v dq := iprop(
-    "chain" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' dq ∗
-    "nameToAuthorizer" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' dq ∗
+    "chain" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' dq ∗
+    "nameToAuthorizer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'unionAuthzHandler :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'unionAuthzHandler'chain (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (dq : DFrac) :
+noncomputable instance access_load'unionAuthzHandler'chain (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unionAuthzHandler'chain (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (y : GoSlice) :
+noncomputable instance access_store'unionAuthzHandler'chain (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with chain' := y } : k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) v.chain' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"chain" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with chain' := y } : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'unionAuthzHandler'nameToAuthorizer (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (dq : DFrac) :
+noncomputable instance access_load'unionAuthzHandler'nameToAuthorizer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'unionAuthzHandler'nameToAuthorizer (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (y : GoMap) :
+noncomputable instance access_store'unionAuthzHandler'nameToAuthorizer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nameToAuthorizer' := y } : k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) v.nameToAuthorizer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler go!"nameToAuthorizer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with nameToAuthorizer' := y } : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -87,51 +87,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apiserver.pkg.authorization.union.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.Assumptions]
 
 noncomputable instance typed_pointsto'NamedAuthorizer :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer where
   typedPointstoDef l v dq := iprop(
-    "AuthorizerName" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' dq ∗
-    "Authorizer" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' dq ∗
+    "AuthorizerName" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' dq ∗
+    "Authorizer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'NamedAuthorizer :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'NamedAuthorizer'AuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (dq : DFrac) :
+noncomputable instance access_load'NamedAuthorizer'AuthorizerName (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NamedAuthorizer'AuthorizerName (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (y : GoString) :
+noncomputable instance access_store'NamedAuthorizer'AuthorizerName (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AuthorizerName' := y } : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) v.AuthorizerName' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"AuthorizerName" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AuthorizerName' := y } : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'NamedAuthorizer'Authorizer (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (dq : DFrac) :
+noncomputable instance access_load'NamedAuthorizer'Authorizer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' dq)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'NamedAuthorizer'Authorizer (l : Loc) (v : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (y : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer) :
+noncomputable instance access_store'NamedAuthorizer'Authorizer (l : Loc) (v : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (y : _root_.Perennial.k8s_io.apiserver.pkg.authorization.authorizer.Authorizer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Authorizer' := y } : k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) v.Authorizer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer go!"Authorizer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Authorizer' := y } : _root_.Perennial.k8s_io.apiserver.pkg.authorization.union.NamedAuthorizer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

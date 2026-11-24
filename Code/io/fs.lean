@@ -297,14 +297,14 @@ noncomputable def FileMode.String.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc FileMode.ty))) (Var "m"))
-  (let str₀ := #(go!"dalTLDpSugct?");
+  (let str₁ := #(go!"dalTLDpSugct?");
   (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 32 go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 32 go.byte)))) (Val #())))
   (Let "$r0" (Val #(W64 0))
   (Let "w" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (let rwx₀ := #(go!"rwxrwxrwx");
+  (let rwx₁ := #(go!"rwxrwxrwx");
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (Var "buf")
   (App (Val (GoInstruction (Slice (go.GoType.ArrayType 32 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "w"))))))
@@ -313,7 +313,7 @@ noncomputable def FileMode.String.impl [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
-  (Let "$range" (Val rwx₀)
+  (Let "$range" (Val rwx₁)
   (Let "c" (App (Val (GoInstruction (GoAlloc go.rune))) (App (Val (GoInstruction (GoZeroVal go.rune))) (Val #())))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val string.forRange) (Var "$range"))
@@ -344,7 +344,7 @@ noncomputable def FileMode.String.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 32 go.byte)))) (Pair (Var "buf") (App (Val (GoInstruction (GoLoad go.int))) (Var "w")))) (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
-  (Let "$range" (Val str₀)
+  (Let "$range" (Val str₁)
   (Let "c" (App (Val (GoInstruction (GoAlloc go.rune))) (App (Val (GoInstruction (GoZeroVal go.rune))) (Val #())))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val string.forRange) (Var "$range"))

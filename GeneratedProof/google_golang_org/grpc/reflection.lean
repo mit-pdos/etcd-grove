@@ -23,14 +23,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions]
 
 noncomputable instance typed_pointsto'v1AlphaServerImpl :
-    TypedPointsto (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerImpl :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.v1AlphaServerImpl :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'v1AlphaServerImpl :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerImpl google_golang_org.grpc.reflection.v1AlphaServerImpl.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.v1AlphaServerImpl _root_.Perennial.google_golang_org.grpc.reflection.v1AlphaServerImpl.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -42,14 +42,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions]
 
 noncomputable instance typed_pointsto'v1AlphaServerStreamAdapter :
-    TypedPointsto (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'v1AlphaServerStreamAdapter :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter _root_.Perennial.google_golang_org.grpc.reflection.v1AlphaServerStreamAdapter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -61,14 +61,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions]
 
 noncomputable instance typed_pointsto'ExtensionResolver :
-    TypedPointsto (GF := GF) google_golang_org.grpc.reflection.ExtensionResolver :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.ExtensionResolver :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ExtensionResolver :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.ExtensionResolver google_golang_org.grpc.reflection.ExtensionResolver.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.ExtensionResolver _root_.Perennial.google_golang_org.grpc.reflection.ExtensionResolver.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -80,14 +80,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : google_golang_org.grpc.reflection.Assumptions]
+variable [package_sem' : _root_.Perennial.google_golang_org.grpc.reflection.Assumptions]
 
 noncomputable instance typed_pointsto'ServerOptions :
-    TypedPointsto (GF := GF) google_golang_org.grpc.reflection.ServerOptions :=
+    TypedPointsto (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.ServerOptions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServerOptions :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.reflection.ServerOptions google_golang_org.grpc.reflection.ServerOptions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.google_golang_org.grpc.reflection.ServerOptions _root_.Perennial.google_golang_org.grpc.reflection.ServerOptions.underlying :=
   sorry -- axiomatized type
 
 end def_

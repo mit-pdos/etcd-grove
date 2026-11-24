@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.Assumptions]
 
 noncomputable instance typed_pointsto'Clientset :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.Clientset :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.Clientset :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Clientset :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.Clientset k8s_io.client_go.kubernetes.Clientset.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.Clientset _root_.Perennial.k8s_io.client_go.kubernetes.Clientset.underlying :=
   sorry -- axiomatized type
 
 end def_

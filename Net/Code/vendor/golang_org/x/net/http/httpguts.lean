@@ -109,8 +109,8 @@ noncomputable def isCTL.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.byte))) (Var "b"))
-  (let del₀ := #(127 : Int);
-  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val del₀)))))
+  (let del₁ := #(127 : Int);
+  (Let "$r0" (If (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (Val #(W8 32)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val del₁)))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))

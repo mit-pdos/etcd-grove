@@ -24,14 +24,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.Assumptions]
 
 noncomputable instance typed_pointsto'leaseHandler :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler :=
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'leaseHandler :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasehttp.leaseHandler.underlying :=
   sorry -- axiomatized type
 
 end def_

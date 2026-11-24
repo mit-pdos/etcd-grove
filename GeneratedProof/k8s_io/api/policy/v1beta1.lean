@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PodDisruptionBudgetSpec :
-    TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PodDisruptionBudgetSpec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetSpec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'UnhealthyPodEvictionPolicyType :
-    TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'UnhealthyPodEvictionPolicyType :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType _root_.Perennial.k8s_io.api.policy.v1beta1.UnhealthyPodEvictionPolicyType.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PodDisruptionBudgetStatus :
-    TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PodDisruptionBudgetStatus :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetStatus.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PodDisruptionBudget :
-    TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudget :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudget :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PodDisruptionBudget :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudget k8s_io.api.policy.v1beta1.PodDisruptionBudget.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudget _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudget.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PodDisruptionBudgetList :
-    TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetList :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetList :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PodDisruptionBudgetList :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.PodDisruptionBudgetList k8s_io.api.policy.v1beta1.PodDisruptionBudgetList.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetList _root_.Perennial.k8s_io.api.policy.v1beta1.PodDisruptionBudgetList.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.policy.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.policy.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'Eviction :
-    TypedPointsto (GF := GF) k8s_io.api.policy.v1beta1.Eviction :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.Eviction :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'Eviction :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.policy.v1beta1.Eviction k8s_io.api.policy.v1beta1.Eviction.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.policy.v1beta1.Eviction _root_.Perennial.k8s_io.api.policy.v1beta1.Eviction.underlying :=
   sorry -- axiomatized type
 
 end def_

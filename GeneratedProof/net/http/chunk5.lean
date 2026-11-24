@@ -24,34 +24,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : net.http.Assumptions]
+variable [package_sem' : _root_.Perennial.net.http.Assumptions]
 
 noncomputable instance typed_pointsto'fileTransport :
-    TypedPointsto (GF := GF) net.http.fileTransport where
+    TypedPointsto (GF := GF) _root_.Perennial.net.http.fileTransport where
   typedPointstoDef l v dq := iprop(
-    "fh" ∷ typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq ∗
+    "fh" ∷ typedPointsto (structFieldRef _root_.Perennial.net.http.fileTransport go!"fh" l) v.fh' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'fileTransport :
-    IntoValTypedUnderlying (GF := GF) net.http.fileTransport net.http.fileTransport.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.net.http.fileTransport _root_.Perennial.net.http.fileTransport.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'fileTransport'fh (l : Loc) (v : net.http.fileTransport) (dq : DFrac) :
+noncomputable instance access_load'fileTransport'fh (l : Loc) (v : _root_.Perennial.net.http.fileTransport) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq)
-      (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.fileTransport go!"fh" l) v.fh' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.fileTransport go!"fh" l) v.fh' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'fileTransport'fh (l : Loc) (v : net.http.fileTransport) (y : net.http.fileHandler) :
+noncomputable instance access_store'fileTransport'fh (l : Loc) (v : _root_.Perennial.net.http.fileTransport) (y : _root_.Perennial.net.http.fileHandler) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) v.fh' (DFrac.own 1))
-      (typedPointsto (structFieldRef net.http.fileTransport go!"fh" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fh' := y } : net.http.fileTransport) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.fileTransport go!"fh" l) v.fh' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.net.http.fileTransport go!"fh" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fh' := y } : _root_.Perennial.net.http.fileTransport) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

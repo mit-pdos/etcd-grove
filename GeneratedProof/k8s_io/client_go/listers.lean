@@ -27,68 +27,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.listers.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.listers.Assumptions]
 
 noncomputable instance typed_pointsto'ResourceIndexer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] :
-    TypedPointsto (GF := GF) (k8s_io.client_go.listers.ResourceIndexer T₀') where
+    TypedPointsto (GF := GF) (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') where
   typedPointstoDef l v dq := iprop(
-    "indexer" ∷ typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' dq ∗
-    "resource" ∷ typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' dq ∗
-    "namespace'" ∷ typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' dq ∗
+    "indexer" ∷ typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' dq ∗
+    "resource" ∷ typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ResourceIndexer (T₀ : go.GoType) {T₀' : Type} [ZeroVal T₀'] [TypedPointsto (GF := GF) T₀'] [IntoValTyped (GF := GF) T₀' T₀] :
-    IntoValTypedUnderlying (GF := GF) (k8s_io.client_go.listers.ResourceIndexer T₀') (k8s_io.client_go.listers.ResourceIndexer.underlying T₀) := by
+    IntoValTypedUnderlying (GF := GF) (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer.underlying T₀) := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ResourceIndexer'indexer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T₀')) (dq : DFrac) :
+noncomputable instance access_load'ResourceIndexer'indexer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' dq)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceIndexer'indexer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T₀')) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexer) :
+noncomputable instance access_store'ResourceIndexer'indexer {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (y : _root_.Perennial.k8s_io.client_go.tools.cache.Indexer) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexer' := y } : (k8s_io.client_go.listers.ResourceIndexer T₀')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) v.indexer' (DFrac.own 1))
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"indexer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexer' := y } : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResourceIndexer'resource {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T₀')) (dq : DFrac) :
+noncomputable instance access_load'ResourceIndexer'resource {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' dq)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceIndexer'resource {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T₀')) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+noncomputable instance access_store'ResourceIndexer'resource {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resource' := y } : (k8s_io.client_go.listers.ResourceIndexer T₀')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) v.resource' (DFrac.own 1))
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"resource" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resource' := y } : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ResourceIndexer'namespace {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T₀')) (dq : DFrac) :
+noncomputable instance access_load'ResourceIndexer'namespace {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' dq)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ResourceIndexer'namespace {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (k8s_io.client_go.listers.ResourceIndexer T₀')) (y : GoString) :
+noncomputable instance access_store'ResourceIndexer'namespace {T₀' : Type} [TypedPointsto (GF := GF) T₀'] (l : Loc) (v : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' (DFrac.own 1))
-      (typedPointsto (structFieldRef (k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : (k8s_io.client_go.listers.ResourceIndexer T₀')) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀') go!"namespace" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := y } : (_root_.Perennial.k8s_io.client_go.listers.ResourceIndexer T₀')) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

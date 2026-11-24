@@ -26,51 +26,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : rabia.internal.ledger.Assumptions]
+variable [package_sem' : _root_.Perennial.rabia.internal.ledger.Assumptions]
 
 noncomputable instance typed_pointsto'Tally :
-    TypedPointsto (GF := GF) rabia.internal.ledger.Tally where
+    TypedPointsto (GF := GF) _root_.Perennial.rabia.internal.ledger.Tally where
   typedPointstoDef l v dq := iprop(
-    "Proposal" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' dq ∗
-    "Count" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Count" l) v.Count' dq ∗
+    "Proposal" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' dq ∗
+    "Count" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Count" l) v.Count' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Tally :
-    IntoValTypedUnderlying (GF := GF) rabia.internal.ledger.Tally rabia.internal.ledger.Tally.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.rabia.internal.ledger.Tally _root_.Perennial.rabia.internal.ledger.Tally.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Tally'Proposal (l : Loc) (v : rabia.internal.ledger.Tally) (dq : DFrac) :
+noncomputable instance access_load'Tally'Proposal (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Tally) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Tally'Proposal (l : Loc) (v : rabia.internal.ledger.Tally) (y : _root_.Perennial.rabia.internal.message.ConsensusObj) :
+noncomputable instance access_store'Tally'Proposal (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Tally) (y : _root_.Perennial.rabia.internal.message.ConsensusObj) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Proposal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposal' := y } : rabia.internal.ledger.Tally) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Proposal" l) v.Proposal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Proposal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Proposal' := y } : _root_.Perennial.rabia.internal.ledger.Tally) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Tally'Count (l : Loc) (v : rabia.internal.ledger.Tally) (dq : DFrac) :
+noncomputable instance access_load'Tally'Count (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Tally) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Count" l) v.Count' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Count" l) v.Count' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Count" l) v.Count' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Tally'Count (l : Loc) (v : rabia.internal.ledger.Tally) (y : w64) :
+noncomputable instance access_store'Tally'Count (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Tally) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Count" l) v.Count' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Tally go!"Count" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : rabia.internal.ledger.Tally) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Count" l) v.Count' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Tally go!"Count" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Count' := y } : _root_.Perennial.rabia.internal.ledger.Tally) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -83,255 +83,255 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : rabia.internal.ledger.Assumptions]
+variable [package_sem' : _root_.Perennial.rabia.internal.ledger.Assumptions]
 
 noncomputable instance typed_pointsto'Slot :
-    TypedPointsto (GF := GF) rabia.internal.ledger.Slot where
+    TypedPointsto (GF := GF) _root_.Perennial.rabia.internal.ledger.Slot where
   typedPointstoDef l v dq := iprop(
-    "Term" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Term" l) v.Term' dq ∗
-    "Lock" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Lock" l) v.Lock' dq ∗
-    "IsDone" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' dq ∗
-    "HasRecvDec" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' dq ∗
-    "Decision" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Decision" l) v.Decision' dq ∗
-    "Queue" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Queue" l) v.Queue' dq ∗
-    "Phase" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Phase" l) v.Phase' dq ∗
-    "Round" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Round" l) v.Round' dq ∗
-    "wake" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"wake" l) v.wake' dq ∗
-    "MyProposal" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' dq ∗
-    "RecvProposals" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' dq ∗
-    "MyBCMsgs" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' dq ∗
-    "RecvBCMsgs" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' dq ∗
-    "RecvBCMsgsT" ∷ typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' dq ∗
+    "Term" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Term" l) v.Term' dq ∗
+    "Lock" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Lock" l) v.Lock' dq ∗
+    "IsDone" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' dq ∗
+    "HasRecvDec" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' dq ∗
+    "Decision" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Decision" l) v.Decision' dq ∗
+    "Queue" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Queue" l) v.Queue' dq ∗
+    "Phase" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Phase" l) v.Phase' dq ∗
+    "Round" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Round" l) v.Round' dq ∗
+    "wake" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"wake" l) v.wake' dq ∗
+    "MyProposal" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' dq ∗
+    "RecvProposals" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' dq ∗
+    "MyBCMsgs" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' dq ∗
+    "RecvBCMsgs" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' dq ∗
+    "RecvBCMsgsT" ∷ typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Slot :
-    IntoValTypedUnderlying (GF := GF) rabia.internal.ledger.Slot rabia.internal.ledger.Slot.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.rabia.internal.ledger.Slot _root_.Perennial.rabia.internal.ledger.Slot.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Slot'Term (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'Term (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Term" l) v.Term' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Term" l) v.Term' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Term" l) v.Term' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Term" l) v.Term' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'Term (l : Loc) (v : rabia.internal.ledger.Slot) (y : w32) :
+noncomputable instance access_store'Slot'Term (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Term" l) v.Term' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Term" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Term" l) v.Term' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Term" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Term' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'Lock (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'Lock (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Lock" l) v.Lock' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Lock" l) v.Lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Lock" l) v.Lock' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Lock" l) v.Lock' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'Lock (l : Loc) (v : rabia.internal.ledger.Slot) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'Slot'Lock (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Lock" l) v.Lock' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Lock" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lock' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Lock" l) v.Lock' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Lock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Lock' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'IsDone (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'IsDone (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'IsDone (l : Loc) (v : rabia.internal.ledger.Slot) (y : Bool) :
+noncomputable instance access_store'Slot'IsDone (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"IsDone" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsDone' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"IsDone" l) v.IsDone' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"IsDone" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsDone' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'HasRecvDec (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'HasRecvDec (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'HasRecvDec (l : Loc) (v : rabia.internal.ledger.Slot) (y : Bool) :
+noncomputable instance access_store'Slot'HasRecvDec (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"HasRecvDec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HasRecvDec' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"HasRecvDec" l) v.HasRecvDec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"HasRecvDec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with HasRecvDec' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'Decision (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'Decision (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Decision" l) v.Decision' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Decision" l) v.Decision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Decision" l) v.Decision' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Decision" l) v.Decision' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'Decision (l : Loc) (v : rabia.internal.ledger.Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj) :
+noncomputable instance access_store'Slot'Decision (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Decision" l) v.Decision' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Decision" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Decision' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Decision" l) v.Decision' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Decision" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Decision' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'Queue (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'Queue (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Queue" l) v.Queue' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Queue" l) v.Queue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Queue" l) v.Queue' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Queue" l) v.Queue' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'Queue (l : Loc) (v : rabia.internal.ledger.Slot) (y : GoChan) :
+noncomputable instance access_store'Slot'Queue (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Queue" l) v.Queue' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Queue" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Queue' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Queue" l) v.Queue' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Queue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Queue' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'Phase (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'Phase (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Phase" l) v.Phase' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Phase" l) v.Phase' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Phase" l) v.Phase' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Phase" l) v.Phase' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'Phase (l : Loc) (v : rabia.internal.ledger.Slot) (y : w32) :
+noncomputable instance access_store'Slot'Phase (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Phase" l) v.Phase' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Phase" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Phase' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Phase" l) v.Phase' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Phase" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Phase' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'Round (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'Round (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Round" l) v.Round' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Round" l) v.Round' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Round" l) v.Round' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Round" l) v.Round' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'Round (l : Loc) (v : rabia.internal.ledger.Slot) (y : w32) :
+noncomputable instance access_store'Slot'Round (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : w32) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Round" l) v.Round' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"Round" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Round' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Round" l) v.Round' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"Round" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Round' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'wake (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'wake (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"wake" l) v.wake' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"wake" l) v.wake' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"wake" l) v.wake' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"wake" l) v.wake' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'wake (l : Loc) (v : rabia.internal.ledger.Slot) (y : GoChan) :
+noncomputable instance access_store'Slot'wake (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"wake" l) v.wake' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"wake" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wake' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"wake" l) v.wake' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"wake" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wake' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'MyProposal (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'MyProposal (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'MyProposal (l : Loc) (v : rabia.internal.ledger.Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj) :
+noncomputable instance access_store'Slot'MyProposal (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : _root_.Perennial.rabia.internal.message.ConsensusObj) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyProposal" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MyProposal' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyProposal" l) v.MyProposal' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyProposal" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MyProposal' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'RecvProposals (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'RecvProposals (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'RecvProposals (l : Loc) (v : rabia.internal.ledger.Slot) (y : GoSlice) :
+noncomputable instance access_store'Slot'RecvProposals (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvProposals" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvProposals' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvProposals" l) v.RecvProposals' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvProposals" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvProposals' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'MyBCMsgs (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'MyBCMsgs (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'MyBCMsgs (l : Loc) (v : rabia.internal.ledger.Slot) (y : GoSlice) :
+noncomputable instance access_store'Slot'MyBCMsgs (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"MyBCMsgs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MyBCMsgs' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyBCMsgs" l) v.MyBCMsgs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"MyBCMsgs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MyBCMsgs' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'RecvBCMsgs (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'RecvBCMsgs (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'RecvBCMsgs (l : Loc) (v : rabia.internal.ledger.Slot) (y : GoSlice) :
+noncomputable instance access_store'Slot'RecvBCMsgs (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvBCMsgs' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgs" l) v.RecvBCMsgs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvBCMsgs' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Slot'RecvBCMsgsT (l : Loc) (v : rabia.internal.ledger.Slot) (dq : DFrac) :
+noncomputable instance access_load'Slot'RecvBCMsgsT (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' dq)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Slot'RecvBCMsgsT (l : Loc) (v : rabia.internal.ledger.Slot) (y : GoSlice) :
+noncomputable instance access_store'Slot'RecvBCMsgsT (l : Loc) (v : _root_.Perennial.rabia.internal.ledger.Slot) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvBCMsgsT' := y } : rabia.internal.ledger.Slot) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) v.RecvBCMsgsT' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.rabia.internal.ledger.Slot go!"RecvBCMsgsT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecvBCMsgsT' := y } : _root_.Perennial.rabia.internal.ledger.Slot) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

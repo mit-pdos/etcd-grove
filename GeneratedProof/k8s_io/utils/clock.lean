@@ -23,10 +23,10 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.utils.clock.Assumptions]
 
 noncomputable instance typed_pointsto'RealClock :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.RealClock where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.utils.clock.RealClock where
   typedPointstoDef l v dq := iprop(
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
@@ -34,7 +34,7 @@ noncomputable instance typed_pointsto'RealClock :
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'RealClock :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.RealClock k8s_io.utils.clock.RealClock.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.utils.clock.RealClock _root_.Perennial.k8s_io.utils.clock.RealClock.underlying := by
   solve_into_val_typed_struct
 
 end def_
@@ -46,34 +46,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.utils.clock.Assumptions]
 
 noncomputable instance typed_pointsto'realTimer :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.realTimer where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.utils.clock.realTimer where
   typedPointstoDef l v dq := iprop(
-    "timer" ∷ typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq ∗
+    "timer" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'realTimer :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTimer k8s_io.utils.clock.realTimer.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.utils.clock.realTimer _root_.Perennial.k8s_io.utils.clock.realTimer.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'realTimer'timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (dq : DFrac) :
+noncomputable instance access_load'realTimer'timer (l : Loc) (v : _root_.Perennial.k8s_io.utils.clock.realTimer) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'realTimer'timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (y : Loc) :
+noncomputable instance access_store'realTimer'timer (l : Loc) (v : _root_.Perennial.k8s_io.utils.clock.realTimer) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timer' := y } : k8s_io.utils.clock.realTimer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTimer go!"timer" l) v.timer' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTimer go!"timer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timer' := y } : _root_.Perennial.k8s_io.utils.clock.realTimer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -86,34 +86,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.utils.clock.Assumptions]
 
 noncomputable instance typed_pointsto'realTicker :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.realTicker where
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.utils.clock.realTicker where
   typedPointstoDef l v dq := iprop(
-    "ticker" ∷ typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq ∗
+    "ticker" ∷ typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'realTicker :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTicker k8s_io.utils.clock.realTicker.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.utils.clock.realTicker _root_.Perennial.k8s_io.utils.clock.realTicker.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'realTicker'ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (dq : DFrac) :
+noncomputable instance access_load'realTicker'ticker (l : Loc) (v : _root_.Perennial.k8s_io.utils.clock.realTicker) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'realTicker'ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (y : Loc) :
+noncomputable instance access_store'realTicker'ticker (l : Loc) (v : _root_.Perennial.k8s_io.utils.clock.realTicker) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' (DFrac.own 1))
-      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ticker' := y } : k8s_io.utils.clock.realTicker) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.k8s_io.utils.clock.realTicker go!"ticker" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ticker' := y } : _root_.Perennial.k8s_io.utils.clock.realTicker) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

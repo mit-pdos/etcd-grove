@@ -32,14 +32,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'AppsV1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AppsV1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Client k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.AppsV1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -51,14 +51,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'controllerRevisions :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.controllerRevisions :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.controllerRevisions :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'controllerRevisions :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.controllerRevisions k8s_io.client_go.kubernetes.typed.apps.v1.controllerRevisions.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.controllerRevisions _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.controllerRevisions.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -70,14 +70,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'daemonSets :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.daemonSets :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.daemonSets :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'daemonSets :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.daemonSets k8s_io.client_go.kubernetes.typed.apps.v1.daemonSets.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.daemonSets _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.daemonSets.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -89,14 +89,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'deployments :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.deployments :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.deployments :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'deployments :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.deployments k8s_io.client_go.kubernetes.typed.apps.v1.deployments.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.deployments _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.deployments.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -108,14 +108,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'replicaSets :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.replicaSets :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.replicaSets :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'replicaSets :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.replicaSets k8s_io.client_go.kubernetes.typed.apps.v1.replicaSets.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.replicaSets _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.replicaSets.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -127,14 +127,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.Assumptions]
 
 noncomputable instance typed_pointsto'statefulSets :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.statefulSets :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.statefulSets :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'statefulSets :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.apps.v1.statefulSets k8s_io.client_go.kubernetes.typed.apps.v1.statefulSets.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.statefulSets _root_.Perennial.k8s_io.client_go.kubernetes.typed.apps.v1.statefulSets.underlying :=
   sorry -- axiomatized type
 
 end def_

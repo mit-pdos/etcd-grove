@@ -33,119 +33,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'Election :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.Election where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election where
   typedPointstoDef l v dq := iprop(
-    "session" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' dq ∗
-    "keyPrefix" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' dq ∗
-    "leaderKey" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' dq ∗
-    "leaderRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' dq ∗
-    "leaderSession" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' dq ∗
-    "hdr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' dq ∗
+    "session" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' dq ∗
+    "keyPrefix" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' dq ∗
+    "leaderKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' dq ∗
+    "leaderRev" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' dq ∗
+    "leaderSession" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' dq ∗
+    "hdr" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Election :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.Election go_etcd_io.etcd.client.v3.concurrency.Election.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Election'session (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
+noncomputable instance access_load'Election'session (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Election'session (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (y : Loc) :
+noncomputable instance access_store'Election'session (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with session' := y } : go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) v.session' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"session" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with session' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Election'keyPrefix (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
+noncomputable instance access_load'Election'keyPrefix (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Election'keyPrefix (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (y : GoString) :
+noncomputable instance access_store'Election'keyPrefix (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyPrefix' := y } : go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) v.keyPrefix' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"keyPrefix" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with keyPrefix' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Election'leaderKey (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
+noncomputable instance access_load'Election'leaderKey (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Election'leaderKey (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (y : GoString) :
+noncomputable instance access_store'Election'leaderKey (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderKey' := y } : go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) v.leaderKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderKey' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Election'leaderRev (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
+noncomputable instance access_load'Election'leaderRev (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Election'leaderRev (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (y : w64) :
+noncomputable instance access_store'Election'leaderRev (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderRev' := y } : go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) v.leaderRev' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderRev" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderRev' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Election'leaderSession (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
+noncomputable instance access_load'Election'leaderSession (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Election'leaderSession (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (y : Loc) :
+noncomputable instance access_store'Election'leaderSession (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderSession' := y } : go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) v.leaderSession' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"leaderSession" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderSession' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Election'hdr (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
+noncomputable instance access_load'Election'hdr (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Election'hdr (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Election) (y : Loc) :
+noncomputable instance access_store'Election'hdr (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := y } : go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) v.hdr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election go!"hdr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Election) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -158,102 +158,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'Mutex :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.Mutex where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex where
   typedPointstoDef l v dq := iprop(
-    "s" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' dq ∗
-    "pfx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' dq ∗
-    "myKey" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' dq ∗
-    "myRev" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' dq ∗
-    "hdr" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' dq ∗
+    "s" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' dq ∗
+    "pfx" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' dq ∗
+    "myKey" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' dq ∗
+    "myRev" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' dq ∗
+    "hdr" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Mutex :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.Mutex go_etcd_io.etcd.client.v3.concurrency.Mutex.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Mutex's (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
+noncomputable instance access_load'Mutex's (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Mutex's (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : Loc) :
+noncomputable instance access_store'Mutex's (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) v.s' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Mutex'pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
+noncomputable instance access_load'Mutex'pfx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Mutex'pfx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : GoString) :
+noncomputable instance access_store'Mutex'pfx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pfx' := y } : go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) v.pfx' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"pfx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with pfx' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Mutex'myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
+noncomputable instance access_load'Mutex'myKey (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Mutex'myKey (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : GoString) :
+noncomputable instance access_store'Mutex'myKey (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with myKey' := y } : go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) v.myKey' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myKey" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with myKey' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Mutex'myRev (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
+noncomputable instance access_load'Mutex'myRev (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Mutex'myRev (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : w64) :
+noncomputable instance access_store'Mutex'myRev (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with myRev' := y } : go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) v.myRev' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"myRev" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with myRev' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Mutex'hdr (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
+noncomputable instance access_load'Mutex'hdr (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Mutex'hdr (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : Loc) :
+noncomputable instance access_store'Mutex'hdr (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := y } : go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) v.hdr' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex go!"hdr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Mutex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -266,34 +266,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'lockerMutex :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.lockerMutex where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex where
   typedPointstoDef l v dq := iprop(
-    "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' dq ∗
+    "Mutex" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'lockerMutex :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.lockerMutex go_etcd_io.etcd.client.v3.concurrency.lockerMutex.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'lockerMutex'Mutex (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.lockerMutex) (dq : DFrac) :
+noncomputable instance access_load'lockerMutex'Mutex (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'lockerMutex'Mutex (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.lockerMutex) (y : Loc) :
+noncomputable instance access_store'lockerMutex'Mutex (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : go_etcd_io.etcd.client.v3.concurrency.lockerMutex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.lockerMutex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -306,119 +306,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'Session :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.Session where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session where
   typedPointstoDef l v dq := iprop(
-    "client" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' dq ∗
-    "opts" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' dq ∗
-    "id" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' dq ∗
-    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' dq ∗
-    "cancel" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' dq ∗
-    "donec" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' dq ∗
+    "client" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' dq ∗
+    "opts" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' dq ∗
+    "id" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' dq ∗
+    "ctx" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' dq ∗
+    "cancel" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' dq ∗
+    "donec" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Session :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.Session go_etcd_io.etcd.client.v3.concurrency.Session.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Session'client (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
+noncomputable instance access_load'Session'client (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Session'client (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (y : Loc) :
+noncomputable instance access_store'Session'client (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := y } : go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) v.client' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"client" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Session'opts (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
+noncomputable instance access_load'Session'opts (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Session'opts (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (y : Loc) :
+noncomputable instance access_store'Session'opts (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) v.opts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"opts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Session'id (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
+noncomputable instance access_load'Session'id (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Session'id (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
+noncomputable instance access_store'Session'id (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) v.id' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with id' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Session'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
+noncomputable instance access_load'Session'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Session'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (y : _root_.Perennial.context.Context) :
+noncomputable instance access_store'Session'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (y : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"ctx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Session'cancel (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
+noncomputable instance access_load'Session'cancel (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Session'cancel (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (y : _root_.Perennial.context.CancelFunc) :
+noncomputable instance access_store'Session'cancel (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (y : _root_.Perennial.context.CancelFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := y } : go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) v.cancel' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"cancel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cancel' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Session'donec (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
+noncomputable instance access_load'Session'donec (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Session'donec (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.Session) (y : GoChan) :
+noncomputable instance access_store'Session'donec (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := y } : go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) v.donec' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session go!"donec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with donec' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Session) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -431,68 +431,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'sessionOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.sessionOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions where
   typedPointstoDef l v dq := iprop(
-    "ttl" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' dq ∗
-    "leaseID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' dq ∗
-    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' dq ∗
+    "ttl" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' dq ∗
+    "leaseID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' dq ∗
+    "ctx" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'sessionOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.sessionOptions go_etcd_io.etcd.client.v3.concurrency.sessionOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'sessionOptions'ttl (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (dq : DFrac) :
+noncomputable instance access_load'sessionOptions'ttl (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sessionOptions'ttl (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (y : w64) :
+noncomputable instance access_store'sessionOptions'ttl (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ttl' := y } : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) v.ttl' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ttl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ttl' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sessionOptions'leaseID (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (dq : DFrac) :
+noncomputable instance access_load'sessionOptions'leaseID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sessionOptions'leaseID (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
+noncomputable instance access_store'sessionOptions'leaseID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.LeaseID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaseID' := y } : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) v.leaseID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"leaseID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaseID' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'sessionOptions'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (dq : DFrac) :
+noncomputable instance access_load'sessionOptions'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'sessionOptions'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (y : _root_.Perennial.context.Context) :
+noncomputable instance access_store'sessionOptions'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (y : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions go!"ctx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.sessionOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -505,34 +505,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'stmError :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmError where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError where
   typedPointstoDef l v dq := iprop(
-    "err" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'stmError :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmError go_etcd_io.etcd.client.v3.concurrency.stmError.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'stmError'err (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmError) (dq : DFrac) :
+noncomputable instance access_load'stmError'err (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmError'err (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmError) (y : GoError) :
+noncomputable instance access_store'stmError'err (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : go_etcd_io.etcd.client.v3.concurrency.stmError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -545,68 +545,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'stmOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions where
   typedPointstoDef l v dq := iprop(
-    "iso" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' dq ∗
-    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' dq ∗
-    "prefetch" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' dq ∗
+    "iso" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' dq ∗
+    "ctx" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' dq ∗
+    "prefetch" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'stmOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmOptions go_etcd_io.etcd.client.v3.concurrency.stmOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'stmOptions'iso (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (dq : DFrac) :
+noncomputable instance access_load'stmOptions'iso (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmOptions'iso (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (y : go_etcd_io.etcd.client.v3.concurrency.Isolation) :
+noncomputable instance access_store'stmOptions'iso (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Isolation) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with iso' := y } : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) v.iso' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"iso" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with iso' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stmOptions'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (dq : DFrac) :
+noncomputable instance access_load'stmOptions'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmOptions'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (y : _root_.Perennial.context.Context) :
+noncomputable instance access_store'stmOptions'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (y : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"ctx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stmOptions'prefetch (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (dq : DFrac) :
+noncomputable instance access_load'stmOptions'prefetch (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmOptions'prefetch (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (y : GoSlice) :
+noncomputable instance access_store'stmOptions'prefetch (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefetch' := y } : go_etcd_io.etcd.client.v3.concurrency.stmOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) v.prefetch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions go!"prefetch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefetch' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -619,51 +619,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'stmResponse :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmResponse where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse where
   typedPointstoDef l v dq := iprop(
-    "resp" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' dq ∗
-    "err" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' dq ∗
+    "resp" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' dq ∗
+    "err" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'stmResponse :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmResponse go_etcd_io.etcd.client.v3.concurrency.stmResponse.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'stmResponse'resp (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmResponse) (dq : DFrac) :
+noncomputable instance access_load'stmResponse'resp (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmResponse'resp (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmResponse) (y : Loc) :
+noncomputable instance access_store'stmResponse'resp (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resp' := y } : go_etcd_io.etcd.client.v3.concurrency.stmResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) v.resp' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"resp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resp' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stmResponse'err (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmResponse) (dq : DFrac) :
+noncomputable instance access_load'stmResponse'err (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmResponse'err (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmResponse) (y : GoError) :
+noncomputable instance access_store'stmResponse'err (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse) (y : GoError) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : go_etcd_io.etcd.client.v3.concurrency.stmResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -676,119 +676,119 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'stm :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stm where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm where
   typedPointstoDef l v dq := iprop(
-    "client" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' dq ∗
-    "ctx" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' dq ∗
-    "rset" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' dq ∗
-    "wset" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' dq ∗
-    "getOpts" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' dq ∗
-    "conflicts" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' dq ∗
+    "client" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' dq ∗
+    "ctx" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' dq ∗
+    "rset" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' dq ∗
+    "wset" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' dq ∗
+    "getOpts" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' dq ∗
+    "conflicts" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'stm :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stm go_etcd_io.etcd.client.v3.concurrency.stm.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'stm'client (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
+noncomputable instance access_load'stm'client (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stm'client (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (y : Loc) :
+noncomputable instance access_store'stm'client (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := y } : go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) v.client' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"client" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with client' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stm'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
+noncomputable instance access_load'stm'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stm'ctx (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (y : _root_.Perennial.context.Context) :
+noncomputable instance access_store'stm'ctx (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (y : _root_.Perennial.context.Context) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) v.ctx' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"ctx" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ctx' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stm'rset (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
+noncomputable instance access_load'stm'rset (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stm'rset (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (y : go_etcd_io.etcd.client.v3.concurrency.readSet) :
+noncomputable instance access_store'stm'rset (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.readSet) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rset' := y } : go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) v.rset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"rset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with rset' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stm'wset (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
+noncomputable instance access_load'stm'wset (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stm'wset (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (y : go_etcd_io.etcd.client.v3.concurrency.writeSet) :
+noncomputable instance access_store'stm'wset (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.writeSet) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wset' := y } : go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) v.wset' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"wset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wset' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stm'getOpts (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
+noncomputable instance access_load'stm'getOpts (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stm'getOpts (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (y : GoSlice) :
+noncomputable instance access_store'stm'getOpts (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with getOpts' := y } : go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) v.getOpts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"getOpts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with getOpts' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stm'conflicts (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
+noncomputable instance access_load'stm'conflicts (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stm'conflicts (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stm) (y : GoFunc) :
+noncomputable instance access_store'stm'conflicts (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conflicts' := y } : go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) v.conflicts' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm go!"conflicts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conflicts' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -801,51 +801,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'stmPut :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmPut where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut where
   typedPointstoDef l v dq := iprop(
-    "val" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' dq ∗
-    "op" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' dq ∗
+    "val" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' dq ∗
+    "op" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'stmPut :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmPut go_etcd_io.etcd.client.v3.concurrency.stmPut.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'stmPut'val (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmPut) (dq : DFrac) :
+noncomputable instance access_load'stmPut'val (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmPut'val (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmPut) (y : GoString) :
+noncomputable instance access_store'stmPut'val (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := y } : go_etcd_io.etcd.client.v3.concurrency.stmPut) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) v.val' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"val" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with val' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stmPut'op (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmPut) (dq : DFrac) :
+noncomputable instance access_load'stmPut'op (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmPut'op (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmPut) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.Op) :
+noncomputable instance access_store'stmPut'op (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.Op) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : go_etcd_io.etcd.client.v3.concurrency.stmPut) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) v.op' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut go!"op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmPut) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -858,51 +858,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.client.v3.concurrency.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.Assumptions]
 
 noncomputable instance typed_pointsto'stmSerializable :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmSerializable where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable where
   typedPointstoDef l v dq := iprop(
-    "stm" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' dq ∗
-    "prefetch" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' dq ∗
+    "stm" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' dq ∗
+    "prefetch" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'stmSerializable :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.client.v3.concurrency.stmSerializable go_etcd_io.etcd.client.v3.concurrency.stmSerializable.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'stmSerializable'stm (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (dq : DFrac) :
+noncomputable instance access_load'stmSerializable'stm (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmSerializable'stm (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (y : go_etcd_io.etcd.client.v3.concurrency.stm) :
+noncomputable instance access_store'stmSerializable'stm (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (y : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stm) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stm' := y } : go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) v.stm' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"stm" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stm' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'stmSerializable'prefetch (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (dq : DFrac) :
+noncomputable instance access_load'stmSerializable'prefetch (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'stmSerializable'prefetch (l : Loc) (v : go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (y : GoMap) :
+noncomputable instance access_store'stmSerializable'prefetch (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefetch' := y } : go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) v.prefetch' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable go!"prefetch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with prefetch' := y } : _root_.Perennial.go_etcd_io.etcd.client.v3.concurrency.stmSerializable) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

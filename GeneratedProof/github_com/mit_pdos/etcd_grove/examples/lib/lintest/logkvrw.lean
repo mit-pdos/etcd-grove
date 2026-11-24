@@ -26,51 +26,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions]
 
 noncomputable instance typed_pointsto'Op :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op where
   typedPointstoDef l v dq := iprop(
-    "Put" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' dq ∗
-    "Val" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' dq ∗
+    "Put" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' dq ∗
+    "Val" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Op :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Op'Put (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'Put (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Op'Put (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (y : Bool) :
+noncomputable instance access_store'Op'Put (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := y } : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) v.Put' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Put" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Op'Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (dq : DFrac) :
+noncomputable instance access_load'Op'Val (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Op'Val (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (y : GoString) :
+noncomputable instance access_store'Op'Val (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Val' := y } : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) v.Val' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op go!"Val" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Val' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Op) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -83,102 +83,102 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions]
+variable [package_sem' : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions]
 
 noncomputable instance typed_pointsto'Server :
-    TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server where
+    TypedPointsto (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server where
   typedPointstoDef l v dq := iprop(
-    "mu" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' dq ∗
-    "cond" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' dq ∗
-    "log" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' dq ∗
-    "applied" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' dq ∗
-    "state" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' dq ∗
+    "mu" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' dq ∗
+    "cond" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' dq ∗
+    "log" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' dq ∗
+    "applied" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' dq ∗
+    "state" ∷ typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Server :
-    IntoValTypedUnderlying (GF := GF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Server'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'mu (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Server'mu (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : _root_.Perennial.sync.RWMutex) :
+noncomputable instance access_store'Server'mu (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : _root_.Perennial.sync.RWMutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) v.mu' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Server'cond (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'cond (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Server'cond (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : Loc) :
+noncomputable instance access_store'Server'cond (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := y } : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) v.cond' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"cond" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Server'log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'log (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Server'log (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : GoSlice) :
+noncomputable instance access_store'Server'log (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with log' := y } : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) v.log' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"log" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with log' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Server'applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'applied (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Server'applied (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : w64) :
+noncomputable instance access_store'Server'applied (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := y } : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) v.applied' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"applied" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with applied' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Server'state (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
+noncomputable instance access_load'Server'state (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' dq)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Server'state (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : GoString) :
+noncomputable instance access_store'Server'state (l : Loc) (v : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) v.state' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

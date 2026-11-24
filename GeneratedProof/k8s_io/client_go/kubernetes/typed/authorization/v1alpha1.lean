@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'AuthorizationV1alpha1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuthorizationV1alpha1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Interface k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'AuthorizationV1alpha1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuthorizationV1alpha1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Client k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationV1alpha1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'AuthorizationConditionsReviewsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuthorizationConditionsReviewsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewsGetter k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'AuthorizationConditionsReviewInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuthorizationConditionsReviewInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewInterface k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'authorizationConditionsReviews :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.authorizationConditionsReviews :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.authorizationConditionsReviews :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'authorizationConditionsReviews :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.authorizationConditionsReviews k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.authorizationConditionsReviews.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.authorizationConditionsReviews _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.authorizationConditionsReviews.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.Assumptions]
 
 noncomputable instance typed_pointsto'AuthorizationConditionsReviewExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AuthorizationConditionsReviewExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewExpansion k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1.AuthorizationConditionsReviewExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_

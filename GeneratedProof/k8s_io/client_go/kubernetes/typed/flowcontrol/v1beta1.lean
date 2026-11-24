@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'FlowcontrolV1beta1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'FlowcontrolV1beta1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Interface k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'FlowcontrolV1beta1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'FlowcontrolV1beta1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Client k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowcontrolV1beta1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'FlowSchemasGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemasGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemasGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'FlowSchemasGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemasGetter k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemasGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemasGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemasGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'FlowSchemaInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'FlowSchemaInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaInterface k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'flowSchemas :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.flowSchemas :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.flowSchemas :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'flowSchemas :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.flowSchemas k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.flowSchemas.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.flowSchemas _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.flowSchemas.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'FlowSchemaExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'FlowSchemaExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaExpansion k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.FlowSchemaExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PriorityLevelConfigurationExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PriorityLevelConfigurationExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationExpansion k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PriorityLevelConfigurationsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PriorityLevelConfigurationsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationsGetter k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'PriorityLevelConfigurationInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'PriorityLevelConfigurationInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationInterface k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.PriorityLevelConfigurationInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'priorityLevelConfigurations :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.priorityLevelConfigurations :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.priorityLevelConfigurations :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'priorityLevelConfigurations :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.priorityLevelConfigurations k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.priorityLevelConfigurations.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.priorityLevelConfigurations _root_.Perennial.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1.priorityLevelConfigurations.underlying :=
   sorry -- axiomatized type
 
 end def_

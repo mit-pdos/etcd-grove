@@ -35,204 +35,204 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
 
 noncomputable instance typed_pointsto'RaftCluster :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster where
   typedPointstoDef l v dq := iprop(
-    "lg" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' dq ∗
-    "localID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' dq ∗
-    "cid" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' dq ∗
-    "be" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' dq ∗
-    "Mutex" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' dq ∗
-    "version" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' dq ∗
-    "members" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' dq ∗
-    "removed" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' dq ∗
-    "downgradeInfo" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' dq ∗
-    "maxLearners" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' dq ∗
-    "versionChanged" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' dq ∗
+    "lg" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' dq ∗
+    "localID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' dq ∗
+    "cid" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' dq ∗
+    "be" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' dq ∗
+    "Mutex" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' dq ∗
+    "version" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' dq ∗
+    "members" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' dq ∗
+    "removed" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' dq ∗
+    "downgradeInfo" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' dq ∗
+    "maxLearners" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' dq ∗
+    "versionChanged" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'RaftCluster :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'RaftCluster'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'lg (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'lg (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
+noncomputable instance access_store'RaftCluster'lg (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) v.lg' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"lg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lg' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'localID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'localID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance access_store'RaftCluster'localID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with localID' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) v.localID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"localID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with localID' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'cid (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'cid (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance access_store'RaftCluster'cid (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cid' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) v.cid' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"cid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cid' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'be (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'be (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembershipBackend) :
+noncomputable instance access_store'RaftCluster'be (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.MembershipBackend) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) v.be' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"be" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with be' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'Mutex (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'Mutex (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : _root_.Perennial.sync.Mutex) :
+noncomputable instance access_store'RaftCluster'Mutex (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) v.Mutex' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"Mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Mutex' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'version (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'version (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'version (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
+noncomputable instance access_store'RaftCluster'version (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) v.version' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"version" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with version' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'members (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'members (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'members (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : GoMap) :
+noncomputable instance access_store'RaftCluster'members (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with members' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) v.members' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"members" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with members' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'removed (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'removed (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'removed (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : GoMap) :
+noncomputable instance access_store'RaftCluster'removed (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with removed' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) v.removed' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"removed" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with removed' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'downgradeInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'downgradeInfo (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'downgradeInfo (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
+noncomputable instance access_store'RaftCluster'downgradeInfo (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with downgradeInfo' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) v.downgradeInfo' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"downgradeInfo" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with downgradeInfo' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'maxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'maxLearners (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'maxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : w64) :
+noncomputable instance access_store'RaftCluster'maxLearners (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxLearners' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) v.maxLearners' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"maxLearners" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxLearners' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftCluster'versionChanged (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
+noncomputable instance access_load'RaftCluster'versionChanged (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftCluster'versionChanged (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
+noncomputable instance access_store'RaftCluster'versionChanged (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (y : Loc) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versionChanged' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) v.versionChanged' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster go!"versionChanged" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with versionChanged' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -245,51 +245,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
 
 noncomputable instance typed_pointsto'RaftAttributes :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes where
   typedPointstoDef l v dq := iprop(
-    "PeerURLs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' dq ∗
-    "IsLearner" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' dq ∗
+    "PeerURLs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' dq ∗
+    "IsLearner" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'RaftAttributes :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'RaftAttributes'PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (dq : DFrac) :
+noncomputable instance access_load'RaftAttributes'PeerURLs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftAttributes'PeerURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (y : GoSlice) :
+noncomputable instance access_store'RaftAttributes'PeerURLs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerURLs' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) v.PeerURLs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"PeerURLs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with PeerURLs' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'RaftAttributes'IsLearner (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (dq : DFrac) :
+noncomputable instance access_load'RaftAttributes'IsLearner (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'RaftAttributes'IsLearner (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (y : Bool) :
+noncomputable instance access_store'RaftAttributes'IsLearner (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsLearner' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) v.IsLearner' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes go!"IsLearner" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsLearner' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -302,51 +302,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
 
 noncomputable instance typed_pointsto'Attributes :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes where
   typedPointstoDef l v dq := iprop(
-    "Name" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' dq ∗
-    "ClientURLs" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' dq ∗
+    "Name" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' dq ∗
+    "ClientURLs" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Attributes :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Attributes'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Attributes'Name (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (y : GoString) :
+noncomputable instance access_store'Attributes'Name (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (y : GoString) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) v.Name' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Attributes'ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (dq : DFrac) :
+noncomputable instance access_load'Attributes'ClientURLs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Attributes'ClientURLs (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (y : GoSlice) :
+noncomputable instance access_store'Attributes'ClientURLs (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientURLs' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) v.ClientURLs' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes go!"ClientURLs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ClientURLs' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -359,68 +359,68 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
 
 noncomputable instance typed_pointsto'Member :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member where
   typedPointstoDef l v dq := iprop(
-    "ID" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' dq ∗
-    "RaftAttributes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' dq ∗
-    "Attributes" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' dq ∗
+    "ID" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' dq ∗
+    "RaftAttributes" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' dq ∗
+    "Attributes" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'Member :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'Member'ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (dq : DFrac) :
+noncomputable instance access_load'Member'ID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Member'ID (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
+noncomputable instance access_store'Member'ID (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) v.ID' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"ID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ID' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Member'RaftAttributes (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (dq : DFrac) :
+noncomputable instance access_load'Member'RaftAttributes (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Member'RaftAttributes (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (y : go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) :
+noncomputable instance access_store'Member'RaftAttributes (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftAttributes) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RaftAttributes' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) v.RaftAttributes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"RaftAttributes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RaftAttributes' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'Member'Attributes (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (dq : DFrac) :
+noncomputable instance access_load'Member'Attributes (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'Member'Attributes (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (y : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) :
+noncomputable instance access_store'Member'Attributes (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Attributes) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Attributes' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) v.Attributes' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member go!"Attributes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Attributes' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -433,51 +433,51 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
 
 noncomputable instance typed_pointsto'ConfigChangeContext :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext where
   typedPointstoDef l v dq := iprop(
-    "Member" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' dq ∗
-    "IsPromote" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' dq ∗
+    "Member" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' dq ∗
+    "IsPromote" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ConfigChangeContext :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ConfigChangeContext'Member (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (dq : DFrac) :
+noncomputable instance access_load'ConfigChangeContext'Member (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConfigChangeContext'Member (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (y : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) :
+noncomputable instance access_store'ConfigChangeContext'Member (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Member' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) v.Member' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"Member" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Member' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_load'ConfigChangeContext'IsPromote (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (dq : DFrac) :
+noncomputable instance access_load'ConfigChangeContext'IsPromote (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ConfigChangeContext'IsPromote (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (y : Bool) :
+noncomputable instance access_store'ConfigChangeContext'IsPromote (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (y : Bool) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsPromote' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) v.IsPromote' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext go!"IsPromote" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsPromote' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -490,34 +490,34 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
+variable [package_sem' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Assumptions]
 
 noncomputable instance typed_pointsto'ClusterOptions :
-    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions where
+    TypedPointsto (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions where
   typedPointstoDef l v dq := iprop(
-    "maxLearners" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' dq ∗
+    "maxLearners" ∷ typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
   typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance into_val_typed'ClusterOptions :
-    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions.underlying := by
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions.underlying := by
   solve_into_val_typed_struct
 
-noncomputable instance access_load'ClusterOptions'maxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (dq : DFrac) :
+noncomputable instance access_load'ClusterOptions'maxLearners (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' dq)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' dq)
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance access_store'ClusterOptions'maxLearners (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (y : w64) :
+noncomputable instance access_store'ClusterOptions'maxLearners (l : Loc) (v : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (y : w64) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' (DFrac.own 1))
-      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) y (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxLearners' := y } : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) v.maxLearners' (DFrac.own 1))
+      (typedPointsto (structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions go!"maxLearners" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with maxLearners' := y } : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

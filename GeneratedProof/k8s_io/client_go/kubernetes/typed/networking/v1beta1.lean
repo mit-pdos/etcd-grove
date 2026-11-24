@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IPAddressExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IPAddressExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressExpansion k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IngressExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IngressExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressExpansion k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IngressClassExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IngressClassExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassExpansion k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceCIDRExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceCIDRExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRExpansion k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IngressesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IngressesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressesGetter k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IngressInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IngressInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressInterface k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ingresses :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingresses :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingresses :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ingresses :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingresses k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingresses.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingresses _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingresses.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IngressClassesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IngressClassesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassesGetter k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IngressClassInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IngressClassInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassInterface k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IngressClassInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ingressClasses :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingressClasses :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingressClasses :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ingressClasses :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingressClasses k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingressClasses.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingressClasses _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ingressClasses.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IPAddressesGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressesGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressesGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IPAddressesGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressesGetter k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressesGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressesGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressesGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'IPAddressInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'IPAddressInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressInterface k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.IPAddressInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -250,14 +250,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'iPAddresses :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.iPAddresses :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.iPAddresses :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'iPAddresses :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.iPAddresses k8s_io.client_go.kubernetes.typed.networking.v1beta1.iPAddresses.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.iPAddresses _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.iPAddresses.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -269,14 +269,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'NetworkingV1beta1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NetworkingV1beta1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Interface k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -288,14 +288,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'NetworkingV1beta1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'NetworkingV1beta1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Client k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.NetworkingV1beta1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -307,14 +307,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceCIDRsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceCIDRsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRsGetter k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -326,14 +326,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'ServiceCIDRInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ServiceCIDRInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRInterface k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.ServiceCIDRInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -345,14 +345,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'serviceCIDRs :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.serviceCIDRs :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.serviceCIDRs :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'serviceCIDRs :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.networking.v1beta1.serviceCIDRs k8s_io.client_go.kubernetes.typed.networking.v1beta1.serviceCIDRs.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.serviceCIDRs _root_.Perennial.k8s_io.client_go.kubernetes.typed.networking.v1beta1.serviceCIDRs.underlying :=
   sorry -- axiomatized type
 
 end def_

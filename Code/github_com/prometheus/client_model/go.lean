@@ -16,10 +16,10 @@ namespace Perennial
 noncomputable section
 
 namespace pkg_id
-noncomputable def github_com.prometheus.client_model.go : GoString := go!"github.com/prometheus/client_model/go"
+noncomputable def github_com.prometheus.client_model.go'' : GoString := go!"github.com/prometheus/client_model/go"
 end pkg_id
 
-namespace github_com.prometheus.client_model.go
+namespace github_com.prometheus.client_model.go''
 
 noncomputable def MetricType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/prometheus/client_model/go.MetricType" [])
@@ -203,14 +203,14 @@ noncomputable def skipped' : List go.SkippedVar := [
   ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_goTypes", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_goTypes = []interface{}{ (MetricType)(0), (*LabelPair)(nil), (*Gauge)(nil),  … [sha256:990bb931acf8732b]"⟩,
   ⟨"github.com/prometheus/client_model/go.file_io_prometheus_client_metrics_proto_depIdxs", "Literals: composite literals, conversions and allocations (`make`, `new`, `&T{}`) of constants,\nfunction values (built, not called) and other package variables' values or addresses, with no call\n(metrics.pb.go, client_model v0.6.3: the enum's name/value maps, the raw descriptor bytes and\n`rawDescData = rawDesc`, `make([]protoimpl.EnumInfo, 1)`, `make([]protoimpl.MessageInfo, 12)`, the\nGo types' and dependency indices' slices). Each terminates, cannot panic (its sizes, indices and\nkeys are constants the compiler checks) and has no effect beyond its variable.", "var file_io_prometheus_client_metrics_proto_depIdxs = []int32{ 10, 13, 4, 13, 8, 13, 9, 9, 10, 10, 1, 13, 1, 2, 3, 5, 6, … [sha256:8e275ca244313d87]"⟩]
 
-noncomputable instance info' : PkgInfo pkg_id.github_com.prometheus.client_model.go where
+noncomputable instance info' : PkgInfo pkg_id.github_com.prometheus.client_model.go'' where
   pkgImportedPkgs := []
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val (package.init pkg_id.github_com.prometheus.client_model.go)) (Lam BAnon
+  (App (Val (package.init pkg_id.github_com.prometheus.client_model.go'')) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (App (Val (GoInstruction (FuncResolve init.«0» []))) (Val #())) (Val #())))))))
@@ -493,7 +493,7 @@ attribute [instance] Assumptions.instance'MetricType
   Assumptions.instance'MetricFamily
   Assumptions.«unfold'init.0»
 
-end github_com.prometheus.client_model.go
+end github_com.prometheus.client_model.go''
 
 end
 end Perennial

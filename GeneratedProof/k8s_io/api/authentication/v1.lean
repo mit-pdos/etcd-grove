@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenReview :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenReview :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenReview :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenReview :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenReview k8s_io.api.authentication.v1.TokenReview.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenReview _root_.Perennial.k8s_io.api.authentication.v1.TokenReview.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenReviewSpec :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenReviewSpec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenReviewSpec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenReviewSpec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenReviewSpec k8s_io.api.authentication.v1.TokenReviewSpec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenReviewSpec _root_.Perennial.k8s_io.api.authentication.v1.TokenReviewSpec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenReviewStatus :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenReviewStatus :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenReviewStatus :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenReviewStatus :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenReviewStatus k8s_io.api.authentication.v1.TokenReviewStatus.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenReviewStatus _root_.Perennial.k8s_io.api.authentication.v1.TokenReviewStatus.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'UserInfo :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.UserInfo :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.UserInfo :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'UserInfo :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.UserInfo k8s_io.api.authentication.v1.UserInfo.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.UserInfo _root_.Perennial.k8s_io.api.authentication.v1.UserInfo.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'ExtraValue :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.ExtraValue :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.ExtraValue :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'ExtraValue :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.ExtraValue k8s_io.api.authentication.v1.ExtraValue.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.ExtraValue _root_.Perennial.k8s_io.api.authentication.v1.ExtraValue.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'AttestationValue :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.AttestationValue :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.AttestationValue :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'AttestationValue :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.AttestationValue k8s_io.api.authentication.v1.AttestationValue.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.AttestationValue _root_.Perennial.k8s_io.api.authentication.v1.AttestationValue.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -136,14 +136,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenRequest :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenRequest :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenRequest :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenRequest :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenRequest k8s_io.api.authentication.v1.TokenRequest.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenRequest _root_.Perennial.k8s_io.api.authentication.v1.TokenRequest.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -155,14 +155,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenRequestSpec :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenRequestSpec :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenRequestSpec :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenRequestSpec :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenRequestSpec k8s_io.api.authentication.v1.TokenRequestSpec.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenRequestSpec _root_.Perennial.k8s_io.api.authentication.v1.TokenRequestSpec.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -174,14 +174,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'TokenRequestStatus :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.TokenRequestStatus :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenRequestStatus :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'TokenRequestStatus :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.TokenRequestStatus k8s_io.api.authentication.v1.TokenRequestStatus.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.TokenRequestStatus _root_.Perennial.k8s_io.api.authentication.v1.TokenRequestStatus.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -193,14 +193,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'BoundObjectReference :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.BoundObjectReference :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.BoundObjectReference :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'BoundObjectReference :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.BoundObjectReference k8s_io.api.authentication.v1.BoundObjectReference.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.BoundObjectReference _root_.Perennial.k8s_io.api.authentication.v1.BoundObjectReference.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -212,14 +212,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SelfSubjectReview :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReview :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.SelfSubjectReview :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SelfSubjectReview :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReview k8s_io.api.authentication.v1.SelfSubjectReview.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.SelfSubjectReview _root_.Perennial.k8s_io.api.authentication.v1.SelfSubjectReview.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -231,14 +231,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.api.authentication.v1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.api.authentication.v1.Assumptions]
 
 noncomputable instance typed_pointsto'SelfSubjectReviewStatus :
-    TypedPointsto (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReviewStatus :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.SelfSubjectReviewStatus :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'SelfSubjectReviewStatus :
-    IntoValTypedUnderlying (GF := GF) k8s_io.api.authentication.v1.SelfSubjectReviewStatus k8s_io.api.authentication.v1.SelfSubjectReviewStatus.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.api.authentication.v1.SelfSubjectReviewStatus _root_.Perennial.k8s_io.api.authentication.v1.SelfSubjectReviewStatus.underlying :=
   sorry -- axiomatized type
 
 end def_

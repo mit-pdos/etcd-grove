@@ -22,14 +22,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageVersionMigrationExpansion :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationExpansion :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationExpansion :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageVersionMigrationExpansion :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationExpansion k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationExpansion.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationExpansion _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationExpansion.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -41,14 +41,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StoragemigrationV1beta1Interface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Interface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Interface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StoragemigrationV1beta1Interface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Interface k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Interface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Interface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Interface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -60,14 +60,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StoragemigrationV1beta1Client :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Client :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Client :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StoragemigrationV1beta1Client :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Client k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Client.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Client _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StoragemigrationV1beta1Client.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -79,14 +79,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageVersionMigrationsGetter :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationsGetter :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationsGetter :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageVersionMigrationsGetter :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationsGetter k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationsGetter.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationsGetter _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationsGetter.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -98,14 +98,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'StorageVersionMigrationInterface :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationInterface :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationInterface :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'StorageVersionMigrationInterface :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationInterface k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationInterface.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationInterface _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.StorageVersionMigrationInterface.underlying :=
   sorry -- axiomatized type
 
 end def_
@@ -117,14 +117,14 @@ section def_
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
+variable [package_sem' : _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.Assumptions]
 
 noncomputable instance typed_pointsto'storageVersionMigrations :
-    TypedPointsto (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.storageVersionMigrations :=
+    TypedPointsto (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.storageVersionMigrations :=
   sorry -- axiomatized type
 
 noncomputable instance into_val_typed'storageVersionMigrations :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.storageVersionMigrations k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.storageVersionMigrations.underlying :=
+    IntoValTypedUnderlying (GF := GF) _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.storageVersionMigrations _root_.Perennial.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1.storageVersionMigrations.underlying :=
   sorry -- axiomatized type
 
 end def_
