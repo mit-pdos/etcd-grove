@@ -5,7 +5,9 @@
 > proved theorem is the plain `gryff_remote_robust : gryff_remote_robust.spec`: Net's `DialHTTP.wp`
 > takes no strings hypotheses since lean's 57d66cdcee (Perennial's `strings.Cut`/`TrimLeft` proofs);
 > `StringsPending`, `stringsPending.spec` and `gryff_remote_robust_of_strings` are gone. `#print
-> axioms`: Lean's three. Non-vacuity open ("Non-vacuity: open"). See "Session 13" below.**
+> axioms`: Lean's three. Non-vacuity open ("Non-vacuity: open"). See "Session 13" below.
+> 2026-11-24 (dsv-gryff-strindex, Perennial fce59af75): the premise `netN.StringsIndexHyp` is gone,
+> discharged in the proof by `stringsIndexHyp_holds` (`StrIndexHolds.lean`).**
 
 Branch `dsv-gryff` (2026-11-23), off `origin/dsv-paxos` (paxos not landed on `lean` yet; merge
 `origin/lean` once it is). Plan: `notes/dsverify-net-port-plan.md`, phase 6; the pattern:
@@ -880,7 +882,8 @@ blocked by prophcheck's grammar" above and the recorded deviation (option 3 ther
   (`LogErr.lean`) is unchanged.
 - The four server `cmd/*/Boot.lean` regenerated (`etc/dsv/_gryff_boot.py`, after gen-init: the
   PkgTables' new packages).
-- Not done: `StringsIndexHyp` stays a premise (Perennial 52d62e83c has no `strings.Index` proof).
+- Not done: `StringsIndexHyp` stays a premise (Perennial 52d62e83c has no `strings.Index` proof;
+  dropped since, "Non-vacuity: open").
 
 ## Non-vacuity: open (decision 2026-11-24)
 
@@ -898,10 +901,15 @@ TopLevelRobustness.lean`, checked against the statement at fff2eff310):
   Perennial's `sync`/`sync/atomic` initializers, no axiom) and `lib.MathPowHyp` (the main tree's
   existing axiom `EtcdGrove.math.Pow.wp_proof`, not a new one).
 - **No axiom-free instance** (at Perennial b3f2fc485): `net.rpc.InitHyp`, `net.http.InitHyp`
-  (their closure reaches names-only initializers), `netN.StringsIndexHyp` (`strings.Index`),
+  (their closure reaches names-only initializers),
   `replica2.SortSliceHyp` (`sort.Slice`), `lib.RandSeedHyp` (`math/rand.Seed`), `RpcHttpHyp`
   (net/http's server, `rpc.HandleHTTP`: not in Net), `RpcBootHyp` (net/rpc's and net/http's owned
   initializations).
+- **No longer a premise** (dsv-gryff-strindex, 2026-11-24): `netN.StringsIndexHyp`. Perennial
+  `fce59af75` translates `strings.Index` with its body; `stringsIndexHyp_holds` (axiom-free, over
+  `stringslite.IndexByte`'s proof; `Dsverify/Proof/gryff/examples/gryffnet/StrIndexHolds.lean`, a
+  defs module, moved there from `NonVacuityLinked.lean` with its name) discharges the class in the
+  top-level proof.
 - Until session 13 the proved theorem also took `stringsPending.spec`
   (`gryff_remote_robust_of_strings`; Perennial's `strings.Cut`/`TrimLeft`); since the pin 52d62e83c
   those are Perennial's proofs and the theorem is `gryff_remote_robust`.
@@ -912,8 +920,8 @@ TopLevelRobustness.lean`, checked against the statement at fff2eff310):
 crypto/tls,go/token,runtime,internal/runtime/atomic,internal/runtime/sys,
 vendor/golang_org/x/net/http/httpguts}/InitInstancesLinked.lean`).
 
-**Follow-up order:** first the cheap ones, gryff's leaf library classes: `StringsIndexHyp`,
-`SortSliceHyp`, `RandSeedHyp` (a spec of `strings.Index`, `sort.Slice`, `math/rand.Seed` in
+**Follow-up order:** first the cheap ones, gryff's leaf library classes (`StringsIndexHyp` done,
+above): `SortSliceHyp`, `RandSeedHyp` (a spec of `sort.Slice`, `math/rand.Seed` in
 Perennial or the main tree, or `math/rand` becoming Perennial's with math-rand-isinit, which also
 retires `math.rand.InitHyp`); then `net.rpc.InitHyp`, `net.http.InitHyp`, `RpcHttpHyp` and
 `RpcBootHyp`, which depend on Upamanyu's model initialization of net/rpc and net/http (their

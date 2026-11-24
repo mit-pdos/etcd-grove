@@ -573,6 +573,14 @@ directory, which fits. -/
   iprop(∃ h : WalH GF, ⌜h.w = w⌝ ∗
     walOpened h cfg.DedicatedWALDir' id cid walFresh true ∗ walPurgeRight h)
 
+/-- **`wal.bootOk`'s intro** (claim #34 stage 4, 2026-11-25): the WAL `wal.Create` opened in the
+configuration's WAL directory (`wal.Create.specSrv`'s post), as `bootstrapNewWAL` hands it on. -/
+theorem wal.bootOk_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
+    (w : Loc) :
+    (∃ h : WalH GF, ⌜h.w = w⌝ ∗ walOpened h cfg.DedicatedWALDir' id cid walFresh true ∗
+        walPurgeRight h) ⊢ wal.bootOk (GF := GF) cfg id cid w := by
+  unfold wal.bootOk; exact .rfl
+
 /-- **What the server takes from `wal.bootOk`** (narrow: the slot convention's elimination laws
 give what their consumers take, never the slot's body; R2b-1 stage 3c, 2026-11-03, replacing
 `wal.bootOk_storage`): the open WAL `h` at `w` (wal-link L3), the WAL's durability allocated over the

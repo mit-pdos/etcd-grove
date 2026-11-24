@@ -15,13 +15,13 @@ WAL, no oracle file) or what the previous generation's crash left (`TCrashed`). 
 precondition) and the crash tokens; the crash frame is `tester_crash`, which builds the next
 generation's `osShared` (`crashRest_treeS`, from the old generation's `osSharedInv`).
 
-`etcd_wal_crash_safety_bounded` is not the closed theorem (the user's hard stop): it takes, as a
-hypothesis, the spec no proof discharges yet (`TOpen`: `proto.UnmarshalWalRecordE`, whose error post
-`proto.UnmarshalPb.spec` does not give). The package initializer is proved (2026-11-24, `wal-open`): each
-generation allocates its own registration rights for the WAL's metric IDs (`tRegQsOk`, route (b) of
-prom-registry) and runs the generated `wp_initialize'` (`InitLinked.lean`, `PkgTable.lean`). The model's other laws are discharged (`walPb_laws`,
-`LawsHsMarshal`, `LawsHsPb`: `CloneHsLaw` and `WalHsOwn.unmarshal` over `proto.Clone`'s and
-`proto.Unmarshal`'s trust-boundary specs).
+Directories the tester's facts do not hold of (`¬ tArgsOk e`): `Main` returns at once (`dirOk` refuses
+one, `Main.specInvalid`), and a generation's precondition is its empty package state only (`tBad_wp`).
+
+Each generation allocates its own registration rights for the WAL's metric IDs (`tRegQsOk`, route (b) of
+prom-registry) and runs the generated `wp_initialize'` (`InitLinked.lean`, `PkgTable.lean`). The model's
+laws are discharged (`walPb_laws`, `LawsHsMarshal`, `LawsHsPb`: `CloneHsLaw` and `WalHsOwn.unmarshal` over
+`proto.Clone`'s and `proto.Unmarshal`'s trust-boundary specs).
 -/
 module
 
@@ -167,6 +167,36 @@ theorem tGen_wp (hAbs : AbsDiskGpreS GF) (wp_Main : Main.spec (GF := GF) (hG := 
     iright
     iexact Hc
 
+/-- **A generation of the tester on directories the tester's facts do not hold of** (`fsSQ_crash_adequacy`'s
+`Hwp` at the precondition `ownGoState ∅`): the package's `wp_initialize'`, then `Main`, which returns
+(`Main.specInvalid`); after a crash the next generation's empty package state is its precondition. -/
+theorem tBad_wp (wp_Main : Main.specInvalid (GF := GF) (hG := hG)) (e : TEnv) (hbad : ¬ tArgsOk e) :
+    ⊢ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) (∅ : GMap GoString Bool) -∗ threadTok ={⊤}=∗
+      WP (bootWal e.area e.orDir) @ Stuckness.NotStuck; ⊤ {{ v, ⌜v = #()⌝ }} ∗
+      ∀ (L' : GooseLocalGS GF) (V' : Hist), crashed (hC := hG.goose_localGS.goose_crashGS) -∗
+        osInv (L := L') -∗
+        crashRest tQ (gooseOsGS (L := hG.goose_localGS)) (gooseOsGS (L := L')) [] false V' -∗
+        ownGoState (hG := L'.goose_go_stateGS) ∅ -∗ £ 1 ={⊤}=∗
+          ownGoState (hG := L'.goose_go_stateGS) (∅ : GMap GoString Bool) := by
+  iintro Hgs -
+  imod (prometheus.regKeys_alloc (GF := GF) _ tRegQsOk) with ⟨%γreg, Hregs⟩
+  letI : prometheus.PromRegGS GF := ⟨γreg⟩
+  ihave Hregs := prometheus.idToks_regsFree (GF := GF) _ $$ Hregs
+  ihave Hown := (tOwnInitializing_of_empty
+    (github_com.mit_pdos.etcd_grove.examples.etcd.wal.getIsPkgInit (GF := GF))) $$ Hgs
+  imodintro
+  isplitl [Hown Hregs]
+  · unfold bootWal
+    wp_apply (github_com.mit_pdos.etcd_grove.examples.etcd.wal.wp_initialize' _
+      github_com.mit_pdos.etcd_grove.examples.etcd.wal.getIsPkgInit_wf) $$ [Hown Hregs] as ⟨-, #Hpkg⟩
+    · iframe Hown Hregs
+    wp_pures
+    wp_apply wp_Main e hbad
+    ipureintro; rfl
+  · iintro %L' %V' - - - Hgs' -
+    imodintro
+    iexact Hgs'
+
 end gen
 
 
@@ -190,15 +220,18 @@ variable [_root_.Perennial.go_uber_org.zap.Assumptions]
     [_root_.Perennial.internal.stringslite.Assumptions]
 
 /-- **`Main.spec`, linked**: the tester Link's `wp_Main` at the raftpb model (`walRaftP`, `walRaftU`,
-`walRaftHsO`), its laws proved, the rest from `TOpen`. -/
-theorem tMain_linked (h : TOpen (GF := GF) (hG := hG)) : Main.spec (GF := GF) (hG := hG) :=
+`walRaftHsO`), its laws proved. -/
+theorem tMain_linked : Main.spec (GF := GF) (hG := hG) :=
   walTester.etcd_wal.wp_Main walRaftP walRaftU walRaftHsO walRaftU_ok walRaftU_snapCoh
     wal_decEnvSupply (walRaftHsO_own proto.UnmarshalPb.wp_proof)
     (walRaftHsO_own proto.UnmarshalPb.wp_proof)
     (walRaftP_cloneHs proto.ClonePb.wp_proof) walPb_laws.getIndex walPb_laws.getTerm walPb_laws.isEmpty walPb_laws.marshalEnt
     (walRaftP_marshalHs proto.MarshalPb.wp_proof) walPb_laws.mustSync walPb_laws.nil walPb_laws.size
     walPb_laws.unmarshalEnt walPb_laws.zero
-    h.unmarshalWalRecordE
+
+/-- **`Main.specInvalid`, linked**: the tester Link's `wp_MainInvalid`. -/
+theorem tMainInvalid_linked : Main.specInvalid (GF := GF) (hG := hG) :=
+  walTester.etcd_wal.wp_MainInvalid
 
 end linked
 
@@ -208,11 +241,10 @@ variable [GoGlobalContext] {GF : BundledGFunctors}
 /-- **The tester's crash safety for executions of fewer than `N ≤ 2 ^ 62` steps along which fewer than
 `T` threads are live** (see the file header): from a state whose Go context satisfies the Go semantics
 and the packages' assumptions, with no package initialized, the main thread only, the file extension's
-state as on disk (`FsInit`), the area and the oracle directory two distinct roots, the first boot's facts
-(`tFirst`: no WAL in the area, no oracle file) and the WAL's paths fitting, every execution with crashes
-of `bootWal` returns `#()` if it returns, has no stuck thread and no unrecovered panic. Not the closed
-theorem: it takes the open specs (`TOpen`); `log.NewModel` is the semantics assumption raft's initializer
-(`log.New`) needs, as in the etcd examples' closed theorems. -/
+state as on disk (`FsInit`), the area and the oracle directory two distinct roots and the first boot's
+facts (`tFirst`: no WAL in the area, no oracle file), every execution with crashes of `bootWal` returns
+`#()` if it returns, has no stuck thread and no unrecovered panic. `log.NewModel` is the semantics
+assumption raft's initializer (`log.New`) needs, as in the etcd examples' closed theorems. -/
 theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [go.BasicIntoValInj]
     [_root_.Perennial.go_uber_org.zap.Assumptions]
     [github_com.mit_pdos.etcd_grove.examples.etcd.wal.Assumptions] [os.Assumptions]
@@ -229,13 +261,10 @@ theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     [_root_.Perennial.time.Assumptions] [_root_.Perennial.io.Assumptions]
     [_root_.Perennial.internal.stringslite.Assumptions] [_root_.Perennial.log.NewModel]
     [hPre : GooseGpreS GF] (hAbs : AbsDiskGpreS GF)
-    (Hopen : ∀ hG : HeapGS .hasLC GF, TOpen (GF := GF) (hG := tHeapAt hG lctx))
     (N T : Nat) (hN : N ≤ 2 ^ 62) (σ : state) (g : GlobalState) (e : TEnv)
     (Hlctx : σ.goState.goLctx = lctx) (Hpkgs : σ.goState.packageState = ∅)
     (Hinit : FsInit (extLocal fsExt σ.world)) (hRe : (extLocal fsExt σ.world).fs.roots = e.R)
     (hr : (e.area, e.jr) ∈ e.R) (ho : (e.orDir, e.jo) ∈ e.R) (hne : e.jo ≠ e.jr)
-    (hf : e.orFile.Ok) (hpaths : tWalPathsOk e.area)
-    (hfit : PathFits (tWalDir e.area ++ go!".tmp") ∧ PathFits (tWalDir e.area))
     (Hfirst : tFirst e ((extLocal fsExt σ.world).fs.treeDur, []))
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool)
     (Hsteps : RealCrashNsteps (bootWal e.area e.orDir) n
@@ -247,6 +276,25 @@ theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   have hR : RootsOk e.R := hRe ▸ Hinit.2.2.2.1
+  by_cases hok : tArgsOk e
+  case neg =>
+    -- `Main` returns at once: a generation's precondition is its empty package state
+    refine fsSQ_crash_adequacy (GF := GF) tSQ tQ (noIoErr_noMapLockErr_keeps tIo tIo) N T
+      (bootWal e.area e.orDir) σ g (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit
+      (fun L => ownGoState (hG := L.goose_go_stateGS) (∅ : GMap GoString Bool)) ?_ ?_ n κs t2 σ2 b Hsteps
+      Hbound Hthreads Hlive
+    · intro hG _ _ _
+      rw [Hpkgs]
+      iintro - - - Hgs
+      imodintro
+      iexact Hgs
+    · intro hG _ _ Hlctx'
+      rw [Hlctx] at Hlctx'
+      obtain ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
+      subst Hlctx'
+      letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
+      exact tBad_wp tMainInvalid_linked e hok
+  obtain ⟨hf, hpaths, hfit⟩ := hok
   refine fsSQ_crash_adequacy (GF := GF) tSQ tQ (noIoErr_noMapLockErr_keeps tIo tIo) N T
     (bootWal e.area e.orDir) σ g (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) Hinit
     (fun L => tGen e L) ?_ ?_ n κs t2 σ2 b Hsteps Hbound Hthreads Hlive
@@ -267,8 +315,7 @@ theorem etcd_wal_crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantic
     subst Hlctx'
     letI hG : HeapGS .hasLC GF := ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩
     have hrb : ReceiptBoundLe GF (2 ^ 62) := ⟨by rw [HN]; omega⟩
-    exact tGen_wp hAbs (tMain_linked (Hopen hG)) e hR hr ho hne hf hpaths (tWalFsOk_of e.area hfit)
-      hrb
+    exact tGen_wp hAbs tMain_linked e hR hr ho hne hf hpaths (tWalFsOk_of e.area hfit) hrb
 
 end bounded
 

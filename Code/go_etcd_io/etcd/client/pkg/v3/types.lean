@@ -2,6 +2,9 @@
 module
 
 public import Perennial.Code.strconv
+public import Perennial.Code.strings
+public import Perennial.Code.sort
+public import Perennial.Code.fmt
 public import Code.net.url
 public import Perennial.Golang.Defn
 
@@ -110,6 +113,60 @@ noncomputable def ID.String.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
 
+/-- go: id.go:40:18 -/
+noncomputable def IDSlice.Len.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc IDSlice.ty))) (Var "p"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [IDSlice.ty]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
+
+/-- go: id.go:41:18 -/
+noncomputable def IDSlice.Less.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "i"
+  (Lam "j"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc IDSlice.ty))) (Var "p"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef IDSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef IDSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
+
+/-- go: id.go:42:18 -/
+noncomputable def IDSlice.Swap.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Lam "i"
+  (Lam "j"
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc IDSlice.ty))) (Var "p"))
+  (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$l0" (App (Val (GoInstruction (IndexRef IDSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
+  (Let "$l1" (App (Val (GoInstruction (IndexRef IDSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef IDSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad ID.ty))) (App (Val (GoInstruction (IndexRef IDSlice.ty))) (Pair (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "$l1") (Var "$r1"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore ID.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))
+  (Val #())))))
+
 /-- go: urls.go:75:16 -/
 noncomputable def URLs.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "us"
@@ -159,13 +216,71 @@ noncomputable def URLs.StringSlice.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "out") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "$res0"))))))
 
+/-- String turns URLsMap into discovery-formatted name-to-URLs sorted by name.
+
+    go: urlsmap.go:58:18 -/
+noncomputable def URLsMap.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc URLsMap.ty))) (Var "c"))
+  (Let "pairs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.string)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pairs"))
+  (Let "$a1" (Val #(go!","))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strings.Join []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pairs"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Strings []))) (Val #())) (Var "$a0")))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad URLsMap.ty))) (Var "c"))
+  (Let "urls" (App (Val (GoInstruction (GoAlloc URLs.ty))) (App (Val (GoInstruction (GoZeroVal URLs.ty))) (Val #())))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val (map.forRange go.string URLs.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$range" (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "urls"))
+  (App (App (Val (slice.forRange _root_.Perennial.net.url.URL.ty)) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (Let "url" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.url.URL.ty))) (Var "$value"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "pairs"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"%s=%s"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (Convert go.string go.any))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))
+  (Let "$sl1" (App (Val (GoInstruction (Convert go.string go.any))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.net.url.URL.ty) go!"String"))) (Var "url")) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.any)))) (LiteralValue [(KeyedElement none (ElementExpression go.any (Var "$sl0"))), (KeyedElement none (ElementExpression go.any (Var "$sl1")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Sprintf []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.string)))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType go.string)]))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (Var "pairs") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Var "$key"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "name") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore URLs.ty))) (Pair (Var "urls") (Var "$value")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
-  pkgImportedPkgs := [pkg_id.strconv, pkg_id.net.url]
+  pkgImportedPkgs := [pkg_id.strconv, pkg_id.strings, pkg_id.sort, pkg_id.fmt, pkg_id.net.url]
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.pkg.v3.types)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType unsafeSet.ty) Set'.ty))) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType unsafeSet.ty)))) (Val UntypedNil)))
@@ -174,6 +289,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.strconv.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.strings.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sort.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.fmt.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.url.initialize') (Val #()))))))))
 
@@ -205,10 +326,25 @@ class IDSlice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq IDSlice.ty IDSlice.underlying
   method_set : go.MethodSetIs IDSlice.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IDSlice.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  Len_unfold : MethodUnfold IDSlice.ty go!"Len" IDSlice.Len.impl
+  Less_unfold : MethodUnfold IDSlice.ty go!"Less" IDSlice.Less.impl
+  Swap_unfold : MethodUnfold IDSlice.ty go!"Swap" IDSlice.Swap.impl
+  ptr_Len_unfold : MethodUnfold (go.GoType.PointerType IDSlice.ty) go!"Len" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve IDSlice.ty go!"Len"))) (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "$r"))))
+  ptr_Less_unfold : MethodUnfold (go.GoType.PointerType IDSlice.ty) go!"Less" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve IDSlice.ty go!"Less"))) (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "$r"))))
+  ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType IDSlice.ty) go!"Swap" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve IDSlice.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad IDSlice.ty))) (Var "$r"))))
 
 attribute [instance] IDSlice.TypeAssumptions.underlying
   IDSlice.TypeAssumptions.method_set
   IDSlice.TypeAssumptions.ptr_method_set
+  IDSlice.TypeAssumptions.Len_unfold
+  IDSlice.TypeAssumptions.Less_unfold
+  IDSlice.TypeAssumptions.Swap_unfold
+  IDSlice.TypeAssumptions.ptr_Len_unfold
+  IDSlice.TypeAssumptions.ptr_Less_unfold
+  IDSlice.TypeAssumptions.ptr_Swap_unfold
 
 abbrev Set' [GooseExts] : Type := GoInterface
 
@@ -339,10 +475,15 @@ class URLsMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   underlying : go.UnderlyingDirectedEq URLsMap.ty URLsMap.underlying
   method_set : go.MethodSetIs URLsMap.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"URLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType URLsMap.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"URLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  String_unfold : MethodUnfold URLsMap.ty go!"String" URLsMap.String.impl
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType URLsMap.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve URLsMap.ty go!"String"))) (App (Val (GoInstruction (GoLoad URLsMap.ty))) (Var "$r"))))
 
 attribute [instance] URLsMap.TypeAssumptions.underlying
   URLsMap.TypeAssumptions.method_set
   URLsMap.TypeAssumptions.ptr_method_set
+  URLsMap.TypeAssumptions.String_unfold
+  URLsMap.TypeAssumptions.ptr_String_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ID_instance : ID.TypeAssumptions
@@ -355,6 +496,9 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   URLs_instance : URLs.TypeAssumptions
   URLsMap_instance : URLsMap.TypeAssumptions
   import_strconv_Assumption : _root_.Perennial.strconv.Assumptions
+  import_strings_Assumption : _root_.Perennial.strings.Assumptions
+  import_sort_Assumption : _root_.Perennial.sort.Assumptions
+  import_fmt_Assumption : _root_.Perennial.fmt.Assumptions
   import_url_Assumption : _root_.Perennial.net.url.Assumptions
 
 attribute [instance] Assumptions.ID_instance
@@ -367,6 +511,9 @@ attribute [instance] Assumptions.ID_instance
   Assumptions.URLs_instance
   Assumptions.URLsMap_instance
   Assumptions.import_strconv_Assumption
+  Assumptions.import_strings_Assumption
+  Assumptions.import_sort_Assumption
+  Assumptions.import_fmt_Assumption
   Assumptions.import_url_Assumption
 
 end go_etcd_io.etcd.client.pkg.v3.types

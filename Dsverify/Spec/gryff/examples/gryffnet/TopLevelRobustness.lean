@@ -31,7 +31,7 @@ operations run under its `Sys` lock.
 **Premises** (library pieces not proved in the model; each a hypothesis about real Go, never an
 instance; notes/dsv-gryff.md, "Hypotheses"): the initializers of the names-only packages
 `net/rpc`, `net/http`, `math/rand` (`InitHyp`: they run without panicking; their conditions name
-every package the initializers reach, dsv-inithyp-fix); `strings.Index` on a one-byte separator (`StringsIndexHyp`); `sort.Slice` on
+every package the initializers reach, dsv-inithyp-fix); `sort.Slice` on
 `[]int32` with `<` (`SortSliceHyp`); `math.Pow` (`MathPowHyp`, the main tree's `math.Pow.spec`);
 `math/rand.Seed` (`RandSeedHyp`, the shared `math.rand.Seed.spec`); net/rpc's server over HTTP up
 to the hijack (`RpcHttpHyp`, the specs, per heap; Upamanyu's intended shapes; over the listeners'
@@ -53,7 +53,6 @@ public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.count
 public import Dsverify.Proof.net.rpc.Init
 public import Dsverify.Proof.net.http.Init
 public import Dsverify.Proof.math.rand.Init
-public import Dsverify.Proof.gryff.N.StrIndex
 public import Dsverify.Proof.gryff.Lib.SortHyps
 public import Dsverify.Proof.gryff.Lib.MathHyps
 public import Dsverify.Proof.gryff.Lib.RandHyps
@@ -98,7 +97,6 @@ def gryff_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; net.rpc.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; net.http.InitHyp remoteGF) →
     (∀ G L, letI := heapAt G L; math.rand.InitHyp remoteGF) →
-    (∀ G L, letI := heapAt G L; netN.StringsIndexHyp remoteGF) →
     (∀ G L, letI := heapAt G L; replica2.SortSliceHyp remoteGF) →
     (∀ G L, letI := heapAt G L; lib.MathPowHyp remoteGF) →
     (∀ G L, letI := heapAt G L; lib.RandSeedHyp remoteGF) →

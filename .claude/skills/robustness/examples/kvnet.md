@@ -14,7 +14,8 @@ means, the premises, the extensions with their environment assumptions in prose,
 **To improve:**
 - `cl.Ok`, `replicas.length < 2 ^ 32`, `dir.length < 2 ^ 39`, `Net.addrOk`: pure facts the programs can
   check; moving into Go (branch `kvnet-single`, P8: the programs `return` on an invalid configuration);
-- `threads := 2 ^ 61 + 1, bound := 2 ^ 61`: the old form; use a named thread constant and `2^63 - 1`;
+- `threads := 2 ^ 61 + 1, bound := 2 ^ 61`: the right shape (no thread cap; steps at raft's `readyFits` cap),
+  but bare: name both and say in the header why `2^61` (kvudp's `kvudpThreads` does);
 - bare literals (`2 ^ 32`, `2 ^ 39`): name them;
 - the header has history ("adapted here", "added 2026-11-22"): drop it, keep it in `notes/`.
 
