@@ -549,12 +549,25 @@ theorem ctxOk_outgoingC (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF
   iintro #H; unfold ctxOk; icases H with ⟨-, #Ho⟩; iexact Ho
 
 /-- **A method of etcd's KV service** (`/etcdserverpb.KV/Range`, `Put`, `DeleteRange`, `Txn`,
-`Compact`: the full method names grpc sends; 2026-10-23). -/
-def kvMethod (method : GoString) : Prop := go!"/etcdserverpb.KV/" <+: method
+`Compact`: the full method names grpc sends; 2026-10-23): exactly these five names (2026-11-24, the
+second review of `notes/axiom-review/norefusal-link.md`; until then the prefix `/etcdserverpb.KV/`, which
+also matched a service a program registers as `etcdserverpb.KV/Evil` beside etcd's: grpc-go dispatches
+`/etcdserverpb.KV/Evil/Put` at its last `/`, to that service, so the members' axiom spoke of a method
+that is not etcd's; `examples/axiomcx/norefusal/`, `TestMainSlashPanics`). -/
+def kvMethod (method : GoString) : Prop :=
+  method ∈ [go!"/etcdserverpb.KV/Range", go!"/etcdserverpb.KV/Put", go!"/etcdserverpb.KV/DeleteRange",
+    go!"/etcdserverpb.KV/Txn", go!"/etcdserverpb.KV/Compact"]
+
+theorem kvMethod_range : kvMethod go!"/etcdserverpb.KV/Range" := List.Mem.head _
+theorem kvMethod_put : kvMethod go!"/etcdserverpb.KV/Put" := .tail _ (.head _)
+theorem kvMethod_deleteRange : kvMethod go!"/etcdserverpb.KV/DeleteRange" := .tail _ (.tail _ (.head _))
+theorem kvMethod_txn : kvMethod go!"/etcdserverpb.KV/Txn" := .tail _ (.tail _ (.tail _ (.head _)))
+theorem kvMethod_compact : kvMethod go!"/etcdserverpb.KV/Compact" :=
+  .tail _ (.tail _ (.tail _ (.tail _ (.head _))))
 
 /-- **The server at `addr` never answers a unary call of etcd's KV service with a refusal**
-(opaque; D29, 2026-10-21; narrowed to the KV service 2026-10-23): no status it sends in answer to a
-`kvMethod` call has a description among `refusalDescs`. Established by the trust-boundary axiom of
+(opaque; D29, 2026-10-21; narrowed to the KV service 2026-10-23, to its five exact method names
+2026-11-24): no status it sends in answer to a `kvMethod` call has a description among `refusalDescs`. Established by the trust-boundary axiom of
 etcd's members (`etcd_noRefusal`), carried by the network's relays (linkv3p's `forwards`), and read
 by the attempt contract (`grpcInvokerOk`) for a `kvMethod` call only. Until 2026-10-23 it covered
 every status the server sends, which is false of etcd: its Auth service answers `UserAdd` of an
