@@ -1,21 +1,30 @@
 /-
 net/http's Go 1.21 matcher (`servemux121.go`, the `ServeMux`'s `mux121`, used when `GODEBUG`
-sets `httpmuxgo121=1`): its state and the lemmas over its locked part.
+sets `httpmuxgo121=1`): its state, registration and the dispatch of a registered path.
 
-* `Mux121St`: the physical state (the map `m`, its contents, the sorted slice `es` of the
-  patterns ending in `/`, its entries). Fixed, so that `rep121` is fractional, for the matcher's
-  `RWMutex` (the readers' `RLock` gets a fraction).
-* `rep121 dq mux st`: the matcher at `mux` is in state `st`, at fraction `dq`: every pattern
-  begins with `/` (so `hosts` stays `false`), and an entry's pattern is its key.
-* `wp_mux121_match_found`, `wp_mux121_shouldRedirect_found`: `match` and
-  `shouldRedirectRLocked` of a registered path (the lock held at `dq`): the path's own entry,
-  and no redirect.
+* `Mux121St`: the physical state (the map `m`, the sorted slice `es` of the patterns ending in
+  `/`, its entries, the registered patterns). Countable, for a ghost variable.
+* `rep121 dq mux st M`: the matcher at `mux` is in state `st` with map contents `M`, at fraction
+  `dq`: every pattern begins with `/` (so `hosts` stays `false`), an entry's pattern is its key,
+  `es` sorted (`sortedDesc`).
+* `wp_mux121_match_found`, `wp_mux121_shouldRedirect_found` (the lock held at `dq`, a registered
+  path: its own entry, no redirect), `wp_appendSorted` (over `sort.Search`'s spec: the entry
+  inserted where the order puts it).
+* `mux121P γ mux q`: what the matcher's `RWMutex` guards (fractional, `mux121P_fractional`): the
+  state (a ghost variable, the owner holding the other half), the routes (a ghost map, a pattern
+  to its handler; `p ↪[γ.r]□ h` once registered) and `rep121`. `mux121_init` makes it from the
+  zero value (the guard, the reader slots in a thread pool).
+* `wp_mux121_handle` (the owner, under the guard), `wp_mux121_handler`,
+  `wp_mux121_redirectToPathSlash`, `wp_mux121_findHandler_connect` (a reader slot, a registered
+  path; for a `CONNECT`, the request's fields `connReqFields`): registration, and dispatch of a
+  registered path to its handler.
 -/
 module
 
 public import Net.GeneratedProof.net.http
 public import Perennial.Spec.sort.Search
 public import Perennial.Proof.sync.Results
+public import Perennial.Proof.sync.RWMutexThreads
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
@@ -726,6 +735,48 @@ theorem wp_mux121_findHandler_connect (mux : Loc) (γ : Mux121Names) (dq : DFrac
   iframe
   iunfold connReqFields
   iframe
+
+/-- The state of a fresh matcher: no map, no sorted entries, no patterns. -/
+def mux121St0 : Mux121St := { m := map.nil, es := slice.nil, ents := [], pats := [] }
+
+/-- **A fresh matcher** (its zero value, owned): its lock's guard, its reader slots in a thread
+pool of namespace `Np`, and the owner's half of its state, with no pattern. -/
+theorem mux121_init {E : CoPset} (Np : Namespace) (mux : Loc) (Hb : threadBound GF ≤ 2 ^ 30) :
+    ⊢ mux ↦ (zero_val net.http.serveMux121) ={E}=∗
+      ∃ (γ : Mux121Names) (γp : GName),
+        sync.isRWMutexGuard (structFieldRef net.http.serveMux121 go!"mu" mux) (mux121P (GF := GF) (hG := hG) γ mux) ∗
+        threadPool.isThreadPool Np γp
+          (sync.ownRWMutex (structFieldRef net.http.serveMux121 go!"mu" mux) (mux121P γ mux)) ∗
+        ghostVar γ.st (1 : Qp).half mux121St0 := by
+  iintro Hmux
+  iStructNamed Hmux
+  imod ghostVar_alloc (GF := GF) mux121St0 with ⟨%γs, Hv⟩
+  icases (ghostVar_split_half γs 1 mux121St0).1 $$ Hv with ⟨Hv1, Hv2⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GoInterface) with ⟨%γr, HA⟩
+  ihave HP : mux121P (GF := GF) (hG := hG) ⟨γs, γr⟩ mux 1 $$ [Hv1 HA m es hosts]
+  · iunfold mux121P
+    iexists mux121St0, ∅, ∅
+    iframe
+    iunfold rep121
+    simp only [mux121St0, ↓reduceIte]
+    iframe
+    isplitl []
+    · isplitl []
+      · iapply ownSlice_nil
+      isplitl []
+      · iapply ownSliceCap_nil
+      ipureintro
+      refine ⟨⟨?_, List.Pairwise.nil⟩, trivial⟩
+      unfold Mux121St.ok
+      exact ⟨fun _ => rfl, fun k e he => by simp at he⟩
+    ipureintro
+    exact ⟨fun k => by simp, fun k => by simp, fun k v hv => by simp at hv⟩
+  imod sync.init_RWMutex_threadPool (mux121P (GF := GF) (hG := hG) ⟨γs, γr⟩ mux) (E := E) Np _ Hb
+    $$ HP mu with ⟨%γp, #Hguard, #Hpool⟩
+  imodintro
+  iexists ⟨γs, γr⟩, γp
+  iframe #
+  iexact Hv2
 
 end defs
 
