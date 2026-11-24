@@ -80,7 +80,7 @@ theorem client_bootK [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semanti
         etcd_dist.Client_Put_dist.wp_proof etcd_dist.Client_Get_dist.wp_proof
         mvcc.api.mvccApi_names_nonempty_law_holds)
       ep γE mid EtcdGrove.rpctypesEtcdError_asTarget) $$ [Hshare] as %b -
-  · iframe; iframe #
+  · iframe; (try iframe #)
   (try wp_auto)
   all_goals first | done | (ipureintro; rfl) | itrivial
 
