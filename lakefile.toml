@@ -79,6 +79,15 @@ globs = ["PorcupineDag.+"]
 name = "SpecPlan"
 globs = ["SpecPlan.+"]
 
+# premcheck's validation (notes/dsv-premcheck.md, etc/premcheck.py): dsverify challenge statements
+# over an agent-declared `KitLibs` class, generated from paxos's and rabia's statements, with
+# `KitLibs` classes and non-vacuity instances (rabia's equal to its landed premises; `rabiabad`, two
+# fields premcheck must refuse). Not a default target, and nothing imports it: its modules declare
+# the kits' statement names.
+[[lean_lib]]
+name = "PremCheckTest"
+globs = ["PremCheckTest.+"]
+
 # bbolt's top-level test (examples/bbolt/bank) and bbolt itself with its bodies (the fork
 # upamanyus/bbolt, branch goose-lean), translated by etc/goose.py's projects bbolt and bbolttest
 # into a parallel tree with the same layout (Bbolt/{Code,GeneratedProof,Spec,Proof}/): the main
