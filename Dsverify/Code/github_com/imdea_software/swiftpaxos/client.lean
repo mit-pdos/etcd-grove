@@ -1376,11 +1376,11 @@ noncomputable def Client.RegisterRPCTable.impl [GooseExts] [GoGlobalContext] : v
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (Val #())))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty go!"New"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty go!"Obj"))) (Var "p")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty go!"New"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty go!"Obj"))) (Var "p")))) (Val #()))
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1390,7 +1390,7 @@ noncomputable def Client.RegisterRPCTable.impl [GooseExts] [GoGlobalContext] : v
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Var "obj"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty go!"Chan"))) (Var "p")))
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty go!"Chan"))) (Var "p")))
   (Let "$v" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Var "obj"))
   (App (App (Val (chan.send _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)) (Var "$chan")) (Var "$v")))))))
   (App (Val doExecute)
@@ -1425,7 +1425,7 @@ noncomputable def Client.RegisterRPCTable.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (Pair (Var "p") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (Pair (Var "p") (Var "$r0"))))))))))))))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "reader"))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))

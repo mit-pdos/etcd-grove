@@ -231,7 +231,7 @@ noncomputable def cat [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def erase [GooseExts] [GoGlobalContext] : GoString :=
   go!"raxos/examples/quepaxanet.erase"
 
-noncomputable def lookup' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def lookup'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"raxos/examples/quepaxanet.lookup"
 
 noncomputable def set [GooseExts] [GoGlobalContext] : GoString :=
@@ -2279,7 +2279,7 @@ noncomputable def erase.impl [GooseExts] [GoGlobalContext] : val :=
 /-- lookup is key k's entry in s (its index, or len(s) and the empty entry).
 
     go: model.go:83:6 -/
-noncomputable def lookup.impl [GooseExts] [GoGlobalContext] : val :=
+noncomputable def lookup''.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -2529,7 +2529,7 @@ noncomputable def step.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "s" (App (Val (GoInstruction (GoAlloc State.ty))) (Var "s"))
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad State.ty))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef In.ty go!"K"))) (Var "in")))
-  (App (App (App (Val (GoInstruction (FuncResolve lookup' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (App (Val (GoInstruction (FuncResolve lookup'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
@@ -3765,7 +3765,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   has_unfold : FuncUnfold has [] has.impl
   cat_unfold : FuncUnfold cat [] cat.impl
   erase_unfold : FuncUnfold erase [] erase.impl
-  lookup_unfold : FuncUnfold lookup' [] lookup.impl
+  lookup_unfold : FuncUnfold lookup'' [] lookup''.impl
   set_unfold : FuncUnfold set [] set.impl
   stepE_unfold : FuncUnfold stepE [] stepE.impl
   step_unfold : FuncUnfold step [] step.impl

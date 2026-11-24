@@ -257,17 +257,17 @@ def deliverChanP (γ : EpNames) (id : Nat) (k : MsgKind) (obj : GoInterface) : I
 
 /-- The entries `epaxos.New` registers: the nine kinds' codes, each with a prototype of its kind
 and a channel with `deliverChanP` (persistent). -/
-def tableEntriesOk (γ : EpNames) (id : Nat) (E : GMap w8 rpc.Pair') : IProp GF :=
+def tableEntriesOk (γ : EpNames) (id : Nat) (E : GMap w8 rpc.Pair'') : IProp GF :=
   iprop(⌜∀ c, E.lookup c ≠ none → ∃ k ∈ MsgKind.all, c = k.code⌝ ∗
     [∗list] k ∈ MsgKind.all, ∃ (obj : GoInterface) (ch : GoChan) (γc : ChanNames),
-      ⌜E.lookup k.code = some (rpc.Pair'.mk obj ch) ∧ protoObj k obj⌝ ∗
+      ⌜E.lookup k.code = some (rpc.Pair''.mk obj ch) ∧ protoObj k obj⌝ ∗
       isChanBag γc ch (deliverChanP γ id k))
 
 /-- Replica `id`'s frozen rpc table (persistent). -/
 def tableOk (γ : EpNames) (id : Nat) (tbl : Loc) : IProp GF :=
   iprop(∃ E, isTable tbl E ∗ tableEntriesOk γ id E)
 
-instance tableEntriesOk_persistent (γ : EpNames) (id : Nat) (E : GMap w8 rpc.Pair') :
+instance tableEntriesOk_persistent (γ : EpNames) (id : Nat) (E : GMap w8 rpc.Pair'') :
     Persistent (tableEntriesOk (GF := GF) γ id E) := by
   unfold tableEntriesOk; infer_instance
 
@@ -409,7 +409,7 @@ def fwFresh [state.Assumptions] [github_com.emirpasic.gods.maps.treemap.Assumpti
 registrations), with epaxos's initialization (for the framework's dynamic calls into epaxos's
 `Marshal`/`New`/`Unmarshal`): `fwFrozen`. -/
 theorem fwFreeze (γ : EpNames) (r : Loc) (id : Nat) (p : FwPtrs) (n : w8)
-    (E : GMap w8 rpc.Pair') :
+    (E : GMap w8 rpc.Pair'') :
     isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.epaxos -∗
     fld r go!"Beacon" ↦ false -∗ fld r go!"Durable" ↦ false -∗ ownTable p.tbl n E -∗
       tableEntriesOk γ id E ==∗ fwFrozen γ r id p := by

@@ -48,11 +48,11 @@ noncomputable instance Logger_access_load_logger (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_logger (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (logger' : Loc) :
+noncomputable instance Logger_access_store_logger (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger go!"logger" l) v.logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger go!"logger" l) logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := logger' } : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger go!"logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with logger' := y } : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -64,11 +64,11 @@ noncomputable instance Logger_access_load_verbose (l : Loc) (v : github_com.imde
  by
   solve_pointsto_access_struct
 
-noncomputable instance Logger_access_store_verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (verbose' : Bool) :
+noncomputable instance Logger_access_store_verbose (l : Loc) (v : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger go!"verbose" l) v.verbose' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger go!"verbose" l) verbose' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verbose' := verbose' } : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger go!"verbose" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verbose' := y } : github_com.imdea_software.swiftpaxos_epaxos.dlog.Logger) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

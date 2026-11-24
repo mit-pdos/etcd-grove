@@ -63,11 +63,11 @@ noncomputable instance Conf_access_load_N (l : Loc) (v : raxos.examples.quepaxan
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_N (l : Loc) (v : raxos.examples.quepaxanet.Conf) (N' : w64) :
+noncomputable instance Conf_access_store_N (l : Loc) (v : raxos.examples.quepaxanet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"N" l) v.N' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"N" l) N' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := N' } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"N" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -79,11 +79,11 @@ noncomputable instance Conf_access_load_ServerMode (l : Loc) (v : raxos.examples
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_ServerMode (l : Loc) (v : raxos.examples.quepaxanet.Conf) (ServerMode' : w64) :
+noncomputable instance Conf_access_store_ServerMode (l : Loc) (v : raxos.examples.quepaxanet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"ServerMode" l) v.ServerMode' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"ServerMode" l) ServerMode' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerMode' := ServerMode' } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"ServerMode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ServerMode' := y } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -95,11 +95,11 @@ noncomputable instance Conf_access_load_Pipeline (l : Loc) (v : raxos.examples.q
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_Pipeline (l : Loc) (v : raxos.examples.quepaxanet.Conf) (Pipeline' : w64) :
+noncomputable instance Conf_access_store_Pipeline (l : Loc) (v : raxos.examples.quepaxanet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"Pipeline" l) v.Pipeline' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"Pipeline" l) Pipeline' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pipeline' := Pipeline' } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"Pipeline" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pipeline' := y } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -111,11 +111,11 @@ noncomputable instance Conf_access_load_Epoch (l : Loc) (v : raxos.examples.quep
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_Epoch (l : Loc) (v : raxos.examples.quepaxanet.Conf) (Epoch' : w64) :
+noncomputable instance Conf_access_store_Epoch (l : Loc) (v : raxos.examples.quepaxanet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"Epoch" l) v.Epoch' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"Epoch" l) Epoch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Epoch' := Epoch' } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"Epoch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Epoch' := y } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,11 +127,11 @@ noncomputable instance Conf_access_load_TimeoutUs (l : Loc) (v : raxos.examples.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_TimeoutUs (l : Loc) (v : raxos.examples.quepaxanet.Conf) (TimeoutUs' : w64) :
+noncomputable instance Conf_access_store_TimeoutUs (l : Loc) (v : raxos.examples.quepaxanet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"TimeoutUs" l) v.TimeoutUs' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"TimeoutUs" l) TimeoutUs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeoutUs' := TimeoutUs' } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Conf go!"TimeoutUs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TimeoutUs' := y } : raxos.examples.quepaxanet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -171,11 +171,11 @@ noncomputable instance replica_access_load_mu (l : Loc) (v : raxos.examples.quep
  by
   solve_pointsto_access_struct
 
-noncomputable instance replica_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.replica) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance replica_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.replica) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -187,11 +187,11 @@ noncomputable instance replica_access_load_name (l : Loc) (v : raxos.examples.qu
  by
   solve_pointsto_access_struct
 
-noncomputable instance replica_access_store_name (l : Loc) (v : raxos.examples.quepaxanet.replica) (name' : w64) :
+noncomputable instance replica_access_store_name (l : Loc) (v : raxos.examples.quepaxanet.replica) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -203,11 +203,11 @@ noncomputable instance replica_access_load_addr (l : Loc) (v : raxos.examples.qu
  by
   solve_pointsto_access_struct
 
-noncomputable instance replica_access_store_addr (l : Loc) (v : raxos.examples.quepaxanet.replica) (addr' : GoString) :
+noncomputable instance replica_access_store_addr (l : Loc) (v : raxos.examples.quepaxanet.replica) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"addr" l) v.addr' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"addr" l) addr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addr' := addr' } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"addr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addr' := y } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -219,11 +219,11 @@ noncomputable instance replica_access_load_c (l : Loc) (v : raxos.examples.quepa
  by
   solve_pointsto_access_struct
 
-noncomputable instance replica_access_store_c (l : Loc) (v : raxos.examples.quepaxanet.replica) (c' : _root_.Perennial.net.Conn) :
+noncomputable instance replica_access_store_c (l : Loc) (v : raxos.examples.quepaxanet.replica) (y : _root_.Perennial.net.Conn) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"c" l) v.c' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"c" l) c' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"c" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -235,11 +235,11 @@ noncomputable instance replica_access_load_w (l : Loc) (v : raxos.examples.quepa
  by
   solve_pointsto_access_struct
 
-noncomputable instance replica_access_store_w (l : Loc) (v : raxos.examples.quepaxanet.replica) (w' : Loc) :
+noncomputable instance replica_access_store_w (l : Loc) (v : raxos.examples.quepaxanet.replica) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"w" l) v.w' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"w" l) w' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := w' } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.replica go!"w" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with w' := y } : raxos.examples.quepaxanet.replica) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -283,11 +283,11 @@ noncomputable instance Sys_access_load_conf (l : Loc) (v : raxos.examples.quepax
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_conf (l : Loc) (v : raxos.examples.quepaxanet.Sys) (conf' : raxos.examples.quepaxanet.Conf) :
+noncomputable instance Sys_access_store_conf (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : raxos.examples.quepaxanet.Conf) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"conf" l) v.conf' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"conf" l) conf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := conf' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"conf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -299,11 +299,11 @@ noncomputable instance Sys_access_load_c (l : Loc) (v : raxos.examples.quepaxane
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_c (l : Loc) (v : raxos.examples.quepaxanet.Sys) (c' : w64) :
+noncomputable instance Sys_access_store_c (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"c" l) v.c' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"c" l) c' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"c" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -315,11 +315,11 @@ noncomputable instance Sys_access_load_name (l : Loc) (v : raxos.examples.quepax
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_name (l : Loc) (v : raxos.examples.quepaxanet.Sys) (name' : w64) :
+noncomputable instance Sys_access_store_name (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -331,11 +331,11 @@ noncomputable instance Sys_access_load_checks (l : Loc) (v : raxos.examples.quep
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_checks (l : Loc) (v : raxos.examples.quepaxanet.Sys) (checks' : Bool) :
+noncomputable instance Sys_access_store_checks (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"checks" l) v.checks' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"checks" l) checks' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with checks' := checks' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"checks" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with checks' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -347,11 +347,11 @@ noncomputable instance Sys_access_load_mu (l : Loc) (v : raxos.examples.quepaxan
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.Sys) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Sys_access_store_mu (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -363,11 +363,11 @@ noncomputable instance Sys_access_load_waiting (l : Loc) (v : raxos.examples.que
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_waiting (l : Loc) (v : raxos.examples.quepaxanet.Sys) (waiting' : GoMap) :
+noncomputable instance Sys_access_store_waiting (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"waiting" l) v.waiting' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"waiting" l) waiting' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiting' := waiting' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"waiting" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with waiting' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -379,11 +379,11 @@ noncomputable instance Sys_access_load_answered (l : Loc) (v : raxos.examples.qu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_answered (l : Loc) (v : raxos.examples.quepaxanet.Sys) (answered' : GoMap) :
+noncomputable instance Sys_access_store_answered (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"answered" l) v.answered' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"answered" l) answered' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with answered' := answered' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"answered" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with answered' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -395,11 +395,11 @@ noncomputable instance Sys_access_load_replicas (l : Loc) (v : raxos.examples.qu
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_replicas (l : Loc) (v : raxos.examples.quepaxanet.Sys) (replicas' : GoSlice) :
+noncomputable instance Sys_access_store_replicas (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"replicas" l) v.replicas' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"replicas" l) replicas' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replicas' := replicas' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"replicas" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with replicas' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -411,11 +411,11 @@ noncomputable instance Sys_access_load_next (l : Loc) (v : raxos.examples.quepax
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_next (l : Loc) (v : raxos.examples.quepaxanet.Sys) (next' : w64) :
+noncomputable instance Sys_access_store_next (l : Loc) (v : raxos.examples.quepaxanet.Sys) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"next" l) v.next' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"next" l) next' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := next' } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Sys go!"next" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : raxos.examples.quepaxanet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -453,11 +453,11 @@ noncomputable instance In_access_load_Put (l : Loc) (v : raxos.examples.quepaxan
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_Put (l : Loc) (v : raxos.examples.quepaxanet.In) (Put' : Bool) :
+noncomputable instance In_access_store_Put (l : Loc) (v : raxos.examples.quepaxanet.In) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"Put" l) v.Put' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"Put" l) Put' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := Put' } : raxos.examples.quepaxanet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"Put" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := y } : raxos.examples.quepaxanet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -469,11 +469,11 @@ noncomputable instance In_access_load_K (l : Loc) (v : raxos.examples.quepaxanet
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_K (l : Loc) (v : raxos.examples.quepaxanet.In) (K' : GoString) :
+noncomputable instance In_access_store_K (l : Loc) (v : raxos.examples.quepaxanet.In) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : raxos.examples.quepaxanet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : raxos.examples.quepaxanet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -485,11 +485,11 @@ noncomputable instance In_access_load_V (l : Loc) (v : raxos.examples.quepaxanet
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_V (l : Loc) (v : raxos.examples.quepaxanet.In) (V' : GoString) :
+noncomputable instance In_access_store_V (l : Loc) (v : raxos.examples.quepaxanet.In) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : raxos.examples.quepaxanet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.In go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : raxos.examples.quepaxanet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -527,11 +527,11 @@ noncomputable instance Out_access_load_Unknown (l : Loc) (v : raxos.examples.que
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Unknown (l : Loc) (v : raxos.examples.quepaxanet.Out) (Unknown' : Bool) :
+noncomputable instance Out_access_store_Unknown (l : Loc) (v : raxos.examples.quepaxanet.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"Unknown" l) Unknown' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := Unknown' } : raxos.examples.quepaxanet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"Unknown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := y } : raxos.examples.quepaxanet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -543,11 +543,11 @@ noncomputable instance Out_access_load_Found (l : Loc) (v : raxos.examples.quepa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Found (l : Loc) (v : raxos.examples.quepaxanet.Out) (Found' : Bool) :
+noncomputable instance Out_access_store_Found (l : Loc) (v : raxos.examples.quepaxanet.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"Found" l) v.Found' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"Found" l) Found' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Found' := Found' } : raxos.examples.quepaxanet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"Found" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Found' := y } : raxos.examples.quepaxanet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -559,11 +559,11 @@ noncomputable instance Out_access_load_V (l : Loc) (v : raxos.examples.quepaxane
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_V (l : Loc) (v : raxos.examples.quepaxanet.Out) (V' : GoString) :
+noncomputable instance Out_access_store_V (l : Loc) (v : raxos.examples.quepaxanet.Out) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : raxos.examples.quepaxanet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Out go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : raxos.examples.quepaxanet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -603,11 +603,11 @@ noncomputable instance Entry_access_load_K (l : Loc) (v : raxos.examples.quepaxa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_K (l : Loc) (v : raxos.examples.quepaxanet.Entry) (K' : GoString) :
+noncomputable instance Entry_access_store_K (l : Loc) (v : raxos.examples.quepaxanet.Entry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -619,11 +619,11 @@ noncomputable instance Entry_access_load_Found (l : Loc) (v : raxos.examples.que
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_Found (l : Loc) (v : raxos.examples.quepaxanet.Entry) (Found' : Bool) :
+noncomputable instance Entry_access_store_Found (l : Loc) (v : raxos.examples.quepaxanet.Entry) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Found" l) v.Found' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Found" l) Found' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Found' := Found' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Found" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Found' := y } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -635,11 +635,11 @@ noncomputable instance Entry_access_load_V (l : Loc) (v : raxos.examples.quepaxa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_V (l : Loc) (v : raxos.examples.quepaxanet.Entry) (V' : GoString) :
+noncomputable instance Entry_access_store_V (l : Loc) (v : raxos.examples.quepaxanet.Entry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -651,11 +651,11 @@ noncomputable instance Entry_access_load_Old (l : Loc) (v : raxos.examples.quepa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_Old (l : Loc) (v : raxos.examples.quepaxanet.Entry) (Old' : GoSlice) :
+noncomputable instance Entry_access_store_Old (l : Loc) (v : raxos.examples.quepaxanet.Entry) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) v.Old' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) Old' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Old' := Old' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"Old" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Old' := y } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -667,11 +667,11 @@ noncomputable instance Entry_access_load_New (l : Loc) (v : raxos.examples.quepa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_New (l : Loc) (v : raxos.examples.quepaxanet.Entry) (New' : GoSlice) :
+noncomputable instance Entry_access_store_New (l : Loc) (v : raxos.examples.quepaxanet.Entry) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) v.New' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) New' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with New' := New' } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.examples.quepaxanet.Entry go!"New" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with New' := y } : raxos.examples.quepaxanet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

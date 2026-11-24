@@ -23,11 +23,11 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [rpc.Assumptions]
 
 /-- The table at `t` (see the file header). -/
-def rpc.isTable (t : Loc) (dq : DFrac) (nid : w8) (ents : GMap w8 rpc.Pair') :
+def rpc.isTable (t : Loc) (dq : DFrac) (nid : w8) (ents : GMap w8 rpc.Pair'') :
     IProp netDistGF :=
   iprop(∃ mp : GoMap, t ↦{dq} rpc.Table.mk nid mp ∗ mp ↦${dq} ents)
 
-theorem rpc.isTable_persist (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair') :
+theorem rpc.isTable_persist (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair'') :
     rpc.isTable t (DFrac.own 1) nid ents ⊢ |==> rpc.isTable t DFrac.discard nid ents := by
   unfold rpc.isTable
   iintro ⟨%mp, Ht, Hm⟩
@@ -39,7 +39,7 @@ theorem rpc.isTable_persist (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair') :
   · iexact Ht
   iexact Hm
 
-instance rpc.isTable_persistent (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair') :
+instance rpc.isTable_persistent (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair'') :
     Persistent (rpc.isTable t DFrac.discard nid ents) := by
   unfold rpc.isTable; infer_instance
 
@@ -52,19 +52,19 @@ abbrev rpc.NewTableId.spec : Prop :=
 
 /-- `t.Register(obj, notify)`: the pair is registered under the next id, which is returned. -/
 abbrev rpc.Table.Register.spec : Prop :=
-  ∀ (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair') (obj : GoInterface) (ch : GoChan),
+  ∀ (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair'') (obj : GoInterface) (ch : GoChan),
   {{ rpc.isTable t (DFrac.own 1) nid ents }}
     (App (App (Val (t @!! go.GoType.PointerType rpc.Table.ty @!! go!"Register")) (Val #obj))
       (Val #ch))
-  {{ RET #nid; rpc.isTable t (DFrac.own 1) (nid + 1) (ents.insert nid (rpc.Pair'.mk obj ch)) }}
+  {{ RET #nid; rpc.isTable t (DFrac.own 1) (nid + 1) (ents.insert nid (rpc.Pair''.mk obj ch)) }}
 
 /-- `t.Get(id)` on the table, fixed (after the registrations): the pair registered under `id`
 (the zero pair if none) and whether there is one. -/
 abbrev rpc.Table.Get.spec : Prop :=
-  ∀ (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair') (id : w8),
+  ∀ (t : Loc) (nid : w8) (ents : GMap w8 rpc.Pair'') (id : w8),
   {{ rpc.isTable t DFrac.discard nid ents }}
     (App (Val (t @!! go.GoType.PointerType rpc.Table.ty @!! go!"Get")) (Val #id))
-  {{ RET (PairV #((ents !! id).getD (Perennial.zero_val rpc.Pair')) #(decide ((ents !! id).isSome)));
+  {{ RET (PairV #((ents !! id).getD (Perennial.zero_val rpc.Pair'')) #(decide ((ents !! id).isSome)));
       True }}
 
 end defs

@@ -64,11 +64,11 @@ noncomputable instance Stat_access_load_NumOfRounds (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_NumOfRounds (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (NumOfRounds' : GoSlice) :
+noncomputable instance Stat_access_store_NumOfRounds (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NumOfRounds" l) v.NumOfRounds' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NumOfRounds" l) NumOfRounds' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumOfRounds' := NumOfRounds' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NumOfRounds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumOfRounds' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -80,11 +80,11 @@ noncomputable instance Stat_access_load_DecisionTyp (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_DecisionTyp (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (DecisionTyp' : GoSlice) :
+noncomputable instance Stat_access_store_DecisionTyp (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"DecisionTyp" l) v.DecisionTyp' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"DecisionTyp" l) DecisionTyp' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DecisionTyp' := DecisionTyp' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"DecisionTyp" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with DecisionTyp' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -96,11 +96,11 @@ noncomputable instance Stat_access_load_NumOfCliReq (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_NumOfCliReq (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (NumOfCliReq' : GoSlice) :
+noncomputable instance Stat_access_store_NumOfCliReq (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NumOfCliReq" l) v.NumOfCliReq' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NumOfCliReq" l) NumOfCliReq' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumOfCliReq' := NumOfCliReq' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NumOfCliReq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumOfCliReq' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -112,11 +112,11 @@ noncomputable instance Stat_access_load_TotalRounds (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_TotalRounds (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (TotalRounds' : w32) :
+noncomputable instance Stat_access_store_TotalRounds (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"TotalRounds" l) v.TotalRounds' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"TotalRounds" l) TotalRounds' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalRounds' := TotalRounds' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"TotalRounds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalRounds' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -128,11 +128,11 @@ noncomputable instance Stat_access_load_TotalSlots (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_TotalSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (TotalSlots' : w32) :
+noncomputable instance Stat_access_store_TotalSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"TotalSlots" l) v.TotalSlots' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"TotalSlots" l) TotalSlots' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalSlots' := TotalSlots' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"TotalSlots" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalSlots' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -144,11 +144,11 @@ noncomputable instance Stat_access_load_NotNullSoFar (l : Loc) (v : rabia.roles.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_NotNullSoFar (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (NotNullSoFar' : w64) :
+noncomputable instance Stat_access_store_NotNullSoFar (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NotNullSoFar" l) v.NotNullSoFar' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NotNullSoFar" l) NotNullSoFar' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NotNullSoFar' := NotNullSoFar' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"NotNullSoFar" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NotNullSoFar' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -160,11 +160,11 @@ noncomputable instance Stat_access_load_CliReqSoFar (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_CliReqSoFar (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (CliReqSoFar' : w64) :
+noncomputable instance Stat_access_store_CliReqSoFar (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"CliReqSoFar" l) v.CliReqSoFar' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"CliReqSoFar" l) CliReqSoFar' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliReqSoFar' := CliReqSoFar' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"CliReqSoFar" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliReqSoFar' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -176,11 +176,11 @@ noncomputable instance Stat_access_load_BadTermMsg (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Stat_access_store_BadTermMsg (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (BadTermMsg' : w64) :
+noncomputable instance Stat_access_store_BadTermMsg (l : Loc) (v : rabia.roles.server.layers.consensus.Stat) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"BadTermMsg" l) v.BadTermMsg' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"BadTermMsg" l) BadTermMsg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BadTermMsg' := BadTermMsg' } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Stat go!"BadTermMsg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BadTermMsg' := y } : rabia.roles.server.layers.consensus.Stat) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -246,11 +246,11 @@ noncomputable instance Consensus_access_load_SvrId (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_SvrId (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (SvrId' : w32) :
+noncomputable instance Consensus_access_store_SvrId (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"SvrId" l) v.SvrId' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"SvrId" l) SvrId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrId' := SvrId' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"SvrId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrId' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -262,11 +262,11 @@ noncomputable instance Consensus_access_load_InsId (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_InsId (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (InsId' : w32) :
+noncomputable instance Consensus_access_store_InsId (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"InsId" l) v.InsId' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"InsId" l) InsId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InsId' := InsId' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"InsId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with InsId' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -278,11 +278,11 @@ noncomputable instance Consensus_access_load_Wg (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Wg (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Wg' : Loc) :
+noncomputable instance Consensus_access_store_Wg (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Wg" l) v.Wg' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Wg" l) Wg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Wg' := Wg' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Wg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Wg' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -294,11 +294,11 @@ noncomputable instance Consensus_access_load_Done (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Done (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Done' : GoChan) :
+noncomputable instance Consensus_access_store_Done (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Done" l) v.Done' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Done" l) Done' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Done' := Done' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Done" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Done' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -310,11 +310,11 @@ noncomputable instance Consensus_access_load_NetToMsgHandler (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_NetToMsgHandler (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (NetToMsgHandler' : GoChan) :
+noncomputable instance Consensus_access_store_NetToMsgHandler (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NetToMsgHandler" l) v.NetToMsgHandler' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NetToMsgHandler" l) NetToMsgHandler' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NetToMsgHandler' := NetToMsgHandler' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NetToMsgHandler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NetToMsgHandler' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -326,11 +326,11 @@ noncomputable instance Consensus_access_load_MsgHandlerToNet (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_MsgHandlerToNet (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (MsgHandlerToNet' : GoChan) :
+noncomputable instance Consensus_access_store_MsgHandlerToNet (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MsgHandlerToNet" l) v.MsgHandlerToNet' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MsgHandlerToNet" l) MsgHandlerToNet' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MsgHandlerToNet' := MsgHandlerToNet' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MsgHandlerToNet" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MsgHandlerToNet' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -342,11 +342,11 @@ noncomputable instance Consensus_access_load_NetToConExecutor (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_NetToConExecutor (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (NetToConExecutor' : GoChan) :
+noncomputable instance Consensus_access_store_NetToConExecutor (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NetToConExecutor" l) v.NetToConExecutor' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NetToConExecutor" l) NetToConExecutor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NetToConExecutor' := NetToConExecutor' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NetToConExecutor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NetToConExecutor' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -358,11 +358,11 @@ noncomputable instance Consensus_access_load_ConExecutorToNet (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_ConExecutorToNet (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (ConExecutorToNet' : GoChan) :
+noncomputable instance Consensus_access_store_ConExecutorToNet (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"ConExecutorToNet" l) v.ConExecutorToNet' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"ConExecutorToNet" l) ConExecutorToNet' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConExecutorToNet' := ConExecutorToNet' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"ConExecutorToNet" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConExecutorToNet' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -374,11 +374,11 @@ noncomputable instance Consensus_access_load_Queue (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Queue (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Queue' : _root_.Perennial.rabia.internal.queue.PQueue) :
+noncomputable instance Consensus_access_store_Queue (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : _root_.Perennial.rabia.internal.queue.PQueue) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Queue" l) v.Queue' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Queue" l) Queue' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Queue' := Queue' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Queue" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Queue' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -390,11 +390,11 @@ noncomputable instance Consensus_access_load_QLock (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_QLock (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (QLock' : Loc) :
+noncomputable instance Consensus_access_store_QLock (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"QLock" l) v.QLock' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"QLock" l) QLock' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with QLock' := QLock' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"QLock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with QLock' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -406,11 +406,11 @@ noncomputable instance Consensus_access_load_SvrSeq (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_SvrSeq (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (SvrSeq' : w64) :
+noncomputable instance Consensus_access_store_SvrSeq (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"SvrSeq" l) v.SvrSeq' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"SvrSeq" l) SvrSeq' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrSeq' := SvrSeq' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"SvrSeq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrSeq' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -422,11 +422,11 @@ noncomputable instance Consensus_access_load_Ledger (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Ledger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Ledger' : _root_.Perennial.rabia.internal.ledger.Ledger) :
+noncomputable instance Consensus_access_store_Ledger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : _root_.Perennial.rabia.internal.ledger.Ledger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Ledger" l) v.Ledger' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Ledger" l) Ledger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ledger' := Ledger' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Ledger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ledger' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -438,11 +438,11 @@ noncomputable instance Consensus_access_load_Coin (l : Loc) (v : rabia.roles.ser
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Coin (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Coin' : Loc) :
+noncomputable instance Consensus_access_store_Coin (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Coin" l) v.Coin' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Coin" l) Coin' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Coin' := Coin' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Coin" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Coin' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -454,11 +454,11 @@ noncomputable instance Consensus_access_load_Discard (l : Loc) (v : rabia.roles.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Discard (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Discard' : GoMap) :
+noncomputable instance Consensus_access_store_Discard (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoMap) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Discard" l) v.Discard' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Discard" l) Discard' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Discard' := Discard' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Discard" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Discard' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -470,11 +470,11 @@ noncomputable instance Consensus_access_load_Logger (l : Loc) (v : rabia.roles.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Logger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Logger' : _root_.Perennial.github_com.rs.zerolog.Logger) :
+noncomputable instance Consensus_access_store_Logger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Logger" l) v.Logger' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Logger" l) Logger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Logger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -486,11 +486,11 @@ noncomputable instance Consensus_access_load_LogFile (l : Loc) (v : rabia.roles.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_LogFile (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (LogFile' : Loc) :
+noncomputable instance Consensus_access_store_LogFile (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"LogFile" l) v.LogFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"LogFile" l) LogFile' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LogFile' := LogFile' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"LogFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with LogFile' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -502,11 +502,11 @@ noncomputable instance Consensus_access_load_NormalSlots (l : Loc) (v : rabia.ro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_NormalSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (NormalSlots' : w64) :
+noncomputable instance Consensus_access_store_NormalSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NormalSlots" l) v.NormalSlots' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NormalSlots" l) NormalSlots' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NormalSlots' := NormalSlots' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NormalSlots" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NormalSlots' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -518,11 +518,11 @@ noncomputable instance Consensus_access_load_UnmatchedSlots (l : Loc) (v : rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_UnmatchedSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (UnmatchedSlots' : w64) :
+noncomputable instance Consensus_access_store_UnmatchedSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"UnmatchedSlots" l) v.UnmatchedSlots' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"UnmatchedSlots" l) UnmatchedSlots' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnmatchedSlots' := UnmatchedSlots' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"UnmatchedSlots" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UnmatchedSlots' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -534,11 +534,11 @@ noncomputable instance Consensus_access_load_NullSlots (l : Loc) (v : rabia.role
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_NullSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (NullSlots' : w64) :
+noncomputable instance Consensus_access_store_NullSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NullSlots" l) v.NullSlots' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NullSlots" l) NullSlots' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NullSlots' := NullSlots' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NullSlots" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NullSlots' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -550,11 +550,11 @@ noncomputable instance Consensus_access_load_TotalRounds (l : Loc) (v : rabia.ro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_TotalRounds (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (TotalRounds' : w32) :
+noncomputable instance Consensus_access_store_TotalRounds (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"TotalRounds" l) v.TotalRounds' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"TotalRounds" l) TotalRounds' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalRounds' := TotalRounds' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"TotalRounds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalRounds' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -566,11 +566,11 @@ noncomputable instance Consensus_access_load_TotalSlots (l : Loc) (v : rabia.rol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_TotalSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (TotalSlots' : w64) :
+noncomputable instance Consensus_access_store_TotalSlots (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"TotalSlots" l) v.TotalSlots' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"TotalSlots" l) TotalSlots' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalSlots' := TotalSlots' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"TotalSlots" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TotalSlots' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -582,11 +582,11 @@ noncomputable instance Consensus_access_load_OlderThanTermMsg (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_OlderThanTermMsg (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (OlderThanTermMsg' : w64) :
+noncomputable instance Consensus_access_store_OlderThanTermMsg (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"OlderThanTermMsg" l) v.OlderThanTermMsg' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"OlderThanTermMsg" l) OlderThanTermMsg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OlderThanTermMsg' := OlderThanTermMsg' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"OlderThanTermMsg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OlderThanTermMsg' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -598,11 +598,11 @@ noncomputable instance Consensus_access_load_CurrConsecutiveNulls (l : Loc) (v :
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_CurrConsecutiveNulls (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (CurrConsecutiveNulls' : w64) :
+noncomputable instance Consensus_access_store_CurrConsecutiveNulls (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"CurrConsecutiveNulls" l) v.CurrConsecutiveNulls' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"CurrConsecutiveNulls" l) CurrConsecutiveNulls' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CurrConsecutiveNulls' := CurrConsecutiveNulls' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"CurrConsecutiveNulls" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CurrConsecutiveNulls' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -614,11 +614,11 @@ noncomputable instance Consensus_access_load_MaxConsecutiveNulls (l : Loc) (v : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_MaxConsecutiveNulls (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (MaxConsecutiveNulls' : w64) :
+noncomputable instance Consensus_access_store_MaxConsecutiveNulls (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MaxConsecutiveNulls" l) v.MaxConsecutiveNulls' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MaxConsecutiveNulls" l) MaxConsecutiveNulls' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConsecutiveNulls' := MaxConsecutiveNulls' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MaxConsecutiveNulls" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConsecutiveNulls' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -630,11 +630,11 @@ noncomputable instance Consensus_access_load_MaxConsecutiveNullsEndSeq (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_MaxConsecutiveNullsEndSeq (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (MaxConsecutiveNullsEndSeq' : w64) :
+noncomputable instance Consensus_access_store_MaxConsecutiveNullsEndSeq (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MaxConsecutiveNullsEndSeq" l) v.MaxConsecutiveNullsEndSeq' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MaxConsecutiveNullsEndSeq" l) MaxConsecutiveNullsEndSeq' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConsecutiveNullsEndSeq' := MaxConsecutiveNullsEndSeq' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"MaxConsecutiveNullsEndSeq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxConsecutiveNullsEndSeq' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -646,11 +646,11 @@ noncomputable instance Consensus_access_load_NumClientBatchedRequests (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_NumClientBatchedRequests (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (NumClientBatchedRequests' : w64) :
+noncomputable instance Consensus_access_store_NumClientBatchedRequests (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NumClientBatchedRequests" l) v.NumClientBatchedRequests' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NumClientBatchedRequests" l) NumClientBatchedRequests' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumClientBatchedRequests' := NumClientBatchedRequests' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NumClientBatchedRequests" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumClientBatchedRequests' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -662,11 +662,11 @@ noncomputable instance Consensus_access_load_NumOfRoundsDist (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_NumOfRoundsDist (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (NumOfRoundsDist' : GoSlice) :
+noncomputable instance Consensus_access_store_NumOfRoundsDist (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NumOfRoundsDist" l) v.NumOfRoundsDist' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NumOfRoundsDist" l) NumOfRoundsDist' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumOfRoundsDist' := NumOfRoundsDist' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"NumOfRoundsDist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with NumOfRoundsDist' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -678,11 +678,11 @@ noncomputable instance Consensus_access_load_StatLock (l : Loc) (v : rabia.roles
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_StatLock (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (StatLock' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Consensus_access_store_StatLock (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"StatLock" l) v.StatLock' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"StatLock" l) StatLock' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StatLock' := StatLock' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"StatLock" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StatLock' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -694,11 +694,11 @@ noncomputable instance Consensus_access_load_Per1000RoundDist (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_Per1000RoundDist (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (Per1000RoundDist' : GoSlice) :
+noncomputable instance Consensus_access_store_Per1000RoundDist (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Per1000RoundDist" l) v.Per1000RoundDist' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Per1000RoundDist" l) Per1000RoundDist' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Per1000RoundDist' := Per1000RoundDist' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"Per1000RoundDist" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Per1000RoundDist' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -710,11 +710,11 @@ noncomputable instance Consensus_access_load_RoundDistLogger (l : Loc) (v : rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_RoundDistLogger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (RoundDistLogger' : _root_.Perennial.github_com.rs.zerolog.Logger) :
+noncomputable instance Consensus_access_store_RoundDistLogger (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : _root_.Perennial.github_com.rs.zerolog.Logger) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogger" l) v.RoundDistLogger' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogger" l) RoundDistLogger' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RoundDistLogger' := RoundDistLogger' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogger" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RoundDistLogger' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -726,11 +726,11 @@ noncomputable instance Consensus_access_load_RoundDistLogFile (l : Loc) (v : rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Consensus_access_store_RoundDistLogFile (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (RoundDistLogFile' : Loc) :
+noncomputable instance Consensus_access_store_RoundDistLogFile (l : Loc) (v : rabia.roles.server.layers.consensus.Consensus) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogFile" l) v.RoundDistLogFile' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogFile" l) RoundDistLogFile' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RoundDistLogFile' := RoundDistLogFile' } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.consensus.Consensus go!"RoundDistLogFile" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RoundDistLogFile' := y } : rabia.roles.server.layers.consensus.Consensus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

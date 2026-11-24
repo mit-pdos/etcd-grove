@@ -85,11 +85,11 @@ noncomputable instance Writer_access_load_writer (l : Loc) (v : github_com.go_re
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_writer (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (writer' : github_com.go_redis.redis.v8.internal.proto.writer) :
+noncomputable instance Writer_access_store_writer (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (y : github_com.go_redis.redis.v8.internal.proto.writer) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) v.writer' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) writer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writer' := writer' } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"writer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writer' := y } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -101,11 +101,11 @@ noncomputable instance Writer_access_load_lenBuf (l : Loc) (v : github_com.go_re
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_lenBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (lenBuf' : GoSlice) :
+noncomputable instance Writer_access_store_lenBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) v.lenBuf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) lenBuf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lenBuf' := lenBuf' } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"lenBuf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lenBuf' := y } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -117,11 +117,11 @@ noncomputable instance Writer_access_load_numBuf (l : Loc) (v : github_com.go_re
  by
   solve_pointsto_access_struct
 
-noncomputable instance Writer_access_store_numBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (numBuf' : GoSlice) :
+noncomputable instance Writer_access_store_numBuf (l : Loc) (v : github_com.go_redis.redis.v8.internal.proto.Writer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) v.numBuf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) numBuf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numBuf' := numBuf' } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.go_redis.redis.v8.internal.proto.Writer go!"numBuf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numBuf' := y } : github_com.go_redis.redis.v8.internal.proto.Writer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

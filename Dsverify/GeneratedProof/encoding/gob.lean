@@ -67,11 +67,11 @@ noncomputable instance decoderState_access_load_dec (l : Loc) (v : encoding.gob.
  by
   solve_pointsto_access_struct
 
-noncomputable instance decoderState_access_store_dec (l : Loc) (v : encoding.gob.decoderState) (dec' : Loc) :
+noncomputable instance decoderState_access_store_dec (l : Loc) (v : encoding.gob.decoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) v.dec' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) dec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dec' := dec' } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decoderState go!"dec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with dec' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -83,11 +83,11 @@ noncomputable instance decoderState_access_load_b (l : Loc) (v : encoding.gob.de
  by
   solve_pointsto_access_struct
 
-noncomputable instance decoderState_access_store_b (l : Loc) (v : encoding.gob.decoderState) (b' : Loc) :
+noncomputable instance decoderState_access_store_b (l : Loc) (v : encoding.gob.decoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) b' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := b' } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decoderState go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -99,11 +99,11 @@ noncomputable instance decoderState_access_load_fieldnum (l : Loc) (v : encoding
  by
   solve_pointsto_access_struct
 
-noncomputable instance decoderState_access_store_fieldnum (l : Loc) (v : encoding.gob.decoderState) (fieldnum' : w64) :
+noncomputable instance decoderState_access_store_fieldnum (l : Loc) (v : encoding.gob.decoderState) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) v.fieldnum' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) fieldnum' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := fieldnum' } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decoderState go!"fieldnum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -115,11 +115,11 @@ noncomputable instance decoderState_access_load_next (l : Loc) (v : encoding.gob
  by
   solve_pointsto_access_struct
 
-noncomputable instance decoderState_access_store_next (l : Loc) (v : encoding.gob.decoderState) (next' : Loc) :
+noncomputable instance decoderState_access_store_next (l : Loc) (v : encoding.gob.decoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) v.next' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) next' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := next' } : encoding.gob.decoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decoderState go!"next" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : encoding.gob.decoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -156,11 +156,11 @@ noncomputable instance decBuffer_access_load_data (l : Loc) (v : encoding.gob.de
  by
   solve_pointsto_access_struct
 
-noncomputable instance decBuffer_access_store_data (l : Loc) (v : encoding.gob.decBuffer) (data' : GoSlice) :
+noncomputable instance decBuffer_access_store_data (l : Loc) (v : encoding.gob.decBuffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := data' } : encoding.gob.decBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : encoding.gob.decBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -172,11 +172,11 @@ noncomputable instance decBuffer_access_load_offset (l : Loc) (v : encoding.gob.
  by
   solve_pointsto_access_struct
 
-noncomputable instance decBuffer_access_store_offset (l : Loc) (v : encoding.gob.decBuffer) (offset' : w64) :
+noncomputable instance decBuffer_access_store_offset (l : Loc) (v : encoding.gob.decBuffer) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) v.offset' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) offset' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := offset' } : encoding.gob.decBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decBuffer go!"offset" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with offset' := y } : encoding.gob.decBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -234,11 +234,11 @@ noncomputable instance decInstr_access_load_op (l : Loc) (v : encoding.gob.decIn
  by
   solve_pointsto_access_struct
 
-noncomputable instance decInstr_access_store_op (l : Loc) (v : encoding.gob.decInstr) (op' : encoding.gob.decOp) :
+noncomputable instance decInstr_access_store_op (l : Loc) (v : encoding.gob.decInstr) (y : encoding.gob.decOp) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) v.op' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) op' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := op' } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decInstr go!"op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -250,11 +250,11 @@ noncomputable instance decInstr_access_load_field (l : Loc) (v : encoding.gob.de
  by
   solve_pointsto_access_struct
 
-noncomputable instance decInstr_access_store_field (l : Loc) (v : encoding.gob.decInstr) (field' : w64) :
+noncomputable instance decInstr_access_store_field (l : Loc) (v : encoding.gob.decInstr) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) field' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := field' } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decInstr go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -266,11 +266,11 @@ noncomputable instance decInstr_access_load_index (l : Loc) (v : encoding.gob.de
  by
   solve_pointsto_access_struct
 
-noncomputable instance decInstr_access_store_index (l : Loc) (v : encoding.gob.decInstr) (index' : GoSlice) :
+noncomputable instance decInstr_access_store_index (l : Loc) (v : encoding.gob.decInstr) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := index' } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decInstr go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -282,11 +282,11 @@ noncomputable instance decInstr_access_load_ovfl (l : Loc) (v : encoding.gob.dec
  by
   solve_pointsto_access_struct
 
-noncomputable instance decInstr_access_store_ovfl (l : Loc) (v : encoding.gob.decInstr) (ovfl' : GoError) :
+noncomputable instance decInstr_access_store_ovfl (l : Loc) (v : encoding.gob.decInstr) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) v.ovfl' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) ovfl' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ovfl' := ovfl' } : encoding.gob.decInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decInstr go!"ovfl" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ovfl' := y } : encoding.gob.decInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -323,11 +323,11 @@ noncomputable instance decEngine_access_load_instr (l : Loc) (v : encoding.gob.d
  by
   solve_pointsto_access_struct
 
-noncomputable instance decEngine_access_store_instr (l : Loc) (v : encoding.gob.decEngine) (instr' : GoSlice) :
+noncomputable instance decEngine_access_store_instr (l : Loc) (v : encoding.gob.decEngine) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) v.instr' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) instr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := instr' } : encoding.gob.decEngine) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decEngine go!"instr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := y } : encoding.gob.decEngine) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -339,11 +339,11 @@ noncomputable instance decEngine_access_load_numInstr (l : Loc) (v : encoding.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance decEngine_access_store_numInstr (l : Loc) (v : encoding.gob.decEngine) (numInstr' : w64) :
+noncomputable instance decEngine_access_store_numInstr (l : Loc) (v : encoding.gob.decEngine) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) v.numInstr' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) numInstr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numInstr' := numInstr' } : encoding.gob.decEngine) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.decEngine go!"numInstr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numInstr' := y } : encoding.gob.decEngine) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -445,11 +445,11 @@ noncomputable instance encoderState_access_load_enc (l : Loc) (v : encoding.gob.
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoderState_access_store_enc (l : Loc) (v : encoding.gob.encoderState) (enc' : Loc) :
+noncomputable instance encoderState_access_store_enc (l : Loc) (v : encoding.gob.encoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) v.enc' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) enc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := enc' } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encoderState go!"enc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with enc' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -461,11 +461,11 @@ noncomputable instance encoderState_access_load_b (l : Loc) (v : encoding.gob.en
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoderState_access_store_b (l : Loc) (v : encoding.gob.encoderState) (b' : Loc) :
+noncomputable instance encoderState_access_store_b (l : Loc) (v : encoding.gob.encoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) b' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := b' } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encoderState go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -477,11 +477,11 @@ noncomputable instance encoderState_access_load_sendZero (l : Loc) (v : encoding
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoderState_access_store_sendZero (l : Loc) (v : encoding.gob.encoderState) (sendZero' : Bool) :
+noncomputable instance encoderState_access_store_sendZero (l : Loc) (v : encoding.gob.encoderState) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) v.sendZero' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) sendZero' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendZero' := sendZero' } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encoderState go!"sendZero" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sendZero' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -493,11 +493,11 @@ noncomputable instance encoderState_access_load_fieldnum (l : Loc) (v : encoding
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoderState_access_store_fieldnum (l : Loc) (v : encoding.gob.encoderState) (fieldnum' : w64) :
+noncomputable instance encoderState_access_store_fieldnum (l : Loc) (v : encoding.gob.encoderState) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) v.fieldnum' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) fieldnum' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := fieldnum' } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encoderState go!"fieldnum" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fieldnum' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -509,11 +509,11 @@ noncomputable instance encoderState_access_load_buf (l : Loc) (v : encoding.gob.
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoderState_access_store_buf (l : Loc) (v : encoding.gob.encoderState) (buf' : (GoArray w8 9)) :
+noncomputable instance encoderState_access_store_buf (l : Loc) (v : encoding.gob.encoderState) (y : (GoArray w8 9)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) v.buf' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) buf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := buf' } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encoderState go!"buf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with buf' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -525,11 +525,11 @@ noncomputable instance encoderState_access_load_next (l : Loc) (v : encoding.gob
  by
   solve_pointsto_access_struct
 
-noncomputable instance encoderState_access_store_next (l : Loc) (v : encoding.gob.encoderState) (next' : Loc) :
+noncomputable instance encoderState_access_store_next (l : Loc) (v : encoding.gob.encoderState) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) v.next' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) next' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := next' } : encoding.gob.encoderState) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encoderState go!"next" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : encoding.gob.encoderState) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -566,11 +566,11 @@ noncomputable instance encBuffer_access_load_data (l : Loc) (v : encoding.gob.en
  by
   solve_pointsto_access_struct
 
-noncomputable instance encBuffer_access_store_data (l : Loc) (v : encoding.gob.encBuffer) (data' : GoSlice) :
+noncomputable instance encBuffer_access_store_data (l : Loc) (v : encoding.gob.encBuffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := data' } : encoding.gob.encBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : encoding.gob.encBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -582,11 +582,11 @@ noncomputable instance encBuffer_access_load_scratch (l : Loc) (v : encoding.gob
  by
   solve_pointsto_access_struct
 
-noncomputable instance encBuffer_access_store_scratch (l : Loc) (v : encoding.gob.encBuffer) (scratch' : (GoArray w8 64)) :
+noncomputable instance encBuffer_access_store_scratch (l : Loc) (v : encoding.gob.encBuffer) (y : (GoArray w8 64)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) v.scratch' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) scratch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scratch' := scratch' } : encoding.gob.encBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encBuffer go!"scratch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with scratch' := y } : encoding.gob.encBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -644,11 +644,11 @@ noncomputable instance encInstr_access_load_op (l : Loc) (v : encoding.gob.encIn
  by
   solve_pointsto_access_struct
 
-noncomputable instance encInstr_access_store_op (l : Loc) (v : encoding.gob.encInstr) (op' : encoding.gob.encOp) :
+noncomputable instance encInstr_access_store_op (l : Loc) (v : encoding.gob.encInstr) (y : encoding.gob.encOp) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) v.op' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) op' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := op' } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encInstr go!"op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with op' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -660,11 +660,11 @@ noncomputable instance encInstr_access_load_field (l : Loc) (v : encoding.gob.en
  by
   solve_pointsto_access_struct
 
-noncomputable instance encInstr_access_store_field (l : Loc) (v : encoding.gob.encInstr) (field' : w64) :
+noncomputable instance encInstr_access_store_field (l : Loc) (v : encoding.gob.encInstr) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) v.field' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) field' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := field' } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encInstr go!"field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with field' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -676,11 +676,11 @@ noncomputable instance encInstr_access_load_index (l : Loc) (v : encoding.gob.en
  by
   solve_pointsto_access_struct
 
-noncomputable instance encInstr_access_store_index (l : Loc) (v : encoding.gob.encInstr) (index' : GoSlice) :
+noncomputable instance encInstr_access_store_index (l : Loc) (v : encoding.gob.encInstr) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := index' } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encInstr go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -692,11 +692,11 @@ noncomputable instance encInstr_access_load_indir (l : Loc) (v : encoding.gob.en
  by
   solve_pointsto_access_struct
 
-noncomputable instance encInstr_access_store_indir (l : Loc) (v : encoding.gob.encInstr) (indir' : w64) :
+noncomputable instance encInstr_access_store_indir (l : Loc) (v : encoding.gob.encInstr) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) v.indir' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) indir' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indir' := indir' } : encoding.gob.encInstr) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encInstr go!"indir" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indir' := y } : encoding.gob.encInstr) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -732,11 +732,11 @@ noncomputable instance encEngine_access_load_instr (l : Loc) (v : encoding.gob.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance encEngine_access_store_instr (l : Loc) (v : encoding.gob.encEngine) (instr' : GoSlice) :
+noncomputable instance encEngine_access_store_instr (l : Loc) (v : encoding.gob.encEngine) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) v.instr' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) instr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := instr' } : encoding.gob.encEngine) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.encEngine go!"instr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instr' := y } : encoding.gob.encEngine) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -791,11 +791,11 @@ noncomputable instance gobError_access_load_err (l : Loc) (v : encoding.gob.gobE
  by
   solve_pointsto_access_struct
 
-noncomputable instance gobError_access_store_err (l : Loc) (v : encoding.gob.gobError) (err' : GoError) :
+noncomputable instance gobError_access_store_err (l : Loc) (v : encoding.gob.gobError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : encoding.gob.gobError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.gobError go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : encoding.gob.gobError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -851,11 +851,11 @@ noncomputable instance CommonType_access_load_Name (l : Loc) (v : encoding.gob.C
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommonType_access_store_Name (l : Loc) (v : encoding.gob.CommonType) (Name' : GoString) :
+noncomputable instance CommonType_access_store_Name (l : Loc) (v : encoding.gob.CommonType) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : encoding.gob.CommonType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : encoding.gob.CommonType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -867,11 +867,11 @@ noncomputable instance CommonType_access_load_Id (l : Loc) (v : encoding.gob.Com
  by
   solve_pointsto_access_struct
 
-noncomputable instance CommonType_access_store_Id (l : Loc) (v : encoding.gob.CommonType) (Id' : encoding.gob.typeId) :
+noncomputable instance CommonType_access_store_Id (l : Loc) (v : encoding.gob.CommonType) (y : encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) Id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := Id' } : encoding.gob.CommonType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.CommonType go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : encoding.gob.CommonType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -909,11 +909,11 @@ noncomputable instance arrayType_access_load_CommonType (l : Loc) (v : encoding.
  by
   solve_pointsto_access_struct
 
-noncomputable instance arrayType_access_store_CommonType (l : Loc) (v : encoding.gob.arrayType) (CommonType' : encoding.gob.CommonType) :
+noncomputable instance arrayType_access_store_CommonType (l : Loc) (v : encoding.gob.arrayType) (y : encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) CommonType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := CommonType' } : encoding.gob.arrayType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.arrayType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.arrayType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -925,11 +925,11 @@ noncomputable instance arrayType_access_load_Elem (l : Loc) (v : encoding.gob.ar
  by
   solve_pointsto_access_struct
 
-noncomputable instance arrayType_access_store_Elem (l : Loc) (v : encoding.gob.arrayType) (Elem' : encoding.gob.typeId) :
+noncomputable instance arrayType_access_store_Elem (l : Loc) (v : encoding.gob.arrayType) (y : encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) v.Elem' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) Elem' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := Elem' } : encoding.gob.arrayType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Elem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : encoding.gob.arrayType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -941,11 +941,11 @@ noncomputable instance arrayType_access_load_Len (l : Loc) (v : encoding.gob.arr
  by
   solve_pointsto_access_struct
 
-noncomputable instance arrayType_access_store_Len (l : Loc) (v : encoding.gob.arrayType) (Len' : w64) :
+noncomputable instance arrayType_access_store_Len (l : Loc) (v : encoding.gob.arrayType) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) v.Len' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) Len' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Len' := Len' } : encoding.gob.arrayType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.arrayType go!"Len" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Len' := y } : encoding.gob.arrayType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -981,11 +981,11 @@ noncomputable instance gobEncoderType_access_load_CommonType (l : Loc) (v : enco
  by
   solve_pointsto_access_struct
 
-noncomputable instance gobEncoderType_access_store_CommonType (l : Loc) (v : encoding.gob.gobEncoderType) (CommonType' : encoding.gob.CommonType) :
+noncomputable instance gobEncoderType_access_store_CommonType (l : Loc) (v : encoding.gob.gobEncoderType) (y : encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) CommonType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := CommonType' } : encoding.gob.gobEncoderType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.gobEncoderType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.gobEncoderType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1023,11 +1023,11 @@ noncomputable instance mapType_access_load_CommonType (l : Loc) (v : encoding.go
  by
   solve_pointsto_access_struct
 
-noncomputable instance mapType_access_store_CommonType (l : Loc) (v : encoding.gob.mapType) (CommonType' : encoding.gob.CommonType) :
+noncomputable instance mapType_access_store_CommonType (l : Loc) (v : encoding.gob.mapType) (y : encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) CommonType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := CommonType' } : encoding.gob.mapType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.mapType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.mapType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1039,11 +1039,11 @@ noncomputable instance mapType_access_load_Key (l : Loc) (v : encoding.gob.mapTy
  by
   solve_pointsto_access_struct
 
-noncomputable instance mapType_access_store_Key (l : Loc) (v : encoding.gob.mapType) (Key' : encoding.gob.typeId) :
+noncomputable instance mapType_access_store_Key (l : Loc) (v : encoding.gob.mapType) (y : encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) v.Key' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) Key' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := Key' } : encoding.gob.mapType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.mapType go!"Key" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Key' := y } : encoding.gob.mapType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1055,11 +1055,11 @@ noncomputable instance mapType_access_load_Elem (l : Loc) (v : encoding.gob.mapT
  by
   solve_pointsto_access_struct
 
-noncomputable instance mapType_access_store_Elem (l : Loc) (v : encoding.gob.mapType) (Elem' : encoding.gob.typeId) :
+noncomputable instance mapType_access_store_Elem (l : Loc) (v : encoding.gob.mapType) (y : encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) v.Elem' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) Elem' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := Elem' } : encoding.gob.mapType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.mapType go!"Elem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : encoding.gob.mapType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1096,11 +1096,11 @@ noncomputable instance sliceType_access_load_CommonType (l : Loc) (v : encoding.
  by
   solve_pointsto_access_struct
 
-noncomputable instance sliceType_access_store_CommonType (l : Loc) (v : encoding.gob.sliceType) (CommonType' : encoding.gob.CommonType) :
+noncomputable instance sliceType_access_store_CommonType (l : Loc) (v : encoding.gob.sliceType) (y : encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) CommonType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := CommonType' } : encoding.gob.sliceType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.sliceType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.sliceType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1112,11 +1112,11 @@ noncomputable instance sliceType_access_load_Elem (l : Loc) (v : encoding.gob.sl
  by
   solve_pointsto_access_struct
 
-noncomputable instance sliceType_access_store_Elem (l : Loc) (v : encoding.gob.sliceType) (Elem' : encoding.gob.typeId) :
+noncomputable instance sliceType_access_store_Elem (l : Loc) (v : encoding.gob.sliceType) (y : encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) v.Elem' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) Elem' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := Elem' } : encoding.gob.sliceType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.sliceType go!"Elem" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Elem' := y } : encoding.gob.sliceType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1153,11 +1153,11 @@ noncomputable instance fieldType_access_load_Name (l : Loc) (v : encoding.gob.fi
  by
   solve_pointsto_access_struct
 
-noncomputable instance fieldType_access_store_Name (l : Loc) (v : encoding.gob.fieldType) (Name' : GoString) :
+noncomputable instance fieldType_access_store_Name (l : Loc) (v : encoding.gob.fieldType) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : encoding.gob.fieldType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : encoding.gob.fieldType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1169,11 +1169,11 @@ noncomputable instance fieldType_access_load_Id (l : Loc) (v : encoding.gob.fiel
  by
   solve_pointsto_access_struct
 
-noncomputable instance fieldType_access_store_Id (l : Loc) (v : encoding.gob.fieldType) (Id' : encoding.gob.typeId) :
+noncomputable instance fieldType_access_store_Id (l : Loc) (v : encoding.gob.fieldType) (y : encoding.gob.typeId) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) Id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := Id' } : encoding.gob.fieldType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.fieldType go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : encoding.gob.fieldType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1210,11 +1210,11 @@ noncomputable instance structType_access_load_CommonType (l : Loc) (v : encoding
  by
   solve_pointsto_access_struct
 
-noncomputable instance structType_access_store_CommonType (l : Loc) (v : encoding.gob.structType) (CommonType' : encoding.gob.CommonType) :
+noncomputable instance structType_access_store_CommonType (l : Loc) (v : encoding.gob.structType) (y : encoding.gob.CommonType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) v.CommonType' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) CommonType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := CommonType' } : encoding.gob.structType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.structType go!"CommonType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CommonType' := y } : encoding.gob.structType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1226,11 +1226,11 @@ noncomputable instance structType_access_load_Field (l : Loc) (v : encoding.gob.
  by
   solve_pointsto_access_struct
 
-noncomputable instance structType_access_store_Field (l : Loc) (v : encoding.gob.structType) (Field' : GoSlice) :
+noncomputable instance structType_access_store_Field (l : Loc) (v : encoding.gob.structType) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) v.Field' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) Field' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := Field' } : encoding.gob.structType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.structType go!"Field" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Field' := y } : encoding.gob.structType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1272,11 +1272,11 @@ noncomputable instance wireType_access_load_ArrayT (l : Loc) (v : encoding.gob.w
  by
   solve_pointsto_access_struct
 
-noncomputable instance wireType_access_store_ArrayT (l : Loc) (v : encoding.gob.wireType) (ArrayT' : Loc) :
+noncomputable instance wireType_access_store_ArrayT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) v.ArrayT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) ArrayT' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ArrayT' := ArrayT' } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.wireType go!"ArrayT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ArrayT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1288,11 +1288,11 @@ noncomputable instance wireType_access_load_SliceT (l : Loc) (v : encoding.gob.w
  by
   solve_pointsto_access_struct
 
-noncomputable instance wireType_access_store_SliceT (l : Loc) (v : encoding.gob.wireType) (SliceT' : Loc) :
+noncomputable instance wireType_access_store_SliceT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) v.SliceT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) SliceT' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SliceT' := SliceT' } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.wireType go!"SliceT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SliceT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1304,11 +1304,11 @@ noncomputable instance wireType_access_load_StructT (l : Loc) (v : encoding.gob.
  by
   solve_pointsto_access_struct
 
-noncomputable instance wireType_access_store_StructT (l : Loc) (v : encoding.gob.wireType) (StructT' : Loc) :
+noncomputable instance wireType_access_store_StructT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) v.StructT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) StructT' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StructT' := StructT' } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.wireType go!"StructT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with StructT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1320,11 +1320,11 @@ noncomputable instance wireType_access_load_MapT (l : Loc) (v : encoding.gob.wir
  by
   solve_pointsto_access_struct
 
-noncomputable instance wireType_access_store_MapT (l : Loc) (v : encoding.gob.wireType) (MapT' : Loc) :
+noncomputable instance wireType_access_store_MapT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) v.MapT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) MapT' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MapT' := MapT' } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.wireType go!"MapT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MapT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1336,11 +1336,11 @@ noncomputable instance wireType_access_load_GobEncoderT (l : Loc) (v : encoding.
  by
   solve_pointsto_access_struct
 
-noncomputable instance wireType_access_store_GobEncoderT (l : Loc) (v : encoding.gob.wireType) (GobEncoderT' : Loc) :
+noncomputable instance wireType_access_store_GobEncoderT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) v.GobEncoderT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) GobEncoderT' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GobEncoderT' := GobEncoderT' } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.wireType go!"GobEncoderT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with GobEncoderT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1352,11 +1352,11 @@ noncomputable instance wireType_access_load_BinaryMarshalerT (l : Loc) (v : enco
  by
   solve_pointsto_access_struct
 
-noncomputable instance wireType_access_store_BinaryMarshalerT (l : Loc) (v : encoding.gob.wireType) (BinaryMarshalerT' : Loc) :
+noncomputable instance wireType_access_store_BinaryMarshalerT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) v.BinaryMarshalerT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) BinaryMarshalerT' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BinaryMarshalerT' := BinaryMarshalerT' } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.wireType go!"BinaryMarshalerT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BinaryMarshalerT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1368,11 +1368,11 @@ noncomputable instance wireType_access_load_TextMarshalerT (l : Loc) (v : encodi
  by
   solve_pointsto_access_struct
 
-noncomputable instance wireType_access_store_TextMarshalerT (l : Loc) (v : encoding.gob.wireType) (TextMarshalerT' : Loc) :
+noncomputable instance wireType_access_store_TextMarshalerT (l : Loc) (v : encoding.gob.wireType) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) v.TextMarshalerT' (DFrac.own 1))
-      (typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) TextMarshalerT' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextMarshalerT' := TextMarshalerT' } : encoding.gob.wireType) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef encoding.gob.wireType go!"TextMarshalerT" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TextMarshalerT' := y } : encoding.gob.wireType) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

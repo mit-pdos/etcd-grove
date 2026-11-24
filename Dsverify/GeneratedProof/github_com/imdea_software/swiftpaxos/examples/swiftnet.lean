@@ -68,11 +68,11 @@ noncomputable instance Conf_access_load_N (l : Loc) (v : github_com.imdea_softwa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_N (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (N' : w64) :
+noncomputable instance Conf_access_store_N (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"N" l) v.N' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"N" l) N' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := N' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"N" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -84,11 +84,11 @@ noncomputable instance Conf_access_load_FastRead (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_FastRead (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (FastRead' : w64) :
+noncomputable instance Conf_access_store_FastRead (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"FastRead" l) v.FastRead' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"FastRead" l) FastRead' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FastRead' := FastRead' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"FastRead" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FastRead' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -100,11 +100,11 @@ noncomputable instance Conf_access_load_Pool (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_Pool (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (Pool' : w64) :
+noncomputable instance Conf_access_store_Pool (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"Pool" l) v.Pool' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"Pool" l) Pool' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pool' := Pool' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"Pool" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pool' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -116,11 +116,11 @@ noncomputable instance Conf_access_load_Desc (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_Desc (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (Desc' : w64) :
+noncomputable instance Conf_access_store_Desc (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"Desc" l) v.Desc' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"Desc" l) Desc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Desc' := Desc' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf go!"Desc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Desc' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -158,11 +158,11 @@ noncomputable instance change_access_load_Client (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance change_access_store_Client (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (Client' : w64) :
+noncomputable instance change_access_store_Client (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"Client" l) v.Client' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"Client" l) Client' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client' := Client' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"Client" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Client' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -174,11 +174,11 @@ noncomputable instance change_access_load_Node (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance change_access_store_Node (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (Node' : w64) :
+noncomputable instance change_access_store_Node (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"Node" l) v.Node' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"Node" l) Node' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Node' := Node' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"Node" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Node' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -190,11 +190,11 @@ noncomputable instance change_access_load_After (l : Loc) (v : github_com.imdea_
  by
   solve_pointsto_access_struct
 
-noncomputable instance change_access_store_After (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (After' : w64) :
+noncomputable instance change_access_store_After (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"After" l) v.After' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"After" l) After' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with After' := After' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.change go!"After" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with After' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.change) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -231,11 +231,11 @@ noncomputable instance msg_access_load_conf (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance msg_access_store_conf (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (conf' : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) :
+noncomputable instance msg_access_store_conf (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (y : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.msg go!"conf" l) v.conf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.msg go!"conf" l) conf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := conf' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.msg go!"conf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -247,11 +247,11 @@ noncomputable instance msg_access_load_cs (l : Loc) (v : github_com.imdea_softwa
  by
   solve_pointsto_access_struct
 
-noncomputable instance msg_access_store_cs (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (cs' : GoSlice) :
+noncomputable instance msg_access_store_cs (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.msg go!"cs" l) v.cs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.msg go!"cs" l) cs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cs' := cs' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.msg go!"cs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cs' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.msg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -293,11 +293,11 @@ noncomputable instance Sys_access_load_addrs (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_addrs (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (addrs' : GoSlice) :
+noncomputable instance Sys_access_store_addrs (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"addrs" l) v.addrs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"addrs" l) addrs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addrs' := addrs' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"addrs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with addrs' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -309,11 +309,11 @@ noncomputable instance Sys_access_load_conf (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_conf (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (conf' : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) :
+noncomputable instance Sys_access_store_conf (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (y : github_com.imdea_software.swiftpaxos.examples.swiftnet.Conf) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"conf" l) v.conf' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"conf" l) conf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := conf' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"conf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -325,11 +325,11 @@ noncomputable instance Sys_access_load_b (l : Loc) (v : github_com.imdea_softwar
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_b (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (b' : Loc) :
+noncomputable instance Sys_access_store_b (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"b" l) b' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := b' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -341,11 +341,11 @@ noncomputable instance Sys_access_load_mu (l : Loc) (v : github_com.imdea_softwa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (mu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Sys_access_store_mu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -357,11 +357,11 @@ noncomputable instance Sys_access_load_done (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_done (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (done' : w64) :
+noncomputable instance Sys_access_store_done (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"done" l) v.done' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"done" l) done' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := done' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"done" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with done' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -373,11 +373,11 @@ noncomputable instance Sys_access_load_opMu (l : Loc) (v : github_com.imdea_soft
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_opMu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (opMu' : _root_.Perennial.sync.Mutex) :
+noncomputable instance Sys_access_store_opMu (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (y : _root_.Perennial.sync.Mutex) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"opMu" l) v.opMu' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"opMu" l) opMu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opMu' := opMu' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"opMu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opMu' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -389,11 +389,11 @@ noncomputable instance Sys_access_load_ops (l : Loc) (v : github_com.imdea_softw
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_ops (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (ops' : w64) :
+noncomputable instance Sys_access_store_ops (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"ops" l) v.ops' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"ops" l) ops' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ops' := ops' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys go!"ops" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ops' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -431,11 +431,11 @@ noncomputable instance In_access_load_Put (l : Loc) (v : github_com.imdea_softwa
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_Put (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (Put' : Bool) :
+noncomputable instance In_access_store_Put (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"Put" l) v.Put' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"Put" l) Put' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := Put' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"Put" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -447,11 +447,11 @@ noncomputable instance In_access_load_K (l : Loc) (v : github_com.imdea_software
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_K (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (K' : w64) :
+noncomputable instance In_access_store_K (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -463,11 +463,11 @@ noncomputable instance In_access_load_V (l : Loc) (v : github_com.imdea_software
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_V (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (V' : GoString) :
+noncomputable instance In_access_store_V (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.In go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -504,11 +504,11 @@ noncomputable instance Out_access_load_Unknown (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Unknown (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (Unknown' : Bool) :
+noncomputable instance Out_access_store_Unknown (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Out go!"Unknown" l) Unknown' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := Unknown' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Out go!"Unknown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -520,11 +520,11 @@ noncomputable instance Out_access_load_V (l : Loc) (v : github_com.imdea_softwar
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_V (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (V' : GoString) :
+noncomputable instance Out_access_store_V (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Out go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Out go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.Out go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -561,11 +561,11 @@ noncomputable instance State_access_load_Cur (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Cur (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (Cur' : GoSlice) :
+noncomputable instance State_access_store_Cur (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.State go!"Cur" l) v.Cur' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.State go!"Cur" l) Cur' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cur' := Cur' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.State go!"Cur" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cur' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -577,11 +577,11 @@ noncomputable instance State_access_load_Pend (l : Loc) (v : github_com.imdea_so
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Pend (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (Pend' : GoSlice) :
+noncomputable instance State_access_store_Pend (l : Loc) (v : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.State go!"Pend" l) v.Pend' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.State go!"Pend" l) Pend' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pend' := Pend' } : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.examples.swiftnet.State go!"Pend" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pend' := y } : github_com.imdea_software.swiftpaxos.examples.swiftnet.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

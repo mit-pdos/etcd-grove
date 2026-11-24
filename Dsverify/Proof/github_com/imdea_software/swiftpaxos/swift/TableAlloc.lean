@@ -36,8 +36,8 @@ variable [hG : HeapGS HasLC.hasLC netDistGF] [sem : go.Semantics] [SwiftNetPkgSt
 variable [swift.Assumptions]
 
 /-- An entry of `tableIs`: its `entryOk` from its `newOk` and its bag. -/
-theorem entryOk_of (γ : sp.Names) (γc γm : GName) (M : GMap w8 rpc.Pair') (c : w8)
-    (ty : go.GoType) (ch : GoChan) (p : rpc.Pair') (γch : ChanNames) (Ctx : IProp netDistGF)
+theorem entryOk_of (γ : sp.Names) (γc γm : GName) (M : GMap w8 rpc.Pair'') (c : w8)
+    (ty : go.GoType) (ch : GoChan) (p : rpc.Pair'') (γch : ChanNames) (Ctx : IProp netDistGF)
     (hM : swift.entryIs M c ty ch) (hp : M !! c = some p)
     (hnew : ∀ o : Loc, Ctx ⊢ sp.newOk c (swift.msgRep c) (interface.mkOk (go.GoType.PointerType ty) #o)) :
     Ctx ∗ isChanBag γch ch (sp.chanMsgP γ γc γm c (swift.msgRep c)) ⊢ sp.entryOk γ γc γm c p := by
@@ -51,7 +51,7 @@ theorem entryOk_of (γ : sp.Names) (γc γm : GName) (M : GMap w8 rpc.Pair') (c 
   iapply hnew o $$ Hctx
 
 theorem tableOk_alloc_of (Ctx : IProp netDistGF) [Persistent Ctx] (γ : sp.Names) (γc γm : GName)
-    (v : swift.CommunicationSupply) (M : GMap w8 rpc.Pair')
+    (v : swift.CommunicationSupply) (M : GMap w8 rpc.Pair'')
     (h9 : ∀ o : Loc, Ctx ⊢ sp.newOk (W8 9) (swift.msgRep (W8 9))
       (interface.mkOk (go.GoType.PointerType swift.MFastAck.ty) #o))
     (h10 : ∀ o : Loc, Ctx ⊢ sp.newOk (W8 10) (swift.msgRep (W8 10))

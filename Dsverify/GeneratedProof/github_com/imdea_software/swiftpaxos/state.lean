@@ -54,11 +54,11 @@ noncomputable instance Command_access_load_Op (l : Loc) (v : github_com.imdea_so
  by
   solve_pointsto_access_struct
 
-noncomputable instance Command_access_store_Op (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.Command) (Op' : github_com.imdea_software.swiftpaxos.state.Operation) :
+noncomputable instance Command_access_store_Op (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.Command) (y : github_com.imdea_software.swiftpaxos.state.Operation) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"Op" l) v.Op' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"Op" l) Op' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := Op' } : github_com.imdea_software.swiftpaxos.state.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"Op" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Op' := y } : github_com.imdea_software.swiftpaxos.state.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -70,11 +70,11 @@ noncomputable instance Command_access_load_K (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Command_access_store_K (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.Command) (K' : github_com.imdea_software.swiftpaxos.state.Key) :
+noncomputable instance Command_access_store_K (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.Command) (y : github_com.imdea_software.swiftpaxos.state.Key) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : github_com.imdea_software.swiftpaxos.state.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : github_com.imdea_software.swiftpaxos.state.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -86,11 +86,11 @@ noncomputable instance Command_access_load_V (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance Command_access_store_V (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.Command) (V' : github_com.imdea_software.swiftpaxos.state.Value) :
+noncomputable instance Command_access_store_V (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.Command) (y : github_com.imdea_software.swiftpaxos.state.Value) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : github_com.imdea_software.swiftpaxos.state.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.Command go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : github_com.imdea_software.swiftpaxos.state.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -127,11 +127,11 @@ noncomputable instance State_access_load_mutex (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_mutex (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.State) (mutex' : Loc) :
+noncomputable instance State_access_store_mutex (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.State) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.State go!"mutex" l) v.mutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.State go!"mutex" l) mutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mutex' := mutex' } : github_com.imdea_software.swiftpaxos.state.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.State go!"mutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mutex' := y } : github_com.imdea_software.swiftpaxos.state.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -143,11 +143,11 @@ noncomputable instance State_access_load_Store (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Store (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.State) (Store' : Loc) :
+noncomputable instance State_access_store_Store (l : Loc) (v : github_com.imdea_software.swiftpaxos.state.State) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.State go!"Store" l) v.Store' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.State go!"Store" l) Store' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := Store' } : github_com.imdea_software.swiftpaxos.state.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.state.State go!"Store" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Store' := y } : github_com.imdea_software.swiftpaxos.state.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

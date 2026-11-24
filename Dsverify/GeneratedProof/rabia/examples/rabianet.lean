@@ -62,11 +62,11 @@ noncomputable instance Conf_access_load_N (l : Loc) (v : rabia.examples.rabianet
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_N (l : Loc) (v : rabia.examples.rabianet.Conf) (N' : w64) :
+noncomputable instance Conf_access_store_N (l : Loc) (v : rabia.examples.rabianet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"N" l) v.N' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"N" l) N' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := N' } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"N" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with N' := y } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -78,11 +78,11 @@ noncomputable instance Conf_access_load_F (l : Loc) (v : rabia.examples.rabianet
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_F (l : Loc) (v : rabia.examples.rabianet.Conf) (F' : w64) :
+noncomputable instance Conf_access_store_F (l : Loc) (v : rabia.examples.rabianet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"F" l) v.F' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"F" l) F' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with F' := F' } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"F" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with F' := y } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -94,11 +94,11 @@ noncomputable instance Conf_access_load_Batch (l : Loc) (v : rabia.examples.rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_Batch (l : Loc) (v : rabia.examples.rabianet.Conf) (Batch' : w64) :
+noncomputable instance Conf_access_store_Batch (l : Loc) (v : rabia.examples.rabianet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"Batch" l) v.Batch' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"Batch" l) Batch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Batch' := Batch' } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"Batch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Batch' := y } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -110,11 +110,11 @@ noncomputable instance Conf_access_load_BatchMs (l : Loc) (v : rabia.examples.ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_BatchMs (l : Loc) (v : rabia.examples.rabianet.Conf) (BatchMs' : w64) :
+noncomputable instance Conf_access_store_BatchMs (l : Loc) (v : rabia.examples.rabianet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"BatchMs" l) v.BatchMs' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"BatchMs" l) BatchMs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BatchMs' := BatchMs' } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"BatchMs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with BatchMs' := y } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -126,11 +126,11 @@ noncomputable instance Conf_access_load_Blocks (l : Loc) (v : rabia.examples.rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Conf_access_store_Blocks (l : Loc) (v : rabia.examples.rabianet.Conf) (Blocks' : w64) :
+noncomputable instance Conf_access_store_Blocks (l : Loc) (v : rabia.examples.rabianet.Conf) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"Blocks" l) v.Blocks' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"Blocks" l) Blocks' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Blocks' := Blocks' } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Conf go!"Blocks" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Blocks' := y } : rabia.examples.rabianet.Conf) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -168,11 +168,11 @@ noncomputable instance In_access_load_Put (l : Loc) (v : rabia.examples.rabianet
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_Put (l : Loc) (v : rabia.examples.rabianet.In) (Put' : Bool) :
+noncomputable instance In_access_store_Put (l : Loc) (v : rabia.examples.rabianet.In) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"Put" l) v.Put' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"Put" l) Put' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := Put' } : rabia.examples.rabianet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"Put" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := y } : rabia.examples.rabianet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -184,11 +184,11 @@ noncomputable instance In_access_load_K (l : Loc) (v : rabia.examples.rabianet.I
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_K (l : Loc) (v : rabia.examples.rabianet.In) (K' : GoString) :
+noncomputable instance In_access_store_K (l : Loc) (v : rabia.examples.rabianet.In) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : rabia.examples.rabianet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : rabia.examples.rabianet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -200,11 +200,11 @@ noncomputable instance In_access_load_V (l : Loc) (v : rabia.examples.rabianet.I
  by
   solve_pointsto_access_struct
 
-noncomputable instance In_access_store_V (l : Loc) (v : rabia.examples.rabianet.In) (V' : GoString) :
+noncomputable instance In_access_store_V (l : Loc) (v : rabia.examples.rabianet.In) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : rabia.examples.rabianet.In) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.In go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : rabia.examples.rabianet.In) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -243,11 +243,11 @@ noncomputable instance Out_access_load_Unknown (l : Loc) (v : rabia.examples.rab
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Unknown (l : Loc) (v : rabia.examples.rabianet.Out) (Unknown' : Bool) :
+noncomputable instance Out_access_store_Unknown (l : Loc) (v : rabia.examples.rabianet.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Unknown" l) v.Unknown' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Unknown" l) Unknown' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := Unknown' } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Unknown" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Unknown' := y } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -259,11 +259,11 @@ noncomputable instance Out_access_load_Put (l : Loc) (v : rabia.examples.rabiane
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Put (l : Loc) (v : rabia.examples.rabianet.Out) (Put' : Bool) :
+noncomputable instance Out_access_store_Put (l : Loc) (v : rabia.examples.rabianet.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Put" l) v.Put' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Put" l) Put' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := Put' } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Put" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Put' := y } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -275,11 +275,11 @@ noncomputable instance Out_access_load_Found (l : Loc) (v : rabia.examples.rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_Found (l : Loc) (v : rabia.examples.rabianet.Out) (Found' : Bool) :
+noncomputable instance Out_access_store_Found (l : Loc) (v : rabia.examples.rabianet.Out) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Found" l) v.Found' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Found" l) Found' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Found' := Found' } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"Found" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Found' := y } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -291,11 +291,11 @@ noncomputable instance Out_access_load_V (l : Loc) (v : rabia.examples.rabianet.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Out_access_store_V (l : Loc) (v : rabia.examples.rabianet.Out) (V' : GoString) :
+noncomputable instance Out_access_store_V (l : Loc) (v : rabia.examples.rabianet.Out) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"V" l) v.V' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"V" l) V' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := V' } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Out go!"V" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with V' := y } : rabia.examples.rabianet.Out) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -334,11 +334,11 @@ noncomputable instance Entry_access_load_K (l : Loc) (v : rabia.examples.rabiane
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_K (l : Loc) (v : rabia.examples.rabianet.Entry) (K' : GoString) :
+noncomputable instance Entry_access_store_K (l : Loc) (v : rabia.examples.rabianet.Entry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"K" l) v.K' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"K" l) K' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := K' } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"K" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with K' := y } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -350,11 +350,11 @@ noncomputable instance Entry_access_load_Cur (l : Loc) (v : rabia.examples.rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_Cur (l : Loc) (v : rabia.examples.rabianet.Entry) (Cur' : GoString) :
+noncomputable instance Entry_access_store_Cur (l : Loc) (v : rabia.examples.rabianet.Entry) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Cur" l) v.Cur' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Cur" l) Cur' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cur' := Cur' } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Cur" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cur' := y } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -366,11 +366,11 @@ noncomputable instance Entry_access_load_Old (l : Loc) (v : rabia.examples.rabia
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_Old (l : Loc) (v : rabia.examples.rabianet.Entry) (Old' : GoSlice) :
+noncomputable instance Entry_access_store_Old (l : Loc) (v : rabia.examples.rabianet.Entry) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) v.Old' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) Old' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Old' := Old' } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Old" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Old' := y } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -382,11 +382,11 @@ noncomputable instance Entry_access_load_Pend (l : Loc) (v : rabia.examples.rabi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Entry_access_store_Pend (l : Loc) (v : rabia.examples.rabianet.Entry) (Pend' : GoSlice) :
+noncomputable instance Entry_access_store_Pend (l : Loc) (v : rabia.examples.rabianet.Entry) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Pend" l) v.Pend' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Pend" l) Pend' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pend' := Pend' } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Entry go!"Pend" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Pend' := y } : rabia.examples.rabianet.Entry) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -422,11 +422,11 @@ noncomputable instance State_access_load_Es (l : Loc) (v : rabia.examples.rabian
  by
   solve_pointsto_access_struct
 
-noncomputable instance State_access_store_Es (l : Loc) (v : rabia.examples.rabianet.State) (Es' : GoSlice) :
+noncomputable instance State_access_store_Es (l : Loc) (v : rabia.examples.rabianet.State) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.State go!"Es" l) v.Es' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.State go!"Es" l) Es' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Es' := Es' } : rabia.examples.rabianet.State) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.State go!"Es" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Es' := y } : rabia.examples.rabianet.State) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -465,11 +465,11 @@ noncomputable instance Sys_access_load_conf (l : Loc) (v : rabia.examples.rabian
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_conf (l : Loc) (v : rabia.examples.rabianet.Sys) (conf' : rabia.examples.rabianet.Conf) :
+noncomputable instance Sys_access_store_conf (l : Loc) (v : rabia.examples.rabianet.Sys) (y : rabia.examples.rabianet.Conf) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"conf" l) v.conf' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"conf" l) conf' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := conf' } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"conf" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with conf' := y } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -481,11 +481,11 @@ noncomputable instance Sys_access_load_t (l : Loc) (v : rabia.examples.rabianet.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_t (l : Loc) (v : rabia.examples.rabianet.Sys) (t' : Loc) :
+noncomputable instance Sys_access_store_t (l : Loc) (v : rabia.examples.rabianet.Sys) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"t" l) v.t' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"t" l) t' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := t' } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"t" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := y } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -497,11 +497,11 @@ noncomputable instance Sys_access_load_mu (l : Loc) (v : rabia.examples.rabianet
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_mu (l : Loc) (v : rabia.examples.rabianet.Sys) (mu' : Loc) :
+noncomputable instance Sys_access_store_mu (l : Loc) (v : rabia.examples.rabianet.Sys) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) v.mu' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) mu' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := mu' } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"mu" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mu' := y } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -513,11 +513,11 @@ noncomputable instance Sys_access_load_next (l : Loc) (v : rabia.examples.rabian
  by
   solve_pointsto_access_struct
 
-noncomputable instance Sys_access_store_next (l : Loc) (v : rabia.examples.rabianet.Sys) (next' : w32) :
+noncomputable instance Sys_access_store_next (l : Loc) (v : rabia.examples.rabianet.Sys) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"next" l) v.next' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"next" l) next' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := next' } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.examples.rabianet.Sys go!"next" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with next' := y } : rabia.examples.rabianet.Sys) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

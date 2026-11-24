@@ -102,7 +102,7 @@ theorem swift.initCs.wp_proofR : swift.initCs.specR (hG := hG) := by
       try (simp (config := { decide := true }) only [GMap.lookup_insert_eq_iff, ↓reduceIte] <;>
         exact ⟨_, rfl⟩)
     intro c hc
-    have key : ∀ (k : w8) (p : rpc.Pair') (M : GMap w8 rpc.Pair') (c : w8),
+    have key : ∀ (k : w8) (p : rpc.Pair'') (M : GMap w8 rpc.Pair'') (c : w8),
         ((<[k := p]> M) !! c).isSome → c = k ∨ (M !! c).isSome := by
       intro k p M c h
       by_cases hk : c = k

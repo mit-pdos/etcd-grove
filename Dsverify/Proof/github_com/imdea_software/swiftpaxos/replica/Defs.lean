@@ -179,20 +179,20 @@ def chanMsgP (γ : Names) (γc γm : GName) (c : w8) (Rep : GoInterface → Msg 
   iprop(∃ m : Msg, Rep o m ∗ msgOk γ γc γm m ∗ ⌜m.code = c⌝)
 
 /-- The table's entry of type `c` (persistent). -/
-def entryOk (γ : Names) (γc γm : GName) (c : w8) (p : rpc.Pair') : IProp netDistGF :=
+def entryOk (γ : Names) (γc γm : GName) (c : w8) (p : rpc.Pair'') : IProp netDistGF :=
   iprop(∃ (Rep : GoInterface → Msg → IProp netDistGF) (γch : ChanNames),
     newOk c Rep p.Obj' ∗ isChanBag γch p.Chan' (chanMsgP γ γc γm c Rep))
 
-instance entryOk_persistent (γ : Names) (γc γm : GName) (c : w8) (p : rpc.Pair') :
+instance entryOk_persistent (γ : Names) (γc γm : GName) (c : w8) (p : rpc.Pair'') :
     Persistent (entryOk γ γc γm c p) := by
   unfold entryOk; infer_instance
 
 /-- The table's entries (see the file header). -/
-def tableOk (γ : Names) (γc γm : GName) (ents : GMap w8 rpc.Pair') : IProp netDistGF :=
+def tableOk (γ : Names) (γc γm : GName) (ents : GMap w8 rpc.Pair'') : IProp netDistGF :=
   iprop(⌜∀ m : Msg, m.isPeer → m.code ≠ W8 6 → m.code ≠ W8 7 → (ents !! m.code).isSome⌝ ∗
-    □ ∀ (c : w8) (p : rpc.Pair'), ⌜ents !! c = some p⌝ -∗ entryOk γ γc γm c p)
+    □ ∀ (c : w8) (p : rpc.Pair''), ⌜ents !! c = some p⌝ -∗ entryOk γ γc γm c p)
 
-instance tableOk_persistent (γ : Names) (γc γm : GName) (ents : GMap w8 rpc.Pair') :
+instance tableOk_persistent (γ : Names) (γc γm : GName) (ents : GMap w8 rpc.Pair'') :
     Persistent (tableOk γ γc γm ents) := by
   unfold tableOk; infer_instance
 
@@ -223,7 +223,7 @@ one `me`, the logger `lg`, the configuration `cfgp`, the table `tbl`, the channe
 writers `pws` (fixed once the connections are made), the slices `Alive`, `Latencies`. -/
 def replica.isReplica (r : Loc) (γ : sp.Names) (γc γm γw : GName) (N : Nat) (me : w32)
     : IProp netDistGF :=
-  iprop(∃ (lg cfgp tbl pc : Loc) (fr : Bool) (nid : w8) (ents : GMap w8 rpc.Pair')
+  iprop(∃ (lg cfgp tbl pc : Loc) (fr : Bool) (nid : w8) (ents : GMap w8 rpc.Pair'')
       (γpc : ChanNames) (pwsl alsl latsl : GoSlice) (pws : List Loc) (cwm : GoMap),
     replica.fld r go!"Logger" ↦□ lg ∗ dlog.quiet lg ∗
     replica.fld r go!"N" ↦□ (W64 N) ∗ replica.fld r go!"Id" ↦□ me ∗

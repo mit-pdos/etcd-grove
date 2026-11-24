@@ -59,11 +59,11 @@ noncomputable instance ClientBatch_access_load_state (l : Loc) (v : raxos.proto.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClientBatch_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -75,11 +75,11 @@ noncomputable instance ClientBatch_access_load_sizeCache (l : Loc) (v : raxos.pr
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_access_store_sizeCache (l : Loc) (v : raxos.proto.client.ClientBatch) (sizeCache' : w32) :
+noncomputable instance ClientBatch_access_store_sizeCache (l : Loc) (v : raxos.proto.client.ClientBatch) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -91,11 +91,11 @@ noncomputable instance ClientBatch_access_load_unknownFields (l : Loc) (v : raxo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_access_store_unknownFields (l : Loc) (v : raxos.proto.client.ClientBatch) (unknownFields' : GoSlice) :
+noncomputable instance ClientBatch_access_store_unknownFields (l : Loc) (v : raxos.proto.client.ClientBatch) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -107,11 +107,11 @@ noncomputable instance ClientBatch_access_load_Sender (l : Loc) (v : raxos.proto
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_access_store_Sender (l : Loc) (v : raxos.proto.client.ClientBatch) (Sender' : w64) :
+noncomputable instance ClientBatch_access_store_Sender (l : Loc) (v : raxos.proto.client.ClientBatch) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Sender" l) v.Sender' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Sender" l) Sender' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sender' := Sender' } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Sender" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sender' := y } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -123,11 +123,11 @@ noncomputable instance ClientBatch_access_load_Messages (l : Loc) (v : raxos.pro
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_access_store_Messages (l : Loc) (v : raxos.proto.client.ClientBatch) (Messages' : GoSlice) :
+noncomputable instance ClientBatch_access_store_Messages (l : Loc) (v : raxos.proto.client.ClientBatch) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Messages" l) v.Messages' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Messages" l) Messages' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Messages' := Messages' } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Messages" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Messages' := y } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -139,11 +139,11 @@ noncomputable instance ClientBatch_access_load_Id (l : Loc) (v : raxos.proto.cli
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_access_store_Id (l : Loc) (v : raxos.proto.client.ClientBatch) (Id' : GoString) :
+noncomputable instance ClientBatch_access_store_Id (l : Loc) (v : raxos.proto.client.ClientBatch) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Id" l) v.Id' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Id" l) Id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := Id' } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch go!"Id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Id' := y } : raxos.proto.client.ClientBatch) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -184,11 +184,11 @@ noncomputable instance ClientStatus_access_load_state (l : Loc) (v : raxos.proto
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientStatus_access_store_state (l : Loc) (v : raxos.proto.client.ClientStatus) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClientStatus_access_store_state (l : Loc) (v : raxos.proto.client.ClientStatus) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -200,11 +200,11 @@ noncomputable instance ClientStatus_access_load_sizeCache (l : Loc) (v : raxos.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientStatus_access_store_sizeCache (l : Loc) (v : raxos.proto.client.ClientStatus) (sizeCache' : w32) :
+noncomputable instance ClientStatus_access_store_sizeCache (l : Loc) (v : raxos.proto.client.ClientStatus) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -216,11 +216,11 @@ noncomputable instance ClientStatus_access_load_unknownFields (l : Loc) (v : rax
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientStatus_access_store_unknownFields (l : Loc) (v : raxos.proto.client.ClientStatus) (unknownFields' : GoSlice) :
+noncomputable instance ClientStatus_access_store_unknownFields (l : Loc) (v : raxos.proto.client.ClientStatus) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -232,11 +232,11 @@ noncomputable instance ClientStatus_access_load_Sender (l : Loc) (v : raxos.prot
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientStatus_access_store_Sender (l : Loc) (v : raxos.proto.client.ClientStatus) (Sender' : w64) :
+noncomputable instance ClientStatus_access_store_Sender (l : Loc) (v : raxos.proto.client.ClientStatus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Sender" l) v.Sender' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Sender" l) Sender' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sender' := Sender' } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Sender" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Sender' := y } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -248,11 +248,11 @@ noncomputable instance ClientStatus_access_load_Operation (l : Loc) (v : raxos.p
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientStatus_access_store_Operation (l : Loc) (v : raxos.proto.client.ClientStatus) (Operation' : w64) :
+noncomputable instance ClientStatus_access_store_Operation (l : Loc) (v : raxos.proto.client.ClientStatus) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Operation" l) v.Operation' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Operation" l) Operation' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Operation' := Operation' } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Operation" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Operation' := y } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -264,11 +264,11 @@ noncomputable instance ClientStatus_access_load_Message (l : Loc) (v : raxos.pro
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientStatus_access_store_Message (l : Loc) (v : raxos.proto.client.ClientStatus) (Message' : GoString) :
+noncomputable instance ClientStatus_access_store_Message (l : Loc) (v : raxos.proto.client.ClientStatus) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Message" l) Message' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := Message' } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientStatus go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : raxos.proto.client.ClientStatus) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -307,11 +307,11 @@ noncomputable instance ClientBatch_SingleMessage_access_load_state (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
+noncomputable instance ClientBatch_SingleMessage_access_store_state (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (y : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"state" l) v.state' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"state" l) state' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := state' } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"state" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with state' := y } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -323,11 +323,11 @@ noncomputable instance ClientBatch_SingleMessage_access_load_sizeCache (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_SingleMessage_access_store_sizeCache (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (sizeCache' : w32) :
+noncomputable instance ClientBatch_SingleMessage_access_store_sizeCache (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"sizeCache" l) v.sizeCache' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"sizeCache" l) sizeCache' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := sizeCache' } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"sizeCache" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with sizeCache' := y } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -339,11 +339,11 @@ noncomputable instance ClientBatch_SingleMessage_access_load_unknownFields (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_SingleMessage_access_store_unknownFields (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (unknownFields' : GoSlice) :
+noncomputable instance ClientBatch_SingleMessage_access_store_unknownFields (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"unknownFields" l) v.unknownFields' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"unknownFields" l) unknownFields' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := unknownFields' } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"unknownFields" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with unknownFields' := y } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -355,11 +355,11 @@ noncomputable instance ClientBatch_SingleMessage_access_load_Message (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatch_SingleMessage_access_store_Message (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (Message' : GoString) :
+noncomputable instance ClientBatch_SingleMessage_access_store_Message (l : Loc) (v : raxos.proto.client.ClientBatch_SingleMessage) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"Message" l) v.Message' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"Message" l) Message' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := Message' } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.proto.client.ClientBatch_SingleMessage go!"Message" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Message' := y } : raxos.proto.client.ClientBatch_SingleMessage) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

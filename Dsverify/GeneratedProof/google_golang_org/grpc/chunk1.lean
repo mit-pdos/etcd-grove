@@ -141,11 +141,11 @@ noncomputable instance codecV0Bridge_access_load_codec (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance codecV0Bridge_access_store_codec (l : Loc) (v : google_golang_org.grpc.codecV0Bridge) (codec' : GoInterface) :
+noncomputable instance codecV0Bridge_access_store_codec (l : Loc) (v : google_golang_org.grpc.codecV0Bridge) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.codecV0Bridge go!"codec" l) v.codec' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.codecV0Bridge go!"codec" l) codec' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with codec' := codec' } : google_golang_org.grpc.codecV0Bridge) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.codecV0Bridge go!"codec" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with codec' := y } : google_golang_org.grpc.codecV0Bridge) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -265,11 +265,11 @@ noncomputable instance funcDialOption_access_load_f (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance funcDialOption_access_store_f (l : Loc) (v : google_golang_org.grpc.funcDialOption) (f' : GoFunc) :
+noncomputable instance funcDialOption_access_store_f (l : Loc) (v : google_golang_org.grpc.funcDialOption) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.funcDialOption go!"f" l) v.f' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.funcDialOption go!"f" l) f' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := f' } : google_golang_org.grpc.funcDialOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.funcDialOption go!"f" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with f' := y } : google_golang_org.grpc.funcDialOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -305,11 +305,11 @@ noncomputable instance joinDialOption_access_load_opts (l : Loc) (v : google_gol
  by
   solve_pointsto_access_struct
 
-noncomputable instance joinDialOption_access_store_opts (l : Loc) (v : google_golang_org.grpc.joinDialOption) (opts' : GoSlice) :
+noncomputable instance joinDialOption_access_store_opts (l : Loc) (v : google_golang_org.grpc.joinDialOption) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.joinDialOption go!"opts" l) v.opts' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.joinDialOption go!"opts" l) opts' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := opts' } : google_golang_org.grpc.joinDialOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.joinDialOption go!"opts" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with opts' := y } : google_golang_org.grpc.joinDialOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -345,11 +345,11 @@ noncomputable instance MaxHeaderListSizeDialOption_access_load_MaxHeaderListSize
  by
   solve_pointsto_access_struct
 
-noncomputable instance MaxHeaderListSizeDialOption_access_store_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeDialOption) (MaxHeaderListSize' : w32) :
+noncomputable instance MaxHeaderListSizeDialOption_access_store_MaxHeaderListSize (l : Loc) (v : google_golang_org.grpc.MaxHeaderListSizeDialOption) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeDialOption go!"MaxHeaderListSize" l) v.MaxHeaderListSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeDialOption go!"MaxHeaderListSize" l) MaxHeaderListSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxHeaderListSize' := MaxHeaderListSize' } : google_golang_org.grpc.MaxHeaderListSizeDialOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.MaxHeaderListSizeDialOption go!"MaxHeaderListSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxHeaderListSize' := y } : google_golang_org.grpc.MaxHeaderListSizeDialOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -386,11 +386,11 @@ noncomputable instance UnaryServerInfo_access_load_Server (l : Loc) (v : google_
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnaryServerInfo_access_store_Server (l : Loc) (v : google_golang_org.grpc.UnaryServerInfo) (Server' : GoInterface) :
+noncomputable instance UnaryServerInfo_access_store_Server (l : Loc) (v : google_golang_org.grpc.UnaryServerInfo) (y : GoInterface) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.UnaryServerInfo go!"Server" l) v.Server' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.UnaryServerInfo go!"Server" l) Server' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Server' := Server' } : google_golang_org.grpc.UnaryServerInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.UnaryServerInfo go!"Server" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Server' := y } : google_golang_org.grpc.UnaryServerInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -402,11 +402,11 @@ noncomputable instance UnaryServerInfo_access_load_FullMethod (l : Loc) (v : goo
  by
   solve_pointsto_access_struct
 
-noncomputable instance UnaryServerInfo_access_store_FullMethod (l : Loc) (v : google_golang_org.grpc.UnaryServerInfo) (FullMethod' : GoString) :
+noncomputable instance UnaryServerInfo_access_store_FullMethod (l : Loc) (v : google_golang_org.grpc.UnaryServerInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.UnaryServerInfo go!"FullMethod" l) v.FullMethod' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.UnaryServerInfo go!"FullMethod" l) FullMethod' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FullMethod' := FullMethod' } : google_golang_org.grpc.UnaryServerInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.UnaryServerInfo go!"FullMethod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FullMethod' := y } : google_golang_org.grpc.UnaryServerInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -444,11 +444,11 @@ noncomputable instance StreamServerInfo_access_load_FullMethod (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance StreamServerInfo_access_store_FullMethod (l : Loc) (v : google_golang_org.grpc.StreamServerInfo) (FullMethod' : GoString) :
+noncomputable instance StreamServerInfo_access_store_FullMethod (l : Loc) (v : google_golang_org.grpc.StreamServerInfo) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"FullMethod" l) v.FullMethod' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"FullMethod" l) FullMethod' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FullMethod' := FullMethod' } : google_golang_org.grpc.StreamServerInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"FullMethod" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FullMethod' := y } : google_golang_org.grpc.StreamServerInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -460,11 +460,11 @@ noncomputable instance StreamServerInfo_access_load_IsClientStream (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance StreamServerInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org.grpc.StreamServerInfo) (IsClientStream' : Bool) :
+noncomputable instance StreamServerInfo_access_store_IsClientStream (l : Loc) (v : google_golang_org.grpc.StreamServerInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"IsClientStream" l) v.IsClientStream' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"IsClientStream" l) IsClientStream' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsClientStream' := IsClientStream' } : google_golang_org.grpc.StreamServerInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"IsClientStream" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsClientStream' := y } : google_golang_org.grpc.StreamServerInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -476,11 +476,11 @@ noncomputable instance StreamServerInfo_access_load_IsServerStream (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance StreamServerInfo_access_store_IsServerStream (l : Loc) (v : google_golang_org.grpc.StreamServerInfo) (IsServerStream' : Bool) :
+noncomputable instance StreamServerInfo_access_store_IsServerStream (l : Loc) (v : google_golang_org.grpc.StreamServerInfo) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"IsServerStream" l) v.IsServerStream' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"IsServerStream" l) IsServerStream' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsServerStream' := IsServerStream' } : google_golang_org.grpc.StreamServerInfo) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.StreamServerInfo go!"IsServerStream" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsServerStream' := y } : google_golang_org.grpc.StreamServerInfo) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -592,11 +592,11 @@ noncomputable instance writeOptions_access_load_Last (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
-noncomputable instance writeOptions_access_store_Last (l : Loc) (v : google_golang_org.grpc.writeOptions) (Last' : Bool) :
+noncomputable instance writeOptions_access_store_Last (l : Loc) (v : google_golang_org.grpc.writeOptions) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.writeOptions go!"Last" l) v.Last' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.writeOptions go!"Last" l) Last' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Last' := Last' } : google_golang_org.grpc.writeOptions) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.writeOptions go!"Last" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Last' := y } : google_golang_org.grpc.writeOptions) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -670,11 +670,11 @@ noncomputable instance connectionError_access_load_Desc (l : Loc) (v : google_go
  by
   solve_pointsto_access_struct
 
-noncomputable instance connectionError_access_store_Desc (l : Loc) (v : google_golang_org.grpc.connectionError) (Desc' : GoString) :
+noncomputable instance connectionError_access_store_Desc (l : Loc) (v : google_golang_org.grpc.connectionError) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.connectionError go!"Desc" l) v.Desc' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.connectionError go!"Desc" l) Desc' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Desc' := Desc' } : google_golang_org.grpc.connectionError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.connectionError go!"Desc" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Desc' := y } : google_golang_org.grpc.connectionError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -711,11 +711,11 @@ noncomputable instance newStreamError_access_load_Err (l : Loc) (v : google_gola
  by
   solve_pointsto_access_struct
 
-noncomputable instance newStreamError_access_store_Err (l : Loc) (v : google_golang_org.grpc.newStreamError) (Err' : GoError) :
+noncomputable instance newStreamError_access_store_Err (l : Loc) (v : google_golang_org.grpc.newStreamError) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.newStreamError go!"Err" l) v.Err' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.newStreamError go!"Err" l) Err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := Err' } : google_golang_org.grpc.newStreamError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.newStreamError go!"Err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Err' := y } : google_golang_org.grpc.newStreamError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -727,11 +727,11 @@ noncomputable instance newStreamError_access_load_AllowTransparentRetry (l : Loc
  by
   solve_pointsto_access_struct
 
-noncomputable instance newStreamError_access_store_AllowTransparentRetry (l : Loc) (v : google_golang_org.grpc.newStreamError) (AllowTransparentRetry' : Bool) :
+noncomputable instance newStreamError_access_store_AllowTransparentRetry (l : Loc) (v : google_golang_org.grpc.newStreamError) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.newStreamError go!"AllowTransparentRetry" l) v.AllowTransparentRetry' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.newStreamError go!"AllowTransparentRetry" l) AllowTransparentRetry' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowTransparentRetry' := AllowTransparentRetry' } : google_golang_org.grpc.newStreamError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.newStreamError go!"AllowTransparentRetry" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with AllowTransparentRetry' := y } : google_golang_org.grpc.newStreamError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -844,11 +844,11 @@ noncomputable instance headerField_access_load_Name (l : Loc) (v : google_golang
  by
   solve_pointsto_access_struct
 
-noncomputable instance headerField_access_store_Name (l : Loc) (v : google_golang_org.grpc.headerField) (Name' : GoString) :
+noncomputable instance headerField_access_store_Name (l : Loc) (v : google_golang_org.grpc.headerField) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.headerField go!"Name" l) v.Name' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.headerField go!"Name" l) Name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := Name' } : google_golang_org.grpc.headerField) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.headerField go!"Name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Name' := y } : google_golang_org.grpc.headerField) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -860,11 +860,11 @@ noncomputable instance headerField_access_load_Value (l : Loc) (v : google_golan
  by
   solve_pointsto_access_struct
 
-noncomputable instance headerField_access_store_Value (l : Loc) (v : google_golang_org.grpc.headerField) (Value' : GoString) :
+noncomputable instance headerField_access_store_Value (l : Loc) (v : google_golang_org.grpc.headerField) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.headerField go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.headerField go!"Value" l) Value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : google_golang_org.grpc.headerField) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.headerField go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : google_golang_org.grpc.headerField) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -902,11 +902,11 @@ noncomputable instance recvMsg_access_load_hdr (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance recvMsg_access_store_hdr (l : Loc) (v : google_golang_org.grpc.recvMsg) (hdr' : (GoArray w8 5)) :
+noncomputable instance recvMsg_access_store_hdr (l : Loc) (v : google_golang_org.grpc.recvMsg) (y : (GoArray w8 5)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) v.hdr' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) hdr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := hdr' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"hdr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with hdr' := y } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -918,11 +918,11 @@ noncomputable instance recvMsg_access_load_data (l : Loc) (v : google_golang_org
  by
   solve_pointsto_access_struct
 
-noncomputable instance recvMsg_access_store_data (l : Loc) (v : google_golang_org.grpc.recvMsg) (data' : GoSlice) :
+noncomputable instance recvMsg_access_store_data (l : Loc) (v : google_golang_org.grpc.recvMsg) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) v.data' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) data' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := data' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"data" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with data' := y } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -934,11 +934,11 @@ noncomputable instance recvMsg_access_load_err (l : Loc) (v : google_golang_org.
  by
   solve_pointsto_access_struct
 
-noncomputable instance recvMsg_access_store_err (l : Loc) (v : google_golang_org.grpc.recvMsg) (err' : GoError) :
+noncomputable instance recvMsg_access_store_err (l : Loc) (v : google_golang_org.grpc.recvMsg) (y : GoError) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) v.err' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) err' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.recvMsg go!"err" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := y } : google_golang_org.grpc.recvMsg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1168,11 +1168,11 @@ noncomputable instance FailFastCallOption_access_load_FailFast (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance FailFastCallOption_access_store_FailFast (l : Loc) (v : google_golang_org.grpc.FailFastCallOption) (FailFast' : Bool) :
+noncomputable instance FailFastCallOption_access_store_FailFast (l : Loc) (v : google_golang_org.grpc.FailFastCallOption) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) v.FailFast' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) FailFast' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FailFast' := FailFast' } : google_golang_org.grpc.FailFastCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.FailFastCallOption go!"FailFast" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with FailFast' := y } : google_golang_org.grpc.FailFastCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1208,11 +1208,11 @@ noncomputable instance OnFinishCallOption_access_load_OnFinish (l : Loc) (v : go
  by
   solve_pointsto_access_struct
 
-noncomputable instance OnFinishCallOption_access_store_OnFinish (l : Loc) (v : google_golang_org.grpc.OnFinishCallOption) (OnFinish' : GoFunc) :
+noncomputable instance OnFinishCallOption_access_store_OnFinish (l : Loc) (v : google_golang_org.grpc.OnFinishCallOption) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) v.OnFinish' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) OnFinish' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnFinish' := OnFinish' } : google_golang_org.grpc.OnFinishCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.OnFinishCallOption go!"OnFinish" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with OnFinish' := y } : google_golang_org.grpc.OnFinishCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1248,11 +1248,11 @@ noncomputable instance MaxRecvMsgSizeCallOption_access_load_MaxRecvMsgSize (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance MaxRecvMsgSizeCallOption_access_store_MaxRecvMsgSize (l : Loc) (v : google_golang_org.grpc.MaxRecvMsgSizeCallOption) (MaxRecvMsgSize' : w64) :
+noncomputable instance MaxRecvMsgSizeCallOption_access_store_MaxRecvMsgSize (l : Loc) (v : google_golang_org.grpc.MaxRecvMsgSizeCallOption) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) v.MaxRecvMsgSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) MaxRecvMsgSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRecvMsgSize' := MaxRecvMsgSize' } : google_golang_org.grpc.MaxRecvMsgSizeCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.MaxRecvMsgSizeCallOption go!"MaxRecvMsgSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxRecvMsgSize' := y } : google_golang_org.grpc.MaxRecvMsgSizeCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1288,11 +1288,11 @@ noncomputable instance AuthorityOverrideCallOption_access_load_Authority (l : Lo
  by
   solve_pointsto_access_struct
 
-noncomputable instance AuthorityOverrideCallOption_access_store_Authority (l : Loc) (v : google_golang_org.grpc.AuthorityOverrideCallOption) (Authority' : GoString) :
+noncomputable instance AuthorityOverrideCallOption_access_store_Authority (l : Loc) (v : google_golang_org.grpc.AuthorityOverrideCallOption) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) v.Authority' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) Authority' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Authority' := Authority' } : google_golang_org.grpc.AuthorityOverrideCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.AuthorityOverrideCallOption go!"Authority" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Authority' := y } : google_golang_org.grpc.AuthorityOverrideCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1328,11 +1328,11 @@ noncomputable instance MaxSendMsgSizeCallOption_access_load_MaxSendMsgSize (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance MaxSendMsgSizeCallOption_access_store_MaxSendMsgSize (l : Loc) (v : google_golang_org.grpc.MaxSendMsgSizeCallOption) (MaxSendMsgSize' : w64) :
+noncomputable instance MaxSendMsgSizeCallOption_access_store_MaxSendMsgSize (l : Loc) (v : google_golang_org.grpc.MaxSendMsgSizeCallOption) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) v.MaxSendMsgSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) MaxSendMsgSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxSendMsgSize' := MaxSendMsgSize' } : google_golang_org.grpc.MaxSendMsgSizeCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.MaxSendMsgSizeCallOption go!"MaxSendMsgSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxSendMsgSize' := y } : google_golang_org.grpc.MaxSendMsgSizeCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1387,11 +1387,11 @@ noncomputable instance CompressorCallOption_access_load_CompressorType (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance CompressorCallOption_access_store_CompressorType (l : Loc) (v : google_golang_org.grpc.CompressorCallOption) (CompressorType' : GoString) :
+noncomputable instance CompressorCallOption_access_store_CompressorType (l : Loc) (v : google_golang_org.grpc.CompressorCallOption) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) v.CompressorType' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) CompressorType' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompressorType' := CompressorType' } : google_golang_org.grpc.CompressorCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.CompressorCallOption go!"CompressorType" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CompressorType' := y } : google_golang_org.grpc.CompressorCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1427,11 +1427,11 @@ noncomputable instance acceptCompressorsCallOption_access_load_names (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance acceptCompressorsCallOption_access_store_names (l : Loc) (v : google_golang_org.grpc.acceptCompressorsCallOption) (names' : GoSlice) :
+noncomputable instance acceptCompressorsCallOption_access_store_names (l : Loc) (v : google_golang_org.grpc.acceptCompressorsCallOption) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) v.names' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) names' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with names' := names' } : google_golang_org.grpc.acceptCompressorsCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.acceptCompressorsCallOption go!"names" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with names' := y } : google_golang_org.grpc.acceptCompressorsCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1467,11 +1467,11 @@ noncomputable instance ContentSubtypeCallOption_access_load_ContentSubtype (l : 
  by
   solve_pointsto_access_struct
 
-noncomputable instance ContentSubtypeCallOption_access_store_ContentSubtype (l : Loc) (v : google_golang_org.grpc.ContentSubtypeCallOption) (ContentSubtype' : GoString) :
+noncomputable instance ContentSubtypeCallOption_access_store_ContentSubtype (l : Loc) (v : google_golang_org.grpc.ContentSubtypeCallOption) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) v.ContentSubtype' (DFrac.own 1))
-      (typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) ContentSubtype' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ContentSubtype' := ContentSubtype' } : google_golang_org.grpc.ContentSubtypeCallOption) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef google_golang_org.grpc.ContentSubtypeCallOption go!"ContentSubtype" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ContentSubtype' := y } : google_golang_org.grpc.ContentSubtypeCallOption) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

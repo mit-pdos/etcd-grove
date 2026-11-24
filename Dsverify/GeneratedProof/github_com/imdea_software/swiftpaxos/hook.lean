@@ -50,11 +50,11 @@ noncomputable instance CondF_access_load_cond (l : Loc) (v : github_com.imdea_so
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_store_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (cond' : GoFunc) :
+noncomputable instance CondF_access_store_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) v.cond' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) cond' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := cond' } : github_com.imdea_software.swiftpaxos.hook.CondF) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"cond" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := y } : github_com.imdea_software.swiftpaxos.hook.CondF) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance CondF_access_load_fun (l : Loc) (v : github_com.imdea_sof
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_store_fun (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (fun' : GoFunc) :
+noncomputable instance CondF_access_store_fun (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"fun" l) v.fun' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"fun" l) fun' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fun' := fun' } : github_com.imdea_software.swiftpaxos.hook.CondF) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"fun" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fun' := y } : github_com.imdea_software.swiftpaxos.hook.CondF) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -82,11 +82,11 @@ noncomputable instance CondF_access_load_wanna (l : Loc) (v : github_com.imdea_s
  by
   solve_pointsto_access_struct
 
-noncomputable instance CondF_access_store_wanna (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (wanna' : Bool) :
+noncomputable instance CondF_access_store_wanna (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.CondF) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"wanna" l) v.wanna' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"wanna" l) wanna' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wanna' := wanna' } : github_com.imdea_software.swiftpaxos.hook.CondF) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.CondF go!"wanna" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with wanna' := y } : github_com.imdea_software.swiftpaxos.hook.CondF) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -124,11 +124,11 @@ noncomputable instance OptCondF_access_load_cond (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_store_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (cond' : GoFunc) :
+noncomputable instance OptCondF_access_store_cond (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : GoFunc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) v.cond' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) cond' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := cond' } : github_com.imdea_software.swiftpaxos.hook.OptCondF) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"cond" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cond' := y } : github_com.imdea_software.swiftpaxos.hook.OptCondF) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -140,11 +140,11 @@ noncomputable instance OptCondF_access_load_funs (l : Loc) (v : github_com.imdea
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_store_funs (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (funs' : GoSlice) :
+noncomputable instance OptCondF_access_store_funs (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs" l) v.funs' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs" l) funs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with funs' := funs' } : github_com.imdea_software.swiftpaxos.hook.OptCondF) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with funs' := y } : github_com.imdea_software.swiftpaxos.hook.OptCondF) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -156,11 +156,11 @@ noncomputable instance OptCondF_access_load_funs_num (l : Loc) (v : github_com.i
  by
   solve_pointsto_access_struct
 
-noncomputable instance OptCondF_access_store_funs_num (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (funs_num' : w64) :
+noncomputable instance OptCondF_access_store_funs_num (l : Loc) (v : github_com.imdea_software.swiftpaxos.hook.OptCondF) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs_num" l) v.funs_num' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs_num" l) funs_num' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with funs_num' := funs_num' } : github_com.imdea_software.swiftpaxos.hook.OptCondF) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.imdea_software.swiftpaxos.hook.OptCondF go!"funs_num" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with funs_num' := y } : github_com.imdea_software.swiftpaxos.hook.OptCondF) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

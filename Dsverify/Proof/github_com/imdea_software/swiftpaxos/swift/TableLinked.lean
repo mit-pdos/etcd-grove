@@ -74,7 +74,7 @@ theorem tableOk_alloc_h (wp_FA : MFastAck.Unmarshal.specS (hG := hG))
     (wp_Dec : encoding.gob.Decoder.Decode.spec (GF := netDistGF))
     (wp_Val : state.Value.Unmarshal.spec (GF := netDistGF))
     (v : Bool) (γ : sp.Names) (γc γm : GName) (csv : swift.CommunicationSupply)
-    (M : GMap w8 rpc.Pair') :
+    (M : GMap w8 rpc.Pair'') :
     ctxTbl v ∗ swift.csChans csv ∗ ⌜swift.tableIs csv M⌝ ⊢
       |={⊤}=> ∃ n : swift.CsNames, sp.tableOk γ γc γm M ∗ swift.csBags γ γc γm csv n := by
   apply tableOk_alloc_of (ctxTbl v) γ γc γm csv M
@@ -99,7 +99,7 @@ theorem _root_.Perennial.github_com.imdea_software.swiftpaxos.swift.tableOk_allo
     (wp_ND : encoding.gob.NewDecoder.spec (GF := netDistGF))
     (wp_Dec : encoding.gob.Decoder.Decode.spec (GF := netDistGF))
     (v : Bool) (γ : sp.Names) (γc γm : GName) (csv : swift.CommunicationSupply)
-    (M : GMap w8 rpc.Pair') :
+    (M : GMap w8 rpc.Pair'') :
     ctxTbl v ∗ swift.csChans csv ∗ ⌜swift.tableIs csv M⌝ ⊢
       |={⊤}=> ∃ n : swift.CsNames, sp.tableOk γ γc γm M ∗ swift.csBags γ γc γm csv n :=
   tableOk_alloc_h MFastAck.Unmarshal.wp_proof Ack.Unmarshal.wp_proof SDep.Unmarshal.wp_proof

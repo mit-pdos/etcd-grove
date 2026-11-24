@@ -50,11 +50,11 @@ noncomputable instance sortable_access_load_values (l : Loc) (v : github_com.emi
  by
   solve_pointsto_access_struct
 
-noncomputable instance sortable_access_store_values (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (values' : GoSlice) :
+noncomputable instance sortable_access_store_values (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) v.values' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) values' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with values' := values' } : github_com.emirpasic.gods.utils.sortable) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"values" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with values' := y } : github_com.emirpasic.gods.utils.sortable) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -66,11 +66,11 @@ noncomputable instance sortable_access_load_comparator (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance sortable_access_store_comparator (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (comparator' : github_com.emirpasic.gods.utils.Comparator) :
+noncomputable instance sortable_access_store_comparator (l : Loc) (v : github_com.emirpasic.gods.utils.sortable) (y : github_com.emirpasic.gods.utils.Comparator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"comparator" l) v.comparator' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"comparator" l) comparator' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with comparator' := comparator' } : github_com.emirpasic.gods.utils.sortable) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.utils.sortable go!"comparator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with comparator' := y } : github_com.emirpasic.gods.utils.sortable) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

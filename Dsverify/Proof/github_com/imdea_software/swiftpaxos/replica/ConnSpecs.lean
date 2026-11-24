@@ -132,7 +132,7 @@ peers' writers (`isReplica` less `pws` and `r.M`), the connection slices owned, 
 replicas' ports' protocols. -/
 def replica.connPre (r : Loc) (γ : sp.Names) (γc γm γl : GName) (N : Nat) (me : w32)
     (a ip : GoString) : IProp netDistGF :=
-  iprop(∃ (lg cfgp tbl pc : Loc) (fr : Bool) (nid : w8) (ents : GMap w8 rpc.Pair')
+  iprop(∃ (lg cfgp tbl pc : Loc) (fr : Bool) (nid : w8) (ents : GMap w8 rpc.Pair'')
       (γpc : ChanNames) (asl pssl prsl pwsl alsl latsl ewsl : GoSlice) (l : List GoString)
       (cwm : GoMap) (lats ews : List w64) (al : GoString),
     sp.inv γ γc γm γl ∗

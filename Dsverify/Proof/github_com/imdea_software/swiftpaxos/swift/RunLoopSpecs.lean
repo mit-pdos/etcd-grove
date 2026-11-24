@@ -59,7 +59,7 @@ under the package's facts: `swift`'s package (its `errVarintOverflow`, the reade
 the fast-ack pool's switch `useFastAckPool ↦□ u`, and gob's codec (change log C17: `New` takes
 `codecSet`; proved by `swift.tableAllocH_proof`, Proof/swift/TableAllocLinked.lean). -/
 def swift.tableAllocH : Prop :=
-  ∀ (γ : sp.Names) (γc γm : GName) (v : swift.CommunicationSupply) (M : GMap w8 rpc.Pair')
+  ∀ (γ : sp.Names) (γc γm : GName) (v : swift.CommunicationSupply) (M : GMap w8 rpc.Pair'')
     (u : Bool),
     isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
       encoding.gob.codecSet (GF := netDistGF) ∗

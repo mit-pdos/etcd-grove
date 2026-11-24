@@ -24,7 +24,7 @@ theorem rpc.NewTableId.wp_proof : rpc.NewTableId.spec (GF := GF) := by
   intro id
   wp_start
   wp_auto
-  wp_apply (wp_map_make1 (K := w8) (V := rpc.Pair')) as %m Hm
+  wp_apply (wp_map_make1 (K := w8) (V := rpc.Pair'')) as %m Hm
   wp_end
   rw [ownTable_unseal]; unfold ownTableDef
   iexists m

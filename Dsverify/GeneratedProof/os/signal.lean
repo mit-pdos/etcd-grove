@@ -64,11 +64,11 @@ noncomputable instance handler_access_load_mask (l : Loc) (v : os.signal.handler
  by
   solve_pointsto_access_struct
 
-noncomputable instance handler_access_store_mask (l : Loc) (v : os.signal.handler) (mask' : (GoArray w32 3)) :
+noncomputable instance handler_access_store_mask (l : Loc) (v : os.signal.handler) (y : (GoArray w32 3)) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef os.signal.handler go!"mask" l) v.mask' (DFrac.own 1))
-      (typedPointsto (structFieldRef os.signal.handler go!"mask" l) mask' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mask' := mask' } : os.signal.handler) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef os.signal.handler go!"mask" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with mask' := y } : os.signal.handler) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

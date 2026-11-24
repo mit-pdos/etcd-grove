@@ -948,13 +948,13 @@ noncomputable def isNonFatal [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NewBuffer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/gogo/protobuf/proto.NewBuffer"
 
-noncomputable def Bool' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Bool'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/gogo/protobuf/proto.Bool"
 
 noncomputable def Int32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/gogo/protobuf/proto.Int32"
 
-noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Int'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/gogo/protobuf/proto.Int"
 
 noncomputable def Int64 [GooseExts] [GoGlobalContext] : GoString :=

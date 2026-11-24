@@ -44,7 +44,7 @@ noncomputable def FromProto [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def FromError [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.FromError"
 
-noncomputable def Convert' [GooseExts] [GoGlobalContext] : GoString :=
+noncomputable def Convert'' [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.Convert"
 
 noncomputable def Code [GooseExts] [GoGlobalContext] : GoString :=

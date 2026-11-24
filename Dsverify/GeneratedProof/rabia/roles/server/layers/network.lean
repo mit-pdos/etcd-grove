@@ -60,11 +60,11 @@ noncomputable instance Network_access_load_SvrId (l : Loc) (v : rabia.roles.serv
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_SvrId (l : Loc) (v : rabia.roles.server.layers.network.Network) (SvrId' : w32) :
+noncomputable instance Network_access_store_SvrId (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"SvrId" l) v.SvrId' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"SvrId" l) SvrId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrId' := SvrId' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"SvrId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrId' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -76,11 +76,11 @@ noncomputable instance Network_access_load_Wg (l : Loc) (v : rabia.roles.server.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_Wg (l : Loc) (v : rabia.roles.server.layers.network.Network) (Wg' : Loc) :
+noncomputable instance Network_access_store_Wg (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"Wg" l) v.Wg' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"Wg" l) Wg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Wg' := Wg' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"Wg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Wg' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -92,11 +92,11 @@ noncomputable instance Network_access_load_Done (l : Loc) (v : rabia.roles.serve
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_Done (l : Loc) (v : rabia.roles.server.layers.network.Network) (Done' : GoChan) :
+noncomputable instance Network_access_store_Done (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"Done" l) v.Done' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"Done" l) Done' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Done' := Done' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"Done" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Done' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -108,11 +108,11 @@ noncomputable instance Network_access_load_ToProxy (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_ToProxy (l : Loc) (v : rabia.roles.server.layers.network.Network) (ToProxy' : GoChan) :
+noncomputable instance Network_access_store_ToProxy (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToProxy" l) v.ToProxy' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToProxy" l) ToProxy' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToProxy' := ToProxy' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToProxy" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToProxy' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -124,11 +124,11 @@ noncomputable instance Network_access_load_ProxyIn (l : Loc) (v : rabia.roles.se
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_ProxyIn (l : Loc) (v : rabia.roles.server.layers.network.Network) (ProxyIn' : GoChan) :
+noncomputable instance Network_access_store_ProxyIn (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ProxyIn" l) v.ProxyIn' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ProxyIn" l) ProxyIn' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProxyIn' := ProxyIn' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ProxyIn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProxyIn' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -140,11 +140,11 @@ noncomputable instance Network_access_load_MsgHandlerIn (l : Loc) (v : rabia.rol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_MsgHandlerIn (l : Loc) (v : rabia.roles.server.layers.network.Network) (MsgHandlerIn' : GoChan) :
+noncomputable instance Network_access_store_MsgHandlerIn (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"MsgHandlerIn" l) v.MsgHandlerIn' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"MsgHandlerIn" l) MsgHandlerIn' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MsgHandlerIn' := MsgHandlerIn' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"MsgHandlerIn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MsgHandlerIn' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -156,11 +156,11 @@ noncomputable instance Network_access_load_ConExecutorIn (l : Loc) (v : rabia.ro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_ConExecutorIn (l : Loc) (v : rabia.roles.server.layers.network.Network) (ConExecutorIn' : GoChan) :
+noncomputable instance Network_access_store_ConExecutorIn (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ConExecutorIn" l) v.ConExecutorIn' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ConExecutorIn" l) ConExecutorIn' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConExecutorIn' := ConExecutorIn' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ConExecutorIn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ConExecutorIn' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -172,11 +172,11 @@ noncomputable instance Network_access_load_ToMsgHandler (l : Loc) (v : rabia.rol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_ToMsgHandler (l : Loc) (v : rabia.roles.server.layers.network.Network) (ToMsgHandler' : GoChan) :
+noncomputable instance Network_access_store_ToMsgHandler (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToMsgHandler" l) v.ToMsgHandler' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToMsgHandler" l) ToMsgHandler' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToMsgHandler' := ToMsgHandler' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToMsgHandler" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToMsgHandler' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -188,11 +188,11 @@ noncomputable instance Network_access_load_ToConExecutor (l : Loc) (v : rabia.ro
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_ToConExecutor (l : Loc) (v : rabia.roles.server.layers.network.Network) (ToConExecutor' : GoChan) :
+noncomputable instance Network_access_store_ToConExecutor (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToConExecutor" l) v.ToConExecutor' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToConExecutor" l) ToConExecutor' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToConExecutor' := ToConExecutor' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToConExecutor" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToConExecutor' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -204,11 +204,11 @@ noncomputable instance Network_access_load_ToSerializer (l : Loc) (v : rabia.rol
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_ToSerializer (l : Loc) (v : rabia.roles.server.layers.network.Network) (ToSerializer' : GoChan) :
+noncomputable instance Network_access_store_ToSerializer (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToSerializer" l) v.ToSerializer' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToSerializer" l) ToSerializer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToSerializer' := ToSerializer' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"ToSerializer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ToSerializer' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -220,11 +220,11 @@ noncomputable instance Network_access_load_TCP (l : Loc) (v : rabia.roles.server
  by
   solve_pointsto_access_struct
 
-noncomputable instance Network_access_store_TCP (l : Loc) (v : rabia.roles.server.layers.network.Network) (TCP' : Loc) :
+noncomputable instance Network_access_store_TCP (l : Loc) (v : rabia.roles.server.layers.network.Network) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"TCP" l) v.TCP' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"TCP" l) TCP' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TCP' := TCP' } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.roles.server.layers.network.Network go!"TCP" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with TCP' := y } : rabia.roles.server.layers.network.Network) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

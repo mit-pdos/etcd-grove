@@ -20829,7 +20829,7 @@ noncomputable def Replica.handleSync.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"execL"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
   (App (Val doExecute)
   (Let "$a0" (Val #false)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"deliveredAny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"deliveredAny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
   (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "dkeys"))
   (Let "k" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
   (App (App (Val (slice.forRange go.string)) (Var "$range"))
@@ -21744,7 +21744,7 @@ noncomputable def Replica.BeTheLeader.impl [GooseExts] [GoGlobalContext] : val :
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int32))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.BeTheLeaderReply.ty go!"NextLeader"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.defs.BeTheLeaderReply.ty)))) (Var "reply"))) (Var "$r0"))))))))
-  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"deliveredAny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))
+  (If (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"deliveredAny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))
   (Let "$r0" (Let "$a0" (Val #(W64 1))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumSystem.ty) go!"BallotAt"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.QuorumSystem.ty)))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"qs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r"))))) (Var "$a0")))
   (Let "b" (App (Val (GoInstruction (GoAlloc go.int32))) (App (Val (GoInstruction (GoZeroVal go.int32))) (Val #())))
@@ -23398,7 +23398,7 @@ noncomputable def Replica.deliver.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.imdea_software.swiftpaxos.state.Value.ty))) (Pair (Var "v") (Var "$r0")))))))))
   (App (Val doExecute)
   (Let "$a0" (Val #true)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool'.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"deliveredAny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Bool''.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"deliveredAny"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Var "$a0")))))))
   (App (Val doExecute)
   (Let "$a0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType CommandId.ty) go!"String"))) (Var "cmdId")) (Val #()))
   (Let "$a1" (App (Val (GoInstruction (Convert (go.GoType.StructType []) (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (CompositeLiteral (go.GoType.StructType [])))) (LiteralValue [])))
@@ -26189,7 +26189,7 @@ structure Replica [GooseExts] where
   status' : w64
   cmdDescs' : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap
   delivered' : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap
-  deliveredAny' : _root_.Perennial.sync.atomic.Bool'
+  deliveredAny' : _root_.Perennial.sync.atomic.Bool''
   sender' : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Sender
   batcher' : Loc
   repchan' : Loc
@@ -26241,7 +26241,7 @@ noncomputable instance Replica.zero_val [GooseExts] : ZeroVal Replica :=
 (go.field_decl.FieldDecl go!"status" go.int),
 (go.field_decl.FieldDecl go!"cmdDescs" _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap.ty),
 (go.field_decl.FieldDecl go!"delivered" _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap.ty),
-(go.field_decl.FieldDecl go!"deliveredAny" _root_.Perennial.sync.atomic.Bool'.ty),
+(go.field_decl.FieldDecl go!"deliveredAny" _root_.Perennial.sync.atomic.Bool''.ty),
 (go.field_decl.FieldDecl go!"sender" _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Sender.ty),
 (go.field_decl.FieldDecl go!"batcher" (go.GoType.PointerType Batcher.ty)),
 (go.field_decl.FieldDecl go!"repchan" (go.GoType.PointerType replyChan.ty)),

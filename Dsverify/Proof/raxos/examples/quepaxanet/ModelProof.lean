@@ -298,7 +298,7 @@ theorem findIdx_lk_none (E : List KEnt) (k : GoString) (hpre : ∀ p ∈ E, p.1 
 
 theorem wp_lookup (sl : State) (es : List Entry) (E : List KEnt) (k : GoString) :
     {{ isPkgInit (PROP := IProp GF) kpkg ∗ sl ↦*□ es ∗ □ ([∗list] e;p ∈ es;E, entRep e p) }}
-      (App (App (Val (@! raxos.examples.quepaxanet.lookup')) (Val #sl)) (Val #k))
+      (App (App (Val (@! raxos.examples.quepaxanet.lookup'')) (Val #sl)) (Val #k))
     {{ (i : w64) (e : Entry), RET (PairV #i #e);
         ⌜sint.nat i = E.findIdx (fun p => decide (p.1 = k)) ∧ 0 ≤ sint.Z i⌝ ∗
         entRep e (k, lk E k) }} := by

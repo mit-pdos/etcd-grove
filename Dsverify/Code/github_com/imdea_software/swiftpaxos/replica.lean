@@ -866,7 +866,7 @@ noncomputable def NewQuorumSystem.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice'' []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore QuorumSet.ty))) (Pair (Var "qs") (Var "$r0")))))))))
   (App (Val doExecute)
@@ -2642,7 +2642,7 @@ noncomputable def Replica.ComputeClosestPeers.impl [GooseExts] [GoGlobalContext]
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "di") (Var "$r0"))))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice' []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Slice'' []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef Replica.ty go!"M"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Replica.ty)))) (Var "r")))) (Val #()))))))
   (Let "$r0" (Val #(W32 0))
@@ -3050,11 +3050,11 @@ noncomputable def Replica.replicaListener.impl [GooseExts] [GoGlobalContext] : v
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (Val #())))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty go!"New"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty go!"Obj"))) (Var "p")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty go!"New"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty go!"Obj"))) (Var "p")))) (Val #()))
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3064,7 +3064,7 @@ noncomputable def Replica.replicaListener.impl [GooseExts] [GoGlobalContext] : v
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Var "obj"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty go!"Chan"))) (Var "p")))
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty go!"Chan"))) (Var "p")))
   (Let "$v" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Var "obj"))
   (App (App (Val (chan.send _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)) (Var "$chan")) (Var "$v")))))))
   (App (Val doExecute)
@@ -3096,7 +3096,7 @@ noncomputable def Replica.replicaListener.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (Pair (Var "p") (Var "$r0"))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (Pair (Var "p") (Var "$r0"))))))))))))))))))
   (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty) go!"ReadByte"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.bufio.Reader.ty)))) (Var "reader"))) (Val #()))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
@@ -3292,11 +3292,11 @@ noncomputable def Replica.clientListener.impl [GooseExts] [GoGlobalContext] : va
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (Val #())))
+  (Let "p" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
-  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty go!"New"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty go!"Obj"))) (Var "p")))) (Val #()))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty go!"New"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty go!"Obj"))) (Var "p")))) (Val #()))
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -3306,7 +3306,7 @@ noncomputable def Replica.clientListener.impl [GooseExts] [GoGlobalContext] : va
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Var "obj"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
-  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty go!"Chan"))) (Var "p")))
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty go!"Chan"))) (Var "p")))
   (Let "$v" (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty))) (Var "obj"))
   (App (App (Val (chan.send _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Serializable.ty)) (Var "$chan")) (Var "$v")))))))
   (App (Val doExecute)
@@ -3336,7 +3336,7 @@ noncomputable def Replica.clientListener.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair'.ty))) (Pair (Var "p") (Var "$r0"))))))))))))))))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.imdea_software.swiftpaxos.rpc.Pair''.ty))) (Pair (Var "p") (Var "$r0"))))))))))))))))))))
   (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "hasFirst"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.byte))) (Var "first"))
   (Let "$r1" (Val #false)

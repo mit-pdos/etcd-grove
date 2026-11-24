@@ -46,11 +46,11 @@ noncomputable instance NullUUID_access_load_UUID (l : Loc) (v : github_com.googl
  by
   solve_pointsto_access_struct
 
-noncomputable instance NullUUID_access_store_UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (UUID' : github_com.google.uuid.UUID) :
+noncomputable instance NullUUID_access_store_UUID (l : Loc) (v : github_com.google.uuid.NullUUID) (y : github_com.google.uuid.UUID) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) v.UUID' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) UUID' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UUID' := UUID' } : github_com.google.uuid.NullUUID) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"UUID" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with UUID' := y } : github_com.google.uuid.NullUUID) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -62,11 +62,11 @@ noncomputable instance NullUUID_access_load_Valid (l : Loc) (v : github_com.goog
  by
   solve_pointsto_access_struct
 
-noncomputable instance NullUUID_access_store_Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (Valid' : Bool) :
+noncomputable instance NullUUID_access_store_Valid (l : Loc) (v : github_com.google.uuid.NullUUID) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) v.Valid' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) Valid' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Valid' := Valid' } : github_com.google.uuid.NullUUID) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.google.uuid.NullUUID go!"Valid" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Valid' := y } : github_com.google.uuid.NullUUID) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -102,11 +102,11 @@ noncomputable instance invalidLengthError_access_load_len (l : Loc) (v : github_
  by
   solve_pointsto_access_struct
 
-noncomputable instance invalidLengthError_access_store_len (l : Loc) (v : github_com.google.uuid.invalidLengthError) (len' : w64) :
+noncomputable instance invalidLengthError_access_store_len (l : Loc) (v : github_com.google.uuid.invalidLengthError) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) v.len' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) len' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with len' := len' } : github_com.google.uuid.invalidLengthError) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.google.uuid.invalidLengthError go!"len" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with len' := y } : github_com.google.uuid.invalidLengthError) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -28,27 +28,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS .hasLC GF] [go.Semantics]
 variable [epaxos.Assumptions]
 
 /-- The table at `t` has next code `n` and entries `E` (exclusive). -/
-def ownTableDef (t : Loc) (n : w8) (E : GMap w8 rpc.Pair') : IProp GF :=
+def ownTableDef (t : Loc) (n : w8) (E : GMap w8 rpc.Pair'') : IProp GF :=
   iprop(∃ pm : GoMap, t ↦ rpc.Table.mk n pm ∗ ownMap pm (DFrac.own 1) E)
 
-@[irreducible] def ownTable (t : Loc) (n : w8) (E : GMap w8 rpc.Pair') : IProp GF :=
+@[irreducible] def ownTable (t : Loc) (n : w8) (E : GMap w8 rpc.Pair'') : IProp GF :=
   ownTableDef t n E
 
 theorem ownTable_unseal : ownTable (GF := GF) = ownTableDef := by funext; with_unfolding_all rfl
 
 /-- The table at `t` has entries `E`, read-only (persistent). -/
-def isTableDef (t : Loc) (E : GMap w8 rpc.Pair') : IProp GF :=
+def isTableDef (t : Loc) (E : GMap w8 rpc.Pair'') : IProp GF :=
   iprop(∃ (n : w8) (pm : GoMap), t ↦□ rpc.Table.mk n pm ∗ ownMap pm DFrac.discard E)
 
-@[irreducible] def isTable (t : Loc) (E : GMap w8 rpc.Pair') : IProp GF := isTableDef t E
+@[irreducible] def isTable (t : Loc) (E : GMap w8 rpc.Pair'') : IProp GF := isTableDef t E
 
 theorem isTable_unseal : isTable (GF := GF) = isTableDef := by funext; with_unfolding_all rfl
 
-instance isTable_persistent (t : Loc) (E : GMap w8 rpc.Pair') : Persistent (isTable (GF := GF) t E) := by
+instance isTable_persistent (t : Loc) (E : GMap w8 rpc.Pair'') : Persistent (isTable (GF := GF) t E) := by
   rw [isTable_unseal]; unfold isTableDef; infer_instance
 
 /-- Freeze the table (no more registrations). -/
-theorem ownTable_freeze (t : Loc) (n : w8) (E : GMap w8 rpc.Pair') :
+theorem ownTable_freeze (t : Loc) (n : w8) (E : GMap w8 rpc.Pair'') :
     ownTable (GF := GF) t n E ==∗ isTable t E := by
   rw [ownTable_unseal, isTable_unseal]; unfold ownTableDef isTableDef
   iintro ⟨%pm, Ht, Hm⟩
@@ -67,20 +67,20 @@ def rpc.NewTableId.spec : Prop :=
 
 /-- `t.Register(obj, ch)`: the next code, with the pair added. -/
 def rpc.Table.Register.spec : Prop :=
-  ∀ (t : Loc) (n : w8) (E : GMap w8 rpc.Pair') (obj : GoInterface) (ch : GoChan),
+  ∀ (t : Loc) (n : w8) (E : GMap w8 rpc.Pair'') (obj : GoInterface) (ch : GoChan),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.rpc ∗
       ownTable t n E }}
     (App (App (Val (t @!! go.GoType.PointerType rpc.Table.ty @!! go!"Register")) (Val #obj))
       (Val #ch))
-  {{ RET #n; ownTable t (n + 1) (E.insert n (rpc.Pair'.mk obj ch)) }}
+  {{ RET #n; ownTable t (n + 1) (E.insert n (rpc.Pair''.mk obj ch)) }}
 
 /-- `t.Get(id)` on a frozen table. -/
 def rpc.Table.Get.spec : Prop :=
-  ∀ (t : Loc) (E : GMap w8 rpc.Pair') (id : w8),
+  ∀ (t : Loc) (E : GMap w8 rpc.Pair'') (id : w8),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.imdea_software.swiftpaxos_epaxos.rpc ∗
       isTable t E }}
     (App (Val (t @!! go.GoType.PointerType rpc.Table.ty @!! go!"Get")) (Val #id))
-  {{ RET (PairV #((E.lookup id).getD (zeroValDef : rpc.Pair')) #(E.lookup id).isSome); True }}
+  {{ RET (PairV #((E.lookup id).getD (zeroValDef : rpc.Pair'')) #(E.lookup id).isSome); True }}
 
 end heap
 

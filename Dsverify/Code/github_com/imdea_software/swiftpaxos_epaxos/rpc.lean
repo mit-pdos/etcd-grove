@@ -26,10 +26,10 @@ noncomputable def Serializable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Serializable.ty
 
-noncomputable def Pair'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
+noncomputable def Pair''.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/imdea-software/swiftpaxos-epaxos/rpc.Pair" [])
 
-attribute [irreducible] Pair'.ty
+attribute [irreducible] Pair''.ty
 
 noncomputable def Table.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/imdea-software/swiftpaxos-epaxos/rpc.Table" [])
@@ -48,8 +48,8 @@ noncomputable def NewTable.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Table.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Table.ty)))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "$r0" (App (Val (GoInstruction (GoAlloc Table.ty))) (Let "$v0" (Val #(W8 0))
-  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint8 Pair'.ty)]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Table.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint8 (Var "$v0"))), (KeyedElement (some (KeyField go!"pairs")) (ElementExpression (go.GoType.MapType go.uint8 Pair'.ty) (Var "$v1")))])))))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint8 Pair''.ty)]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Table.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint8 (Var "$v0"))), (KeyedElement (some (KeyField go!"pairs")) (ElementExpression (go.GoType.MapType go.uint8 Pair''.ty) (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -64,8 +64,8 @@ noncomputable def NewTableId.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Val exceptionDo)
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint8))) (Var "id"))
   (Let "$r0" (App (Val (GoInstruction (GoAlloc Table.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.uint8))) (Var "id"))
-  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint8 Pair'.ty)]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Table.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint8 (Var "$v0"))), (KeyedElement (some (KeyField go!"pairs")) (ElementExpression (go.GoType.MapType go.uint8 Pair'.ty) (Var "$v1")))])))))
+  (Let "$v1" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.MapType go.uint8 Pair''.ty)]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Table.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression go.uint8 (Var "$v0"))), (KeyedElement (some (KeyField go!"pairs")) (ElementExpression (go.GoType.MapType go.uint8 Pair''.ty) (Var "$v1")))])))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
@@ -89,7 +89,7 @@ noncomputable def Table.Register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad Serializable.ty))) (Var "obj"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv Serializable.ty)))) (Var "notify"))
-  (App (Val (GoInstruction (CompositeLiteral Pair'.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Obj")) (ElementExpression Serializable.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Chan")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv Serializable.ty) (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral Pair''.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Obj")) (ElementExpression Serializable.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"Chan")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv Serializable.ty) (Var "$v1")))]))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint8))) (Var "id"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -98,7 +98,7 @@ noncomputable def Table.Register.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint8))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (App (App (Val (map.insert go.uint8)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint8 Pair'.ty)))) (App (Val (GoInstruction (StructFieldRef Table.ty go!"pairs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad go.uint8))) (Var "id"))) (Var "$r0")))))))
+  (App (App (App (Val (map.insert go.uint8)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint8 Pair''.ty)))) (App (Val (GoInstruction (StructFieldRef Table.ty go!"pairs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad go.uint8))) (Var "id"))) (Var "$r0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.uint8))) (Pair (App (Val (GoInstruction (StructFieldRef Table.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "t"))) (App (Val (GoInstruction (GoOp GoPlus go.uint8))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef Table.ty go!"id"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "t")))) (Val #(W8 1))))))))))
   (App (Val doExecute)
@@ -109,21 +109,21 @@ noncomputable def Table.Register.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Table.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
-  (Let "$res0" (App (Val (GoInstruction (GoAlloc Pair'.ty))) (App (Val (GoInstruction (GoZeroVal Pair'.ty))) (Val #())))
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Pair''.ty))) (App (Val (GoInstruction (GoZeroVal Pair''.ty))) (Val #())))
   (Let "$res1" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (Seq (App (Val exceptionDo)
   (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Table.ty)))) (Var "t"))
   (Let "id" (App (Val (GoInstruction (GoAlloc go.uint8))) (Var "id"))
-  (Let "__p" (App (App (Val (map.lookup2 go.uint8 Pair'.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint8 Pair'.ty)))) (App (Val (GoInstruction (StructFieldRef Table.ty go!"pairs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad go.uint8))) (Var "id")))
+  (Let "__p" (App (App (Val (map.lookup2 go.uint8 Pair''.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.uint8 Pair''.ty)))) (App (Val (GoInstruction (StructFieldRef Table.ty go!"pairs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Table.ty)))) (Var "t"))))) (App (Val (GoInstruction (GoLoad go.uint8))) (Var "id")))
   (Let "$ret0" (Fst (Var "__p"))
   (Let "$ret1" (Snd (Var "__p"))
   (Let "$r0" (Var "$ret0")
   (Let "$r1" (Var "$ret1")
   (Let "exists" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
-  (Let "p" (App (Val (GoInstruction (GoAlloc Pair'.ty))) (App (Val (GoInstruction (GoZeroVal Pair'.ty))) (Val #())))
+  (Let "p" (App (Val (GoInstruction (GoAlloc Pair''.ty))) (App (Val (GoInstruction (GoZeroVal Pair''.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (App (Val (GoInstruction (GoLoad Pair'.ty))) (Var "p"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pair''.ty))) (Var "p"))
   (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "exists"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -132,12 +132,12 @@ noncomputable def Table.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Pair'.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore Pair''.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "exists") (Var "$r1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Pair'.ty))) (Pair (Var "p") (Var "$r0")))))))))))))))
-  (Pair (App (Val (GoInstruction (GoLoad Pair'.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
+  (App (Val (GoInstruction (GoStore Pair''.ty))) (Pair (Var "p") (Var "$r0")))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad Pair''.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.imdea_software.swiftpaxos_epaxos.rpc where
   pkgImportedPkgs := [pkg_id.io]
@@ -163,46 +163,46 @@ attribute [instance] Serializable.TypeAssumptions.underlying
   Serializable.TypeAssumptions.method_set
   Serializable.TypeAssumptions.ptr_method_set
 
-structure Pair' [GooseExts] where
+structure Pair'' [GooseExts] where
   mk ::
   Obj' : Serializable
   Chan' : GoChan
 
-noncomputable instance Pair'.zero_val [GooseExts] : ZeroVal Pair' :=
-  ⟨Pair'.mk zeroValDef zeroValDef⟩
+noncomputable instance Pair''.zero_val [GooseExts] : ZeroVal Pair'' :=
+  ⟨Pair''.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Pair.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Pair''.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Obj" Serializable.ty),
 (go.field_decl.FieldDecl go!"Chan" (go.GoType.ChannelType go.ChanDir.sendrecv Serializable.ty))]
 
-@[irreducible] noncomputable def Pair.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
-  Pair.fieldsUnsealed
+@[irreducible] noncomputable def Pair''.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
+  Pair''.fieldsUnsealed
 
 noncomputable instance equals_unfold_Pair [GooseExts] [GoGlobalContext] :
-    EqualsUnfold Pair.fields Pair.fieldsUnsealed :=
-  ⟨by unfold Pair.fields; rfl⟩
+    EqualsUnfold Pair''.fields Pair''.fieldsUnsealed :=
+  ⟨by unfold Pair''.fields; rfl⟩
 
-@[reducible] noncomputable def Pair'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.StructType Pair.fields)
+@[reducible] noncomputable def Pair''.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Pair''.fields)
 
-class Pair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Pair'.underlying Pair'
-  underlying : go.UnderlyingDirectedEq Pair'.ty Pair'.underlying
-  get_Obj : ∀ (x : Pair'), go.IsGoStepPureDetTagged under (StructFieldGet Pair'.underlying go!"Obj") #x (Val #(x.Obj'))
-  set_Obj : ∀ (x : Pair') (y : Serializable), go.IsGoStepPureDetTagged under (StructFieldSet Pair'.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : Pair')))
-  get_Chan : ∀ (x : Pair'), go.IsGoStepPureDetTagged under (StructFieldGet Pair'.underlying go!"Chan") #x (Val #(x.Chan'))
-  set_Chan : ∀ (x : Pair') (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Pair'.underlying go!"Chan") (PairV #x #y) (Val #(({ x with Chan' := y } : Pair')))
-  method_set : go.MethodSetIs Pair'.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pair'.ty) []
+class Pair''.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Pair''.underlying Pair''
+  underlying : go.UnderlyingDirectedEq Pair''.ty Pair''.underlying
+  get_Obj : ∀ (x : Pair''), go.IsGoStepPureDetTagged under (StructFieldGet Pair''.underlying go!"Obj") #x (Val #(x.Obj'))
+  set_Obj : ∀ (x : Pair'') (y : Serializable), go.IsGoStepPureDetTagged under (StructFieldSet Pair''.underlying go!"Obj") (PairV #x #y) (Val #(({ x with Obj' := y } : Pair'')))
+  get_Chan : ∀ (x : Pair''), go.IsGoStepPureDetTagged under (StructFieldGet Pair''.underlying go!"Chan") #x (Val #(x.Chan'))
+  set_Chan : ∀ (x : Pair'') (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Pair''.underlying go!"Chan") (PairV #x #y) (Val #(({ x with Chan' := y } : Pair'')))
+  method_set : go.MethodSetIs Pair''.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pair''.ty) []
 
-attribute [instance] Pair.TypeAssumptions.type_repr
-  Pair.TypeAssumptions.underlying
-  Pair.TypeAssumptions.get_Obj
-  Pair.TypeAssumptions.set_Obj
-  Pair.TypeAssumptions.get_Chan
-  Pair.TypeAssumptions.set_Chan
-  Pair.TypeAssumptions.method_set
-  Pair.TypeAssumptions.ptr_method_set
+attribute [instance] Pair''.TypeAssumptions.type_repr
+  Pair''.TypeAssumptions.underlying
+  Pair''.TypeAssumptions.get_Obj
+  Pair''.TypeAssumptions.set_Obj
+  Pair''.TypeAssumptions.get_Chan
+  Pair''.TypeAssumptions.set_Chan
+  Pair''.TypeAssumptions.method_set
+  Pair''.TypeAssumptions.ptr_method_set
 
 structure Table [GooseExts] where
   mk ::
@@ -214,7 +214,7 @@ noncomputable instance Table.zero_val [GooseExts] : ZeroVal Table :=
 
 @[reducible] noncomputable def Table.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" go.uint8),
-(go.field_decl.FieldDecl go!"pairs" (go.GoType.MapType go.uint8 Pair'.ty))]
+(go.field_decl.FieldDecl go!"pairs" (go.GoType.MapType go.uint8 Pair''.ty))]
 
 @[irreducible] noncomputable def Table.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Table.fieldsUnsealed
@@ -234,7 +234,7 @@ class Table.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   get_pairs : ∀ (x : Table), go.IsGoStepPureDetTagged under (StructFieldGet Table.underlying go!"pairs") #x (Val #(x.pairs'))
   set_pairs : ∀ (x : Table) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Table.underlying go!"pairs") (PairV #x #y) (Val #(({ x with pairs' := y } : Table)))
   method_set : go.MethodSetIs Table.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Table.ty) [(go!"Get", (some (go.signature.Signature [go.uint8] false [Pair'.ty, go.bool]))), (go!"Register", (some (go.signature.Signature [Serializable.ty, (go.GoType.ChannelType go.ChanDir.sendrecv Serializable.ty)] false [go.uint8])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Table.ty) [(go!"Get", (some (go.signature.Signature [go.uint8] false [Pair''.ty, go.bool]))), (go!"Register", (some (go.signature.Signature [Serializable.ty, (go.GoType.ChannelType go.ChanDir.sendrecv Serializable.ty)] false [go.uint8])))]
   ptr_Get_unfold : MethodUnfold (go.GoType.PointerType Table.ty) go!"Get" Table.Get.impl
   ptr_Register_unfold : MethodUnfold (go.GoType.PointerType Table.ty) go!"Register" Table.Register.impl
 
@@ -251,7 +251,7 @@ attribute [instance] Table.TypeAssumptions.type_repr
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Serializable_instance : Serializable.TypeAssumptions
-  Pair_instance : Pair.TypeAssumptions
+  Pair_instance : Pair''.TypeAssumptions
   Table_instance : Table.TypeAssumptions
   NewTable_unfold : FuncUnfold NewTable [] NewTable.impl
   NewTableId_unfold : FuncUnfold NewTableId [] NewTableId.impl

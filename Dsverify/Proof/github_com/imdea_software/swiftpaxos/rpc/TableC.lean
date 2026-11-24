@@ -28,14 +28,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- The table `t`: next id `id`, entries `M`. -/
-def tblOwn (t : Loc) (id : w8) (M : GMap w8 rpc.Pair') : IProp GF :=
+def tblOwn (t : Loc) (id : w8) (M : GMap w8 rpc.Pair'') : IProp GF :=
   iprop(∃ pm : GoMap, t ↦ rpc.Table.mk id pm ∗ pm ↦$ M)
 
 /-- The table `t` read-only (persistent): entries `M`. -/
-def tblRO (t : Loc) (M : GMap w8 rpc.Pair') : IProp GF :=
+def tblRO (t : Loc) (M : GMap w8 rpc.Pair'') : IProp GF :=
   iprop(∃ (id : w8) (pm : GoMap), t ↦□ rpc.Table.mk id pm ∗ pm ↦$□ M)
 
-instance tblRO_persistent (t : Loc) (M : GMap w8 rpc.Pair') : Persistent (tblRO (GF := GF) t M) := by
+instance tblRO_persistent (t : Loc) (M : GMap w8 rpc.Pair'') : Persistent (tblRO (GF := GF) t M) := by
   unfold tblRO; infer_instance
 
 end defs
@@ -48,7 +48,7 @@ variable [sem : go.Semantics] [rpc.Assumptions]
 
 set_option goose.wp.extras true
 
-theorem tblOwn_persist (t : Loc) (id : w8) (M : GMap w8 rpc.Pair') :
+theorem tblOwn_persist (t : Loc) (id : w8) (M : GMap w8 rpc.Pair'') :
     tblOwn (GF := GF) t id M ⊢ |==> tblRO t M := by
   unfold tblOwn tblRO
   iintro ⟨%pm, Ht, Hm⟩
@@ -64,37 +64,37 @@ theorem wp_NewTableId (id : w8) :
     {{ (t : Loc), RET #t; tblOwn t id ∅ }} := by
   wp_start
   wp_auto
-  wp_apply (wp_map_make1 (K := w8) (V := rpc.Pair')) as %m Hm
+  wp_apply (wp_map_make1 (K := w8) (V := rpc.Pair'')) as %m Hm
   iapply HΦ
   unfold tblOwn
   iexists m
   iframe
 
-theorem wp_Register (t : Loc) (id : w8) (M : GMap w8 rpc.Pair') (obj : GoInterface) (ch : GoChan) :
+theorem wp_Register (t : Loc) (id : w8) (M : GMap w8 rpc.Pair'') (obj : GoInterface) (ch : GoChan) :
     {{ tblOwn (GF := GF) t id M }}
       (App (App (Val (t @!! go.GoType.PointerType rpc.Table.ty @!! go!"Register")) (Val #obj)) (Val #ch))
-    {{ RET #id; tblOwn t (id + W8 1) (<[id := rpc.Pair'.mk obj ch]> M) }} := by
+    {{ RET #id; tblOwn t (id + W8 1) (<[id := rpc.Pair''.mk obj ch]> M) }} := by
   wp_start as Ht
   unfold tblOwn
   icases Ht with ⟨%pm, Ht, Hm⟩
   wp_auto
-  wp_apply (wp_mapInsert (K := w8) (V := rpc.Pair')) $$ [Hm] as Hm
+  wp_apply (wp_mapInsert (K := w8) (V := rpc.Pair'')) $$ [Hm] as Hm
   · iexact Hm
   wp_auto
   iapply HΦ
   iexists pm
   iframe
 
-theorem wp_Get (t : Loc) (M : GMap w8 rpc.Pair') (k : w8) :
+theorem wp_Get (t : Loc) (M : GMap w8 rpc.Pair'') (k : w8) :
     {{ tblRO (GF := GF) t M }}
       (App (Val (t @!! go.GoType.PointerType rpc.Table.ty @!! go!"Get")) (Val #k))
-    {{ RET (PairV #((M !! k).getD (zero_val rpc.Pair')) #(decide ((M !! k).isSome))); True }} := by
+    {{ RET (PairV #((M !! k).getD (zero_val rpc.Pair'')) #(decide ((M !! k).isSome))); True }} := by
   wp_start as #Ht
   unfold tblRO
   icases Ht with ⟨%id, %pm, #Ht, #Hm⟩
   iStructNamed Ht
   wp_auto
-  wp_apply (wp_map_lookup2 (K := w8) (V := rpc.Pair')) $$ [$Hm] as -
+  wp_apply (wp_map_lookup2 (K := w8) (V := rpc.Pair'')) $$ [$Hm] as -
   iapply HΦ
   itrivial
 

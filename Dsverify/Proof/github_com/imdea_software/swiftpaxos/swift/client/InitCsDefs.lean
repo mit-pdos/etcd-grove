@@ -35,7 +35,7 @@ abbrev initCs.specI : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
       cs ↦ v ∗ rpc.tblOwn t (W8 9) ∅ }}
     (App (App (Val (@! swift.initCs)) (Val #cs)) (Val #t))
-  {{ RET #(); ∃ (v' : swift.CommunicationSupply) (M : GMap w8 rpc.Pair') (idn : w8),
+  {{ RET #(); ∃ (v' : swift.CommunicationSupply) (M : GMap w8 rpc.Pair'') (idn : w8),
       cs ↦ v' ∗ rpc.tblOwn t idn M ∗
       freshChan v'.replyChan' ∗ freshChan v'.fastAckClientChan' ∗ freshChan v'.lightSlowAckChan' ∗
       freshChan v'.acceptChan' ∗ freshChan v'.fastAckChan' ∗ freshChan v'.acksChan' ∗

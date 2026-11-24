@@ -74,11 +74,11 @@ def swift.csCodes (v : swift.CommunicationSupply) : Prop :=
   v.acceptRPC' = W8 22
 
 /-- The table's entry of code `c`: a fresh object of the registered type and its channel. -/
-def swift.entryIs (M : GMap w8 rpc.Pair') (c : w8) (ty : go.GoType) (ch : GoChan) : Prop :=
+def swift.entryIs (M : GMap w8 rpc.Pair'') (c : w8) (ty : go.GoType) (ch : GoChan) : Prop :=
   ∃ o : Loc, M !! c = some ⟨interface.mkOk (go.GoType.PointerType ty) #o, ch⟩
 
 /-- What `initCs` leaves in the table: the fourteen entries, nothing else. -/
-def swift.tableIs (v : swift.CommunicationSupply) (M : GMap w8 rpc.Pair') : Prop :=
+def swift.tableIs (v : swift.CommunicationSupply) (M : GMap w8 rpc.Pair'') : Prop :=
   swift.entryIs M (W8 9) swift.MFastAck.ty v.fastAckChan' ∧
   swift.entryIs M (W8 10) swift.MFastAckClient.ty v.fastAckClientChan' ∧
   swift.entryIs M (W8 11) swift.MSlowAck.ty v.slowAckChan' ∧
@@ -288,7 +288,7 @@ def swift.runPre (rp : Loc) (γ : sp.Names) (γc γm γl : GName) (N k : Nat) (m
   iprop(∃ (rr tbl s b rc qs : Loc) (γs : ChanNames) (γrl : swift.CellNames) (γd γdc1 γdl : GName)
       (dm1 : GoSlice) (dch rch : GoChan) (γdc γrc : ChanNames) (hsl : GoSlice)
       (km hm pm propm accm waitm sam : GoMap) (sq fq : replica.QuorumI)
-      (csv : swift.CommunicationSupply) (ents : GMap w8 rpc.Pair') (nid : w8) (d : w64),
+      (csv : swift.CommunicationSupply) (ents : GMap w8 rpc.Pair'') (nid : w8) (d : w64),
     -- persistent context
     swift.rcvrRes rp γc γm ∗ sp.inv γ γc γm γl ∗ sp.cfg γc γm N fr l ∗
     ⌜sp.rid me < N ∧ nodeOf l (sp.rid me) = some k ∧ 0 ≤ sint.Z me ∧ 1 ≤ N ∧ N ≤ 7⌝ ∗
@@ -380,7 +380,7 @@ abbrev swift.initCs.specR : Prop :=
   {{ isPkgInit (PROP := IProp netDistGF) pkg_id.github_com.imdea_software.swiftpaxos.swift ∗
       cs ↦ v ∗ rpc.tblOwn t (W8 9) ∅ }}
     (App (App (Val (@! swift.initCs)) (Val #cs)) (Val #t))
-  {{ RET #(); ∃ (v' : swift.CommunicationSupply) (M : GMap w8 rpc.Pair'),
+  {{ RET #(); ∃ (v' : swift.CommunicationSupply) (M : GMap w8 rpc.Pair''),
       cs ↦ v' ∗ rpc.tblOwn t (W8 23) M ∗ swift.csChans v' ∗
       ⌜swift.csCodes v' ∧ swift.tableIs v' M ∧ v'.maxLatency' = W64 0⌝ }}
 

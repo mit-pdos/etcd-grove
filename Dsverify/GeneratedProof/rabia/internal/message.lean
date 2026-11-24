@@ -60,11 +60,11 @@ noncomputable instance Command_access_load_CliId (l : Loc) (v : rabia.internal.m
  by
   solve_pointsto_access_struct
 
-noncomputable instance Command_access_store_CliId (l : Loc) (v : rabia.internal.message.Command) (CliId' : w32) :
+noncomputable instance Command_access_store_CliId (l : Loc) (v : rabia.internal.message.Command) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Command go!"CliId" l) v.CliId' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Command go!"CliId" l) CliId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliId' := CliId' } : rabia.internal.message.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Command go!"CliId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliId' := y } : rabia.internal.message.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -76,11 +76,11 @@ noncomputable instance Command_access_load_CliSeq (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Command_access_store_CliSeq (l : Loc) (v : rabia.internal.message.Command) (CliSeq' : w32) :
+noncomputable instance Command_access_store_CliSeq (l : Loc) (v : rabia.internal.message.Command) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Command go!"CliSeq" l) v.CliSeq' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Command go!"CliSeq" l) CliSeq' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliSeq' := CliSeq' } : rabia.internal.message.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Command go!"CliSeq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliSeq' := y } : rabia.internal.message.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -92,11 +92,11 @@ noncomputable instance Command_access_load_SvrSeq (l : Loc) (v : rabia.internal.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Command_access_store_SvrSeq (l : Loc) (v : rabia.internal.message.Command) (SvrSeq' : w32) :
+noncomputable instance Command_access_store_SvrSeq (l : Loc) (v : rabia.internal.message.Command) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Command go!"SvrSeq" l) v.SvrSeq' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Command go!"SvrSeq" l) SvrSeq' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrSeq' := SvrSeq' } : rabia.internal.message.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Command go!"SvrSeq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrSeq' := y } : rabia.internal.message.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -108,11 +108,11 @@ noncomputable instance Command_access_load_Commands (l : Loc) (v : rabia.interna
  by
   solve_pointsto_access_struct
 
-noncomputable instance Command_access_store_Commands (l : Loc) (v : rabia.internal.message.Command) (Commands' : GoSlice) :
+noncomputable instance Command_access_store_Commands (l : Loc) (v : rabia.internal.message.Command) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Command go!"Commands" l) v.Commands' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Command go!"Commands" l) Commands' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commands' := Commands' } : rabia.internal.message.Command) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Command go!"Commands" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commands' := y } : rabia.internal.message.Command) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -154,11 +154,11 @@ noncomputable instance ConsensusObj_access_load_ProId (l : Loc) (v : rabia.inter
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsensusObj_access_store_ProId (l : Loc) (v : rabia.internal.message.ConsensusObj) (ProId' : w32) :
+noncomputable instance ConsensusObj_access_store_ProId (l : Loc) (v : rabia.internal.message.ConsensusObj) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"ProId" l) v.ProId' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"ProId" l) ProId' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProId' := ProId' } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"ProId" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProId' := y } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -170,11 +170,11 @@ noncomputable instance ConsensusObj_access_load_ProSeq (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsensusObj_access_store_ProSeq (l : Loc) (v : rabia.internal.message.ConsensusObj) (ProSeq' : w32) :
+noncomputable instance ConsensusObj_access_store_ProSeq (l : Loc) (v : rabia.internal.message.ConsensusObj) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"ProSeq" l) v.ProSeq' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"ProSeq" l) ProSeq' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProSeq' := ProSeq' } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"ProSeq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProSeq' := y } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -186,11 +186,11 @@ noncomputable instance ConsensusObj_access_load_SvrSeq (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsensusObj_access_store_SvrSeq (l : Loc) (v : rabia.internal.message.ConsensusObj) (SvrSeq' : w32) :
+noncomputable instance ConsensusObj_access_store_SvrSeq (l : Loc) (v : rabia.internal.message.ConsensusObj) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"SvrSeq" l) v.SvrSeq' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"SvrSeq" l) SvrSeq' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrSeq' := SvrSeq' } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"SvrSeq" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with SvrSeq' := y } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -202,11 +202,11 @@ noncomputable instance ConsensusObj_access_load_IsNull (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsensusObj_access_store_IsNull (l : Loc) (v : rabia.internal.message.ConsensusObj) (IsNull' : Bool) :
+noncomputable instance ConsensusObj_access_store_IsNull (l : Loc) (v : rabia.internal.message.ConsensusObj) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"IsNull" l) v.IsNull' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"IsNull" l) IsNull' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsNull' := IsNull' } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"IsNull" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with IsNull' := y } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -218,11 +218,11 @@ noncomputable instance ConsensusObj_access_load_CliIds (l : Loc) (v : rabia.inte
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsensusObj_access_store_CliIds (l : Loc) (v : rabia.internal.message.ConsensusObj) (CliIds' : GoSlice) :
+noncomputable instance ConsensusObj_access_store_CliIds (l : Loc) (v : rabia.internal.message.ConsensusObj) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"CliIds" l) v.CliIds' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"CliIds" l) CliIds' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliIds' := CliIds' } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"CliIds" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliIds' := y } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -234,11 +234,11 @@ noncomputable instance ConsensusObj_access_load_CliSeqs (l : Loc) (v : rabia.int
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsensusObj_access_store_CliSeqs (l : Loc) (v : rabia.internal.message.ConsensusObj) (CliSeqs' : GoSlice) :
+noncomputable instance ConsensusObj_access_store_CliSeqs (l : Loc) (v : rabia.internal.message.ConsensusObj) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"CliSeqs" l) v.CliSeqs' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"CliSeqs" l) CliSeqs' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliSeqs' := CliSeqs' } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"CliSeqs" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with CliSeqs' := y } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -250,11 +250,11 @@ noncomputable instance ConsensusObj_access_load_Commands (l : Loc) (v : rabia.in
  by
   solve_pointsto_access_struct
 
-noncomputable instance ConsensusObj_access_store_Commands (l : Loc) (v : rabia.internal.message.ConsensusObj) (Commands' : GoSlice) :
+noncomputable instance ConsensusObj_access_store_Commands (l : Loc) (v : rabia.internal.message.ConsensusObj) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"Commands" l) v.Commands' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"Commands" l) Commands' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commands' := Commands' } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.ConsensusObj go!"Commands" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Commands' := y } : rabia.internal.message.ConsensusObj) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -293,11 +293,11 @@ noncomputable instance Msg_access_load_Type (l : Loc) (v : rabia.internal.messag
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msg_access_store_Type (l : Loc) (v : rabia.internal.message.Msg) (Type' : rabia.internal.message.MsgType) :
+noncomputable instance Msg_access_store_Type (l : Loc) (v : rabia.internal.message.Msg) (y : rabia.internal.message.MsgType) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Type" l) v.Type' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Type" l) Type' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := Type' } : rabia.internal.message.Msg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Type" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Type' := y } : rabia.internal.message.Msg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -309,11 +309,11 @@ noncomputable instance Msg_access_load_Phase (l : Loc) (v : rabia.internal.messa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msg_access_store_Phase (l : Loc) (v : rabia.internal.message.Msg) (Phase' : w32) :
+noncomputable instance Msg_access_store_Phase (l : Loc) (v : rabia.internal.message.Msg) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Phase" l) v.Phase' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Phase" l) Phase' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Phase' := Phase' } : rabia.internal.message.Msg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Phase" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Phase' := y } : rabia.internal.message.Msg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -325,11 +325,11 @@ noncomputable instance Msg_access_load_Value (l : Loc) (v : rabia.internal.messa
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msg_access_store_Value (l : Loc) (v : rabia.internal.message.Msg) (Value' : w32) :
+noncomputable instance Msg_access_store_Value (l : Loc) (v : rabia.internal.message.Msg) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Value" l) v.Value' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Value" l) Value' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := Value' } : rabia.internal.message.Msg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Value" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Value' := y } : rabia.internal.message.Msg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -341,11 +341,11 @@ noncomputable instance Msg_access_load_Obj (l : Loc) (v : rabia.internal.message
  by
   solve_pointsto_access_struct
 
-noncomputable instance Msg_access_store_Obj (l : Loc) (v : rabia.internal.message.Msg) (Obj' : Loc) :
+noncomputable instance Msg_access_store_Obj (l : Loc) (v : rabia.internal.message.Msg) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Obj" l) v.Obj' (DFrac.own 1))
-      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Obj" l) Obj' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Obj' := Obj' } : rabia.internal.message.Msg) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef rabia.internal.message.Msg go!"Obj" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Obj' := y } : rabia.internal.message.Msg) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

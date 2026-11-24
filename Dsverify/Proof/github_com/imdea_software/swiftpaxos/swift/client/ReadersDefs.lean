@@ -65,7 +65,7 @@ def rdEnd (H : HC) (rd : Loc) : IProp netDistGF :=
 /-- The client's table, read-only: the three client messages' entries, their channels'
 protocols. -/
 def tblOk (H : HC) (t : Loc) : IProp netDistGF :=
-  iprop(∃ (M : GMap w8 rpc.Pair') (o1 o2 o3 : Loc) (ch1 ch2 ch3 : Loc) (g1 g2 g3 : ChanNames),
+  iprop(∃ (M : GMap w8 rpc.Pair'') (o1 o2 o3 : Loc) (ch1 ch2 ch3 : Loc) (g1 g2 g3 : ChanNames),
     rpc.tblRO t M ∗
     ⌜M !! W8 10 = some ⟨interface.mkOk (go.GoType.PointerType swift.MFastAckClient.ty) #o1, ch1⟩ ∧
       M !! W8 12 = some ⟨interface.mkOk (go.GoType.PointerType swift.MLightSlowAck.ty) #o2, ch2⟩ ∧

@@ -174,9 +174,9 @@ theorem allKinds_intro (Q : MsgKind → IProp GF) :
 
 /-- The table `New`'s nine registrations build: code `9 + j` for the `j`-th kind of
 `MsgKind.all`, with a fresh prototype of the kind and the kind's channel. -/
-def newTable (o : MsgKind → Loc) (ch : MsgKind → GoChan) : GMap w8 rpc.Pair' :=
+def newTable (o : MsgKind → Loc) (ch : MsgKind → GoChan) : GMap w8 rpc.Pair'' :=
   MsgKind.all.foldl (fun E k =>
-    E.insert k.code (rpc.Pair'.mk (interface.mkOk (go.GoType.PointerType k.ty) #(o k)) (ch k))) ∅
+    E.insert k.code (rpc.Pair''.mk (interface.mkOk (go.GoType.PointerType k.ty) #(o k)) (ch k))) ∅
 
 /-- The table's entries are `tableEntriesOk` given the channels' bags. -/
 theorem tableEntries_new (γ : EpNames) (i : Nat) (o : MsgKind → Loc) (ch : MsgKind → GoChan)

@@ -832,7 +832,7 @@ class Replica.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   get_delivered : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"delivered") #x (Val #(x.delivered'))
   set_delivered : ∀ (x : Replica) (y : _root_.Perennial.github_com.orcaman.concurrent_map.ConcurrentMap), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"delivered") (PairV #x #y) (Val #(({ x with delivered' := y } : Replica)))
   get_deliveredAny : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"deliveredAny") #x (Val #(x.deliveredAny'))
-  set_deliveredAny : ∀ (x : Replica) (y : _root_.Perennial.sync.atomic.Bool'), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"deliveredAny") (PairV #x #y) (Val #(({ x with deliveredAny' := y } : Replica)))
+  set_deliveredAny : ∀ (x : Replica) (y : _root_.Perennial.sync.atomic.Bool''), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"deliveredAny") (PairV #x #y) (Val #(({ x with deliveredAny' := y } : Replica)))
   get_sender : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"sender") #x (Val #(x.sender'))
   set_sender : ∀ (x : Replica) (y : _root_.Perennial.github_com.imdea_software.swiftpaxos.replica.Sender), go.IsGoStepPureDetTagged under (StructFieldSet Replica.underlying go!"sender") (PairV #x #y) (Val #(({ x with sender' := y } : Replica)))
   get_batcher : ∀ (x : Replica), go.IsGoStepPureDetTagged under (StructFieldGet Replica.underlying go!"batcher") #x (Val #(x.batcher'))

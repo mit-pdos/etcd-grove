@@ -123,7 +123,7 @@ theorem replica.created_open (r : Loc) (γ : sp.Names) (lg cfgp : Loc) (als : Go
 /-- `connPre` from `preConn` and what swift's `New` adds (see the file header). -/
 theorem replica.connPre_intro (r : Loc) (γ : sp.Names) (γc γm γl : GName) (lg cfgp : Loc)
     (N : Nat) (me : w32) (al : GoString) (asl : GoSlice) (tbl : Loc) (fr : Bool) (nid : w8)
-    (ents : GMap w8 rpc.Pair') (l : List GoString) (a ip : GoString)
+    (ents : GMap w8 rpc.Pair'') (l : List GoString) (a ip : GoString)
     (hpure : l[me.toInt.toNat]? = some a ∧ replicaAddrs.contains a ∧ ip ++ [W8 58] <+: a ∧
       0 ≤ me.toInt ∧ me.toInt < N ∧ N ≤ 7 ∧ l.length = N ∧ (∀ a' ∈ l, a' ∈ replicaAddrs)) :
     replica.preConn r γ lg cfgp N me al asl tbl ∗ rpc.isTable tbl DFrac.discard nid ents ∗

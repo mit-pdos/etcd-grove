@@ -51,11 +51,11 @@ noncomputable instance Iterator_access_load_iterator (l : Loc) (v : github_com.e
  by
   solve_pointsto_access_struct
 
-noncomputable instance Iterator_access_store_iterator (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Iterator) (iterator' : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) :
+noncomputable instance Iterator_access_store_iterator (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Iterator) (y : _root_.Perennial.github_com.emirpasic.gods.trees.redblacktree.Iterator) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) v.iterator' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) iterator' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with iterator' := iterator' } : github_com.emirpasic.gods.maps.treemap.Iterator) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Iterator go!"iterator" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with iterator' := y } : github_com.emirpasic.gods.maps.treemap.Iterator) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -91,11 +91,11 @@ noncomputable instance Map_access_load_tree (l : Loc) (v : github_com.emirpasic.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Map_access_store_tree (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Map) (tree' : Loc) :
+noncomputable instance Map_access_store_tree (l : Loc) (v : github_com.emirpasic.gods.maps.treemap.Map) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) v.tree' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) tree' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tree' := tree' } : github_com.emirpasic.gods.maps.treemap.Map) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.emirpasic.gods.maps.treemap.Map go!"tree" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tree' := y } : github_com.emirpasic.gods.maps.treemap.Map) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

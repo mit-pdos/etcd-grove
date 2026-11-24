@@ -74,11 +74,11 @@ noncomputable instance EpochTime_access_load_startTime (l : Loc) (v : raxos.repl
  by
   solve_pointsto_access_struct
 
-noncomputable instance EpochTime_access_store_startTime (l : Loc) (v : raxos.replica.src.EpochTime) (startTime' : _root_.Perennial.time.Time) :
+noncomputable instance EpochTime_access_store_startTime (l : Loc) (v : raxos.replica.src.EpochTime) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"startTime" l) v.startTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"startTime" l) startTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startTime' := startTime' } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"startTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with startTime' := y } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -90,11 +90,11 @@ noncomputable instance EpochTime_access_load_endTime (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance EpochTime_access_store_endTime (l : Loc) (v : raxos.replica.src.EpochTime) (endTime' : _root_.Perennial.time.Time) :
+noncomputable instance EpochTime_access_store_endTime (l : Loc) (v : raxos.replica.src.EpochTime) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"endTime" l) v.endTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"endTime" l) endTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endTime' := endTime' } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"endTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with endTime' := y } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -106,11 +106,11 @@ noncomputable instance EpochTime_access_load_started (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance EpochTime_access_store_started (l : Loc) (v : raxos.replica.src.EpochTime) (started' : Bool) :
+noncomputable instance EpochTime_access_store_started (l : Loc) (v : raxos.replica.src.EpochTime) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"started" l) v.started' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"started" l) started' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with started' := started' } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"started" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with started' := y } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -122,11 +122,11 @@ noncomputable instance EpochTime_access_load_ended (l : Loc) (v : raxos.replica.
  by
   solve_pointsto_access_struct
 
-noncomputable instance EpochTime_access_store_ended (l : Loc) (v : raxos.replica.src.EpochTime) (ended' : Bool) :
+noncomputable instance EpochTime_access_store_ended (l : Loc) (v : raxos.replica.src.EpochTime) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"ended" l) v.ended' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"ended" l) ended' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ended' := ended' } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.EpochTime go!"ended" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ended' := y } : raxos.replica.src.EpochTime) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -162,11 +162,11 @@ noncomputable instance ProposeRequestIndex_access_load_index (l : Loc) (v : raxo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequestIndex_access_store_index (l : Loc) (v : raxos.replica.src.ProposeRequestIndex) (index' : w64) :
+noncomputable instance ProposeRequestIndex_access_store_index (l : Loc) (v : raxos.replica.src.ProposeRequestIndex) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequestIndex go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequestIndex go!"index" l) index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := index' } : raxos.replica.src.ProposeRequestIndex) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequestIndex go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : raxos.replica.src.ProposeRequestIndex) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -203,11 +203,11 @@ noncomputable instance ClientBatchTime_access_load_batch (l : Loc) (v : raxos.re
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatchTime_access_store_batch (l : Loc) (v : raxos.replica.src.ClientBatchTime) (batch' : _root_.Perennial.raxos.proto.client.ClientBatch) :
+noncomputable instance ClientBatchTime_access_store_batch (l : Loc) (v : raxos.replica.src.ClientBatchTime) (y : _root_.Perennial.raxos.proto.client.ClientBatch) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"batch" l) v.batch' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"batch" l) batch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batch' := batch' } : raxos.replica.src.ClientBatchTime) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"batch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batch' := y } : raxos.replica.src.ClientBatchTime) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -219,11 +219,11 @@ noncomputable instance ClientBatchTime_access_load_incomingTime (l : Loc) (v : r
  by
   solve_pointsto_access_struct
 
-noncomputable instance ClientBatchTime_access_store_incomingTime (l : Loc) (v : raxos.replica.src.ClientBatchTime) (incomingTime' : _root_.Perennial.time.Time) :
+noncomputable instance ClientBatchTime_access_store_incomingTime (l : Loc) (v : raxos.replica.src.ClientBatchTime) (y : _root_.Perennial.time.Time) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"incomingTime" l) v.incomingTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"incomingTime" l) incomingTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with incomingTime' := incomingTime' } : raxos.replica.src.ClientBatchTime) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ClientBatchTime go!"incomingTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with incomingTime' := y } : raxos.replica.src.ClientBatchTime) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -259,11 +259,11 @@ noncomputable instance msgBuffer_access_load_b (l : Loc) (v : raxos.replica.src.
  by
   solve_pointsto_access_struct
 
-noncomputable instance msgBuffer_access_store_b (l : Loc) (v : raxos.replica.src.msgBuffer) (b' : GoSlice) :
+noncomputable instance msgBuffer_access_store_b (l : Loc) (v : raxos.replica.src.msgBuffer) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.msgBuffer go!"b" l) v.b' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.msgBuffer go!"b" l) b' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := b' } : raxos.replica.src.msgBuffer) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.msgBuffer go!"b" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with b' := y } : raxos.replica.src.msgBuffer) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -302,11 +302,11 @@ noncomputable instance Value_access_load_priority (l : Loc) (v : raxos.replica.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Value_access_store_priority (l : Loc) (v : raxos.replica.src.Value) (priority' : w64) :
+noncomputable instance Value_access_store_priority (l : Loc) (v : raxos.replica.src.Value) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Value go!"priority" l) v.priority' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Value go!"priority" l) priority' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with priority' := priority' } : raxos.replica.src.Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Value go!"priority" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with priority' := y } : raxos.replica.src.Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -318,11 +318,11 @@ noncomputable instance Value_access_load_proposer_id (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance Value_access_store_proposer_id (l : Loc) (v : raxos.replica.src.Value) (proposer_id' : w64) :
+noncomputable instance Value_access_store_proposer_id (l : Loc) (v : raxos.replica.src.Value) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Value go!"proposer_id" l) v.proposer_id' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Value go!"proposer_id" l) proposer_id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposer_id' := proposer_id' } : raxos.replica.src.Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Value go!"proposer_id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposer_id' := y } : raxos.replica.src.Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -334,11 +334,11 @@ noncomputable instance Value_access_load_thread_id (l : Loc) (v : raxos.replica.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Value_access_store_thread_id (l : Loc) (v : raxos.replica.src.Value) (thread_id' : w64) :
+noncomputable instance Value_access_store_thread_id (l : Loc) (v : raxos.replica.src.Value) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Value go!"thread_id" l) v.thread_id' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Value go!"thread_id" l) thread_id' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with thread_id' := thread_id' } : raxos.replica.src.Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Value go!"thread_id" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with thread_id' := y } : raxos.replica.src.Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -350,11 +350,11 @@ noncomputable instance Value_access_load_ids (l : Loc) (v : raxos.replica.src.Va
  by
   solve_pointsto_access_struct
 
-noncomputable instance Value_access_store_ids (l : Loc) (v : raxos.replica.src.Value) (ids' : GoSlice) :
+noncomputable instance Value_access_store_ids (l : Loc) (v : raxos.replica.src.Value) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Value go!"ids" l) v.ids' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Value go!"ids" l) ids' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := ids' } : raxos.replica.src.Value) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Value go!"ids" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := y } : raxos.replica.src.Value) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -401,11 +401,11 @@ noncomputable instance Recorder_access_load_address (l : Loc) (v : raxos.replica
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_address (l : Loc) (v : raxos.replica.src.Recorder) (address' : GoString) :
+noncomputable instance Recorder_access_store_address (l : Loc) (v : raxos.replica.src.Recorder) (y : GoString) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"address" l) v.address' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"address" l) address' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with address' := address' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"address" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with address' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -417,11 +417,11 @@ noncomputable instance Recorder_access_load_listener (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_listener (l : Loc) (v : raxos.replica.src.Recorder) (listener' : _root_.Perennial.net.Listener) :
+noncomputable instance Recorder_access_store_listener (l : Loc) (v : raxos.replica.src.Recorder) (y : _root_.Perennial.net.Listener) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"listener" l) v.listener' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"listener" l) listener' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with listener' := listener' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"listener" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with listener' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -433,11 +433,11 @@ noncomputable instance Recorder_access_load_server (l : Loc) (v : raxos.replica.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_server (l : Loc) (v : raxos.replica.src.Recorder) (server' : Loc) :
+noncomputable instance Recorder_access_store_server (l : Loc) (v : raxos.replica.src.Recorder) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"server" l) v.server' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"server" l) server' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with server' := server' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"server" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with server' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -449,11 +449,11 @@ noncomputable instance Recorder_access_load_connection (l : Loc) (v : raxos.repl
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_connection (l : Loc) (v : raxos.replica.src.Recorder) (connection' : Loc) :
+noncomputable instance Recorder_access_store_connection (l : Loc) (v : raxos.replica.src.Recorder) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"connection" l) v.connection' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"connection" l) connection' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connection' := connection' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"connection" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with connection' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -465,11 +465,11 @@ noncomputable instance Recorder_access_load_clientBatches (l : Loc) (v : raxos.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_clientBatches (l : Loc) (v : raxos.replica.src.Recorder) (clientBatches' : Loc) :
+noncomputable instance Recorder_access_store_clientBatches (l : Loc) (v : raxos.replica.src.Recorder) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"clientBatches" l) v.clientBatches' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"clientBatches" l) clientBatches' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientBatches' := clientBatches' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"clientBatches" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clientBatches' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -481,11 +481,11 @@ noncomputable instance Recorder_access_load_recorderToProxyChan (l : Loc) (v : r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_recorderToProxyChan (l : Loc) (v : raxos.replica.src.Recorder) (recorderToProxyChan' : GoChan) :
+noncomputable instance Recorder_access_store_recorderToProxyChan (l : Loc) (v : raxos.replica.src.Recorder) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"recorderToProxyChan" l) v.recorderToProxyChan' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"recorderToProxyChan" l) recorderToProxyChan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorderToProxyChan' := recorderToProxyChan' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"recorderToProxyChan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorderToProxyChan' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -497,11 +497,11 @@ noncomputable instance Recorder_access_load_name (l : Loc) (v : raxos.replica.sr
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_name (l : Loc) (v : raxos.replica.src.Recorder) (name' : w64) :
+noncomputable instance Recorder_access_store_name (l : Loc) (v : raxos.replica.src.Recorder) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -513,11 +513,11 @@ noncomputable instance Recorder_access_load_slots (l : Loc) (v : raxos.replica.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_slots (l : Loc) (v : raxos.replica.src.Recorder) (slots' : GoSlice) :
+noncomputable instance Recorder_access_store_slots (l : Loc) (v : raxos.replica.src.Recorder) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"slots" l) v.slots' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"slots" l) slots' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with slots' := slots' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"slots" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with slots' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -529,11 +529,11 @@ noncomputable instance Recorder_access_load_cfg (l : Loc) (v : raxos.replica.src
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_cfg (l : Loc) (v : raxos.replica.src.Recorder) (cfg' : _root_.Perennial.raxos.configuration.InstanceConfig) :
+noncomputable instance Recorder_access_store_cfg (l : Loc) (v : raxos.replica.src.Recorder) (y : _root_.Perennial.raxos.configuration.InstanceConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"cfg" l) v.cfg' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"cfg" l) cfg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfg' := cfg' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"cfg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfg' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -545,11 +545,11 @@ noncomputable instance Recorder_access_load_instanceMutex (l : Loc) (v : raxos.r
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_instanceMutex (l : Loc) (v : raxos.replica.src.Recorder) (instanceMutex' : Loc) :
+noncomputable instance Recorder_access_store_instanceMutex (l : Loc) (v : raxos.replica.src.Recorder) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"instanceMutex" l) v.instanceMutex' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"instanceMutex" l) instanceMutex' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instanceMutex' := instanceMutex' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"instanceMutex" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instanceMutex' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -561,11 +561,11 @@ noncomputable instance Recorder_access_load_debugOn (l : Loc) (v : raxos.replica
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_debugOn (l : Loc) (v : raxos.replica.src.Recorder) (debugOn' : Bool) :
+noncomputable instance Recorder_access_store_debugOn (l : Loc) (v : raxos.replica.src.Recorder) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"debugOn" l) v.debugOn' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"debugOn" l) debugOn' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugOn' := debugOn' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"debugOn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugOn' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -577,11 +577,11 @@ noncomputable instance Recorder_access_load_debugLevel (l : Loc) (v : raxos.repl
  by
   solve_pointsto_access_struct
 
-noncomputable instance Recorder_access_store_debugLevel (l : Loc) (v : raxos.replica.src.Recorder) (debugLevel' : w64) :
+noncomputable instance Recorder_access_store_debugLevel (l : Loc) (v : raxos.replica.src.Recorder) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"debugLevel" l) v.debugLevel' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"debugLevel" l) debugLevel' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugLevel' := debugLevel' } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Recorder go!"debugLevel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugLevel' := y } : raxos.replica.src.Recorder) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -639,11 +639,11 @@ noncomputable instance Server_access_load_name (l : Loc) (v : raxos.replica.src.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_name (l : Loc) (v : raxos.replica.src.Server) (name' : w64) :
+noncomputable instance Server_access_store_name (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"name" l) v.name' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"name" l) name' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := name' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"name" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with name' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -655,11 +655,11 @@ noncomputable instance Server_access_load_ProxyInstance (l : Loc) (v : raxos.rep
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_ProxyInstance (l : Loc) (v : raxos.replica.src.Server) (ProxyInstance' : Loc) :
+noncomputable instance Server_access_store_ProxyInstance (l : Loc) (v : raxos.replica.src.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"ProxyInstance" l) v.ProxyInstance' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"ProxyInstance" l) ProxyInstance' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProxyInstance' := ProxyInstance' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"ProxyInstance" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProxyInstance' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -671,11 +671,11 @@ noncomputable instance Server_access_load_ProposerInstances (l : Loc) (v : raxos
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_ProposerInstances (l : Loc) (v : raxos.replica.src.Server) (ProposerInstances' : GoSlice) :
+noncomputable instance Server_access_store_ProposerInstances (l : Loc) (v : raxos.replica.src.Server) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"ProposerInstances" l) v.ProposerInstances' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"ProposerInstances" l) ProposerInstances' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProposerInstances' := ProposerInstances' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"ProposerInstances" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ProposerInstances' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -687,11 +687,11 @@ noncomputable instance Server_access_load_RecorderInstance (l : Loc) (v : raxos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_RecorderInstance (l : Loc) (v : raxos.replica.src.Server) (RecorderInstance' : Loc) :
+noncomputable instance Server_access_store_RecorderInstance (l : Loc) (v : raxos.replica.src.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"RecorderInstance" l) v.RecorderInstance' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"RecorderInstance" l) RecorderInstance' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecorderInstance' := RecorderInstance' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"RecorderInstance" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with RecorderInstance' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -703,11 +703,11 @@ noncomputable instance Server_access_load_proxyToProposerChan (l : Loc) (v : rax
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_proxyToProposerChan (l : Loc) (v : raxos.replica.src.Server) (proxyToProposerChan' : GoChan) :
+noncomputable instance Server_access_store_proxyToProposerChan (l : Loc) (v : raxos.replica.src.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerChan" l) v.proxyToProposerChan' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerChan" l) proxyToProposerChan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyToProposerChan' := proxyToProposerChan' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerChan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyToProposerChan' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -719,11 +719,11 @@ noncomputable instance Server_access_load_proposerToProxyChan (l : Loc) (v : rax
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_proposerToProxyChan (l : Loc) (v : raxos.replica.src.Server) (proposerToProxyChan' : GoChan) :
+noncomputable instance Server_access_store_proposerToProxyChan (l : Loc) (v : raxos.replica.src.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"proposerToProxyChan" l) v.proposerToProxyChan' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proposerToProxyChan" l) proposerToProxyChan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposerToProxyChan' := proposerToProxyChan' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proposerToProxyChan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposerToProxyChan' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -735,11 +735,11 @@ noncomputable instance Server_access_load_recorderToProxyChan (l : Loc) (v : rax
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_recorderToProxyChan (l : Loc) (v : raxos.replica.src.Server) (recorderToProxyChan' : GoChan) :
+noncomputable instance Server_access_store_recorderToProxyChan (l : Loc) (v : raxos.replica.src.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"recorderToProxyChan" l) v.recorderToProxyChan' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"recorderToProxyChan" l) recorderToProxyChan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorderToProxyChan' := recorderToProxyChan' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"recorderToProxyChan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with recorderToProxyChan' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -751,11 +751,11 @@ noncomputable instance Server_access_load_proxyToProposerFetchChan (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_proxyToProposerFetchChan (l : Loc) (v : raxos.replica.src.Server) (proxyToProposerFetchChan' : GoChan) :
+noncomputable instance Server_access_store_proxyToProposerFetchChan (l : Loc) (v : raxos.replica.src.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerFetchChan" l) v.proxyToProposerFetchChan' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerFetchChan" l) proxyToProposerFetchChan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyToProposerFetchChan' := proxyToProposerFetchChan' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerFetchChan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyToProposerFetchChan' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -767,11 +767,11 @@ noncomputable instance Server_access_load_proposerToProxyFetchChan (l : Loc) (v 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_proposerToProxyFetchChan (l : Loc) (v : raxos.replica.src.Server) (proposerToProxyFetchChan' : GoChan) :
+noncomputable instance Server_access_store_proposerToProxyFetchChan (l : Loc) (v : raxos.replica.src.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"proposerToProxyFetchChan" l) v.proposerToProxyFetchChan' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proposerToProxyFetchChan" l) proposerToProxyFetchChan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposerToProxyFetchChan' := proposerToProxyFetchChan' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proposerToProxyFetchChan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposerToProxyFetchChan' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -783,11 +783,11 @@ noncomputable instance Server_access_load_cfg (l : Loc) (v : raxos.replica.src.S
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_cfg (l : Loc) (v : raxos.replica.src.Server) (cfg' : _root_.Perennial.raxos.configuration.InstanceConfig) :
+noncomputable instance Server_access_store_cfg (l : Loc) (v : raxos.replica.src.Server) (y : _root_.Perennial.raxos.configuration.InstanceConfig) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"cfg" l) v.cfg' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"cfg" l) cfg' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfg' := cfg' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"cfg" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cfg' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -799,11 +799,11 @@ noncomputable instance Server_access_load_numProposers (l : Loc) (v : raxos.repl
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_numProposers (l : Loc) (v : raxos.replica.src.Server) (numProposers' : w64) :
+noncomputable instance Server_access_store_numProposers (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"numProposers" l) v.numProposers' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"numProposers" l) numProposers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numProposers' := numProposers' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"numProposers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with numProposers' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -815,11 +815,11 @@ noncomputable instance Server_access_load_store (l : Loc) (v : raxos.replica.src
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_store (l : Loc) (v : raxos.replica.src.Server) (store' : Loc) :
+noncomputable instance Server_access_store_store (l : Loc) (v : raxos.replica.src.Server) (y : Loc) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"store" l) v.store' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"store" l) store' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with store' := store' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"store" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with store' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -831,11 +831,11 @@ noncomputable instance Server_access_load_serverMode (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_serverMode (l : Loc) (v : raxos.replica.src.Server) (serverMode' : w64) :
+noncomputable instance Server_access_store_serverMode (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"serverMode" l) v.serverMode' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"serverMode" l) serverMode' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverMode' := serverMode' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"serverMode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with serverMode' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -847,11 +847,11 @@ noncomputable instance Server_access_load_debugOn (l : Loc) (v : raxos.replica.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_debugOn (l : Loc) (v : raxos.replica.src.Server) (debugOn' : Bool) :
+noncomputable instance Server_access_store_debugOn (l : Loc) (v : raxos.replica.src.Server) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"debugOn" l) v.debugOn' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"debugOn" l) debugOn' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugOn' := debugOn' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"debugOn" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugOn' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -863,11 +863,11 @@ noncomputable instance Server_access_load_debugLevel (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_debugLevel (l : Loc) (v : raxos.replica.src.Server) (debugLevel' : w64) :
+noncomputable instance Server_access_store_debugLevel (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"debugLevel" l) v.debugLevel' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"debugLevel" l) debugLevel' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugLevel' := debugLevel' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"debugLevel" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with debugLevel' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -879,11 +879,11 @@ noncomputable instance Server_access_load_leaderTimeout (l : Loc) (v : raxos.rep
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_leaderTimeout (l : Loc) (v : raxos.replica.src.Server) (leaderTimeout' : w64) :
+noncomputable instance Server_access_store_leaderTimeout (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"leaderTimeout" l) v.leaderTimeout' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"leaderTimeout" l) leaderTimeout' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderTimeout' := leaderTimeout' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"leaderTimeout" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderTimeout' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -895,11 +895,11 @@ noncomputable instance Server_access_load_leaderMode (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_leaderMode (l : Loc) (v : raxos.replica.src.Server) (leaderMode' : w64) :
+noncomputable instance Server_access_store_leaderMode (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"leaderMode" l) v.leaderMode' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"leaderMode" l) leaderMode' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderMode' := leaderMode' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"leaderMode" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with leaderMode' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -911,11 +911,11 @@ noncomputable instance Server_access_load_batchTime (l : Loc) (v : raxos.replica
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_batchTime (l : Loc) (v : raxos.replica.src.Server) (batchTime' : w64) :
+noncomputable instance Server_access_store_batchTime (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"batchTime" l) v.batchTime' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"batchTime" l) batchTime' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batchTime' := batchTime' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"batchTime" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batchTime' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -927,11 +927,11 @@ noncomputable instance Server_access_load_epochSize (l : Loc) (v : raxos.replica
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_epochSize (l : Loc) (v : raxos.replica.src.Server) (epochSize' : w64) :
+noncomputable instance Server_access_store_epochSize (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"epochSize" l) v.epochSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"epochSize" l) epochSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with epochSize' := epochSize' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"epochSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with epochSize' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -943,11 +943,11 @@ noncomputable instance Server_access_load_proxyToProposerDecisionChan (l : Loc) 
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_proxyToProposerDecisionChan (l : Loc) (v : raxos.replica.src.Server) (proxyToProposerDecisionChan' : GoChan) :
+noncomputable instance Server_access_store_proxyToProposerDecisionChan (l : Loc) (v : raxos.replica.src.Server) (y : GoChan) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerDecisionChan" l) v.proxyToProposerDecisionChan' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerDecisionChan" l) proxyToProposerDecisionChan' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyToProposerDecisionChan' := proxyToProposerDecisionChan' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"proxyToProposerDecisionChan" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proxyToProposerDecisionChan' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -959,11 +959,11 @@ noncomputable instance Server_access_load_isAsync (l : Loc) (v : raxos.replica.s
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_isAsync (l : Loc) (v : raxos.replica.src.Server) (isAsync' : Bool) :
+noncomputable instance Server_access_store_isAsync (l : Loc) (v : raxos.replica.src.Server) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"isAsync" l) v.isAsync' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"isAsync" l) isAsync' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isAsync' := isAsync' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"isAsync" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isAsync' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -975,11 +975,11 @@ noncomputable instance Server_access_load_asyncTimeOut (l : Loc) (v : raxos.repl
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_asyncTimeOut (l : Loc) (v : raxos.replica.src.Server) (asyncTimeOut' : w64) :
+noncomputable instance Server_access_store_asyncTimeOut (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"asyncTimeOut" l) v.asyncTimeOut' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"asyncTimeOut" l) asyncTimeOut' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with asyncTimeOut' := asyncTimeOut' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"asyncTimeOut" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with asyncTimeOut' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -991,11 +991,11 @@ noncomputable instance Server_access_load_timeEpochSize (l : Loc) (v : raxos.rep
  by
   solve_pointsto_access_struct
 
-noncomputable instance Server_access_store_timeEpochSize (l : Loc) (v : raxos.replica.src.Server) (timeEpochSize' : w64) :
+noncomputable instance Server_access_store_timeEpochSize (l : Loc) (v : raxos.replica.src.Server) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Server go!"timeEpochSize" l) v.timeEpochSize' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Server go!"timeEpochSize" l) timeEpochSize' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timeEpochSize' := timeEpochSize' } : raxos.replica.src.Server) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Server go!"timeEpochSize" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timeEpochSize' := y } : raxos.replica.src.Server) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1031,11 +1031,11 @@ noncomputable instance FetchRequest_access_load_ids (l : Loc) (v : raxos.replica
  by
   solve_pointsto_access_struct
 
-noncomputable instance FetchRequest_access_store_ids (l : Loc) (v : raxos.replica.src.FetchRequest) (ids' : GoSlice) :
+noncomputable instance FetchRequest_access_store_ids (l : Loc) (v : raxos.replica.src.FetchRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.FetchRequest go!"ids" l) v.ids' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.FetchRequest go!"ids" l) ids' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := ids' } : raxos.replica.src.FetchRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.FetchRequest go!"ids" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ids' := y } : raxos.replica.src.FetchRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1071,11 +1071,11 @@ noncomputable instance FetchResposne_access_load_batches (l : Loc) (v : raxos.re
  by
   solve_pointsto_access_struct
 
-noncomputable instance FetchResposne_access_store_batches (l : Loc) (v : raxos.replica.src.FetchResposne) (batches' : GoSlice) :
+noncomputable instance FetchResposne_access_store_batches (l : Loc) (v : raxos.replica.src.FetchResposne) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.FetchResposne go!"batches" l) v.batches' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.FetchResposne go!"batches" l) batches' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batches' := batches' } : raxos.replica.src.FetchResposne) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.FetchResposne go!"batches" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with batches' := y } : raxos.replica.src.FetchResposne) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1117,11 +1117,11 @@ noncomputable instance ProposeRequest_access_load_instance (l : Loc) (v : raxos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequest_access_store_instance (l : Loc) (v : raxos.replica.src.ProposeRequest) (instance' : w64) :
+noncomputable instance ProposeRequest_access_store_instance (l : Loc) (v : raxos.replica.src.ProposeRequest) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"instance" l) v.instance' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"instance" l) instance' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instance' := instance' } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"instance" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with instance' := y } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1133,11 +1133,11 @@ noncomputable instance ProposeRequest_access_load_proposalStr (l : Loc) (v : rax
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequest_access_store_proposalStr (l : Loc) (v : raxos.replica.src.ProposeRequest) (proposalStr' : GoSlice) :
+noncomputable instance ProposeRequest_access_store_proposalStr (l : Loc) (v : raxos.replica.src.ProposeRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"proposalStr" l) v.proposalStr' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"proposalStr" l) proposalStr' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposalStr' := proposalStr' } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"proposalStr" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposalStr' := y } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1149,11 +1149,11 @@ noncomputable instance ProposeRequest_access_load_proposalBtch (l : Loc) (v : ra
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequest_access_store_proposalBtch (l : Loc) (v : raxos.replica.src.ProposeRequest) (proposalBtch' : GoSlice) :
+noncomputable instance ProposeRequest_access_store_proposalBtch (l : Loc) (v : raxos.replica.src.ProposeRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"proposalBtch" l) v.proposalBtch' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"proposalBtch" l) proposalBtch' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposalBtch' := proposalBtch' } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"proposalBtch" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposalBtch' := y } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1165,11 +1165,11 @@ noncomputable instance ProposeRequest_access_load_isLeader (l : Loc) (v : raxos.
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequest_access_store_isLeader (l : Loc) (v : raxos.replica.src.ProposeRequest) (isLeader' : Bool) :
+noncomputable instance ProposeRequest_access_store_isLeader (l : Loc) (v : raxos.replica.src.ProposeRequest) (y : Bool) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"isLeader" l) v.isLeader' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"isLeader" l) isLeader' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isLeader' := isLeader' } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"isLeader" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with isLeader' := y } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1181,11 +1181,11 @@ noncomputable instance ProposeRequest_access_load_lastDecidedIndexes (l : Loc) (
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequest_access_store_lastDecidedIndexes (l : Loc) (v : raxos.replica.src.ProposeRequest) (lastDecidedIndexes' : GoSlice) :
+noncomputable instance ProposeRequest_access_store_lastDecidedIndexes (l : Loc) (v : raxos.replica.src.ProposeRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedIndexes" l) v.lastDecidedIndexes' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedIndexes" l) lastDecidedIndexes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastDecidedIndexes' := lastDecidedIndexes' } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedIndexes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastDecidedIndexes' := y } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1197,11 +1197,11 @@ noncomputable instance ProposeRequest_access_load_lastDecidedProposers (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequest_access_store_lastDecidedProposers (l : Loc) (v : raxos.replica.src.ProposeRequest) (lastDecidedProposers' : GoSlice) :
+noncomputable instance ProposeRequest_access_store_lastDecidedProposers (l : Loc) (v : raxos.replica.src.ProposeRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedProposers" l) v.lastDecidedProposers' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedProposers" l) lastDecidedProposers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastDecidedProposers' := lastDecidedProposers' } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedProposers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastDecidedProposers' := y } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1213,11 +1213,11 @@ noncomputable instance ProposeRequest_access_load_lastDecidedDecisions (l : Loc)
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeRequest_access_store_lastDecidedDecisions (l : Loc) (v : raxos.replica.src.ProposeRequest) (lastDecidedDecisions' : GoSlice) :
+noncomputable instance ProposeRequest_access_store_lastDecidedDecisions (l : Loc) (v : raxos.replica.src.ProposeRequest) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedDecisions" l) v.lastDecidedDecisions' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedDecisions" l) lastDecidedDecisions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastDecidedDecisions' := lastDecidedDecisions' } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeRequest go!"lastDecidedDecisions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastDecidedDecisions' := y } : raxos.replica.src.ProposeRequest) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1256,11 +1256,11 @@ noncomputable instance ProposeResponse_access_load_index (l : Loc) (v : raxos.re
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeResponse_access_store_index (l : Loc) (v : raxos.replica.src.ProposeResponse) (index' : w64) :
+noncomputable instance ProposeResponse_access_store_index (l : Loc) (v : raxos.replica.src.ProposeResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"index" l) v.index' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"index" l) index' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := index' } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"index" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with index' := y } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1272,11 +1272,11 @@ noncomputable instance ProposeResponse_access_load_decisions (l : Loc) (v : raxo
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeResponse_access_store_decisions (l : Loc) (v : raxos.replica.src.ProposeResponse) (decisions' : GoSlice) :
+noncomputable instance ProposeResponse_access_store_decisions (l : Loc) (v : raxos.replica.src.ProposeResponse) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"decisions" l) v.decisions' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"decisions" l) decisions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decisions' := decisions' } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"decisions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decisions' := y } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1288,11 +1288,11 @@ noncomputable instance ProposeResponse_access_load_proposer (l : Loc) (v : raxos
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeResponse_access_store_proposer (l : Loc) (v : raxos.replica.src.ProposeResponse) (proposer' : w32) :
+noncomputable instance ProposeResponse_access_store_proposer (l : Loc) (v : raxos.replica.src.ProposeResponse) (y : w32) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"proposer" l) v.proposer' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"proposer" l) proposer' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposer' := proposer' } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"proposer" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposer' := y } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1304,11 +1304,11 @@ noncomputable instance ProposeResponse_access_load_s (l : Loc) (v : raxos.replic
  by
   solve_pointsto_access_struct
 
-noncomputable instance ProposeResponse_access_store_s (l : Loc) (v : raxos.replica.src.ProposeResponse) (s' : w64) :
+noncomputable instance ProposeResponse_access_store_s (l : Loc) (v : raxos.replica.src.ProposeResponse) (y : w64) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"s" l) v.s' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"s" l) s' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := s' } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.ProposeResponse go!"s" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with s' := y } : raxos.replica.src.ProposeResponse) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1346,11 +1346,11 @@ noncomputable instance Decision_access_load_indexes (l : Loc) (v : raxos.replica
  by
   solve_pointsto_access_struct
 
-noncomputable instance Decision_access_store_indexes (l : Loc) (v : raxos.replica.src.Decision) (indexes' : GoSlice) :
+noncomputable instance Decision_access_store_indexes (l : Loc) (v : raxos.replica.src.Decision) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Decision go!"indexes" l) v.indexes' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Decision go!"indexes" l) indexes' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexes' := indexes' } : raxos.replica.src.Decision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Decision go!"indexes" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with indexes' := y } : raxos.replica.src.Decision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1362,11 +1362,11 @@ noncomputable instance Decision_access_load_decisions (l : Loc) (v : raxos.repli
  by
   solve_pointsto_access_struct
 
-noncomputable instance Decision_access_store_decisions (l : Loc) (v : raxos.replica.src.Decision) (decisions' : GoSlice) :
+noncomputable instance Decision_access_store_decisions (l : Loc) (v : raxos.replica.src.Decision) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Decision go!"decisions" l) v.decisions' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Decision go!"decisions" l) decisions' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decisions' := decisions' } : raxos.replica.src.Decision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Decision go!"decisions" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with decisions' := y } : raxos.replica.src.Decision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1378,11 +1378,11 @@ noncomputable instance Decision_access_load_proposers (l : Loc) (v : raxos.repli
  by
   solve_pointsto_access_struct
 
-noncomputable instance Decision_access_store_proposers (l : Loc) (v : raxos.replica.src.Decision) (proposers' : GoSlice) :
+noncomputable instance Decision_access_store_proposers (l : Loc) (v : raxos.replica.src.Decision) (y : GoSlice) :
     AccessStrict (PROP := IProp GF)
       (typedPointsto (structFieldRef raxos.replica.src.Decision go!"proposers" l) v.proposers' (DFrac.own 1))
-      (typedPointsto (structFieldRef raxos.replica.src.Decision go!"proposers" l) proposers' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposers' := proposers' } : raxos.replica.src.Decision) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef raxos.replica.src.Decision go!"proposers" l) y (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with proposers' := y } : raxos.replica.src.Decision) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

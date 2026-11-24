@@ -43,7 +43,7 @@ theorem rpc.NewTableId.wp_proof : rpc.NewTableId.spec := by
   intro id
   wp_start
   wp_auto
-  wp_apply (wp_map_make1 (K := w8) (V := rpc.Pair')) as %mp Hm
+  wp_apply (wp_map_make1 (K := w8) (V := rpc.Pair'')) as %mp Hm
   iapply HΦ
   unfold rpc.isTable
   iexists mp
@@ -55,7 +55,7 @@ theorem rpc.Table.Register.wp_proof : rpc.Table.Register.spec := by
   unfold rpc.isTable
   icases Ht with ⟨%mp, Ht, Hm⟩
   wp_auto
-  wp_apply (wp_mapInsert (K := w8) (V := rpc.Pair')) $$ Hm as Hm
+  wp_apply (wp_mapInsert (K := w8) (V := rpc.Pair'')) $$ Hm as Hm
   iapply HΦ
   iexists mp
   iframe
@@ -67,7 +67,7 @@ theorem rpc.Table.Get.wp_proof : rpc.Table.Get.spec := by
   icases Ht with ⟨%mp, #Ht, #Hm⟩
   iStructNamed Ht
   wp_auto
-  wp_apply (wp_map_lookup2 (K := w8) (V := rpc.Pair')) $$ Hm as -
+  wp_apply (wp_map_lookup2 (K := w8) (V := rpc.Pair'')) $$ Hm as -
   iapply HΦ $$ [-]
   itrivial
 
