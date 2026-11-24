@@ -36,10 +36,11 @@ theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG :
   try wp_auto
   rw [decide_eq_false hnn]
   try wp_auto
-  unfold os.model.pathError
+  wp_func_call; wp_call
   iapply wp_fupd
   try wp_auto
-  iStructNamed pe
+  wp_alloc pe as Hpe
+  iStructNamed Hpe
   ipersist Op
   ipersist Path
   ipersist Err
@@ -50,7 +51,7 @@ theorem os.File.Close.wp_proofClosed : os.File.Close.specClosed (GF := GF) (hG :
     iframe
     isplitl [] <;> (try isplitl []) <;> iassumption
   · iapply EtcdGrove.fmtErrorOkOrNil_of
-    iapply (os.pathError_fmtErrorOk pe_ptr _ _ e) $$ Op Path Err Heok
+    iapply (os.pathError_fmtErrorOk pe _ _ e) $$ Op Path Err Heok
 
 end proof
 

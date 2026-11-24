@@ -68,50 +68,43 @@ theorem errnoPathErr_fmtErrorOkOrNil (err : GoInterface) (e : w64) (he : e ≠ 0
   iapply (EtcdGrove.fmtErrorOkOrNil_of _)
   iapply (errnoPathErr_fmtErrorOk err e he) $$ H
 
-/-- `&PathError{op, path, Errno(e)}` (`model.pathError`): `errnoPathErr`. -/
+/-- `modelPathError(op, path, modelErrno(e))` (`&PathError{op, path, Errno(e)}`): `errnoPathErr`. -/
 theorem wp_pathError_errno (op path : GoString) (e : w64) (Φ : val → IProp GF) :
     (∀ err : GoInterface, errnoPathErr (GF := GF) err e -∗ Φ #err) ⊢
       WP (App (App (App (Val (@! os.modelPathError)) (Val #op)) (Val #path))
-        (App (Val syscall.model.errno) (Val #e))) {{ Φ }} := by
+        (App (Val (@! os.modelErrno)) (Val #e))) {{ Φ }} := by
   iintro HΦ
-  wp_apply wp_errno
-  unfold os.model.pathError
+  wp_apply wp_modelErrno
+  wp_func_call; wp_call
   iapply wp_fupd
   try wp_auto
-  iStructNamed pe
+  wp_alloc pe as Hpe
+  iStructNamed Hpe
   ipersist Op
   ipersist Path
   ipersist Err
+  try wp_auto
   imodintro
   iapply HΦ
   unfold errnoPathErr
-  iexists pe_ptr, op, path
+  iexists pe, op, path
   isplitr
   · ipureintro; rfl
   iframe Op Path Err
 
-/-- `f.wrapErr(op, Errno(e))` (`model.wrapErrno`): `errnoPathErr`. -/
+/-- `modelWrapErrno(op, inner, e)` (`f.wrapErr(op, Errno(e))`): `errnoPathErr`. -/
 theorem wp_wrapErrno_errno (op : GoString) (inner : Loc) (name : GoString) (e : w64)
     (Φ : val → IProp GF) :
     structFieldRef os.file go!"name" inner ↦□ name -∗
       (∀ err : GoInterface, errnoPathErr (GF := GF) err e -∗ Φ #err) -∗
       WP (App (App (App (Val (@! os.modelWrapErrno)) (Val #op)) (Val #inner)) (Val #e)) {{ Φ }} := by
   iintro #Hn HΦ
-  unfold os.model.wrapErrno (@! os.modelPathError)
+  wp_func_call; wp_call
   try wp_auto
-  iapply wp_fupd
-  wp_apply wp_errno
-  iStructNamed pe
-  ipersist Op
-  ipersist Path
-  ipersist Err
-  imodintro
-  iapply HΦ
-  unfold errnoPathErr
-  iexists pe_ptr, op, name
-  isplitr
-  · ipureintro; rfl
-  iframe Op Path Err
+  wp_apply wp_pathError_errno op name e
+  iintro %err #Herr
+  try wp_auto
+  iapply HΦ $$ Herr
 
 end wps
 

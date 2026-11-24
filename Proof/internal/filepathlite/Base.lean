@@ -33,7 +33,7 @@ theorem filepathlite.Base.wp_proof
     (hVol : filepathlite.VolumeName.spec (GF := GF) (hG := hG)) :
     filepathlite.Base.spec (GF := GF) (hG := hG) := by
   intro p
-  wp_start as #_
+  iintro %Φ #_ HΦ
   wp_apply filepathlite.Base.wp_lex p as %r %hr
   iapply HΦ
   ipureintro

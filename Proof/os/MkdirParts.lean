@@ -64,7 +64,9 @@ theorem os.Mkdir.wp_tree (R : Roots) (p : GoString) (perm : w32) (I : IProp GF) 
   wp_apply (os.wp_ignoringEINTR _ iprop(I ∗ longName_ptr ↦ p ∗ perm_ptr ↦ perm)
     (fun e => iprop(⌜e ≠ W64 4⌝ ∗ Ψ e))) $$ [HI longName perm] as %e ⟨%he4, HΨ⟩
   · iframe
-    iintro !> %Φ' ⟨HI, Hln, Hpm⟩ HΦ'
+    iintro !>
+    unfold os.eintrCall
+    iintro %Φ' ⟨HI, Hln, Hpm⟩ HΦ'
     rw [← recv_eq_func_mk]
     wp_call
     try wp_auto
@@ -119,7 +121,9 @@ theorem os.Mkdir.wp_notTree (R : Roots) (p : GoString) (perm : w32)
   wp_apply (os.wp_ignoringEINTR _ iprop(longName_ptr ↦ p ∗ perm_ptr ↦ perm)
     (fun e => iprop(⌜e ≠ W64 0⌝))) $$ [longName perm] as %e %he0
   · iframe
-    iintro !> %Φ' ⟨Hln, Hpm⟩ HΦ'
+    iintro !>
+    unfold os.eintrCall
+    iintro %Φ' ⟨Hln, Hpm⟩ HΦ'
     rw [← recv_eq_func_mk]
     wp_call
     try wp_auto
