@@ -1738,20 +1738,21 @@ metadata is `m` reaches a handler that sees the metadata `md`** (the auth plan's
 metadata since G2): the retry interceptor sends
 every attempt on `withVersion(ctx)`, a context whose outgoing metadata is `ctx`'s with the API
 version's key set (`withVersion.spec`), and grpc's attempt on it delivers `md`
-(`grpcAttemptMd`). (errdesc stage 1, 2026-11-20) Over metadata values only: `withVersion`'s context's
-metadata is `mdSet m …` (until then a context `c` with that pure `metadata.outgoingOf c`). -/
-def clientAttemptMdOf (conn : Loc) (m : GrpcMd) (md : GrpcMd) : Prop :=
-  ∃ v : GoString, grpcAttemptMd conn (metadata.mdSet m go!"client-api-version" [v]) md
+(`grpcAttemptMdI`). (errdesc stage 1, 2026-11-20) Over metadata values only: `withVersion`'s context's
+metadata is `mdSet m …` (until then a context `c` with that pure `metadata.outgoingOf c`). Until
+errdesc stage 1 it took a context; the statements relate the context's outgoing metadata `om` to it by
+`metadata.outMD ci om`. (Phase 7's switch, SW1, 2026-11-24) An `IProp` (persistent), over
+`grpcAttemptMdI`: it was the `Prop` `clientAttemptMd` (`clientAttemptMdOf`). -/
+def clientAttemptMdI (conn : Loc) (om md : GrpcMd) : IProp GF :=
+  iprop(∃ v : GoString, grpcAttemptMdI conn (metadata.mdSet om go!"client-api-version" [v]) md)
 
-/-- `clientAttemptMdOf` (the name the callers' statements use). Until errdesc stage 1 (2026-11-20) it
-took a context, through the pure `metadata.outgoingOf ctx`; now the context's outgoing metadata `om`,
-which the statements relate to the context by `metadata.outMD ci om`. -/
-abbrev clientAttemptMd (conn : Loc) (om : GrpcMd) (md : GrpcMd) : Prop :=
-  clientAttemptMdOf conn om md
+instance clientAttemptMdI_persistent (conn : Loc) (om md : GrpcMd) :
+    Persistent (clientAttemptMdI (GF := GF) conn om md) := by
+  unfold clientAttemptMdI; infer_instance
 
 /-- **A call's precondition at every attempt** (the auth plan's E3zc): the metadata-indexed `Spec`'s
 for the request `m` and the caller's `Φ`, at every metadata an attempt of the call on `conn` with
-a context whose outgoing metadata is `om` may deliver (`clientAttemptMd`; errdesc stage 1, 2026-11-20:
+a context whose outgoing metadata is `om` may deliver (`clientAttemptMdI`; errdesc stage 1, 2026-11-20:
 until then indexed by the context, through the pure `metadata.outgoingOf ctx`; the contracts that take
 it relate `om` to their context by `metadata.outMD ctx om`). At a plain spec (`GrpcSpec.md`) it is the
 spec's (`attemptPre_md`). The error outcome `Ψe` (k8s 7e-1: what the caller asks of a failed attempt's
@@ -1759,7 +1760,7 @@ description, `ifcErrOut`) is `fun _ => True` by default, for the callers that as
 def attemptPre {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd) (Spec : GrpcSpecMd Req Rep)
     (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF := fun _ => iprop(True)) :
     IProp GF :=
-  iprop(∀ md, ⌜clientAttemptMd conn om md⌝ -∗ Spec md m Φ Ψe)
+  iprop(∀ md, clientAttemptMdI conn om md -∗ Spec md m Φ Ψe)
 
 /-- A plain spec's precondition is one at every attempt. -/
 theorem attemptPre_md {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd)
@@ -1780,13 +1781,14 @@ context (`withVersion.spec`'s outgoing metadata `mdSet om …`). -/
 theorem attemptPre_attempt {Req Rep : ProtoMsg GF} (conn : Loc) (om : GrpcMd) (v : GoString)
     (Spec : GrpcSpecMd Req Rep) (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
     attemptPre conn om Spec m Φ Ψe ⊢
-      ∀ md, ⌜grpcAttemptMd conn (metadata.mdSet om go!"client-api-version" [v]) md⌝ -∗
+      ∀ md, grpcAttemptMdI conn (metadata.mdSet om go!"client-api-version" [v]) md -∗
         Spec md m Φ Ψe := by
-  iintro H %md %h
+  iintro H %md #h
   unfold attemptPre
   iapply H
-  ipureintro
-  exact ⟨v, h⟩
+  unfold clientAttemptMdI
+  iexists v
+  iexact h
 
 /-- **The retry interceptor's error outcome** (k8s 7e-1): the caller's `Ψe` at a returned error's
 description when it is a handler's (`handlerDescs`), for a KV method on a refusal-free connection
@@ -1848,7 +1850,7 @@ connection to `addr` (`grpcConn`, any interceptors) with an invoker making one a
 request `inp` (`Req.send`, given back), a zero reply `out` (`Rep.blank`), the client's call options
 (`callOptsOk`) and the caller's `□ ▷ attemptPre conn om Spec m Φ` (at the context's outgoing
 metadata `om`, `metadata.outMD ctx om`; persistent: the request may be
-delivered several times, the attempts; at every metadata an attempt may deliver, `clientAttemptMd`),
+delivered several times, the attempts; at every metadata an attempt may deliver, `clientAttemptMdI`),
 for a request whose encoding is below `grpcMsgMax` (`Req.wireLen`, since 2026-10-30: the attempt
 contract's premise, `grpcInvokerOk`), it returns
 * `nil`: an attempt succeeded, the last one (the loop returns at the first `nil`), and `out` holds

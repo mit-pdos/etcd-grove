@@ -19,7 +19,7 @@ frames (`SrvFrame`).
 **Header fields.** `pathOf fs`: the method (`operateHeaders`' last `:path`); `fieldLast fs k`, the
 last value of `k`; `fieldVals fs k`, all of `k`'s values in order. `grpcFieldsMd fs md`: the
 incoming metadata `md` the server's `operateHeaders` makes of `fs`, on every key grpc does not set
-itself (`grpcReservedKey`), as `grpcAttemptMd` states it on the client's side: the values of the
+itself (`grpcReservedKey`), as `grpcAttemptMdI` states it on the client's side: the values of the
 key's fields, base64-decoded for a `-bin` key (stated through the encoder: the field values are the
 raw standard encodings `b64Raw` of the metadata's, which is what grpc's client writes,
 `encodeBinHeader`); and no key with no values. `grpcMsgDecode` is `decodeGrpcMessage` (the
