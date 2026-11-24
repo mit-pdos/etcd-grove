@@ -135,10 +135,14 @@ def Reported (v : NodeView) (rd : ReadyD) : Prop :=
   rd.term ≠ v.ps.term ∨ rd.vote ≠ v.ps.vote ∨ rd.commit ≠ v.ps.commit ∨ rd.ents ≠ [] ∨
     rd.role ≠ v.ps.role
 
-/-- The view after a `Ready` taken at `ps` (the drain phase): `ps` with the outbox emptied, the
-`Ready`'s messages and committed entries to report, its self-addressed messages for `Advance`. -/
+/-- The view after a `Ready` taken at `ps` (the drain phase): what raft's `Ready` leaves, `ps` with
+the outbox and the pending read states cleared (raft's `pAccepted ps`, `RawNodeAbsSpecs.lean`,
+written out here, which it is by `rfl`, so that `Sim` keeps importing only the protocol model:
+`Advance`'s `AdvanceEnd` starts from it), the `Ready`'s messages and committed entries to report,
+its self-addressed messages for `Advance`. -/
 def NodeView.afterReady (v : NodeView) (ps : PState) (rd : ReadyD) : NodeView :=
-  { v with ps := { ps with outbox := [] }, qs := rd.qs, pend := rd.msgs, ce := rd.ce }
+  let ps' : PState := { ps with outbox := [], rd := { ps.rd with states := [] } }
+  { v with ps := ps', qs := rd.qs, pend := rd.msgs, ce := rd.ce }
 
 /-- **The steps of a node that report nothing** (§3.3's `antSim_quiet`): taking an input (noted in
 the view); reaching a state with no `Ready` (`HasReady` false: `PIdle`, nothing to write, send or

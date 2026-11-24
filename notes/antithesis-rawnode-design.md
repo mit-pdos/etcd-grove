@@ -1035,6 +1035,11 @@ named definition in `Rel.lean`, appended as a conjunct; `GC`, `init`, `boot`, `r
     are `0`; a leader's term is positive, from its vote `VoteOf`'s `t > BootTerm`), `ready_prop`
     (`Sim/ReadyProp.lean`: `ProposeEnd` keeps `Match`, `prop_matched`) and `ready_cmt`.
     Axioms: `propext`, `Classical.choice`, `Quot.sound`.
+  - **`NodeView.afterReady` leaves raft's accepted state** (2026-11-24, the lead's decision): its `ps`
+    is `ps` with the outbox and `rd.states` cleared, `pAccepted ps` (`RawNodeAbsSpecs.lean`) written
+    out (equal by `rfl`; `Sim` does not import `RawNodeAbsSpecs`), not `{ps with outbox := []}`: the
+    drain's next loop head takes `Reach.advance`, whose `AdvanceEnd` starts from `pAccepted ps`. The
+    Sim proofs went through unchanged (no relation reads `rd.states`).
 
 ---
 
