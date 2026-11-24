@@ -46,12 +46,12 @@ theorem Main.wp_proof
     (wp_Run : AntCheck.Run.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
   intro _ Hrb
-  wp_start as -
+  wp_start as Htok
   ihave #Hck : isPkgInit (PROP := IProp GF)
       pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis.check $$ []
   · iPkgInit
   wp_apply wp_DefaultConfig
-  wp_apply (wp_RunCluster Hrb defaultCfg cfgOk_defaultCfg) as %c Hrun
+  wp_apply (wp_RunCluster Hrb defaultCfg cfgOk_defaultCfg) $$ [$Htok] as %c ⟨Hrun, -⟩
   try wp_auto
   iunfold runOver at Hrun
   icases Hrun with ⟨%r, %γr, %evs, #Hr, #Hrec, Hdone, #HN, %Hacc⟩

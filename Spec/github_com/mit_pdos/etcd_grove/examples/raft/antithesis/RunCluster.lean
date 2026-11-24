@@ -5,7 +5,8 @@ Lean-first (no Rocq counterpart). #33 S4, specs first (`notes/antithesis-s4-desi
 configuration's (`CfgOk`: three voters; a positive tick, `time.NewTicker`'s; `MaxDelay ≥ 0`, else
 `below(uint64(MaxDelay) + 1)` divides by zero), the thread bound (the network's `WaitGroup`
 counts a goroutine per message in flight) and the receipts' (`antRunFits`), as the trace check's
-`RunConcurrent`.
+`RunConcurrent`. The caller's thread token: the boot drains (`Cluster.drain`) take one, and it is
+given back.
 -/
 module
 
@@ -35,9 +36,10 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 abbrev RunCluster.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)], antRunFits GF →
   ∀ (cfg : H.Config), CfgOk cfg →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      threadTok }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.RunCluster)) (Val #cfg))
-  {{ (c : Loc), RET #c; runOver c }}
+  {{ (c : Loc), RET #c; runOver c ∗ threadTok }}
 
 end spec
 

@@ -3,7 +3,8 @@ Lean-first (no Rocq counterpart). #33 S4, specs first (`notes/antithesis-s4-desi
 
 `Main()`, the closed program: `RunCluster(DefaultConfig())`, then `check.Run` of its stream at
 `Server = InitVoters = c.Servers()`, panicking unless ACCEPTED. It returns (never panics), under the
-thread and receipt bounds `RunCluster` takes.
+thread and receipt bounds `RunCluster` takes, on a thread holding its token (`threadTok`, which
+the adequacy gives the main thread).
 -/
 module
 
@@ -32,7 +33,8 @@ variable [check_sem : github_com.mit_pdos.etcd_grove.examples.raft.antithesis.ch
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 31)], antRunFits GF →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.antithesis ∗
+      threadTok }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Main)) (Val #()))
   {{ RET #(); True }}
 

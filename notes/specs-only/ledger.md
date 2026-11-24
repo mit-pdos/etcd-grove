@@ -5624,3 +5624,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `ip = |log|` (`Ready`'s `ip' = ps.log.length`), so an acknowledgement's index is at most `ip` and the
   `max` is a no-op (a self-vote's `becomeLeader` append leaves `inprogress` alone).
 - **Decision.** Applied (the lead's round-3 decision; raft helper G). `drainAdvance` passes its `hip`.
+
+## 2026-11-24: the antithesis harness's thread tokens: `RunCluster`, `Main`, `Cluster.run` (#33 S4)
+
+- **Spec.** `Spec/.../raft/antithesis/RunCluster.lean`, `Main.lean` (precondition `isPkgInit` only)
+  and `Cluster__run.lean` (post `True`).
+- **Defect.** Unprovable: `RunCluster`'s boot drains call `Cluster.drain`, which takes a
+  `threadTok`, and nothing in `RunCluster`'s precondition gives one; a goroutine forked with
+  `wp_fork_tok_body` must end holding its token, and `Cluster.run`'s post gave none back.
+- **Evidence.** `RunCluster`'s proof (the boot loop's `wp_drain`; the `go c.run(n)` loop).
+- **Proposed change.** `RunCluster` and `Main` take `threadTok` (as other examples' `Main` specs:
+  the adequacy gives the main thread its token); `RunCluster` returns it (`runOver c ∗ threadTok`);
+  `Cluster.run`'s post `{{ RET #(); threadTok }}` (its proof holds the token throughout).
+- **Decision.** Applied (the lead's decision; RunCluster helper F, round 3).

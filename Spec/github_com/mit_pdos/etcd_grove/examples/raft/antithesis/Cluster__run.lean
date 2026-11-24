@@ -6,7 +6,7 @@ closed), one input at a time (a tick, or a message or proposal from its input ch
 `noteInput`, `antSim_quiet`'s `input`; for a message, its `recv` report made before `Step`, the
 cause cell), the `RawNode` call, the input's drain, then idle again (the cause cell reset). At the
 stop it gives back its right to report and its network adders' share (`nodesWg.Done()`,
-`nodeExit`).
+`nodeExit`), and returns its thread token (a goroutine ends holding one: `wp_fork_tok_body`).
 -/
 module
 
@@ -40,7 +40,7 @@ abbrev Cluster.run.spec : Prop :=
       antCluster c γ ∗ nodeRO γ n j ∗ nodeOwn c γ j n v .idle ∗ netAdder c γ q ∗ threadTok ∗
       sync.join.ownDone (c.[H.Cluster, go!"nodesWg"]) (nodeExit c γ j q) }}
     (App (Val (c @!! go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.raft.antithesis.Cluster.ty @!! go!"run")) (Val #n))
-  {{ RET #(); True }}
+  {{ RET #(); threadTok }}
 
 end spec
 

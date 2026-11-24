@@ -117,7 +117,7 @@ theorem Cluster.run.wp_proof
     · iunfold nodeExit; iframe Hl Had
     (try wp_auto)
     wp_for_post
-    iapply HΦ; itrivial
+    iapply HΦ; iexact Htok
   iapply BigAndL.bigAndL_cons.2
   isplit
   · -- a tick
