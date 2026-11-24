@@ -166,6 +166,38 @@ comparator-check.sh builds its challenge by regenerating Goose's output into `Ds
 an etcd-grove statement depends on the exported tree (Net, the main tree, the translations), so the
 lab needs a `tree=` mode in which the challenge workspace is a fresh copy of the exported tree.
 
+### The challenge's split (user decision, 2026-11-24; as in the lab)
+
+The challenge GIVES the driver and the theorem; the agent invents the logically atomic client spec
+and proves it. So `--export-challenge` ships:
+- the system's Go and the kit's Go glue (the commands' mains, the remote adapter);
+- `examples/lib/remote` and porcupine WITH their proofs, Net, the models, Perennial (shared);
+- the fixed `TopLevelRobustness` statement;
+- the generated deployment plumbing that only says what runs where: the addresses, `system`, `boot`,
+  the budgets and the `DistDeploy` wiring;
+- the kit's library-premise classes, fixed as in the landed kit for now.
+
+It STRIPS, as answers: the kit's client spec (the `svcOp`/`opMaybe` logatomic contract's
+instantiation: `Kit.lean` and the like); all of the kit's protocol, server and client specs and
+proofs; the start lemma's kit-specific ghost allocation; any kit-specific part of the top-level
+proof beyond generated plumbing (no kit-specific proof skeleton ships: the goal's file is a stub).
+
+How: each kit's KITGEN lists what a challenge gives of its Lean, `challenge_allow` (patterns; never
+inferred); the export stops if the statement's closure needs a kit module off the list, if the list
+names a proof module, or if gen-init's generated files of the kit are off it; the leak check refuses
+every other module of the kit's trees. For paxos the landed statement's closure held the kit's specs
+and the protocol's vocabulary (`Kit`, `Deploy`, `Inv`, `Agents`, `Net`, `Wire`) only because
+`TopLevelDefs` took the two address lists from `Deploy.lean` (`addrs`) and `Kit.lean`
+(`clientAddrs`); they moved, names, namespaces and bodies unchanged, into the generated
+`examples/paxosnet/Addrs.lean` (KITGEN `addrs_module`), which `Deploy.lean` imports (and `Kit.lean`
+through it), and `TopLevelDefs` imports only it. paxos's allow-list: the statement, `TopLevelDefs`,
+`Addrs`, the package facts (`Base` of `paxos`, `paxosnet`, each command) and gen-init's `Init`/
+`PkgTable`: 37 modules; the statement's closure is 101 modules (was 112). The challenge's fixed files
+(CLAUDE.md's "Do not edit") are every kit module of the statement's closure.
+
+Terminology (user): the machine running `remote.Check` is the DRIVER, its model the driver's model;
+landed identifiers (`cmd/orch`, `Orch.spec`) stay.
+
 ### The leak check (`--leak-check DIR KIT`; run after every export)
 
 On the tree as written: (1) of the kit's Lean only the allow-list and the goal's stub; (2) of other

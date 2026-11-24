@@ -88,9 +88,11 @@ The generator is untrusted: a reader reads the committed statement, not the scri
 run (the dsverify-lab harness runs agents in containers that cannot see etcd-grove; the interface is
 notes/dsv-skill.md's, copied in notes/dsv-kitgen.md). From a clean work tree (`--allow-dirty` notes
 a dirty one), `DIR` gets this repository's tracked files but:
-- the kit's own Lean (`Dsverify/{Proof,Spec}/<proof_roots>/`) except the statement's closure (spec and
-  defs only: the export stops if the statement imports a proof), gen-init's generated `Init`/`PkgTable`
-  and the non-vacuity module; the goal's file `Proof/.../TopLevelRobustness.lean` is a `sorry` stub,
+- the kit's own Lean (`Dsverify/{Proof,Spec}/<proof_roots>/`) but what KITGEN's explicit
+  `challenge_allow` lists: the statement, its definitions and addresses (`addrs_module`), the
+  package facts, gen-init's `Init`/`PkgTable`, the non-vacuity module (the challenge gives the driver
+  and the theorem; the kit's client spec, protocol specs, start and proofs are the answers: the export
+  stops if the statement's closure needs a module off the list, or the list names a proof); the goal's file `Proof/.../TopLevelRobustness.lean` is a `sorry` stub,
   and kitgen's other generated proofs (`Mains.lean`) are left out (`CHALLENGE.txt`'s `omitted:` lines,
   which `kitgen.py --check` in the challenge skips);
 - other kits' Lean but what this kit's landed proof uses and what gen-init's generated files import;
