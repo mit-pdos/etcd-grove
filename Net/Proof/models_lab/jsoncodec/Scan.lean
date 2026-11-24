@@ -94,7 +94,6 @@ theorem Scan.wp_proof (wp_SkipSpace : SkipSpace.spec (GF := GF) (hG := hG)) :
   have hN0 : N = JsonScan.goL (bs.drop 0) 0 [] 0 false eof := by rw [← hN]; rfl
   rw [JsonScan.goL_skip] at hN0
   have hsk := JsonScan.skipEnd_le bs 0 (by simp)
-  rw [show uint.nat (W64 0) = 0 from rfl]
   generalize JsonScan.skipEnd bs 0 = i0 at hN0 hsk ⊢
   wp_if_destruct
   · have : bs.length ≤ i0 := by word
