@@ -15,19 +15,19 @@ initialization (`wp_initialize'`, from no package initialized and the metric nam
 
 **The named hypotheses** (`MemberBootHyps`; no axiom): each a start resource with no source yet on a machine
 of a distributed start, where in one process `goose_adequacy_start` hands it out:
-* `clearProxy`: `env.ClearProxy`'s spec (`ETCD_VERIFY` off after it), until `os.Unsetenv` has a model
-  (a Perennial change, `notes/perennial-changes.md`, 2026-11-23);
 * `names`: the rights to register the closure's metric names (`prometheus.namesFree initNames`), until
   `prom-registry` puts the default registry on the machine's own heap;
 * `dataDir`: the member's data directory fresh (`dataDirFresh`, an axiomatized token), until it is a
   definition over the machine's file tree (the WAL link, `notes/wal-link-scope.md`; blocked on the fs
-  redesign, etcd-grove#15);
-* `peerPlain`: a valid address's peer URL `http://a` is plain (`host:port`): a pure fact of `addrOk`, not
-  proved yet.
+  redesign, etcd-grove#15).
+
+`ETCD_VERIFY` off (`envVerifyOff`) is the statement's `HEnvTok`, passed in (`member_boot`'s `HEnvTok`).
+That a valid address's peer URL `http://a` is plain (`host:port`) is proved (`etcd_dist.addrOk_plainPeerURL`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Member
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.AddrPlain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.holdForever
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.InitLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.PkgTable
@@ -61,17 +61,11 @@ attribute [local instance] etcdNetExts etcdNetExtsSemantics etcdNetExtsInterp et
 machine of a distributed start. -/
 structure MemberBootHyps [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.Assumptions] : Prop where
-  /-- `env.ClearProxy`'s spec, at every ghost state over the Go local context (until `os.Unsetenv` has a
-  model). -/
-  clearProxy : ∀ hG : HeapGS .hasLC putgetGF,
-    dist_env.ClearProxy.spec (GF := putgetGF) (hG := putgetHeapAt hG lctx)
   /-- The rights to register `putget`'s closure's metric names (until `prom-registry`). -/
   names : ⊢@{IProp putgetGF}
     prometheus.namesFree github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.initNames
   /-- The member's data directory fresh (until `dataDirFresh` is defined over the machine's files). -/
   dataDir : ⊢@{IProp putgetGF} dataDirFresh (memberDataDir name)
-  /-- A valid address's peer URL is plain (a pure fact, not proved yet). -/
-  peerPlain : ∀ a : GoString, Net.addrOk a = true → types.plainPeerURL (go!"http://" ++ a)
 
 set_option maxHeartbeats 1600000 in
 /-- **The member machine's boot** (see the file header). -/
@@ -81,7 +75,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     [log.NewModel] [net.FieldAssumptions]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF,
       ContextReadErrs (GF := putgetGF) (hG := putgetHeapAt hG lctx))
-    (HM : MemberBootHyps)
+    (HM : MemberBootHyps) (HEnvTok : ⊢ envVerifyOff (GF := putgetGF))
     (peer client : GoString) (hpeer : Net.addrOk peer = true)
     (id : w64) (ctxs : List (List w8)) (boot : List LogEntry) (Hbf : etcdstart.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
@@ -108,6 +102,7 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
     (github_com.mit_pdos.etcd_grove.examples.etcd.dist.putget.getIsPkgInit (GF := putgetGF)) $$ Hgs
   ihave Hns := HM.names
   ihave Hdd := HM.dataDir
+  ihave #Hvoff := HEnvTok
   imod etcdNetFs_start σm Hm.1 $$ Hls with ⟨#Hos, -, Htree⟩
   imodintro
   -- the member's WAL area, from its machine's files
@@ -129,9 +124,9 @@ theorem member_boot [GoGlobalContext] [lctx : GoLocalContext] [sem : go.Semantic
   -- `putget.Member(peer, client)`
   ihave #Hpr := Hprem (2 ^ 28) (by decide) hG
   ihave #Hpub := memberPubOk_putgetPub (G := G') ⟨fl, lc, nh, gs, th, cr⟩ S
-  wp_apply (Member.wp_proof (HM.clearProxy hG) zap.NewNop.wp_proof etcdstart.wp_StartServer
+  wp_apply (Member.wp_proof zap.NewNop.wp_proof etcdstart.wp_StartServer
       (holdForever.wp_proof time.Sleep.wp_proof) mvcc.api.mvccApi_names_nonempty_law_holds
-      S peer client id ctxs boot γE (putgetPub S) Hbf (HM.peerPlain peer hpeer)
+      S peer client id ctxs boot γE (putgetPub S) Hbf (etcd_dist.addrOk_plainPeerURL hpeer)
       (by unfold srvLevels; rw [hT]; omega) Haf Hbuq Hrf Hdbo inferInstance)
     $$ [Htok Hdd Hwa Hshare]
   · iframe; iframe #
