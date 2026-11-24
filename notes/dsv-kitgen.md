@@ -260,3 +260,16 @@ version, same checks): a planted `KitProof.lean` fails (1) and (4); a `sorry` ad
   `table='server1'`, `owned=[vsrnet, pkg.replica, pkg.network, 'encoding.json']`,
   `opens` its three lines, `variables` (generic `GF`), `q='encoding.json.codecFresh (GF := GF)'`,
   `q_sep='\n    '`, `post` its two lines, `returns` its sentence, the two docs.
+
+### Builds and axioms
+
+- fk-lean1, head 489560bccf (paxos retrofit, before the address move): the five kits' statements
+  through a scratch module: each `*_remote_robust` depends on `propext`, `Classical.choice`,
+  `Quot.sound` only.
+- This host (the user's decision: kitgen work builds here), the final head's Lean (c1c8b0cbb4; the
+  scratch module dropped): `lake build` of the five `TopLevelRobustness` proofs, 4,783 jobs, rc 0;
+  `#print axioms` of paxos, rabia, swiftpaxos and epaxos (in their files) and of quepaxa (`lake env
+  lean` on a file outside the repo): Lean's three axioms each. `build-slot.sh` cannot start in this
+  session (`systemd-run` needs polkit rights it lacks, as `etc/gates.sh` notes), so the build took the
+  three slot locks with `flock` itself and ran with `LEAN_NUM_THREADS=16`, the artifact cache on,
+  `.lake/package-overrides.json` at `/shared/perennial-47ec64a9d` (built here).
