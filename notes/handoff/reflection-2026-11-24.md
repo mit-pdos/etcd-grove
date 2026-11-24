@@ -384,3 +384,22 @@ Decision: option (A) (posted for Upamanyu on #40; no reply yet, proceeding as in
   unpackEface/ValueOf, Value.{Kind,Type,IsNil,Elem,Set}, packEface, valueInterface, assignTo,
   isDefined, directlyAssignable, implements, rtype.{Implements,AssignableTo}; then errors.as/As.
 - F1 for Perennial lean: branch `goose-localtype-varinit` off origin/lean (a helper is doing it).
+
+Round 3 progress (Perennial reflect-s05 worktree p-refl05, uncommitted until it builds):
+- Shapes (`directIfaceN`, `zeroSizeN`, ...) moved from Proof/reflect/Base to Proof/internal/reflectcore/Base
+  (namespace `reflect` kept) so reflectlite/errors can use them (reflect.Base imports strconv → errors: cycle).
+- reflectlite: general `isModelRType` (`rtypeLayoutU`), `TypeOf` premise now `rtypeLayoutU u = false`;
+  new specs/proofs isZeroSize, isDirectIface (ports), unpackEface/ValueOf (`valueOfRepr`), flag.kind,
+  Value.{Kind,Type,IsNil,Elem,assignTo,Set}, packEface, valueInterface, isDefined (`isDefinedT`),
+  directlyAssignable, implements, rtype.{Implements,AssignableTo}.
+- reflectcore Load/Store (and load/store) interface conjuncts generalized to any Lean type V of T
+  (`#x = #i`), needed to store into a `T'`-typed target.
+- errors: `AsDecided` = `asModelled ii.ty` ∧ T has a kind ∧ T not untyped nil ∧ `AsDecidedTy` (the old
+  condition); `asRepr` (Lean representation of an error's type, interface T only) added to As's
+  conjuncts 1–2 and to `asNoMatch`; helpers `asModelled_pointer`, `asRepr_pointer` for pointer errors.
+  New `errors.«as».spec` (Spec/errors/as_.lean) and its proof (port of the old asWalk); `As` via `wp_As_ok`.
+- Decision: per-error premise kept general (struct/array errors allowed when not rtype-layout and
+  directIfaceN defined), not "kind ∉ {array, struct}".
+- F1 lean branch: Perennial `goose-localtype-varinit` a751ac526 (off origin/lean fce59af75); go test
+  ./goose/... passes with go1.26.11 copied outside GOMODCACHE; regeneration: no translated-code diff
+  (only the known strconv IsPrint drift, identical on plain lean; not committed).
