@@ -1,0 +1,7 @@
+# the environment the selftests elaborate in (rabia's: its system code, its libraries' landed specs,
+# the driver, the net model, the conclusion's modules)
+Dsverify.Proof.rabia.examples.rabianet.TopLevelDefs
+Dsverify.Spec.rabia.examples.rabianet.TopLevelRobustness
+Net.Statement.DistDeploy
+Robustness.Statement
+Net.Proof.github_com.mit_pdos.etcd_grove.examples.lib.remote.counter.Shared
