@@ -200,10 +200,14 @@ theorem vsrnet.codecOk_of (hc : vsrnet.registeredCodecOk (GF := GF))
   ihave #Hs := hs
   isplitr
   · unfold encoding.json.codecOkWith
-    iframe
+    isplitl []
+    · iexact Hm
+    isplitl []
+    · iexact Hu
+    iexact Hs
   imodintro
   iintro %T %hT
-  simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, or_false] at hT
+  simp only [encoding.json.kitTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at hT
   rcases hT with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · iapply (vsrnet.typeCodecOk_event ht.event)
   · iapply (vsrnet.typeCodecOk_of_unmarshal _ (by vr_ty_ne) (by vr_ty_ne) (by vr_ty_ne) ht.request)
