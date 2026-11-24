@@ -1,7 +1,7 @@
 /-
 `b.Bytes()` of the buffer at `b`: a slice of its bytes (it aliases the buffer, which is given up).
 
-The trust boundary: an axiom, `Proof/bytes/Buffer__Bytes.lean` (`bytes.Buffer`'s methods are not translated; `Proof/bytes/Buffer.lean`). Lean-first (no Rocq counterpart).
+Proved in `Proof/bytes/Buffer__Bytes.lean` over Perennial's `bytes.Buffer.Bytes` (mit-pdos/perennial#670; `Proof/bytes/Buffer.lean`). Lean-first (no Rocq counterpart).
 -/
 module
 

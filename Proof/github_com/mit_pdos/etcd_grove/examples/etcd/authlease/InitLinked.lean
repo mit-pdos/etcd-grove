@@ -38,6 +38,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Assumptions]
+variable [promreg_gs : EtcdGrove.prometheus.PromRegGS GF]
 variable [_root_.Perennial.errors.Assumptions]
 variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
 variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
@@ -87,7 +88,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
 from `wp_initialize'_res`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.namesFree (GF := GF) initNames }}
+    {{ ownInitializing get_is_pkg_init ∗ EtcdGrove.prometheus.regsFree (GF := GF) regQs }}
       (App (Val initialize') (Val #()))
     {{ RET #(); ownInitializing get_is_pkg_init ∗
         isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.authlease }} :=

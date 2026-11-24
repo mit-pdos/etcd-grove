@@ -1,6 +1,6 @@
 /-
-`slices.Concat(ss...)` of string slices (Go's `slices`, names only in Perennial): **the trust
-boundary**. Lean-first (no Rocq counterpart).
+`slices.Concat(ss...)` of string slices: the string instance of Perennial's `slices.Concat.spec`,
+proved in `Proof/slices/Concat.lean` (mit-pdos/perennial#670). Lean-first (no Rocq counterpart).
 -/
 module
 

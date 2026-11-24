@@ -37,7 +37,7 @@ theorem mvcc.ReportEventReceived.wp_proof
   iunfold EtcdGrove.prometheus.metric.isGauge at HgR
   icases HgR with ⟨%l, %Hl, #Hcell⟩
   subst Hl
-  ihave #Hprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
+  ihave #Hprom : isPkgInitSome (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
   wp_auto
   wp_apply wp_Sub $$ [$Hcell]

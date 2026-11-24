@@ -25,6 +25,28 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-24: `roundTripperOk` (`SpecPlan/Spec/net/http/Api.lean`) -- a length-framed body's completion fact comes too late
+
+- **Spec.** `SpecPlan/Spec/net/http/Api.lean`, `roundTripperOk` (the body premise
+  `□ (∀ B, Φb B -∗ P.body R τ B)`) and `reqOwn r R bd`; the main tree's `Proof/net/http/Boundary.lean`
+  does not have the defect (its fixed body's bytes are `HReq.body`).
+- **Defect.** Unprovable over Go's Transport for a body of declared length. `NewRequest` of a
+  `*bytes.Buffer`/`*bytes.Reader`/`*strings.Reader` sets `ContentLength = n`, and the Transport writes
+  `Content-Length: n`, then copies `n` bytes of the body, and only then reads on to `EOF`
+  (`transferWriter.writeBody`: `io.LimitReader(body, n)`, then the extra-byte check). The server's body
+  reader returns `EOF` after `n` bytes, and `readerAt_read.spec` makes it give `□ P.body R τ B`. But
+  the client has `Φb B` only after its reader's `EOF`, when the last byte is already on the wire. So the
+  byte protocol cannot carry `P.body` with the request's last byte.
+- **Evidence.** Design of S5's byte protocol (`notes/phase7-plan.md`, "S5 draft signatures", §5 C2);
+  Go 1.27.3 `net/http/transfer.go`, `writeBody`.
+- **Proposed change.** `reqOwn r R bd cl` records the declared length (`cl : Option Nat`, which
+  `NewRequest` sets), and for `cl = some n`, `roundTripperOk` asks
+  `□ ∀ B, Preb B -∗ ⌜B.length = n⌝ -∗ P.body R τ B` in place of the `Φb` clause. `NewBuffer_reader.spec`'s
+  `Pre B := ⌜B <+: ys⌝` gives it at `n = ys.length`. A streamed body (`cl = none`, sent chunked) keeps
+  the `Φb` clause: the terminator is written after the reader's `EOF`.
+- **Decision.** Pending (posted on #24 with the S5 draft; the client boundary's statement, so it needs
+  coordinator-E's and the user's agreement).
+
 ## 2026-11-23: the model's `strings` stand-ins and read-error wrappers removed (`modelCutByte`/`modelTrimLeftByte`, `connectReader`, `connReader.failed`); `parseRequestLine.spec`, `connReader.Read.spec`, the server reader's deadline specs, `Conn.Read.specLc` (net/http and net/rpc models)
 
 - **Spec.** Removed: `Net/Spec/net/http/modelCutByte.lean`, `modelTrimLeftByte.lean`,
@@ -5776,3 +5798,42 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** As above. The examples keep `□ (srvTLSId s -∗ False)` until they take registrations from
   the table.
 - **Decision.** Applied (branch `prove-ps2-s2client/2026-11-23`).
+
+## 2026-11-23: `json.Marshal` of a membership record names its bytes (#24 J2, batch 2)
+
+- **Spec.** `encoding.json.MarshalMember.spec` and `MarshalConfigChangeContext.spec`
+  (`Spec/encoding/json/`): the post was `∃ b, sl ↦* b` (some fresh bytes, the smallest form, an axiom);
+  now `sl ↦* membership.memberJson m ps cs` (resp. `membership.ccJson c ps cs`,
+  `Proof/.../membership/Json.lean`), and both are theorems.
+- **Defect.** None. The post is stronger (the callers, `EtcdServer.AddMember`/`UpdateMember`/`promoteMember`,
+  only drop the binder `b`). #34's bootstrap needs `ctxs = json.Marshal` of each member.
+- **Evidence.** Proved over the encoding/json model's `Marshal` (per-type dispatch, `marshalVia`) and
+  membership's generated `JSONModelMarshal`/`jenc_*` over jsoncodec's proved encoders. Over the model as it
+  was, the old axiom was **not provable**: `jsoncodec.AppendString` panicked on any string outside
+  0x20..0x7e minus `" \ < > &`, and a member's name or URL may hold such bytes (the model was less defined
+  than Go there, so no premise a caller could discharge would do). The model's `AppendString` now writes
+  every string as Go 1.27.3's encoding/json does (approved on #24 by coordinator-E,
+  issuecomment-7118306081; tested exhaustively on short strings, `TestAppendString`).
+- **Proposed change.** As above.
+- **Decision.** Applied (branch `prove-ps2-jsonj4/2026-11-23`).
+## 2026-11-24: v3alarm.AlarmStore.restore: two write-back tokens, the alarm bucket's claim token, a non-nil schema backend (prove-ps2-v3alarm, #43)
+
+- **Spec.** `v3alarm.AlarmStore.restore.spec` and `AlarmStore.Recover.spec` (`Spec/.../etcdserver/api/v3alarm/`), which
+  were proved over `restore`'s trust-boundary axiom; and `schema.NewAlarmBackend.spec`'s post.
+- **Defect.** Three resources the body needs that the statements did not hand in, found by proving `restore` over
+  its body: (1) one write-back token (`backend.wbTok`), where `CreateAlarmBucket`'s deferred `Unlock` and
+  `ForceCommit`'s commit each spend one; (2) no claim token of the alarm bucket, without which the idle part
+  (`rbOwnIn`) says nothing of what `GetAllAlarms`' read transaction sees (a claimed bucket's readers' contents may
+  lag the writer's: the claim invariant links them only for an unclaimed one); (3) nothing saying the schema
+  backend's pointer `abl` is not nil, which `ForceCommit`, a value method called through the pointer, dereferences
+  (Go panics on a nil `*alarmBackend`). Not a bug in Go: `NewAlarmBackend` allocates.
+- **Evidence.** The proof (`Proof/.../v3alarm/AlarmStore__restore.lean`, over `schema.alarmBackend`'s
+  `CreateAlarmBucket`, `GetAllAlarms`, `unsafeGetAllAlarms`, `ForceCommit` and the new backend law
+  `backend.rtHeld_rbOwnIn_idle`, `Proof/.../backend/IdleRead.lean`).
+- **Proposed change.** `restore.spec`/`Recover.spec` take a second `wbTok γB`, `rbClaimToks γB P (· = "alarm")`
+  (handed back in the post) and `⌜abl ≠ null⌝`; `NewAlarmBackend.spec`'s post adds `⌜l ≠ null⌝` (a fresh
+  allocation). The one caller of `Recover`, `SnapApplyWalk` (`applySnapshot`), takes the extra token from the new
+  backend's stock (one fewer for `srvWTStock`), the claim token from the new backend's tokens (split from the auth
+  buckets', which it already handed to the auth store's `Recover`), and the non-nil fact from `NewAlarmBackend`.
+  No top-level statement changes (the tokens come from the backend's constructor inside the proof).
+- **Decision.** Applied (branch `prove-ps2-v3alarm/2026-11-24`); `restore`'s axiom retired.

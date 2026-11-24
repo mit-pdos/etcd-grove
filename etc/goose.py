@@ -570,6 +570,8 @@ PROJECTS = [
             # `gauge`'s field `labelPairs` (`[]*dto.LabelPair`), so that the struct is translated (its
             # methods are, with their bodies). (`counter` also needs `timestamppb`, whose names-only
             # initializer would add two trust-boundary axioms: not taken.)
+            # (prom-registry, route (b), 2026-11-22) and of `Desc.constLabelPairs` (the default registry
+            # is translated)
             "github.com/prometheus/client_model/go",
             # standard-library packages Perennial does not translate: their names are here
             # (encoding/hex: the backend's putSeq check formats keys with it)
@@ -992,9 +994,10 @@ PROJECTS = [
         lean_roots=["models.lab=Net", "net=Net", "os=", "syscall=", "io/fs=", "internal/poll=",
                     "internal/syscall=", "bufio=", "net/url=", "path=", "crypto/tls=", "vendor=Net",
                     "golang.org/x/net/http/httpguts=Net", "go/token=Net", "mime/multipart=Net"],
-        # (`net/http/internal/ascii`: names only, what `readTransfer`'s `parseTransferEncoding` names)
+        # (`net/http/internal/ascii`: names only, what `readTransfer`'s `parseTransferEncoding` names;
+        # `net/http/internal`: the toolchain's chunked writer with its bodies, phase 7 S5)
         packages=["net/rpc", "net/http", "net/textproto", "vendor/golang.org/x/net/http/httpguts",
-                  "go/token", "mime/multipart", "net/http/internal/ascii"],
+                  "go/token", "mime/multipart", "net/http/internal/ascii", "net/http/internal"],
         owned=[os.path.join("net", "rpc"), os.path.join("net", "http"),
                os.path.join("net", "textproto"), os.path.join("mime", "multipart"),
                os.path.join("vendor", "golang_org", "x", "net", "http", "httpguts"),
@@ -2189,7 +2192,7 @@ def dsv_kits():
     d = os.path.join(ROOT, "etc", "dsv")
     out = []
     for f in sorted(os.listdir(d)) if os.path.isdir(d) else []:
-        if not f.endswith(".py") or f.startswith("_"):
+        if not f.endswith(".py") or f.startswith("_") or f == "kitgen.py":  # (the generator)
             continue
         spec = importlib.util.spec_from_file_location("dsv_kit_" + f[:-3], os.path.join(d, f))
         m = importlib.util.module_from_spec(spec)

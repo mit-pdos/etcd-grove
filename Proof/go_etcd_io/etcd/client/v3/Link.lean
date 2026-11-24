@@ -252,6 +252,8 @@ public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Uint
 public import Proof.go_uber_org.zap.zapcore.CheckedEntry__Write
 public import Perennial.Proof.math.Link
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.sync.atomic.Link
 
 @[expose] public section
 
@@ -791,7 +793,7 @@ theorem v3.wp_canceledByCaller :
 
 theorem context.wp_WithCancelTodo :
     EtcdGrove.context.WithCancelTodo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.context.WithCancelTodo.wp_proof
+  EtcdGrove.context.WithCancelTodo.wp_proof _root_.Perennial.context.wp_withCancel _root_.Perennial.context.cancelCtx.wp_cancel _root_.Perennial.context.cancelCtx.wp_propagateCancel _root_.Perennial.context.cancelCtx.wp_Done _root_.Perennial.context.cancelCtx.wp_Err _root_.Perennial.context.cancelCtx.wp_Value _root_.Perennial.sync.atomic.Value.wp_Load
 
 theorem resolver.wp_New :
     EtcdGrove.resolver.New.spec (GF := GF) (hG := hG) :=

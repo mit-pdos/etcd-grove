@@ -17,9 +17,9 @@ sets_Set__Len:
 sets_Set__Delete:
 sets_Set__UnsortedList:
 sets_New: sets_Set__Insert
-slices_Clone:
+slices_Clone: =_root_.Perennial.slices.wp_Clone
 slices_ContainsFunc:
-slices_Concat:
+slices_Concat: =_root_.Perennial.slices.wp_Concat
 validation_IsDomainPrefixedKey:
 validation_IsDNS1123Subdomain:
 field_NewPath:

@@ -9,7 +9,6 @@ axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.rangeStream.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
-axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.v3.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.toGRPCErrorMap_init
@@ -58,11 +57,8 @@ axiom bridge.bridge.Blackhole.wp_proof
 axiom bridge.bridge.DropConnections.wp_proof
 axiom bridge.bridge.Unblackhole.wp_proof
 axiom bridge.bridgeAt
-axiom bytes.Buffer.Bytes.wp_proof
-axiom bytes.Buffer.Write.wp_proof
 axiom cache.wp_Errorf_setArgs
 axiom cmp.Diff.wp_proof_eventRefs
-axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom context.madeCancelCtx_of_isCancelCtx
@@ -75,8 +71,6 @@ axiom dataDirAbsent
 axiom dataDirFresh
 axiom dataDirsApart
 axiom encoding.json.Marshal.wp_proof
-axiom encoding.json.MarshalConfigChangeContext.wp_proof
-axiom encoding.json.MarshalMember.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom envVerifyOffTok
@@ -243,7 +237,6 @@ axiom prometheus.CounterVec.WithLabelValues.wp_proof
 axiom prometheus.GaugeVec.With.wp_proof
 axiom prometheus.GaugeVec.WithLabelValues.wp_proof
 axiom prometheus.HistogramVec.WithLabelValues.wp_proof
-axiom prometheus.MustRegister.wp_proof
 axiom prometheus.NewCounter.wp_proof
 axiom prometheus.NewCounterVec.wp_proof
 axiom prometheus.NewGauge.wp_proof
@@ -251,10 +244,6 @@ axiom prometheus.NewGaugeFunc.wp_proof
 axiom prometheus.NewGaugeVec.wp_proof
 axiom prometheus.NewHistogram.wp_proof
 axiom prometheus.NewHistogramVec.wp_proof
-axiom prometheus.Register.wp_proof
-axiom prometheus.collectorName
-axiom prometheus.nameFree
-axiom prometheus.nameUnclaimed
 axiom proto.Clone.wp_proof
 axiom proto.CloneConfState.wp_proof
 axiom proto.CloneEntry.wp_proof
@@ -310,8 +299,6 @@ axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.NewVersion.wp_proof
 axiom semver.semverValid_simple
-axiom slices.Clone.wp_proof
-axiom slices.Concat.wp_proof
 axiom slices.ContainsFunc.wp_proof
 axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
@@ -342,7 +329,6 @@ axiom txn.WarnOfFailedRequest.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom utilruntime.HandleCrashWithLogger.wp_proof
-axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.ctxCauseOk_cancellable

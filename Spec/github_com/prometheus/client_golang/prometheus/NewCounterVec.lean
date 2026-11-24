@@ -6,6 +6,7 @@ translated initializers rather than one trust-boundary axiom `<X>_init` each.
 module
 
 public import Proof.github_com.prometheus.client_golang.prometheus.Registry
+public import Proof.github_com.prometheus.client_golang.prometheus.RegInv
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 
 @[expose] public section
@@ -41,9 +42,9 @@ abbrev prometheus.NewCounterVec.spec : Prop :=
   {{ (s ↦*{dq} ls : IProp GF) }}
     (App (App (Val (@! github_com.prometheus.client_golang.prometheus.NewCounterVec)) (Val #o)) (Val #s))
   {{ (v : Loc), RET #v; ⌜prometheus.vecLabels v ls⌝ ∗
-      ⌜prometheus.collectorName
+      prometheus.collectorName
         (interface.mk (go.GoType.PointerType github_com.prometheus.client_golang.prometheus.CounterVec.ty) #v)
-        (prometheus.fqName ns sub name)⌝ }}
+        (prometheus.fqName ns sub name) }}
 
 end spec
 
