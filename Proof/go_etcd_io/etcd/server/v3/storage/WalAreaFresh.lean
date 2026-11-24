@@ -62,6 +62,18 @@ def dataAreaFresh (d : GoString) : IProp GF :=
      iprop(Fs.osInv ∗ Fs.osSharedInv R ∗ Fs.osPathS R d (DFrac.own 1) j ∗
       Fs.osCallPerm (Fs.callKey R d) 1 ∗ Fs.osNames j (.except []) (DFrac.own 1) h)))
 
+open Iris.ProofMode in
+/-- **A fresh data directory holds no entry** (2026-11-24, why `wal.bootRes` needs no `dataDirFresh`):
+the caller's whole claim on its names knows none of them to name an entry, so no backend file is at
+`config.backendPathOf d`. -/
+theorem dataAreaFresh_empty (d : GoString) :
+    dataAreaFresh (GF := GF) d ⊢ ∃ h : Fs.NamesH, ⌜∀ b, h.cur !! b = none⌝ := by
+  unfold dataAreaFresh
+  iintro ⟨%S, %ok, %has, %R, %j, %h, %Hp, -⟩
+  iexists h
+  ipureintro
+  exact Hp.2
+
 /-- **A member's fresh areas** (2026-11-19): its WAL area, whose WAL directory is `srvWalDirOf d`, and its
 data directory `d` (`dataAreaFresh`). -/
 def memberAreasFresh (d : GoString) : IProp GF :=
