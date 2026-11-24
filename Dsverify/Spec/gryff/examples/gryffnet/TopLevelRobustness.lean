@@ -35,8 +35,8 @@ every package the initializers reach, dsv-inithyp-fix); `encoding/binary`'s vari
 (`BinaryVarintHyps`); `strings.Index` on a one-byte separator (`StringsIndexHyp`); `sort.Slice` on
 `[]int32` with `<` (`SortSliceHyp`); `math.Pow` (`MathPowHyp`, the main tree's `math.Pow.spec`);
 `math/rand.Seed` (`RandSeedHyp`, the shared `math.rand.Seed.spec`); net/rpc's server over HTTP up
-to the hijack (`RpcHttpAddr`, the listeners' protocols, over the global state; `RpcHttpHyp`, the
-specs, per heap; Upamanyu's intended shapes); net/rpc's and net/http's owned initializations on a
+to the hijack (`RpcHttpHyp`, the specs, per heap; Upamanyu's intended shapes; over the listeners'
+protocols `netRpcHttpAddr`, Net's proved `rpcLisP`, no longer a premise); net/rpc's and net/http's owned initializations on a
 machine where they have not run yet (`RpcBootHyp`: the codec state, `DefaultServer`, the package
 variables their client and server read, the unclaimed `DefaultServeMux`; the table before and
 after agree beyond the package, and the `InitHyp` conditions (`GetIsPkgInitProp`) it takes constrain
@@ -106,11 +106,10 @@ def gryff_remote_robust.spec : Prop :=
     (∀ G L, letI := heapAt G L; replica2.SortSliceHyp remoteGF) →
     (∀ G L, letI := heapAt G L; lib.MathPowHyp remoteGF) →
     (∀ G L, letI := heapAt G L; lib.RandSeedHyp remoteGF) →
-    ∀ (RA : ∀ (G : GooseGlobalGS HasLC.hasLC remoteGF) (π : NetProtoGS), letI := G;
-        RpcHttpAddr remoteGF)
-      (H : ∀ G L (π : NetProtoGS), letI := heapAt G L; letI := RA G π; RpcHttpHyp remoteGF),
-    (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := RA G π; letI := H G L π;
-      RpcBootHyp remoteGF) →
+    ∀ (H : ∀ G L (π : NetProtoGS), letI := heapAt G L;
+        letI := netRpcHttpAddr remoteGF (Gg := G); RpcHttpHyp remoteGF),
+    (∀ G L (π : NetProtoGS), letI := heapAt G L; letI := netRpcHttpAddr remoteGF (Gg := G);
+      letI := H G L π; RpcBootHyp remoteGF) →
     ∀ (σ : Nat → state) (g : GlobalState),
     DistDeploy gryffKitAddrs (system σ) g →
     Robustness.Robust [] (system σ) g (2 ^ 31) (2 ^ 63)

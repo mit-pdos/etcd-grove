@@ -19,9 +19,9 @@ the handshake (`rpcLisP_addr`), and the right to listen at `la` (`rpcLisP_lis`);
 `lisUnset la` at the start (`rpcLisP_set`). `muxHas W A path`: a mux routes `path` to a handler
 serving `W` at every address of `A` (for a wildcard listener, `lisAccepts la`).
 
-**Error answers** (A2/C3): `srvServes` asks `errOk` of each service, today "every non-empty
-message"; the kit's services accept them (`Rpc/Defs.lean`'s `withErr`). When upamanyus restricts
-`errOk` to the server's own messages (`srvErrMsg`), `withErr` shrinks accordingly. **Client.Call's
+**Error answers** (A2/C3): `srvServes` asks `errOk` of each service: the server's own messages
+(`srvErrMsg`, Net's restriction, landed); the kit's services accept every non-empty message
+(`Rpc/Defs.lean`'s `withErr`), a superset (`Server/RpcEnv.lean`'s `withErr_errOk`). **Client.Call's
 errors** (C1): today a non-`ServerError` error comes with `models_lab.errAny`; it is to become
 `∃ msg, errMsg err msg ∗ ⌜msg ≠ []⌝` (no use here needs more than `errAny`).
 
@@ -64,10 +64,10 @@ attribute [local instance] GooseGlobalGS.gooseInvGS
 
 section hyp
 
-/-- **Hypothesis** (the file header), its listeners' part: the protocols of the rpc listener
-addresses, over the global state only (every machine's heap sees the same ones; the start sets
-them before any machine runs). As dsv-epaxos's `RpcHttpAddr`; models-rpc-http `e6b232b2f6` proves
-these (`Net/Proof/net/rpc/Proto.lean`). -/
+/-- The listeners' part: the protocols of the rpc listener addresses, over the global state only
+(every machine's heap sees the same ones; the start sets them before any machine runs). As
+dsv-epaxos's `RpcHttpAddr`. No longer a hypothesis: Net proves it (`netRpcHttpAddr` below), and the
+statement instantiates it so; the proofs stay generic in it. -/
 class RpcHttpAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
     (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS] where
   /-- A listener address's rpc protocols (the file header). -/
@@ -92,6 +92,20 @@ class RpcHttpAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
       lisUnset (Gg := Gg) la ={E}=∗ rpcLisP W la hs hsAns
 
 attribute [instance] RpcHttpAddr.rpcLisP_persistent
+
+/-- **`RpcHttpAddr` holds: Net's listeners' rpc protocols** (models-rpc-http, landed:
+`Net/Proof/net/rpc/Proto.lean`'s `rpcLisP` and its proved laws `rpcLisP_addr`, `rpcLisP_lis`,
+`rpcLisP_ok`, `rpcLisP_set`). A `def`, not an `instance`: the statement gives it to the theorems
+taking `[RpcHttpAddr GF]` (so `RpcHttpAddr` is no premise of the statement any more). -/
+def netRpcHttpAddr [GooseExts] [GooseSemantics] [GooseInterp] [HasExt netExt]
+    (GF : BundledGFunctors) [Gg : GooseGlobalGS HasLC.hasLC GF] [π : NetProtoGS] :
+    RpcHttpAddr GF where
+  rpcLisP := net.rpc.rpcLisP (Gg := Gg)
+  rpcLisP_persistent := fun W la hs hsAns => net.rpc.rpcLisP_persistent W la hs hsAns
+  rpcLisP_addr := fun W la hs hsAns a hok hacc => net.rpc.rpcLisP_addr W la hs hsAns a hok hacc
+  rpcLisP_lis := fun W la hs hsAns => net.rpc.rpcLisP_lis W la hs hsAns
+  rpcLisP_ok := fun W la hs hsAns => net.rpc.rpcLisP_ok W la hs hsAns
+  rpcLisP_set := fun E W la hs hsAns hla hhs => net.rpc.rpcLisP_set E W la hs hsAns hla hhs
 
 /-- **Hypothesis** (the file header): net/rpc's server over HTTP, as models-rpc-http will state
 it (per machine heap, over the listeners' part `RpcHttpAddr`). -/
@@ -199,7 +213,7 @@ def gNoPkg {PROP : Type _} [BI PROP] (q : GoString) (g : GoString → PROP) : Go
 variables its client and server read (`cliEnv`: `io`'s and `sync`'s facts, `io.EOF`,
 `ErrUnexpectedEOF`, `ErrDeadlineExceeded`, `errFrame`, `ErrShutdown`, `debugLog = false`;
 `connected = "200 Connected to Go RPC"`). -/
-def rpcInitRes [H : RpcHttpHyp GF] : IProp GF :=
+def rpcInitRes : IProp GF :=
   iprop(rpcBootRes (GF := GF) ∗ (∃ γs, net.rpc.defaultServer γs) ∗ net.rpc.cliEnv ∗
     globalAddr net.rpc.connected ↦□ net.rpc.connectedStatus)
 

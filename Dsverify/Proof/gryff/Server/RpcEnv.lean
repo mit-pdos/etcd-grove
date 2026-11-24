@@ -43,7 +43,7 @@ theorem withErr_errOk (S : net.rpc.MethodSpec GF) : ⊢ net.rpc.errOk (withErr S
   iintro !> %m %args %Φ %msg %Hmsg HS
   icases HS with ⟨-, Herr⟩
   imodintro
-  iapply Herr $$ %msg %Hmsg
+  iapply Herr $$ %msg %(net.rpc.srvErrMsg_ne msg Hmsg)
 
 end
 

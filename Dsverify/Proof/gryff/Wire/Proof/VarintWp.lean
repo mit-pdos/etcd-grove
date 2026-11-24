@@ -41,9 +41,11 @@ variable [go_gctx : GoGlobalContext]
 variable (GF : BundledGFunctors) [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The varint functions of `encoding/binary`** (hypotheses: Perennial `7b2259a12` translates
-`ReadUvarint`, `ReadVarint`, `PutUvarint`, `PutVarint` names only, `binary.toml`; notes/dsv-gryff.md,
-"Hypotheses"). Each field is the lab's statement of the same name (`Wire/Proof/VarintWp.lean`, which
+/-- **The varint functions of `encoding/binary`** (hypotheses; notes/dsv-gryff.md, "Hypotheses").
+Perennial `7b2259a12` translated `ReadUvarint`, `ReadVarint`, `PutUvarint`, `PutVarint` names only;
+since perennial#689 (in the pin b3f2fc485) Perennial translates and proves them over an
+`io.ByteReader` contract, and deriving these fields from those specs over dsv-bufio's reader would
+discharge the class. Each field is the lab's statement of the same name (`Wire/Proof/VarintWp.lean`, which
 proved them over its own translation of the Go bodies, `Harness/Code/binary_extra.lean`), over
 dsv-bufio's reader here. Never an instance: a premise of the kit's statement. -/
 class BinaryVarintHyps : Prop where
