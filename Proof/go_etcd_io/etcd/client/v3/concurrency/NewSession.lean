@@ -111,6 +111,7 @@ local macro "newsession_rest" sid:term:max lid:term:max : tactic => `(tactic| (
           iframe
       (try wp_auto)
       iapply HΦ
+      iframe Hlt
       iright
       isplitr
       · ipureintro; exact ⟨rfl, Hsnn⟩
@@ -129,7 +130,7 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
     (hCtx : Client.Ctx.spec (GF := GF) (hG := hG)) :
     NewSession.spec (GF := GF) (hG := hG) := by
   intro client cctx sl gs pctx pcs
-  wp_start as ⟨#Hcl, #Hopts, %Hpc, #Hpctx, #Hpcc, #HpC⟩
+  wp_start as ⟨Hlt, #Hcl, #Hopts, %Hpc, #Hpctx, #Hpcc, #HpC⟩
   ihave #Hcl' := Hcl
   iunfold isEtcdSessionClient at Hcl'
   icases Hcl' with ⟨#Hcf, #Hlease, #Hlg⟩
@@ -196,13 +197,14 @@ theorem NewSession.wp_proof (hGL : Client.GetLogger.spec (GF := GF) (hG := hG))
   icases Hl2 with ⟨#HGrant, #HKA, -⟩
   wp_if_destruct
   · (try wp_auto)
-    wp_apply HGrant $$ [$Hpctx $HpC] as %resp %err Hres
+    wp_apply HGrant $$ [$Hlt $Hpctx $HpC] as %resp %err ⟨Hlt, Hres⟩
     icases Hres with (%Herr | ⟨%Herr, %gid, %hdr, %r, #HID, %Hid, #Hhdr, %Hhdrnn, #Hrev, #Hreached⟩)
     · cases err with
       | nil => exact absurd rfl Herr
       | ok e =>
         (try wp_auto)
         iapply HΦ
+        iframe Hlt
         ileft; ipureintro; exact ⟨rfl, fun h => by cases h⟩
     · subst Herr
       (try wp_auto)
