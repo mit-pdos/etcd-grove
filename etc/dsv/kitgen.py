@@ -838,7 +838,7 @@ def main():
     for b in bad:
         print(f'kitgen: {b}')
     if bad:
-        print(f'kitgen: FAILED ({len(bad)} of {nfiles} files differ; run {ME})')
+        print(f'kitgen: FAILED ({len(bad)} failures, {nfiles} generated files and the codecs; run {ME})')
         sys.exit(1)
     print(f'kitgen: ok ({len(names)} kits, {nfiles} files{" up to date" if a.check else ""})')
 

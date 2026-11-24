@@ -120,6 +120,9 @@ KITGEN = dict(
     name='swiftpaxos',
     go_mains=False,
     lean_pkg=f'{SWIFT}.examples.swiftnet',
+    # the net/rpc model's codec (models/net/rpc/rpcgen.py; examples/swiftnet/gen-rpc.sh)
+    codecs=[('rpc', 'examples/dsverify/swiftpaxos/examples/swiftnet/rpc.toml',
+             'examples/dsverify/swiftpaxos/examples/swiftnet', 'swiftnet')],
     roles=[dict(cmd='orch'), dict(cmd='client{id}', ids=list(range(6))),
            dict(cmd='server{id}', ids=list(range(1, 7)))],
     boot=dict(
