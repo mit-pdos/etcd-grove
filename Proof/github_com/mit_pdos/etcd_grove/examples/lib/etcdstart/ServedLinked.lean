@@ -31,9 +31,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **etcd's KV calls registered at the address** (see the file header); under `grpcRepliesFit`
-(`grpc.start`'s). -/
-theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+/-- **etcd's KV calls registered at the address, and the server there etcd's** (see the file
+header; `kv_served` with `etcdKVSrvAt`, what `etcd_noRefusal_at` takes, 2026-11-24); under
+`grpcRepliesFit` (`grpc.start`'s). -/
+theorem kv_served_at (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
     (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
     (HL : srvLevels (GF := GF)) :
@@ -41,7 +42,8 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
         grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid := by
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid ∗
+        etcdKVSrvAt addr s := by
   iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hstk, Hup⟩
   iunfold grpcUp at Hup
   icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
@@ -51,7 +53,7 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
   rw [HCA]
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
+      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis Hleft] with ⟨%γ, Hserv, -, #Hksa, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
   · iframe; iframe #
     iintro !>
     imodintro
@@ -60,8 +62,25 @@ theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   imodintro
   isplitl [Hserv]
   · iexists _; iexact Hserv
+  iframe Hksa
   iunfold etcdKVAt
   iframe #
+
+/-- **etcd's KV calls registered at the address** (see the file header; `kv_served_at` without the
+server's identity); under `grpcRepliesFit` (`grpc.start`'s). -/
+theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
+    (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
+    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
+    (HL : srvLevels (GF := GF)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
+        grpcUp s E ρ γr gs lis addr cid mid R ⊢
+      |={⊤}=> (∃ Svc, grpcServeTok gs lis addr Svc) ∗ etcdKVAt addr E ρ γr cid mid := by
+  iintro H
+  imod (kv_served_at s E ρ γr gs lis addr cid mid R Hrb Hrf hρ HL) $$ H with ⟨Hserv, #Hkv, -⟩
+  imodintro
+  iframe Hserv Hkv
 
 end served
 

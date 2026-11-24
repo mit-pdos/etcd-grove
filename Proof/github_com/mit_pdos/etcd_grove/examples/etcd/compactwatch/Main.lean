@@ -236,20 +236,20 @@ theorem Main.wp_proof
       iapply oneValAu $$ Hinv
     ihave #Hkva := client.kvServerAt_of_is p srv C.A cid mid C.n $$ Hkvs
     rw [HCA]
-    ihave ⟨Hgsn, Hlis, %Hnr⟩ := (EtcdGrove.etcd_noRefusal go!"127.0.0.1:23794" gs q p srv lis R.E
-        { ρ with wait := γw } [il, im, iu] [ims, is] svcs regs sregs Hregs1 HEo) $$
-      [Hgsn Hlis]
-    · iframe Hgsn Hlis; iframe #
     imod (etcd_watch.wk_served_nd hP (EtcdGrove.client.srvWEnv R (etcdstart.srvWOf R.E ρ.rd false) ρ.rd go!"127.0.0.1:23794" [] null null go!"k" null ρ.rd.kv) go!"127.0.0.1:23794"
         gs q p pw srv lis R.E { ρ with wait := γw } ρ.rd cid mid C.n il im iu ims is svcs regs sregs
         Hregs1 rfl rfl hRs rfl (by simp) rfl Hms.watch_impl Hregs2 rfl rfl rfl Hrf Hnd
         (by rw [sync.rwmutex.actualMaxReaders_unseal]; omega) HLv)
-      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #HWF⟩
+      $$ [Hgsn Hlis Hleft HWok] with ⟨Hserv, #HKV, #Hksa, #HWF⟩
     · iframe; iframe #
       iintro !>
       imodintro
       iunfold idCred
       ipureintro; exact Hrb48
+    -- (D29) the member never refuses: the server now at its address is etcd's, authentication off,
+    -- a voter (the members' axiom)
+    ihave %Hnr := EtcdGrove.etcd_noRefusal_at go!"127.0.0.1:23794" srv R.E { ρ with wait := γw } HEo $$ [Hksa]
+    · iframe #
     imodintro
     iframe Hserv HKV HWF
     ipureintro; exact ⟨rfl, Hnr⟩
