@@ -4,8 +4,8 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
 
 * `isSnapshotter ss sd` (persistent): `ss` is a `*snap.Snapshotter` of the directory `sd`
   (`snap.New(lg, dir)`: its fields, the logger and the snapshot directory, set once and read-only
-  after): the persistent cells of its `lg` and `dir` fields (`snapLgAddr`, `snapDirAddr`), the rest
-  an opaque predicate (`snapshotterRO`). (wal-link, 2026-11-19, approved by the user via
+  after): the persistent cells of its `lg` and `dir` fields (`snapLgAddr`, `snapDirAddr`), and of its
+  `fsyncDir` field, `fsyncSnapDir` (`snapshotterRO`; opaque until claim #34, 2026-11-23). (wal-link, 2026-11-19, approved by the user via
   etcd-grove-03: the directory is the `dir` field's cell, so it is fixed per execution by the heap;
   until then a pure opaque function of the location, `snapDBPath ss`, which the bootstrap contracts
   pinned per run: `notes/snapdir-crossworld.md`.)
@@ -14,11 +14,12 @@ its trust-boundary specs. Lean-first (no Rocq counterpart).
   is the snapshot's index, not a member id). `DBFilePath` returns it
   (`Spec/.../snap/Snapshotter__DBFilePath.lean`); the transport's `SaveDBFrom` writes the file there
   (D22 S-i).
-* `snapDirOwn p` and `snapDirIs p γd` (restart S6a, M1; approved by the user 2026-11-13 via
-  etcd-grove-81): the environment's one-time right to the snapshot directory whose files are at the
-  paths `p` (`bootOk`, the first start: the directory holds no `.snap.db` file, and nothing outside
-  the server's snapshotters writes `.snap.db` files there), and the persistent record, made once from
-  it, of the ghost map `γd` that tracks those files (`snapDirInv`, `Proof/.../rafthttp/Net.lean`).
+* `snapDirOwn p` (restart S6a, M1; approved by the user 2026-11-13 via etcd-grove-81; claim #34,
+  2026-11-23, approved by the owner via the coordinator: a file-system claim): the claim on every name
+  of the snapshot directory whose files are at the paths `p` but `db` and the canonical `.snap.db`
+  names (`snapDirNames`), which `bootstrapSnapshot` carves and the directory's invariant holds
+  (`snapDirInv`, `Proof/.../rafthttp/Net.lean`). Until then `snapDirIs p γd` over the opaque
+  `snapDirIsRO`, a right only `bootOk` gave.
 * `msgIs m ml rc` (persistent; D22 S-i): `m` is a `*snap.Message` (`snap.NewMessage(ml, rc,
   size)`: the raft message `ml`, the reader `rc` wrapped in an exact-size reader, the total size
   and the one-slot `closeC` channel), its fields read-only for good (`NewMessage` writes them
@@ -80,6 +81,45 @@ the file-system model's assumption that a path string names one file, as for `co
 and `backend.bPath`. -/
 def snapDBPath (sd : GoString) (i : w64) : GoString := sd ++ slashB :: snapDBName i
 
+/-- A map injective on a duplicate-free list keeps it duplicate-free. -/
+theorem nodup_map_on {α β : Type} (f : α → β) : ∀ (l : List α),
+    (∀ a ∈ l, ∀ b ∈ l, f a = f b → a = b) → l.Nodup → (l.map f).Nodup
+  | [], _, _ => List.nodup_nil
+  | a :: l, hf, hl => by
+    have hl' := List.nodup_cons.1 hl
+    rw [List.map_cons, List.nodup_cons]
+    refine ⟨fun hm => ?_, nodup_map_on f l (fun x hx y hy => hf x (List.mem_cons_of_mem _ hx) y
+      (List.mem_cons_of_mem _ hy)) hl'.2⟩
+    obtain ⟨b, hb, hfb⟩ := List.mem_map.1 hm
+    have := hf b (List.mem_cons_of_mem _ hb) a (List.mem_cons_self ..) hfb
+    subst this
+    exact hl'.1 hb
+
+/-- A list of every `w64`, once, exists (`(List.range (2 ^ 64)).map (BitVec.ofNat 64)`). -/
+theorem allW64_exists : ∃ l : List w64, (∀ i, i ∈ l) ∧ l.Nodup := by
+  refine ⟨(List.range (2 ^ 64)).map (fun n => BitVec.ofNat 64 n), fun i => ?_, ?_⟩
+  · exact List.mem_map.2 ⟨i.toNat, List.mem_range.2 i.isLt, BitVec.ofNat_toNat _ _⟩
+  refine nodup_map_on _ _ ?_ List.nodup_range
+  intro a ha b hb hab
+  have ha' := List.mem_range.1 ha
+  have hb' := List.mem_range.1 hb
+  have := congrArg BitVec.toNat hab
+  simp only [BitVec.toNat_ofNat] at this
+  rw [Nat.mod_eq_of_lt ha', Nat.mod_eq_of_lt hb'] at this
+  exact this
+
+/-- **Every `w64`, once** (`bootSnap.mem_allW64`, `bootSnap.allW64_nodup`): a list with each `w64`
+exactly once, chosen (its order is irrelevant: `snapDirNames` is used as a set of names). Not the
+literal `(List.range (2 ^ 64)).map _`: a definition the kernel can unfold made it unfold the
+`2 ^ 64`-element list when checking `bootSnap.snapDir_carve` (claim #34, 2026-11-24); the kernel
+cannot unfold a choice. -/
+def allW64 : List w64 := Classical.choose allW64_exists
+
+/-- **The names of a snapshot directory that are not its right's** (`snapDirOwn`; claim #34,
+2026-11-23): the backend's database file `db` (`config.backendPathOf`) and every index's database
+snapshot `snapDBName i`. -/
+def snapDirNames : List GoString := go!"db" :: allW64.map snapDBName
+
 /-- The address of the snapshotter `ss`'s logger field (`s.lg`; `snap.Snapshotter` is an
 axiomatized type, so the field is named, not modeled). -/
 abbrev snapLgAddr [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (ss : Loc) : Loc :=
@@ -97,8 +137,18 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `ss`'s fields, read-only (opaque; see the file header). -/
-opaque snapshotterRO (ss : Loc) : IProp GF
+/-- **`ss`'s remaining field, read-only** (claim #34, 2026-11-23, approved by the owner via the
+coordinator, option (a): defined, until then opaque): the `fsyncDir` field holds the package function
+`fsyncSnapDir`, the value `snap.New` stores (`snapshotter.go:34-43`: `&Snapshotter{lg, dir, fsyncDir:
+fsyncSnapDir}`) and `SaveDBFrom` calls on the directory (`s.fsyncDir(s.dir)`, `db.go`). Nothing writes the
+field after `New` (it is unexported, and the package writes it nowhere else). -/
+def snapshotterRO (ss : Loc) : IProp GF :=
+  iprop(structFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter
+      go!"fsyncDir" ss ↦□
+    functions _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.fsyncSnapDir [])
+
+instance snapshotterRO_persistent (ss : Loc) : Persistent (snapshotterRO (GF := GF) ss) := by
+  unfold snapshotterRO; infer_instance
 
 /-- **`ss` is a snapshotter of the directory `sd`** (persistent; see the file header): its `dir`
 field `sd` (wal-link, 2026-11-19), a snapshot directory of etcd's (`cfg.SnapDir()` of some data
@@ -115,39 +165,27 @@ environment; D22 receiver epochs, S8d, 2026-10-24): listing `ss`'s directory doe
 premise excluding the failure is `storage.snapOpensOk`. -/
 opaque dirReadOk (ss : Loc) : Prop
 
-/-- The record that the ghost map `γd` tracks the snapshot directory at the paths `p` (opaque; see
-`snapDirIs`). -/
-opaque snapDirIsRO (p : w64 → GoString) (γd : GName) : IProp GF
+/-- **The program's right to the snapshot directory at the paths `p`** (restart S6a, M1, approved by
+the user 2026-11-13 via etcd-grove-81; claim #34, 2026-11-23, approved by the owner via the coordinator:
+a file-system claim, until then `∀ γd, |==> snapDirIs p γd` over the opaque `snapDirIsRO`, which `bootOk`
+alone gave). `p` is the paths of a directory `sd`'s database snapshots (`p = snapDBPath sd`), and the right
+is the file extension's whole claim on every name of `sd` but those `snapDirNames` lists (`db`, the
+backend's file, and every index's `<16 hex>.snap.db`, whose claims go to the backend and to `snapFreeAll`),
+with shares of `sd`'s path and of its root's call permission, at the program's file-extension instances.
+`bootstrapSnapshot` carves it out of the snapshot directory it makes (`bootSnap.snapDir_carve`), and
+`snapDir_init` puts it in the directory's invariant for good (`snapDirInv`, `Proof/.../rafthttp/Net.lean`).
 
-/-- **The ghost map `γd` tracks the snapshot directory at the paths `p`** (persistent; restart S6a,
-M1, approved by the user 2026-11-13 via etcd-grove-81; see the file header): made only from the
-directory's right `snapDirOwn p`, once (`snapDirOwn_claim`). The directory invariant holds it
-(`snapDirInv`, `Proof/.../rafthttp/Net.lean`), so that the invariant the snapshot axioms
-(`SaveDBFrom`, `Release`) take is the one invariant of its files. -/
-def snapDirIs (p : w64 → GoString) (γd : GName) : IProp GF := iprop(□ snapDirIsRO p γd)
-
-instance snapDirIs_persistent (p : w64 → GoString) (γd : GName) :
-    Persistent (snapDirIs (GF := GF) p γd) := by
-  unfold snapDirIs; infer_instance
-
-/-- **The program's right to the snapshot directory at the paths `p`** (restart S6a, M1; approved by
-the user 2026-11-13 via etcd-grove-81; a named premise about the program's environment, which
-`bootOk` gives at the first start at `p = snapDBPath (config.snapDirOf cfg.DataDir)`, and `bootOkR` never gives).
-The environment assumption: at the first start the snapshot directory holds no `.snap.db` file, and
-nothing outside the server's snapshotters writes `.snap.db` files there (etcd's own
-`bootstrapSnapshot` removes only `tmp*` and `*.snap` files, `bootstrap.go:210-252`, so a `.snap.db`
-file kept from an earlier data directory would stay). Read as: the one ghost map that tracks the
-directory's files from empty may be named, once, by whoever holds the right (`snapDirOwn_claim`,
-consumed by `snapDir_init`). Not exclusive by a law: what makes it one per directory is that the
-environment gives it once. -/
-def snapDirOwn (p : w64 → GoString) : IProp GF := iprop(∀ γd : GName, |==> snapDirIs p γd)
-
-/-- The directory's right names its ghost map (see `snapDirOwn`). -/
-theorem snapDirOwn_claim (p : w64 → GoString) (γd : GName) :
-    snapDirOwn (GF := GF) p ⊢ |==> snapDirIs p γd := by
-  unfold snapDirOwn
-  iintro H
-  iapply H
+What it makes true. The claims of a directory are disjoint (the extension's `NamesCoh.disj`), so while the
+invariant holds this claim no one else holds a claim on any name of `sd` outside `snapDirNames`: no
+proof can have created, or can create, a file under a non-canonical `.snap.db` name (`5.snap.db`, 19
+digits, uppercase hex) or a `tmp*` name there. So `ReleaseSnapDBs`'s removal of such entries and
+`SaveDBFrom`'s temporary file are steps on names only the invariant claims; and a second invariant over
+`sd` would need a second copy of the claim, so the directory's invariant is one per directory (M1). The
+claim's history `h` is free: the axioms that act on these names inside the invariant update it. -/
+def snapDirOwn (p : w64 → GoString) : IProp GF :=
+  backend.onFs iprop(∃ (sd : GoString) (R : Fs.Roots) (J : Fs.Ino) (q qc : Qp) (h : Fs.NamesH),
+    ⌜p = snapDBPath sd⌝ ∗ Fs.osInv ∗ Fs.osSharedInv R ∗ Fs.osPathS R sd (DFrac.own q) J ∗
+    Fs.osCallPerm (Fs.callKey R sd) qc ∗ Fs.osNames J (.except snapDirNames) (DFrac.own 1) h)
 
 instance isSnapshotter_persistent (ss : Loc) (sd : GoString) :
     Persistent (isSnapshotter (GF := GF) ss sd) := by
