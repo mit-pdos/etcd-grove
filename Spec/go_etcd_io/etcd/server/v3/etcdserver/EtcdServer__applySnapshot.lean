@@ -106,7 +106,10 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hdd : cfg.DataDir'.length < 2 ^ 60)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
-    (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
+    -- (D6 T4 round 3, the fork guard, 2026-11-24) the consistent index strictly below the snapshot
+    -- (until then `≤`): the guard's `k ≤ ci` keeps the backend, `specKeep`; the apply thread between
+    -- two entries (`loopOk`'s `pending = false`), for the guard's read
+    (hle : uint.Z (ciEff γ st.k) < uint.Z sv.Metadata'.Index') (hpd : st.pending = false)
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
     -- (R2d'a swap batch 2, 2026-11-06) the rest buckets' image `r0`: any, at `A`'s table
     -- (`srvRestRp`; until then the model of `A`, `srvRest E γr A`, its instance `srvRestRp_model`)
